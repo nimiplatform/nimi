@@ -6,9 +6,10 @@ import { MetaMaskIcon, BinanceIcon, OKXIcon } from './auth-wallet-icons.js';
 export function AuthViewWalletSelect(props: {
   pending: boolean;
   onWalletLogin: (walletType: WalletType) => void;
+  onBack?: () => void;
 }) {
   const { t } = useTranslation();
-  const { pending, onWalletLogin } = props;
+  const { pending, onWalletLogin, onBack } = props;
 
   return (
     <div className="flex flex-col items-center">
@@ -107,6 +108,18 @@ export function AuthViewWalletSelect(props: {
           </span>
         </button>
       </div>
+      {onBack ? (
+        <div className="nimi-shell-auth-secondary-actions">
+          <button
+            type="button"
+            onClick={onBack}
+            disabled={pending}
+            className="nimi-shell-auth-secondary-action"
+          >
+            {t('Common.back', { defaultValue: 'Back' })}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

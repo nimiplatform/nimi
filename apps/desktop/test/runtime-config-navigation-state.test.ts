@@ -81,6 +81,18 @@ test('one-time model import is consumed once and cannot replay on history or sco
   navigation.dispose();
 });
 
+test('returning to a named App configuration preserves its record and owner', async () => {
+  const navigation = createHomeNavigation();
+  const named = { id: 'apps', appId: 'nimi.lab', appSection: 'ai-models', appConfigRef: 'vision' } as const;
+  await navigation.push(named);
+  await navigation.push({ id: 'runtime' });
+  await navigation.back();
+  assert.deepEqual(navigation.getSnapshot().current.destination, named);
+  assert.throws(() => validateHomeDestination({ ...named, appId: undefined }));
+  assert.throws(() => validateHomeDestination({ ...named, appSection: 'overview' }));
+  navigation.dispose();
+});
+
 test('Runtime destination validator refuses unknown fields and preserves explicit references', () => {
   assert.throws(() => validateHomeDestination({ id: 'runtime', runtime: { page: 'legacy' } }));
   assert.throws(() => validateHomeDestination({ id: 'runtime', runtime: { page: 'aiSettings', section: 'downloaded' } }));

@@ -79,6 +79,7 @@ type ImageExecutionHost struct {
 	lifetime       context.Context
 	cancelLifetime context.CancelFunc
 	stopOnce       sync.Once
+	stopErr        error
 }
 
 func NewImageExecutionHost(manager *Manager, logger *slog.Logger, config ImageExecutionHostConfig) *ImageExecutionHost {
@@ -182,7 +183,6 @@ func (h *ImageExecutionHost) Stop() error {
 	if h == nil {
 		return nil
 	}
-	var stopErr error
 	h.stopOnce.Do(func() {
 		h.mu.Lock()
 		h.stopping = true
@@ -196,16 +196,12 @@ func (h *ImageExecutionHost) Stop() error {
 		for _, request := range queued {
 			h.deliver(request, imageExecutionOutcome{err: executionFailure(localexecution.FailureCanceled, fmt.Errorf("image execution host stopped"))})
 		}
+		<-h.stopped
 		if h.substrate != nil {
-			stopErr = h.substrate.Stop()
-		}
-		select {
-		case h.wake <- struct{}{}:
-		default:
+			h.stopErr = h.substrate.Stop()
 		}
 	})
-	<-h.stopped
-	return stopErr
+	return h.stopErr
 }
 
 func (h *ImageExecutionHost) enqueue(request *imageExecutionRequest) bool {
@@ -358,8 +354,8 @@ func (h *ImageExecutionHost) execute(request *imageExecutionRequest) (localexecu
 		return validateInvocationModelContentContext(request.ctx, request.plan.ModelFiles())
 	}, request.progress)
 	if err != nil {
+		_ = h.stopSubstrateForReset("ensure-failed")
 		if request.ctx.Err() != nil {
-			_ = h.stopSubstrateForReset("ensure-canceled")
 			return localexecution.ImageResult{}, executionFailure(localexecution.FailureCanceled, request.ctx.Err())
 		}
 		if kind := localexecution.FailureKindOf(err); kind != "" {
@@ -418,6 +414,11 @@ func (h *ImageExecutionHost) execute(request *imageExecutionRequest) (localexecu
 				return result, executionFailure(localexecution.FailureProcessCrash, fmt.Errorf("image substrate process exited: %w", generateErr))
 			}
 			return result, executionFailure(localexecution.FailureInference, fmt.Errorf("generate image artifact %d: %w", index, generateErr))
+		}
+		if err := request.ctx.Err(); err != nil {
+			_ = h.stopSubstrateForReset("generate-canceled")
+			result.ComputeMS = time.Since(startedAt).Milliseconds()
+			return result, executionFailure(localexecution.FailureCanceled, err)
 		}
 		if artifact.Index == 0 {
 			artifact.Index = index

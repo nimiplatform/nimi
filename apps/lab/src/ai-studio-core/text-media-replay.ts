@@ -1,11 +1,12 @@
 import { browserFilesToDataUrlAttachments, type BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
 import type { NimiLocalAppAssetsClient } from '@nimiplatform/sdk/app';
 import type { StudioManagedArtifact } from './runtime-types.js';
+import { STUDIO_TEXT_MEDIA_MIMES } from './section-ai-testing-input.js';
 import { studioDocumentSha256 } from './text-annotation-document.js';
 
 /** Restore the saved input, never the current composer's unrelated attachment. */
 export function readStudioTextReplayMedia(assets: Pick<NimiLocalAppAssetsClient, 'read'>, source: StudioManagedArtifact, signal: AbortSignal): Promise<BrowserDataUrlAttachment> {
-  return readStudioOwnedReplayMedia(assets, source, signal, ['image/jpeg', 'audio/wav', 'audio/mpeg', 'video/mp4']);
+  return readStudioOwnedReplayMedia(assets, source, signal, STUDIO_TEXT_MEDIA_MIMES);
 }
 
 export function readStudioLocateReplayImage(assets: Pick<NimiLocalAppAssetsClient, 'read'>, source: StudioManagedArtifact, signal: AbortSignal): Promise<BrowserDataUrlAttachment> {

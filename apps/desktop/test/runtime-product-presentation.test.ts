@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { NimiLoadoutRecipe, NimiMachineLoadout, NimiRuntimeLocalVerifiedAssetDescriptor, NimiRuntimeModelAssetRecord } from '@nimiplatform/sdk/runtime';
 import { AppPackageJobPhase } from '@nimiplatform/sdk/runtime/wire-types';
-import { capabilityModelIdentity, configurationVariantLabel, distinctSavedLoadouts, recipeResourceSummary, setupPlanNeedsPreparation } from '../src/shell/renderer/features/runtime-config/runtime-capability-presentation.js';
+import { capabilityModelIdentity, deriveLoadoutDefaultDisplayName, exactRecommendedSlotOffer, recipeResourceSummary, setupPlanNeedsPreparation } from '../src/shell/renderer/features/runtime-config/runtime-capability-presentation.js';
 import type { RuntimeSetupPreparationPlan } from '../src/shell/renderer/features/runtime-config/runtime-setup-task-runner.js';
 import { appJobLane, groupTransferAttempts, interruptionReasonKey, transferLane } from '../src/shell/renderer/features/runtime-config/global-downloads-presentation.js';
 
@@ -11,6 +11,27 @@ const recipe = (contents: string[]) => ({
   slots: contents.map(content => ({ presence: 'required', recommendedContentIds: [content], recommendedVariantIds: [`variant-${content}`] })),
 }) as unknown as NimiLoadoutRecipe;
 const catalog = (contents: string[]) => contents.map(content => ({ contentId: content, templateId: `variant-${content}`, totalSizeBytes: 100 })) as NimiRuntimeLocalVerifiedAssetDescriptor[];
+
+test('a sole installed offer for a different quant cannot satisfy an exact recommendation', () => {
+  const slot = {
+    recommendedVariantIds: ['variant-Q8'], recommendedContentIds: ['Q8'],
+    offers: [{ applicability: 'supported', installedModelAssetId: 'asset-Q4', candidate: { title: 'Model', variantLabel: 'q4.gguf' } }],
+  } as unknown as NimiLoadoutRecipe['slots'][number];
+  const assets = [{ modelAssetId: 'asset-Q4', contentId: 'Q4', contentVerified: true }] as NimiRuntimeModelAssetRecord[];
+  const descriptor = { ...catalog(['Q8'])[0]!, title: 'Model', entry: 'q8.gguf' };
+  const result = exactRecommendedSlotOffer(slot, [descriptor], assets);
+  assert.ok(result);
+  assert.equal(result.offer, undefined);
+  assert.equal(result.installedAsset, undefined);
+  const available = {
+    ...slot.offers[0]!, installedModelAssetId: '', candidate: { ...slot.offers[0]!.candidate, variantLabel: 'q8.gguf', installable: true },
+  };
+  const imported = [{ ...assets[0]!, contentId: 'Q8' }];
+  const acquisition = exactRecommendedSlotOffer({ ...slot, offers: [available] }, [descriptor], imported);
+  assert.equal(acquisition?.descriptor.templateId, 'variant-Q8');
+  assert.equal(acquisition?.offer, undefined, 'a title and filename do not bind an opaque offer');
+  assert.equal(acquisition?.installedAsset, undefined, 'identical bytes from another distribution do not waive the review');
+});
 
 test('model preparation distinguishes cached files from download cost and counts shared content once', () => {
   const result = recipeResourceSummary(recipe(['a', 'b', 'b']), catalog(['a', 'b']), [{ contentId: 'a', contentVerified: true }] as NimiRuntimeModelAssetRecord[]);
@@ -41,15 +62,46 @@ test('capability title preserves the model identity separately from a custom con
   assert.equal(result.alias, 'My custom settings');
 });
 
-test('a generated configuration name shows only its variant beside the model name, a chosen name stays whole', () => {
-  const recipeTitle = 'Gemma 4 text generation';
-  assert.equal(configurationVariantLabel(`${recipeTitle} · Gemma 4 2B · Q8`, recipeTitle, 'Gemma 4'), '2B · Q8');
-  assert.equal(configurationVariantLabel(`${recipeTitle} · Gemma 4 · Q4`, recipeTitle, 'Gemma 4'), 'Q4');
-  assert.equal(configurationVariantLabel(`${recipeTitle} · Gemma 40B · Q4`, recipeTitle, 'Gemma 4'), 'Gemma 40B · Q4', 'another size is not trimmed into a fragment');
-  assert.equal(configurationVariantLabel(`${recipeTitle} · Gemma 4`, recipeTitle, 'Gemma 4'), '');
-  assert.equal(configurationVariantLabel(recipeTitle, recipeTitle, 'Gemma 4'), '');
-  assert.equal(configurationVariantLabel('Long context', recipeTitle, 'Gemma 4'), 'Long context');
-  assert.equal(configurationVariantLabel('Long context', '', 'Long context'), '', 'without a recipe the name is already the title');
+test('generic recipe identity resolves bound model asset name and avoids guessing on shared catalog contentId', () => {
+  const genericRecipe = {
+    recipeId: 'llama.cpp/text-generate/v3',
+    title: 'llama.cpp GGUF text generation',
+    slots: [
+      { slotId: 'main.gguf', presence: 'required', recommendedContentIds: [], recommendedVariantIds: [], offers: [] },
+    ],
+  } as unknown as NimiLoadoutRecipe;
+  const boundLoadout = {
+    recipeId: 'llama.cpp/text-generate/v3',
+    displayName: 'llama.cpp GGUF text generation',
+    modelAxes: [{ slotId: 'main.gguf', modelAssetId: 'asset-qwen', expectedContentId: 'sha256:qwen', presence: 'required' }],
+  } as unknown as NimiMachineLoadout;
+  const qwenAsset = {
+    modelAssetId: 'asset-qwen',
+    contentId: 'sha256:qwen',
+    displayName: 'Qwen3-8B-Q4_K_M-01JABC1234567890ABCDEFGHJK',
+    entry: 'Qwen3-8B-Q4_K_M.gguf',
+    totalSizeBytes: 5_000_000_000,
+    contentVerified: true,
+    files: [],
+  } as unknown as NimiRuntimeModelAssetRecord;
+  const identity = capabilityModelIdentity(boundLoadout, [genericRecipe], [], [qwenAsset]);
+  assert.match(identity.shortTitle, /Qwen3/i);
+  assert.doesNotMatch(identity.shortTitle, /01JABC1234567890ABCDEFGHJK/);
+  assert.equal(deriveLoadoutDefaultDisplayName(genericRecipe, boundLoadout.modelAxes, [], [qwenAsset]), 'Qwen3 8B · Q4');
+
+  // Shared contentId across two distinct logical models must NOT pick the first catalog entry blindly.
+  const ambiguousCatalog = [
+    { contentId: 'sha256:shared', templateId: 'tmpl-a', logicalModelId: 'model-a', title: 'Model A', entry: 'model.bin', totalSizeBytes: 100 },
+    { contentId: 'sha256:shared', templateId: 'tmpl-b', logicalModelId: 'model-b', title: 'Model B', entry: 'model.bin', totalSizeBytes: 100 },
+  ] as unknown as NimiRuntimeLocalVerifiedAssetDescriptor[];
+  const sharedAsset = { ...qwenAsset, modelAssetId: 'asset-shared', contentId: 'sha256:shared', displayName: 'VeVo2 Voice' } as unknown as NimiRuntimeModelAssetRecord;
+  const sharedLoadout = {
+    ...boundLoadout,
+    modelAxes: [{ slotId: 'main.gguf', modelAssetId: 'asset-shared', expectedContentId: 'sha256:shared', presence: 'required' }],
+  } as unknown as NimiMachineLoadout;
+  const sharedIdentity = capabilityModelIdentity(sharedLoadout, [genericRecipe], ambiguousCatalog, [sharedAsset]);
+  assert.equal(sharedIdentity.descriptor, undefined);
+  assert.equal(sharedIdentity.shortTitle, 'VeVo2 Voice');
 });
 
 test('downloads separate interrupted work from canceled history and resumable work', () => {
@@ -86,26 +138,8 @@ test('the use action only skips preparation wording when chosen files and requir
   assert.equal(setupPlanNeedsPreparation(choicePlan, { main: 'cached' }), false);
 });
 
-test('saved configurations that run exactly the same thing are shown once, preferring the selected one', () => {
-  const axes = [{ slotId: 'main.gguf', modelAssetId: 'asset-a', expectedContentId: 'sha256:a' }] as unknown as NimiMachineLoadout['modelAxes'];
-  const same = (loadoutId: string, createdAt: string, extra: Partial<NimiMachineLoadout> = {}) => ({
-    loadoutId, createdAt, capabilityContract: 'text.generate', recipeId: 'recipe', recipeRevision: '1',
-    implementation: { implementationId: 'impl', driverId: 'driver', driverDialect: 'dialect' },
-    options: {}, displayName: 'Gemma 4 text generation', modelAxes: axes,
-    provenance: { desktop_setup_task_id: loadoutId }, ...extra,
-  }) as unknown as NimiMachineLoadout;
-  const loadouts = [
-    same('newest', '2026-09-21T09:59:58Z'),
-    same('oldest', '2026-09-21T07:44:11Z'),
-    same('middle', '2026-09-21T08:24:31Z'),
-    same('other-file', '2026-09-21T08:00:00Z', { modelAxes: [{ ...axes[0]!, modelAssetId: 'asset-b', expectedContentId: 'sha256:b' }] as unknown as NimiMachineLoadout['modelAxes'] }),
-    same('renamed', '2026-09-21T08:00:00Z', { displayName: 'My tuned Gemma' }),
-    same('tuned', '2026-09-21T08:00:00Z', { options: { temperature: 0.2 } }),
-  ];
-  // Without a selection the oldest exact duplicate stands for the group.
-  assert.deepEqual(distinctSavedLoadouts(loadouts).map(item => item.loadoutId), ['oldest', 'other-file', 'renamed', 'tuned']);
-  // The selected duplicate is the one shown, so its "current" badge stays visible.
-  assert.deepEqual(distinctSavedLoadouts(loadouts, 'middle').map(item => item.loadoutId), ['middle', 'other-file', 'renamed', 'tuned']);
-  // A selection outside the group leaves the group's survivor unchanged.
-  assert.deepEqual(distinctSavedLoadouts(loadouts, 'tuned').map(item => item.loadoutId), ['oldest', 'other-file', 'renamed', 'tuned']);
+test('cleanAssetDisplayName strips both uppercase and lowercase importer ULID suffixes', async () => {
+  const { cleanAssetDisplayName } = await import('../src/shell/renderer/features/runtime-config/runtime-config-loadout-model-display.js');
+  assert.equal(cleanAssetDisplayName('local-import-qwen3-4b-q4-k-m-01kze4gy6qzmbt3esrbgh2ddh4'), 'local-import-qwen3-4b-q4-k-m');
+  assert.equal(cleanAssetDisplayName('local-import-gemma-4-26b-a4b-it-q8-0-01KZE4HYP10SQQMXN9YVPMEQBW'), 'local-import-gemma-4-26b-a4b-it-q8-0');
 });

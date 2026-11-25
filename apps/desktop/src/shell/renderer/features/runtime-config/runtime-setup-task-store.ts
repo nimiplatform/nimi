@@ -24,6 +24,8 @@ export type RuntimeSetupTaskSource = {
   readonly kind: RuntimeSetupTaskSourceKind;
   /** Exact consumer App id when the task was opened for one App owner. */
   readonly ownerAppId?: string;
+  /** Exact named App AIConfig record reference when editing a specific record. */
+  readonly configRef?: string;
   /** Account snapshot at task creation; writes stop when it no longer matches. */
   readonly accountId: string;
   /** Navigation-only return handle; grants no authority by itself. */
@@ -115,6 +117,10 @@ export type RuntimeSetupTaskDraft = {
   /** One explicitly reviewed use of a portable Profile; UI task association only. */
   readonly profileUseId?: string;
   readonly profileTitle?: string;
+  /** App capability required features carried from an AIProfile apply prefill. */
+  readonly requiredFeatures?: readonly string[];
+  /** App capability default parameters carried from an AIProfile apply prefill. */
+  readonly defaults?: Readonly<NimiJsonObject>;
 };
 
 export type RuntimeSetupCloudRecommendation = {
@@ -144,6 +150,7 @@ export type RuntimeSetupTaskFailure = {
   readonly stage: RuntimeSetupTaskStage;
   readonly reasonCode?: string;
   readonly message: string;
+  readonly retryAfterSeconds?: number;
   readonly machineSelected?: boolean;
   readonly ownerSaveState?: 'not-saved' | 'unknown';
 };
@@ -153,6 +160,8 @@ export type RuntimeSetupTaskRefs = {
   readonly transferIds: readonly string[];
   /** Current preparation's offer-to-plan links and successful Runtime install receipts. */
   readonly downloadPlans?: Readonly<Record<string, string>>;
+  /** A failed download's exact Runtime plan and reviewed source, for explicit or automatic retry. */
+  readonly rateLimitedInstall?: { readonly planId: string; readonly offerIdentity: string };
   readonly installedOfferRefs?: readonly string[];
   readonly environmentPlanId?: string;
   readonly dependencyJobIds: readonly string[];
@@ -264,6 +273,7 @@ function cloneRefs(refs: RuntimeSetupTaskRefs): RuntimeSetupTaskRefs {
     installPlanIds: [...refs.installPlanIds],
     transferIds: [...refs.transferIds],
     ...(refs.downloadPlans ? { downloadPlans: { ...refs.downloadPlans } } : {}),
+    ...(refs.rateLimitedInstall ? { rateLimitedInstall: { ...refs.rateLimitedInstall } } : {}),
     ...(refs.installedOfferRefs ? { installedOfferRefs: [...refs.installedOfferRefs] } : {}),
     ...(refs.environmentPlanId ? { environmentPlanId: refs.environmentPlanId } : {}),
     dependencyJobIds: [...refs.dependencyJobIds],
@@ -289,6 +299,7 @@ function normalizeSource(raw: unknown): RuntimeSetupTaskSource | null {
   return {
     kind,
     ...(normalizeText(record.ownerAppId) ? { ownerAppId: normalizeText(record.ownerAppId) } : {}),
+    ...(normalizeText(record.configRef) ? { configRef: normalizeText(record.configRef) } : {}),
     accountId: normalizeText(record.accountId),
     ...(normalizeText(record.returnFocus) ? { returnFocus: normalizeText(record.returnFocus) } : {}),
   };
@@ -335,7 +346,11 @@ function normalizeStringList(raw: unknown): string[] {
 function normalizeRefs(raw: unknown): RuntimeSetupTaskRefs {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return emptyRefs();
   const record = raw as Record<string, unknown>;
+  const pending = record.rateLimitedInstall as Record<string, unknown> | undefined;
+  const planId = normalizeText(pending?.planId);
+  const offerIdentity = normalizeText(pending?.offerIdentity);
   return {
+    ...(planId && offerIdentity ? { rateLimitedInstall: { planId, offerIdentity } } : {}),
     installPlanIds: normalizeStringList(record.installPlanIds),
     transferIds: normalizeStringList(record.transferIds),
     ...(normalizeText(record.environmentPlanId)
@@ -353,10 +368,17 @@ function normalizeFailure(raw: unknown): RuntimeSetupTaskFailure | undefined {
   const record = raw as Record<string, unknown>;
   const message = normalizeText(record.message);
   if (!message) return undefined;
+  const retryAfter = typeof record.retryAfterSeconds === 'number'
+    && Number.isInteger(record.retryAfterSeconds)
+    && record.retryAfterSeconds > 0
+    && record.retryAfterSeconds <= 86400
+    ? record.retryAfterSeconds
+    : undefined;
   return {
     stage: normalizeText(record.stage) as RuntimeSetupTaskStage || 'restart-recovery',
     ...(normalizeText(record.reasonCode) ? { reasonCode: normalizeText(record.reasonCode) } : {}),
     message,
+    ...(retryAfter !== undefined ? { retryAfterSeconds: retryAfter } : {}),
     ...(record.machineSelected === true ? { machineSelected: true } : {}),
     ...(record.ownerSaveState === 'not-saved' || record.ownerSaveState === 'unknown'
       ? { ownerSaveState: record.ownerSaveState } : {}),
@@ -450,6 +472,10 @@ function normalizeDraft(raw: unknown): RuntimeSetupTaskDraft | undefined {
   };
   const preferredOffers = normalizeChoices(record.preferredOffers);
   const reviewChoices = normalizeChoices(record.reviewChoices);
+  const requiredFeatures = Array.isArray(record.requiredFeatures)
+    ? normalizeStringList(record.requiredFeatures)
+    : undefined;
+  const defaults = normalizeDraftOptions(record.defaults);
   const draft: RuntimeSetupTaskDraft = {
     ...(normalizeText(record.recipeId) ? { recipeId: normalizeText(record.recipeId) } : {}),
     ...(record.route === 'local' || record.route === 'cloud' ? { route: record.route } : {}),
@@ -467,6 +493,8 @@ function normalizeDraft(raw: unknown): RuntimeSetupTaskDraft | undefined {
     ...(normalizeText(record.profileId) ? { profileId: normalizeText(record.profileId) } : {}),
     ...(normalizeText(record.profileUseId) ? { profileUseId: normalizeText(record.profileUseId) } : {}),
     ...(normalizeText(record.profileTitle) ? { profileTitle: normalizeText(record.profileTitle) } : {}),
+    ...(requiredFeatures !== undefined ? { requiredFeatures } : {}),
+    ...(defaults ? { defaults } : {}),
   };
   return Object.keys(draft).length > 0 ? draft : undefined;
 }

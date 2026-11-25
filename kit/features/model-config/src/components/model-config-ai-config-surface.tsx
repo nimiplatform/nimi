@@ -37,6 +37,7 @@ import {
 } from '../projection.js';
 import type {
   ModelConfigAIConfigOwnerContext,
+  ModelConfigCapabilityPosture,
   ModelConfigCapabilitySection,
   ModelConfigCopy,
   ModelConfigEffectiveSelectionProjection,
@@ -148,7 +149,9 @@ function uniqueContracts(
 function statusBadge(
   posture: ReturnType<typeof modelConfigCapabilityPosture>,
   copy: ResolvedCopy,
+  missingFeatures: readonly string[] = [],
 ): PostureBadge {
+  const withMissingFeatures = (label: string) => missingFeatures.length ? `${label} · ${missingFeatures.join(', ')}` : label;
   switch (posture) {
     case 'local-configured':
     case 'cloud-configured':
@@ -158,12 +161,12 @@ function statusBadge(
       return { label: copy.selectionRequiredLabel, tone: 'warning' };
     case 'local-configuration-blocked':
     case 'cloud-configuration-blocked':
-      return { label: copy.blockedLabel, tone: 'warning' };
+      return { label: withMissingFeatures(copy.blockedLabel), tone: 'warning' };
     case 'local-configuration-unavailable':
     case 'cloud-configuration-unavailable':
       return { label: copy.unavailableLabel, tone: 'warning' };
     case 'local-feature-mismatch':
-      return { label: copy.mismatchLabel, tone: 'warning' };
+      return { label: withMissingFeatures(copy.mismatchLabel), tone: 'warning' };
     case 'not-configured':
       return { label: copy.notConfiguredLabel, tone: 'neutral' };
   }
@@ -222,15 +225,29 @@ function localChoice(
   selection: ModelConfigEffectiveSelectionProjection | null | undefined,
   copy: ResolvedCopy,
   hasCommittedLocalIntent: boolean,
+  intent?: NimiPortableAppAIConfigIntent | null,
 ): Extract<ModelConfigRouteChoice, { readonly route: 'local' }> {
   const local = selection?.resource?.oneofKind === 'local' ? selection.resource.local : null;
+  const effectiveIntent = intent ?? (
+    selection?.capabilityContract
+      ? createNimiLocalAIConfigCapabilityIntent({ capabilityContract: selection.capabilityContract, requiredFeatures: [] })
+      : null
+  );
+  const posture = effectiveIntent ? modelConfigCapabilityPosture(effectiveIntent, selection) : undefined;
+  const missingFeatures = effectiveIntent ? modelConfigMissingRequiredFeatures(effectiveIntent, selection) : [];
   let description = copy.localChoiceDescription;
-  if (selection?.state === 'ready' && local) {
+  let state = selection?.state;
+  if (posture === 'local-feature-mismatch' && missingFeatures.length > 0) {
+    description = copy.localMismatchLabel(missingFeatures.join(', '));
+    state = 'blocked';
+  } else if (selection?.state === 'ready' && local) {
     description = copy.localSelectedLabel;
   } else if (selection?.state === 'missing') {
     description = copy.localMissingLabel;
   } else if (selection?.state === 'blocked') {
-    description = copy.localBrokenLabel;
+    description = missingFeatures.length > 0
+      ? `${copy.localBrokenLabel} ${copy.localMismatchLabel(missingFeatures.join(', '))}`
+      : copy.localBrokenLabel;
   } else if (selection !== undefined && (selection !== null || hasCommittedLocalIntent)) {
     description = copy.localUnavailableLabel;
   }
@@ -239,7 +256,7 @@ function localChoice(
     route: 'local',
     label: local?.label || copy.localLabel,
     description,
-    state: selection?.state,
+    state,
   };
 }
 
@@ -274,7 +291,7 @@ function currentRouteChoice(
   selection: ModelConfigEffectiveSelectionProjection | null | undefined,
   copy: ResolvedCopy,
 ): ModelConfigRouteChoice | null {
-  if (intent?.route.oneofKind === 'local') return localChoice(selection, copy, true);
+  if (intent?.route.oneofKind === 'local') return localChoice(selection, copy, true, intent);
   if (intent?.route.oneofKind !== 'cloud') return null;
   const cloud = intent.route.cloud;
   const target = runtimeAIConfigStructToJson(cloud.providerModelTarget);
@@ -338,7 +355,7 @@ function capabilitySummary(
   if (posture === 'cloud-configured') {
     return cloudModelLabel(intent) || statusBadge(posture, copy).label;
   }
-  if (posture !== 'not-configured') return statusBadge(posture, copy).label;
+  if (posture !== 'not-configured') return statusBadge(posture, copy, modelConfigMissingRequiredFeatures(intent, selection)).label;
   return descriptorDescription(intent?.capabilityContract || descriptor?.capabilityId || '', descriptor, copy);
 }
 
@@ -488,7 +505,7 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
     const selection = props.effectiveSelections === undefined
       ? undefined
       : props.effectiveSelections.find((entry) => entry.capabilityContract === contract) ?? null;
-    const badge = statusBadge(modelConfigCapabilityPosture(intent, selection), copy);
+    const badge = statusBadge(modelConfigCapabilityPosture(intent, selection), copy, modelConfigMissingRequiredFeatures(intent, selection));
     return { contract, descriptor, intent, selection, badge };
   });
   const configuredCount = entries.filter((entry) => entry.badge.tone === 'success').length;
@@ -684,7 +701,7 @@ function CapabilityIntentEditor(props: CapabilityIntentEditorProps) {
 
 function ReadOnlyCapabilityIntentView(props: CapabilityIntentEditorProps) {
   const posture = modelConfigCapabilityPosture(props.currentIntent, props.selection);
-  const badge = statusBadge(posture, props.copy);
+  const badge = statusBadge(posture, props.copy, modelConfigMissingRequiredFeatures(props.currentIntent, props.selection));
   return (
     <div className="min-w-0 space-y-4" data-nimi-model-config-capability={props.capabilityContract} data-nimi-model-config-read-only="true">
       {!props.descriptor ? <InlineAlert tone="warning">{props.copy.unsupportedCapabilityLabel}</InlineAlert> : null}
@@ -791,11 +808,18 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
       }
       setPickerLocalSelection(localSelection);
     }
+    const pickerLocalIntent = props.currentIntent?.route.oneofKind === 'local'
+      ? props.currentIntent
+      : createNimiLocalAIConfigCapabilityIntent({
+          capabilityContract: props.capabilityContract,
+          requiredFeatures: [...(props.currentIntent?.requiredFeatures || [])],
+        });
     const locals: readonly Extract<ModelConfigRouteChoice, { readonly route: 'local' }>[] = props.allowedRoutes.includes('local')
       ? [localChoice(
           localSelection,
           props.copy,
           props.currentIntent?.route.oneofKind === 'local',
+          pickerLocalIntent,
         )]
       : [];
     setCloudError('');
@@ -863,6 +887,9 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
       capabilityContract: props.capabilityContract,
       requiredFeatures: [...(props.currentIntent?.requiredFeatures || [])],
     }) : null;
+  const localDraftPosture = draftChoice?.route === 'local'
+    ? modelConfigCapabilityPosture(localDraftIntent, localDraftSelection)
+    : undefined;
   const missingFeatures = draftChoice?.route === 'local'
     ? modelConfigMissingRequiredFeatures(localDraftIntent, localDraftSelection)
     : [];
@@ -978,7 +1005,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
         ? modelConfigCapabilityPosture(props.currentIntent, props.selection)
         : exactCloudSelection ? 'cloud-configured' : 'not-configured'
       : 'not-configured';
-  const draftBadge = statusBadge(draftPosture, props.copy);
+  const draftBadge = statusBadge(draftPosture, props.copy, missingFeatures);
   const routeDisabled = Boolean(props.disabled) || saving || !props.descriptor;
   const draftRouteAllowed = draftChoice ? props.allowedRoutes.includes(draftChoice.route) : true;
   const modelDetail = draftChoice?.route === 'local'
@@ -1126,6 +1153,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
       {draftChoice?.route === 'local' ? (
         <LocalSelectionSummary
           selection={localDraftSelection}
+          posture={localDraftPosture}
           missingFeatures={missingFeatures}
           copy={props.copy}
           hasCommittedLocalIntent={props.currentIntent?.route.oneofKind === 'local'}
@@ -1243,6 +1271,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
 
 function LocalSelectionSummary(props: {
   readonly selection: ModelConfigEffectiveSelectionProjection | null | undefined;
+  readonly posture?: ModelConfigCapabilityPosture;
   readonly missingFeatures: readonly string[];
   readonly copy: ResolvedCopy;
   readonly hasCommittedLocalIntent: boolean;
@@ -1254,12 +1283,19 @@ function LocalSelectionSummary(props: {
   let message = !props.hasCommittedLocalIntent && selection == null
     ? props.copy.localChoiceDescription
     : props.copy.localUnavailableLabel;
+  let secondaryMismatchMessage = '';
   if (selection?.state === 'missing') {
     toneClass = 'text-[var(--nimi-status-warning)]';
     message = props.copy.localMissingLabel;
+  } else if (props.posture === 'local-feature-mismatch' && props.missingFeatures.length > 0) {
+    toneClass = 'text-[var(--nimi-status-warning)]';
+    message = props.copy.localMismatchLabel(props.missingFeatures.join(', '));
   } else if (selection?.state === 'blocked') {
     toneClass = 'text-[var(--nimi-status-warning)]';
     message = props.copy.localBrokenLabel;
+    if (props.missingFeatures.length > 0) {
+      secondaryMismatchMessage = props.copy.localMismatchLabel(props.missingFeatures.join(', '));
+    }
   } else if (selection?.state === 'ready' && props.missingFeatures.length > 0) {
     toneClass = 'text-[var(--nimi-status-warning)]';
     message = props.copy.localMismatchLabel(props.missingFeatures.join(', '));
@@ -1271,6 +1307,11 @@ function LocalSelectionSummary(props: {
     <div className="flex min-w-0 items-start justify-between gap-3">
       <div className="min-w-0">
         <p className={cn('m-0 text-[length:var(--nimi-type-overline-size)] leading-relaxed', toneClass)}>{message}</p>
+        {secondaryMismatchMessage ? (
+          <p className="m-0 mt-1 text-[length:var(--nimi-type-overline-size)] leading-relaxed text-[var(--nimi-status-warning)]">
+            {secondaryMismatchMessage}
+          </p>
+        ) : null}
         {selection?.state === 'blocked' && selection.reasons.length > 0 ? <details className="text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-text-muted)]"><summary>{props.copy.technicalDetailsLabel}</summary><code>{selection.reasons.join(', ')}</code></details> : null}
       </div>
       {props.onOpenMachineLoadout ? (

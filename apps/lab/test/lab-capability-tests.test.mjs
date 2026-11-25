@@ -417,7 +417,8 @@ test(`text.annotate saves and reopens the complete document after ${statError.re
   assert.equal(result.output.jobId, 'job-annotate');
   assert.equal(result.output.tokenCount, 6);
   assert.equal(result.output.document.mediaType, 'application/json');
-  const written = fake.calls.write[0];
+  const annotationWrites = fake.calls.write.filter((call) => !call.relativePath.startsWith('studio/recovery/'));
+  const written = annotationWrites[0];
   assert.equal(written.overwrite, false);
   assert.equal(result.output.document.sha256, sha256(written.body));
   assert.deepEqual(JSON.parse(Buffer.from(written.body).toString('utf8')), annotation);
@@ -440,7 +441,7 @@ test('annotation storage refusal is not treated as a missing file or a successfu
   assert.equal(result.ok, false);
   assert.equal(result.jobId, 'job-save-refused');
   assert.equal(result.diagnostics.reasonCode, 'LOCAL_APP_SESSION_REVOKED');
-  assert.equal(fake.calls.write.length, 0);
+  assert.equal(fake.calls.write.filter((call) => !call.relativePath.startsWith('studio/recovery/')).length, 0);
   assert.equal(fake.calls.submit.length, 1);
 });
 
@@ -453,7 +454,7 @@ test('text.annotate refuses a result whose documents differ from the submitted t
   const result = await runLabCapability({ capabilityId: 'text.annotate', prompt: SAMPLE, parameters: { language: 'en' } }, ready(fake.client));
   assert.equal(result.ok, false);
   assert.equal(result.jobId, 'job-mismatch');
-  assert.deepEqual(fake.calls.write, [], 'nothing is saved for a mismatched result');
+  assert.deepEqual(fake.calls.write.filter((call) => !call.relativePath.startsWith('studio/recovery/')), [], 'nothing is saved for a mismatched result');
 });
 
 test('known Job IDs and owner reasons survive failure, cancellation and timeout; an unknown Submit is not retried', async () => {

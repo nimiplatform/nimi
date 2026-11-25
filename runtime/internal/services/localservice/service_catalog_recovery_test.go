@@ -1,17 +1,24 @@
 package localservice
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -234,6 +241,25 @@ func TestSearchCatalogModelsCancellationDoesNotBecomePartialSuccess(t *testing.T
 	}
 }
 
+func TestSearchCatalogModelsMatchesRepositoryLinks(t *testing.T) {
+	svc := newTestService(t)
+	svc.hfCatalogSearch = func(_ context.Context, req hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
+		if req.Query != "community/model" {
+			t.Fatalf("unexpected query: %q", req.Query)
+		}
+		return []*runtimev1.LocalCatalogModelDescriptor{{
+			ItemId: "hf_community_model", ModelId: "Community/Model", Repo: "Community/Model",
+			Source: "huggingface", Title: "Community/Model", Revision: immutableHFRevisionForTest,
+		}}, nil
+	}
+	for _, query := range []string{"Community/Model", "hf://Community/Model", "https://huggingface.co/Community/Model"} {
+		response, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{Query: query})
+		if err != nil || len(response.GetItems()) != 1 || response.GetItems()[0].GetTitle() != "Community/Model" {
+			t.Fatalf("search for %q returned %v, %v", query, response, err)
+		}
+	}
+}
+
 func TestSearchCatalogModelsInvalidHFRepoQueryReturnsReasonCode(t *testing.T) {
 	svc := newTestService(t)
 	svc.hfCatalogSearch = defaultHFCatalogSearch
@@ -427,6 +453,405 @@ func TestListHFCatalogVariantsFromDetailsFailsClosedForUnresolvedSafetensorsBund
 	}
 	if catalogOfferInstallable(safeOffer) || safeOffer.totalSizeBytes != 0 {
 		t.Fatalf("direct HF safetensors component was promoted to an install offer: %+v", safeOffer)
+	}
+}
+
+func TestHFNumberedGGUFPartsAreNotStandaloneAcquisitions(t *testing.T) {
+	hash := strings.Repeat("a", 64)
+	var details hfModelDetails
+	for _, entry := range []string{"nested/m-00001-of-00002.gguf", "nested/m-00002-of-00002.gguf", "alt-00001-of-00002.gguf_file", "single-00001-of-00001.gguf"} {
+		details.Siblings = append(details.Siblings, hfModelSibling{Rfilename: entry, Lfs: &hfModelSiblingLFS{Size: 144, Sha256: hash}})
+	}
+	variants := listHFCatalogVariantsFromDetails(&details)
+	if len(variants) != len(details.Siblings) {
+		t.Fatalf("shards should remain discoverable: %v", variants)
+	}
+	for _, variant := range variants {
+		offer, err := catalogOfferFromHFVariant("org/model", immutableHFRevisionForTest, variant)
+		if err != nil {
+			t.Fatal(err)
+		}
+		single := variant.Entry == "single-00001-of-00001.gguf"
+		if catalogOfferInstallable(offer) != single || (single && len(offer.hashes) != 1) {
+			t.Fatalf("incorrect distribution for %s: %v", variant.Entry, offer)
+		}
+	}
+	const source = "nested/m-00001-of-00002.gguf"
+	svc := newTestService(t)
+	_, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
+		Source: "huggingface", Repo: "org/model", Revision: immutableHFRevisionForTest, Entry: source,
+		Hashes: map[string]string{source: hash}, Capabilities: []string{"text.generate"},
+	})
+	if code, _ := grpcerr.ExtractReasonCode(err); code != runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID {
+		t.Fatalf("partial portable source: %v", err)
+	}
+}
+
+func TestHFCatalogReviewsOnlySelectedStandaloneCheckpoint(t *testing.T) {
+	xlShapes := map[string][]int64{
+		"model.diffusion_model.input_blocks.0.0.weight":                                       {320, 4, 3, 3},
+		"model.diffusion_model.out.2.weight":                                                  {4, 320, 3, 3},
+		"conditioner.embedders.0.transformer.text_model.embeddings.token_embedding.weight":    {49408, 768},
+		"conditioner.embedders.0.transformer.text_model.encoder.layers.11.layer_norm2.weight": {768},
+		"conditioner.embedders.1.model.token_embedding.weight":                                {49408, 1280},
+		"conditioner.embedders.1.model.transformer.resblocks.31.ln_2.weight":                  {1280},
+		"first_stage_model.encoder.conv_in.weight":                                            {128, 3, 3, 3},
+		"first_stage_model.decoder.conv_in.weight":                                            {512, 4, 3, 3},
+		"first_stage_model.decoder.conv_out.weight":                                           {3, 128, 3, 3},
+		"first_stage_model.encoder.mid.block_1.norm1.weight":                                  {512},
+		"first_stage_model.decoder.mid.block_1.norm1.weight":                                  {512},
+		"model.diffusion_model.middle_block.1.transformer_blocks.0.attn2.to_k.weight":         {1280, 2048},
+		"model.diffusion_model.output_blocks.8.0.in_layers.0.weight":                          {640},
+	}
+	sd1Shapes := map[string][]int64{
+		"model.diffusion_model.input_blocks.0.0.weight":                                {320, 4, 3, 3},
+		"model.diffusion_model.out.2.weight":                                           {4, 320, 3, 3},
+		"first_stage_model.encoder.conv_in.weight":                                     {128, 3, 3, 3},
+		"first_stage_model.encoder.mid.block_1.norm1.weight":                           {512},
+		"first_stage_model.decoder.conv_in.weight":                                     {512, 4, 3, 3},
+		"first_stage_model.decoder.mid.block_1.norm1.weight":                           {512},
+		"first_stage_model.decoder.conv_out.weight":                                    {3, 128, 3, 3},
+		"cond_stage_model.transformer.text_model.embeddings.token_embedding.weight":    {49408, 768},
+		"cond_stage_model.transformer.text_model.encoder.layers.11.layer_norm2.weight": {768},
+		"model.diffusion_model.middle_block.1.transformer_blocks.0.attn2.to_k.weight":  {1280, 768},
+		"model.diffusion_model.output_blocks.11.0.in_layers.0.weight":                  {640},
+	}
+	makeHeader := func(shapes map[string][]int64) ([]byte, int64) {
+		var tensorBytes int64
+		meta := map[string]any{}
+		for name, shape := range shapes {
+			n := int64(2)
+			for _, dim := range shape {
+				n *= dim
+			}
+			meta[name] = map[string]any{"dtype": "F16", "shape": shape, "data_offsets": []int64{tensorBytes, tensorBytes + n}}
+			tensorBytes += n
+		}
+		raw, err := json.Marshal(meta)
+		if err != nil {
+			t.Fatal(err)
+		}
+		header := binary.LittleEndian.AppendUint64(nil, uint64(len(raw)))
+		header = append(header, raw...)
+		return header, int64(len(header)) + tensorBytes
+	}
+	header, size := makeHeader(xlShapes)
+	sd1Header, sd1Size := makeHeader(sd1Shapes)
+	hash := strings.Repeat("a", 64)
+	full := hfCatalogVariant{Entry: "full.safetensors", Format: "safetensors", SizeBytes: size, SHA256: hash, Revision: immutableHFRevisionForTest}
+	sd1 := full
+	sd1.Entry, sd1.SizeBytes = "classic.safetensors", sd1Size
+	shard := full
+	shard.Entry = "model-00001-of-00002.safetensors"
+	component := full
+	component.Entry = "vae/model.safetensors"
+	partialCheckpoint := full
+	partialCheckpoint.Entry = "partial.safetensors"
+	missingHash := full
+	missingHash.Entry, missingHash.SHA256 = "no-hash.safetensors", ""
+	wrongSize := full
+	wrongSize.Entry = "wrong-size.safetensors"
+	short := full
+	short.Entry = "interrupted.safetensors"
+	var probeHits int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&probeHits, 1)
+		if r.Header.Get("Range") != "bytes=0-4194303" {
+			t.Errorf("unbounded or wrong range %q", r.Header.Get("Range"))
+		}
+		responseSize := size
+		if strings.HasSuffix(r.URL.Path, "/classic.safetensors") {
+			responseSize = sd1Size
+		}
+		w.Header().Set("Content-Range", fmt.Sprintf("bytes 0-4194303/%d", responseSize))
+		w.WriteHeader(http.StatusPartialContent)
+		switch r.URL.Path {
+		case "/org/model/resolve/" + immutableHFRevisionForTest + "/full.safetensors":
+			_, _ = w.Write(header)
+		case "/org/model/resolve/" + immutableHFRevisionForTest + "/classic.safetensors":
+			_, _ = w.Write(sd1Header)
+		case "/org/model/resolve/" + immutableHFRevisionForTest + "/vae/model.safetensors":
+			changed := bytes.ReplaceAll(header, []byte("first_stage_model"), []byte("other_stage_model"))
+			_, _ = w.Write(changed)
+		case "/org/model/resolve/" + immutableHFRevisionForTest + "/partial.safetensors":
+			_, _ = w.Write(bytes.ReplaceAll(header, []byte("middle_block"), []byte("absent_block")))
+		case "/org/model/resolve/" + immutableHFRevisionForTest + "/wrong-size.safetensors":
+			_, _ = w.Write(bytes.ReplaceAll(header, []byte("F16"), []byte("F32")))
+		case "/org/model/resolve/" + immutableHFRevisionForTest + "/interrupted.safetensors":
+			_, _ = w.Write(header[:8])
+		default:
+			t.Errorf("unexpected metadata fetch %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	svc := newTestService(t)
+	variants := []hfCatalogVariant{full, sd1, shard, component, partialCheckpoint, missingHash, wrongSize, short}
+	svc.hfDownloadBaseURL = server.URL
+	svc.hfCatalogVariants = func(context.Context, string, string) ([]hfCatalogVariant, error) {
+		return variants, nil
+	}
+	for _, v := range variants {
+		offer, err := catalogOfferFromHFVariant("org/model", immutableHFRevisionForTest, v)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{OfferRef: offer.offerRef})
+		if v.Entry == short.Entry {
+			if status.Code(err) != codes.Unavailable {
+				t.Fatalf("incomplete response was classified as a reviewed file: %v", err)
+			}
+			continue
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		plan := res.GetPlan()
+		standalone := v.Entry == full.Entry || v.Entry == sd1.Entry
+		if plan.GetInstallAvailable() != standalone {
+			t.Fatalf("%s: installable=%v", v.Entry, plan.GetInstallAvailable())
+		}
+		if standalone && (len(plan.GetFiles()) != 1 || plan.GetFiles()[0] != v.Entry || plan.GetHashes()[v.Entry] != hash || plan.GetTotalSizeBytes() != v.SizeBytes || plan.GetRevision() != immutableHFRevisionForTest) {
+			t.Fatalf("unexpected plan: %v", plan)
+		}
+		if v.Entry == full.Entry && (slices.Contains(plan.GetWarnings(), "WARN_NO_HOST_RECIPE_SD1") || slices.Contains(plan.GetWarnings(), "WARN_COMMUNITY_RECIPE_COMPATIBILITY_UNVERIFIED")) {
+			t.Fatalf("SDXL checkpoint should not carry unsupported-recipe warning: %v", plan.GetWarnings())
+		}
+		if v.Entry == sd1.Entry && !slices.Contains(plan.GetWarnings(), "WARN_NO_HOST_RECIPE_SD1") {
+			t.Fatalf("SD 1.x checkpoint must warn before download when no SD 1.x recipe exists: %v", plan.GetWarnings())
+		}
+	}
+	hitsBeforeRepeat := atomic.LoadInt32(&probeHits)
+	fullOffer, err := catalogOfferFromHFVariant("org/model", immutableHFRevisionForTest, full)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{OfferRef: fullOffer.offerRef}); err != nil {
+		t.Fatalf("cached checkpoint review failed: %v", err)
+	}
+	if got := atomic.LoadInt32(&probeHits); got != hitsBeforeRepeat {
+		t.Fatalf("repeat immutable checkpoint probe made %d extra HTTP requests", got-hitsBeforeRepeat)
+	}
+}
+
+func TestPortableSourceMainPinsResolvedCommitAndSurvivesBranchMove(t *testing.T) {
+	commitA := strings.Repeat("a", 40)
+	commitB := strings.Repeat("b", 40)
+	payload := append([]byte("GGUF"), bytes.Repeat([]byte{1}, 64)...)
+	digestBytes := sha256.Sum256(payload)
+	payloadHash := hex.EncodeToString(digestBytes[:])
+	branchMoved := atomic.Bool{}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.EscapedPath() {
+		case "/api/models/community/untagged-model":
+			sha := commitA
+			if branchMoved.Load() {
+				sha = commitB
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"id": "community/untagged-model", "modelId": "community/untagged-model", "sha": sha,
+			})
+		case "/api/models/community/untagged-model/revision/release%2Fv2":
+			_ = json.NewEncoder(w).Encode(map[string]string{"sha": commitB})
+		case "/api/models/community/untagged-model/revision/" + commitA, "/api/models/community/untagged-model/revision/" + commitB:
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"id": "community/untagged-model", "modelId": "community/untagged-model",
+				"sha": strings.TrimPrefix(r.URL.Path, "/api/models/community/untagged-model/revision/"),
+				"siblings": []map[string]any{{
+					"rfilename": "model-q4.gguf",
+					"lfs":       map[string]any{"size": len(payload), "sha256": payloadHash},
+				}},
+			})
+		case "/community/untagged-model/resolve/" + commitA + "/model-q4.gguf":
+			_, _ = w.Write(payload)
+		case "/community/untagged-model/resolve/main/model-q4.gguf":
+			http.Error(w, "branch moved to different weights", http.StatusNotFound)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := newTestService(t)
+	svc.hfCatalogSearch = nil
+	svc.hfCatalogEndpoint = server.URL + "/api/models"
+	svc.hfDownloadBaseURL = server.URL
+	request := &runtimev1.ResolveModelInstallPlanRequest{
+		Source: "huggingface", Repo: "community/untagged-model", Revision: "main",
+		Capabilities: []string{"text.generate"}, Entry: "model-q4.gguf",
+		Files: []string{"model-q4.gguf"}, Hashes: map[string]string{"model-q4.gguf": payloadHash},
+	}
+	resolved, err := svc.ResolveModelInstallPlan(context.Background(), request)
+	if err != nil {
+		t.Fatalf("resolve plan for main branch: %v", err)
+	}
+	plan := resolved.GetPlan()
+	if plan.GetRevision() != commitA {
+		t.Fatalf("plan revision = %q, want pinned commit %q", plan.GetRevision(), commitA)
+	}
+	if !slices.Contains(plan.GetWarnings(), "WARN_COMMUNITY_RECIPE_COMPATIBILITY_UNVERIFIED") {
+		t.Fatalf("community GGUF plan missing unverified-recipe warning: %v", plan.GetWarnings())
+	}
+	request.Revision = "release/v2"
+	branchPlan, err := svc.ResolveModelInstallPlan(context.Background(), request)
+	if err != nil || branchPlan.GetPlan().GetRevision() != commitB {
+		t.Fatalf("resolve named branch: plan=%v err=%v", branchPlan.GetPlan(), err)
+	}
+
+	// Simulate upstream moving main before download begins.
+	branchMoved.Store(true)
+	installed, err := svc.InstallModelFromPlan(context.Background(), &runtimev1.InstallModelFromPlanRequest{PlanId: plan.GetPlanId()})
+	if err != nil {
+		t.Fatalf("install from pinned commit after branch move: %v", err)
+	}
+	provenance := installed.GetModelAsset().GetProvenance().AsMap()
+	if got := provenance["source_revision"]; got != commitA {
+		t.Fatalf("persisted provenance source_revision = %v, want %q", got, commitA)
+	}
+}
+
+func TestHFRateLimitPreservesRetryAfterAndUsesImmutableCache(t *testing.T) {
+	commit := strings.Repeat("d", 40)
+	payload := append([]byte("GGUF"), bytes.Repeat([]byte{2}, 64)...)
+	digestBytes := sha256.Sum256(payload)
+	payloadHash := hex.EncodeToString(digestBytes[:])
+
+	var variantHits int32
+	rateLimited := atomic.Bool{}
+	rateLimited.Store(true)
+	downloadRateLimited := atomic.Bool{}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/models/org/cached/revision/"+commit {
+			atomic.AddInt32(&variantHits, 1)
+			if rateLimited.Load() {
+				w.Header().Set("RateLimit", `"api";r=0;t=42`)
+				w.WriteHeader(http.StatusTooManyRequests)
+				return
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"id": "org/cached", "modelId": "org/cached", "sha": commit,
+				"siblings": []map[string]any{{
+					"rfilename": "model.gguf",
+					"lfs":       map[string]any{"size": len(payload), "sha256": payloadHash},
+				}},
+			})
+			return
+		}
+		if r.URL.Path == "/org/cached/resolve/"+commit+"/model.gguf" {
+			if downloadRateLimited.Load() {
+				w.Header().Set("Retry-After", "55")
+				w.WriteHeader(http.StatusTooManyRequests)
+				return
+			}
+			_, _ = w.Write(payload)
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	svc := newTestService(t)
+	svc.hfCatalogSearch = nil
+	svc.hfCatalogEndpoint = server.URL + "/api/models"
+	svc.hfDownloadBaseURL = server.URL
+
+	locator, err := newModelAssetModelLocator("huggingface", "org/cached", commit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = svc.ListCatalogVariants(context.Background(), &runtimev1.ListCatalogVariantsRequest{ModelLocator: locator})
+	assertGRPCReasonCode(t, err, "ListCatalogVariants 429", runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED)
+	if status.Code(err) != codes.ResourceExhausted {
+		t.Fatalf("ListCatalogVariants 429 code = %v, want ResourceExhausted", status.Code(err))
+	}
+	meta, ok := grpcerr.ExtractReasonMetadata(err)
+	if !ok || meta["retry_after_seconds"] != "42" || meta["retryable"] != "true" {
+		t.Fatalf("ListCatalogVariants 429 metadata = %v (ok=%v)", meta, ok)
+	}
+
+	req := &runtimev1.ResolveModelInstallPlanRequest{
+		Source: "huggingface", Repo: "org/cached", Revision: commit,
+		Capabilities: []string{"text.generate"}, Entry: "model.gguf",
+		Files: []string{"model.gguf"}, Hashes: map[string]string{"model.gguf": payloadHash},
+	}
+	_, err = svc.ResolveModelInstallPlan(context.Background(), req)
+	assertGRPCReasonCode(t, err, "ResolveModelInstallPlan 429", runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED)
+
+	// Once rate-limit window clears, the immutable revision response is cached.
+	rateLimited.Store(false)
+	hitsBefore := atomic.LoadInt32(&variantHits)
+	firstPlan, err := svc.ResolveModelInstallPlan(context.Background(), req)
+	if err != nil {
+		t.Fatalf("first resolve after cooldown: %v", err)
+	}
+	if _, err := svc.ResolveModelInstallPlan(context.Background(), req); err != nil {
+		t.Fatalf("second resolve using immutable cache: %v", err)
+	}
+	if got := atomic.LoadInt32(&variantHits) - hitsBefore; got != 1 {
+		t.Fatalf("immutable variant lookup made %d HTTP calls, want 1", got)
+	}
+
+	// Download 429 returns AI_PROVIDER_RATE_LIMITED and keeps the transfer retryable.
+	downloadRateLimited.Store(true)
+	_, err = svc.InstallModelFromPlan(context.Background(), &runtimev1.InstallModelFromPlanRequest{PlanId: firstPlan.GetPlan().GetPlanId()})
+	assertGRPCReasonCode(t, err, "InstallModelFromPlan 429", runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED)
+	dlMeta, _ := grpcerr.ExtractReasonMetadata(err)
+	if dlMeta["retry_after_seconds"] != "55" {
+		t.Fatalf("download 429 metadata = %v, want retry_after_seconds=55", dlMeta)
+	}
+	transfers, listErr := svc.ListLocalTransfers(context.Background(), &runtimev1.ListLocalTransfersRequest{})
+	if listErr != nil || len(transfers.GetTransfers()) == 0 || !transfers.GetTransfers()[0].GetRetryable() {
+		t.Fatalf("download 429 transfer should stay retryable: %+v err=%v", transfers, listErr)
+	}
+	original := transfers.GetTransfers()[0]
+	if original.GetPlanId() != firstPlan.GetPlan().GetPlanId() || !slices.Contains(original.GetAvailableActions(), runtimev1.LocalTransferAction_LOCAL_TRANSFER_ACTION_RESUME) {
+		t.Fatalf("original install plan has no resumable transfer: %v", original)
+	}
+	downloadRateLimited.Store(false)
+	sessionID := original.GetInstallSessionId()
+	if _, err := svc.ResumeLocalTransfer(context.Background(), &runtimev1.ResumeLocalTransferRequest{InstallSessionId: sessionID}); err != nil {
+		t.Fatal(err)
+	}
+	waitTransferStateForTest(t, svc, sessionID, localTransferStateCompleted)
+	completed := svc.localTransferSummary(sessionID)
+	asset, err := svc.GetModelAsset(context.Background(), &runtimev1.GetModelAssetRequest{ModelAssetId: completed.GetAssetId()})
+	if err != nil || asset.GetAsset().GetContentId() != "sha256:"+payloadHash {
+		t.Fatalf("resumed transfer returned wrong content: %v, err=%v", asset, err)
+	}
+}
+
+func TestPortableSourceUsesRecordedRevisionAndExactHash(t *testing.T) {
+	svc := newTestService(t)
+	pinned := strings.Repeat("b", 40)
+	hash := strings.Repeat("a", 64)
+	svc.hfCatalogSearch = func(context.Context, hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
+		t.Fatal("pinned acquisition must not depend on current search results")
+		return nil, nil
+	}
+	svc.hfCatalogVariants = func(_ context.Context, repo, rev string) ([]hfCatalogVariant, error) {
+		if repo != "org/model" || rev != pinned {
+			t.Fatalf("unexpected source %s@%s", repo, rev)
+		}
+		return []hfCatalogVariant{{Revision: pinned, Entry: "model.gguf", SHA256: hash, SizeBytes: 1024}}, nil
+	}
+	req := &runtimev1.ResolveModelInstallPlanRequest{Source: "huggingface", Repo: "org/model", Revision: pinned, Capabilities: []string{"text.generate"}, Entry: "model.gguf", Files: []string{"model.gguf"}, Hashes: map[string]string{"model.gguf": hash}}
+	result, err := svc.ResolveModelInstallPlan(context.Background(), req)
+	if err != nil || !result.GetPlan().GetInstallAvailable() || result.GetPlan().GetRevision() != pinned {
+		t.Fatalf("pinned recovery: %v %v", result, err)
+	}
+	req.Hashes["model.gguf"] = strings.Repeat("c", 64)
+	if _, err = svc.ResolveModelInstallPlan(context.Background(), req); status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("wrong hash accepted: %v", err)
+	}
+}
+
+func TestHFHeadRejectsDotRevisionSegments(t *testing.T) {
+	for _, revision := range []string{".", "refs/../main"} {
+		_, err := fetchHFRepoHeadRevision(context.Background(), http.DefaultClient, "https://example.invalid/api/models", "org/model", revision)
+		if !errors.Is(err, errHfRepoInvalid) {
+			t.Fatalf("revision %q: %v", revision, err)
+		}
 	}
 }
 

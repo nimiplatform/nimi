@@ -62,6 +62,7 @@ export function RuntimeLocalModelListSection(props: {
   readonly tasks: readonly RuntimeSetupTask[];
   readonly onOpenCapability: (capability: string) => void;
   readonly onOpenConfiguration: (configuration: LocalModelConfiguration) => void;
+  readonly onUseAssetForNewConfig?: (modelAssetId: string) => void;
   readonly onOpenModelFiles?: () => void;
   readonly onOpenTask?: (taskId: string) => void;
 }) {
@@ -147,6 +148,7 @@ export function RuntimeLocalModelListSection(props: {
                   tasks={props.tasks}
                   onOpenCapability={props.onOpenCapability}
                   onOpenConfiguration={props.onOpenConfiguration}
+                  onUseAssetForNewConfig={props.onUseAssetForNewConfig}
                   onOpenModelFiles={props.onOpenModelFiles}
                   onOpenTask={props.onOpenTask}
                 />
@@ -169,6 +171,7 @@ function VariantCard(props: {
   readonly tasks: readonly RuntimeSetupTask[];
   readonly onOpenCapability: (capability: string) => void;
   readonly onOpenConfiguration: (configuration: LocalModelConfiguration) => void;
+  readonly onUseAssetForNewConfig?: (modelAssetId: string) => void;
   readonly onOpenModelFiles?: () => void;
   readonly onOpenTask?: (taskId: string) => void;
 }) {
@@ -249,7 +252,7 @@ function VariantCard(props: {
                 </span>
               ))}
           </div>
-          {companionOnly ? (
+          {companionOnly && variant.configurations.length > 0 ? (
             <p className="text-xs text-[var(--nimi-text-secondary)]">
               {t('runtimeConfig.localModels.usedBy', {
                 configurations: [...new Set(variant.configurations.map((item) => item.displayName || label(item.capability)))].join(' · '),
@@ -301,6 +304,16 @@ function VariantCard(props: {
                 {t('runtimeConfig.localModels.configure', { capability: label(capability) })}
               </Button>
             ))}
+          {props.onUseAssetForNewConfig && variant.assetIds[0] && (variant.useNotIdentified || configurable.length === 0) ? (
+            <Button
+              tone={hasConfigurations ? 'ghost' : 'secondary'}
+              size="sm"
+              onClick={() => props.onUseAssetForNewConfig?.(variant.assetIds[0]!)}
+              data-testid={`local-model-use-new-config:${variant.contentId}`}
+            >
+              {t('runtimeConfig.localModels.useForNewConfig')}
+            </Button>
+          ) : null}
           {variant.useNotIdentified && props.onOpenModelFiles ? (
             <Button tone="ghost" size="sm" onClick={props.onOpenModelFiles}>
               {t('runtimeConfig.localModels.openLibrary')}

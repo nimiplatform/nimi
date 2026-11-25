@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, Route, Routes, useBeforeUnload, useBlocker, useLocation, useOutletContext } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useBeforeUnload, useBlocker, useLocation, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { WebAccountAuthPage } from '@nimiplatform/kit/auth';
-import { isNimiRealmExpectedAnonymousSessionError } from '@nimiplatform/sdk/realm';
+import { fetchNimiRealmPendingFriendRequests, isNimiRealmExpectedAnonymousSessionError } from '@nimiplatform/sdk/realm';
 import { createWebBrowserRealm, webRealmOrigin } from './browser-realm.js';
 import { createWebAccountAuthAdapter, loadWebCurrentAccount } from './web-account-adapter.js';
 import { AccountSecurityControls } from './account-security-controls.js';
@@ -12,21 +12,23 @@ import {
   type AccountTerminationReceipt,
 } from './account-terminal-state.js';
 import { webHomeAuthPalette } from './web-auth-appearance.js';
+import { resolveWebAuthAlternatives } from './web-provider-link.js';
 import {
   AccountDraftDialog,
   AccountFeedback,
   AccountFrame,
   AccountHeading,
-  AccountOverview,
   AccountSignedOut,
 } from './account-center-layout.js';
+import { AccountOverview } from './account-overview.js';
 import { AccountProfile } from './account-profile.js';
 import { AccountPrivacy } from './account-privacy.js';
 import { AccountFriends } from './account-friends.js';
 import { AccountCredentials } from './account-credentials.js';
 import { AccountRuntime } from './account-runtime.js';
+import { AccountDownload } from './account-download.js';
 import { AccountConnect } from './account-connect.js';
-import { accountLoginUrl } from './account-center-model.js';
+import { accountHandle, accountLoginUrl } from './account-center-model.js';
 import { accountReadProblem, useAccountCopy, type AccountCopyKey } from './account-center-copy.js';
 import type { AccountRouteContext } from '../site-router.js';
 import './account-center.css';
@@ -47,6 +49,8 @@ export function AccountManagementPage() {
   const [deleted, setDeleted] = useState<AccountTerminationReceipt | null>(null);
   const [verifyingOwner, setVerifyingOwner] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [receivedRequests, setReceivedRequests] = useState<{ owner: string; total: number } | null>(null);
+  const [friendsRevision, setFriendsRevision] = useState(0);
   const request = useRef(0);
   const mounted = useRef(true);
   const blocker = useBlocker(
@@ -124,16 +128,43 @@ export function AccountManagementPage() {
       document.removeEventListener('visibilitychange', visible);
     };
   }, [confirmation, refresh, verifyingOwner]);
+  const currentOwnerId = user ? String(user.id) : null;
+  const pendingReceivedCount = receivedRequests && receivedRequests.owner === currentOwnerId ? receivedRequests.total : null;
+  useEffect(() => {
+    if (!currentOwnerId) {
+      setReceivedRequests(null);
+      return;
+    }
+    let active = true;
+    void fetchNimiRealmPendingFriendRequests(createWebBrowserRealm(), () => {}, {
+      direction: 'received',
+      limit: 1,
+    })
+      .then((page) => {
+        if (active) setReceivedRequests({ owner: currentOwnerId, total: page.total });
+      })
+      .catch(() => {
+        if (active) setReceivedRequests(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [currentOwnerId, location.pathname, friendsRevision]);
+
   useEffect(() => {
     const route = location.pathname.split('/')[2] || '';
     const key = (
-      ['profile', 'friends', 'privacy', 'security', 'sessions', 'runtime', 'connect', 'data', 'delete'].includes(route)
-        ? route
-        : 'overview'
+      route === 'runtime'
+        ? 'runtimeNav'
+        : route === 'download'
+          ? 'navDownloadDesktop'
+          : ['profile', 'friends', 'privacy', 'security', 'sessions', 'connect', 'data', 'delete'].includes(route)
+            ? route
+            : 'overview'
     ) as AccountCopyKey;
     document.title = `${c(key)} · Nimi`;
     document
-      .querySelector<HTMLHeadingElement>('.ac-page-heading h1')
+      .querySelector<HTMLHeadingElement>('.ac-page-heading h1, .ac-hero-header h1, .ac-portal-greeting h1, .download-hero h1')
       ?.focus({ preventScroll: true });
   }, [location.pathname, i18n.language]);
   async function signOut(verify = false) {
@@ -189,8 +220,10 @@ export function AccountManagementPage() {
           </button>
         </div>
         <WebAccountAuthPage
-          passwordRecoveryLink={<Link className="underline" to="/account/recovery">{t('Auth.forgotPassword')}</Link>}
+          initialStage="email"
+          passwordRecoveryLink={<Link to="/account/recovery">{t('Auth.forgotPassword')}</Link>}
           adapter={adapter}
+          alternatives={resolveWebAuthAlternatives(adapter, t('Auth.comingSoon'))}
           session={{
             mode: 'embedded',
             setAuthSession: (next) => {
@@ -213,22 +246,34 @@ export function AccountManagementPage() {
     );
   if (checking)
     return (
-      <main className="ac-entry">
-        <div className="ac-entry-content" role="status">
-          <img className="ac-loading-logo" src="/logo.svg" alt="Nimi" />
-          <p>{c('loading')}</p>
+      <main
+        className="nimi-shell-auth-root nimi-shell-auth-brand-surface web-account-session-page"
+        data-shell-auth-theme="custom"
+        style={webHomeAuthPalette}
+      >
+        <div className="nimi-shell-auth-shell">
+          <div className="nimi-shell-auth-content" role="status">
+            <img className="ac-loading-logo" src="/logo.svg" alt="Nimi" draggable={false} />
+            <p className="web-account-session-message">{c('loading')}</p>
+          </div>
         </div>
       </main>
     );
-  if (!user)
+  if (!user) {
+    const loginUrl = accountLoginUrl(location.pathname, location.search);
+    if (!error) {
+      return <Navigate to={loginUrl} replace />;
+    }
     return (
       <AccountSignedOut
-        loginUrl={accountLoginUrl(location.pathname, location.search)}
+        loginUrl={loginUrl}
         error={error}
         onRetry={() => void refresh()}
       />
     );
+  }
   const owner = String(user.id);
+  const handle = accountHandle(user.handle);
   const sessionControls = (section: 'sessions' | 'delete') => (
     <AccountSecurityControls
       key={`${owner}:${section}`}
@@ -243,7 +288,12 @@ export function AccountManagementPage() {
     />
   );
   return (
-    <AccountFrame user={user} working={working} onSignOut={() => void signOut()}>
+    <AccountFrame
+      user={user}
+      working={working}
+      pendingReceivedCount={pendingReceivedCount}
+      onSignOut={() => void signOut()}
+    >
       <AccountFeedback error={error} />
       {error ? (
         <button type="button" className="ac-text-button" onClick={() => void refresh()}>
@@ -251,14 +301,17 @@ export function AccountManagementPage() {
         </button>
       ) : null}
       <Routes>
-        <Route index element={<AccountOverview user={user} />} />
+        <Route index element={<AccountOverview user={user} pendingReceivedCount={pendingReceivedCount} />} />
         <Route path="connect" element={<AccountConnect key={owner} accountId={owner} displayName={String(user.displayName || user.handle || owner)} />} />
-        <Route path="runtime" element={<AccountRuntime key={owner} accountId={owner} onVerifyAgain={() => void signOut(true)} />} />
+        <Route path="runtime" element={<AccountRuntime key={owner} accountId={owner} userHandle={handle} onVerifyAgain={() => void signOut(true)} />} />
+        <Route path="download" element={<AccountDownload />} />
         <Route
           path="profile"
           element={<AccountProfile key={owner} user={user} onSaved={setUser} onDirty={setDirty} />}
         />
-        <Route path="friends" element={<AccountFriends key={owner} accountId={owner} />} />
+        <Route path="friends" element={
+          <AccountFriends key={owner} accountId={owner} onRequestsChanged={() => setFriendsRevision((value) => value + 1)} />
+        } />
         <Route
           path="privacy"
           element={<AccountPrivacy key={owner} accountId={owner} onDirty={setDirty} />}

@@ -9,6 +9,16 @@ import {
   useResolvedPublicLinks,
 } from './public-site-shell.js';
 import { usePublicPageLocale } from './use-page-locale.js';
+import {
+  detectVisitorPlatform,
+  NIMI_MACOS_ASSET,
+  NIMI_PUBLIC_BETA_ASSET_URL,
+  NIMI_PUBLIC_BETA_VERSION,
+  NIMI_RELEASES_URL,
+  NIMI_REPOSITORY_URL,
+  NIMI_WINDOWS_ASSET,
+  type DetectedPlatform,
+} from './download-assets.js';
 
 // @nimi-authority: rule.nimi.platform.core-protocol.p-arch-001a
 // @nimi-authority: rule.nimi.platform.governance-release.p-gov-026-positioning
@@ -16,10 +26,10 @@ import { usePublicPageLocale } from './use-page-locale.js';
 // @nimi-authority: rule.nimi.platform.governance-release.p-gov-026-supported-completeness
 // @nimi-authority: rule.nimi.platform.governance-release.p-gov-028-release-tag-namespace
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-pkgrel-009
-const REPOSITORY_URL = 'https://github.com/nimiplatform/nimi';
-const RELEASES_URL = `${REPOSITORY_URL}/releases`;
-const PUBLIC_BETA_VERSION = '0.2.4';
-const PUBLIC_BETA_ASSET_URL = `${RELEASES_URL}/download/${encodeURIComponent(`nimi/v${PUBLIC_BETA_VERSION}`)}`;
+const REPOSITORY_URL = NIMI_REPOSITORY_URL;
+const RELEASES_URL = NIMI_RELEASES_URL;
+const PUBLIC_BETA_VERSION = NIMI_PUBLIC_BETA_VERSION;
+const PUBLIC_BETA_ASSET_URL = NIMI_PUBLIC_BETA_ASSET_URL;
 const SECURITY_ADVISORY_URL = `${REPOSITORY_URL}/security/advisories/new`;
 const DOCS_URL = 'https://docs.nimi.ai';
 
@@ -613,22 +623,10 @@ function PageShell(props: {
 }
 
 const DESKTOP_PLATFORMS = [
-  { id: 'windows', name: 'Windows', icon: Monitor, asset: `Nimi-${PUBLIC_BETA_VERSION}-windows-amd64.exe` },
-  { id: 'macos', name: 'macOS', icon: Laptop, asset: `Nimi-${PUBLIC_BETA_VERSION}-macos-arm64.pkg` },
+  { id: 'windows', name: 'Windows', icon: Monitor, asset: NIMI_WINDOWS_ASSET },
+  { id: 'macos', name: 'macOS', icon: Laptop, asset: NIMI_MACOS_ASSET },
   { id: 'linux', name: 'Linux', icon: Terminal, asset: null },
 ] as const;
-
-type DetectedPlatform = 'windows' | 'macos' | 'mobile' | 'linux' | null;
-
-function detectVisitorPlatform(): DetectedPlatform {
-  if (typeof navigator === 'undefined') return null;
-  const ua = navigator.userAgent.toLowerCase();
-  if (/iphone|ipad|ipod|android/.test(ua)) return 'mobile';
-  if (ua.includes('win')) return 'windows';
-  if (ua.includes('mac')) return 'macos';
-  if (ua.includes('linux')) return 'linux';
-  return null;
-}
 
 const DOWNLOAD_ONBOARDING_STEPS: Readonly<Record<LandingLocale, {
   recommendedBadge: string;
@@ -690,13 +688,11 @@ export function DownloadPage() {
   return <DownloadPageView locale={locale} onLocaleChange={setLocale} />;
 }
 
-export function DownloadPageView({
+export function DownloadPageContent({
   locale,
-  onLocaleChange,
   initialPlatform,
 }: {
   locale: LandingLocale;
-  onLocaleChange: (locale: LandingLocale) => void;
   initialPlatform?: DetectedPlatform;
 }) {
   const page = PUBLIC_PAGE_CONTENT[locale].download;
@@ -726,16 +722,10 @@ export function DownloadPageView({
   const showMacosHeroCta = detectedPlatform === 'macos' || detectedPlatform === null;
 
   return (
-    <PageShell
-      locale={locale}
-      onLocaleChange={onLocaleChange}
-      meta={page.meta}
-      downloadHeader
-      mainClassName="release-container download-main"
-    >
+    <>
       <div className="download-hero">
         <div className="download-hero-copy">
-          <h1>{page.title}</h1>
+          <h1 tabIndex={-1}>{page.title}</h1>
           <p id="preview-scope" className="download-scope">
             {page.scope} {page.desktop.signInRequirement}
           </p>
@@ -874,6 +864,30 @@ export function DownloadPageView({
           </div>
         </section>
       </section>
+    </>
+  );
+}
+
+export function DownloadPageView({
+  locale,
+  onLocaleChange,
+  initialPlatform,
+}: {
+  locale: LandingLocale;
+  onLocaleChange: (locale: LandingLocale) => void;
+  initialPlatform?: DetectedPlatform;
+}) {
+  const page = PUBLIC_PAGE_CONTENT[locale].download;
+
+  return (
+    <PageShell
+      locale={locale}
+      onLocaleChange={onLocaleChange}
+      meta={page.meta}
+      downloadHeader
+      mainClassName="release-container download-main"
+    >
+      <DownloadPageContent locale={locale} initialPlatform={initialPlatform} />
     </PageShell>
   );
 }

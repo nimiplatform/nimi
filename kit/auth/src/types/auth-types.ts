@@ -165,13 +165,28 @@ export type WebAccountAuthTestIds = {
   emailSubmitArrow?: string;
   alternativeToggle?: string;
   alternativePanel?: string;
+  consentCheckbox?: string;
   passwordInput?: string;
   otpButton?: string;
+};
+
+export type WebAccountAuthConsent = {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label: ReactNode | ((inputId: string) => ReactNode);
+  requiredMessage: string;
+  lang?: string;
 };
 
 export type WebAccountAuthBackgroundState = {
   isLogoHovered: boolean;
   mode: WebAccountAuthMode;
+};
+
+export type WebAccountAuthAlternatives = {
+  googleDisabledReason?: string;
+  tikTokDisabledReason?: string;
+  showWallet?: boolean;
 };
 
 export type WebAccountAuthPageProps = {
@@ -181,7 +196,10 @@ export type WebAccountAuthPageProps = {
   session: WebAccountAuthSession;
   branding: WebAccountAuthBranding;
   appearance: WebAccountAuthAppearance;
+  alternatives?: WebAccountAuthAlternatives;
+  consent?: WebAccountAuthConsent;
   background?: ReactNode | ((state: WebAccountAuthBackgroundState) => ReactNode);
+  header?: ReactNode;
   footer?: ReactNode;
   onActionableReady?: () => void;
   onEntryAction?: () => void;
@@ -206,7 +224,7 @@ export const inputBase =
 export const capsuleBar =
   'flex items-center h-[52px] rounded-full border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] shadow-[var(--nimi-elevation-base)] focus-within:border-[var(--nimi-field-focus)] focus-within:shadow-none';
 export const capsuleBarIconButton =
-  'ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--nimi-icon-muted,var(--nimi-text-muted))] transition hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-50';
+  'ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--nimi-icon-muted,var(--nimi-text-muted))] transition hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-action-primary-bg)] aria-expanded:bg-[var(--nimi-surface-active,rgba(20,118,212,0.16))] aria-expanded:text-[var(--nimi-action-primary-bg)] aria-expanded:hover:bg-[var(--nimi-surface-active,rgba(20,118,212,0.16))] aria-expanded:hover:text-[var(--nimi-action-primary-bg-hover)] focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width,2px)] focus-visible:ring-[var(--nimi-focus-ring-color)] disabled:cursor-not-allowed disabled:opacity-50';
 export const capsuleBarInput =
   'flex-1 min-w-0 bg-transparent px-3 text-[15px] text-[var(--nimi-text-primary)] placeholder:text-[var(--nimi-text-muted)] outline-none';
 export const capsuleBarSubmitButton =

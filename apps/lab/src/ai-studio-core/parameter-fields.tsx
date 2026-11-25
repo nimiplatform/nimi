@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { NimiAIConfigEffectiveSelection } from '@nimiplatform/sdk/ai';
 import { Button, TextField, Toggle } from '@nimiplatform/kit/ui';
 import { ChevronDown } from 'lucide-react';
 
@@ -17,6 +18,7 @@ export type StudioParameterPanelProps = {
   readonly capabilityId: string;
   readonly contract: StudioParameterContract;
   readonly source: StudioRunTargetSource;
+  readonly effectiveSelection?: NimiAIConfigEffectiveSelection;
   readonly parameters: StudioParameterValue;
   readonly disabled: boolean;
   readonly onChange: (parameters: StudioParameterValue) => void;

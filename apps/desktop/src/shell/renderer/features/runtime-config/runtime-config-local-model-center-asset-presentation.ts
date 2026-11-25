@@ -1,4 +1,5 @@
-import type { NimiRuntimeModelAssetRecord } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeModelAssetRecord, NimiRuntimeLocalVerifiedAssetDescriptor } from '@nimiplatform/sdk/runtime';
+import { cleanAssetDisplayName, loadoutModelPresentation, resolveUnambiguousCatalogDescriptor } from './runtime-config-loadout-model-display.js';
 
 // Known model container formats. The extension moves out of the title and
 // into a format chip so the list reads as models, not as a file listing.
@@ -15,11 +16,14 @@ const MODEL_FORMAT_BY_EXTENSION: Readonly<Record<string, string>> = {
   bin: 'BIN',
 };
 
-export function describeModelAssetPresentation(asset: NimiRuntimeModelAssetRecord): {
+export function describeModelAssetPresentation(asset: NimiRuntimeModelAssetRecord, catalog: readonly NimiRuntimeLocalVerifiedAssetDescriptor[] = []): {
   readonly title: string;
   readonly format: string | null;
 } {
-  const rawTitle = asset.displayName || asset.entry || asset.modelAssetId;
+  const descriptor = asset.contentVerified ? resolveUnambiguousCatalogDescriptor(asset.contentId, catalog) : undefined;
+  const rawTitle = descriptor?.title
+    ? loadoutModelPresentation({ title: descriptor.title, variantLabel: asset.entry }).headline
+    : cleanAssetDisplayName(asset.displayName || asset.entry || asset.modelAssetId);
   const candidates = [rawTitle, asset.entry, ...asset.files.map((file) => file.relativePath)];
   let format: string | null = null;
   for (const candidate of candidates) {

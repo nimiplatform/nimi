@@ -106,7 +106,7 @@ test('inline customization edits without writes, discards changes, and preserves
     />);
     await render();
     const apply = () => ui.document.querySelector<HTMLButtonElement>('[data-testid="capability-customize-apply"]');
-    assert.ok(ui.document.querySelector('[data-testid="capability-customize-version:main.text"]'), 'version selection is already visible');
+    assert.ok(ui.document.querySelector('[data-testid="loadout-model-card:main.text"]'), 'model slot card is already visible');
     assert.ok(ui.document.querySelector('input[aria-label="contextSize"]'), 'typed parameters are already visible');
     assert.equal(ui.document.querySelector<HTMLDetailsElement>('[data-testid="capability-customize-options-json"]')?.open, false);
     assert.equal(apply(), null, 'nothing is offered for applying before an edit');
@@ -127,9 +127,9 @@ test('inline customization edits without writes, discards changes, and preserves
     assert.equal(ui.document.querySelector<HTMLInputElement>('input[aria-label="useMmap"]')?.checked, false);
     assert.equal(apply()?.disabled, false, 'failed applies remain retryable');
     assert.match(
-      ui.document.querySelector('[data-testid="capability-customize-version:companion.mmproj"]')?.textContent ?? '',
+      ui.document.querySelector('[data-testid="loadout-model-card:companion.mmproj"]')?.textContent ?? '',
       /customization\.notUsed/,
-      'an optional model is chosen or left unused from its own version selector',
+      'an optional model is chosen or left unused from its own model slot card',
     );
     await render(true);
     assert.equal(apply()?.disabled, true);
@@ -166,15 +166,13 @@ test('customization enables an optional model from its version selector and expl
     assert.match(text(), /customization\.optionsDefault/);
     const statusSlot = () => ui.document.querySelector('[data-testid="capability-customize-slot-status:companion.mmproj"]');
     assert.equal(statusSlot()?.textContent, '', 'an unused optional model shows no state but keeps its line');
-    const trigger = ui.document.querySelector<HTMLButtonElement>('[data-testid="capability-customize-version:companion.mmproj"]')!;
-    await act(async () => {
-      trigger.dispatchEvent(new ui.document.defaultView!.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
-    });
-    const choice = [...ui.document.querySelectorAll<HTMLElement>('[role="option"]')].find((option) => option.textContent?.includes('Example 2B · F16'));
-    assert.ok(choice, 'versions are named by model and exact quantization');
-    assert.match(choice.textContent ?? '', /downloadSize 500\.0 MB/, 'transfer size is distinct from installed disk usage');
-    await act(async () => choice.click());
-    // The state appears inside the reserved line, so the field and the list still fading under it stay put.
+    await ui.click('[data-testid="loadout-model-card:companion.mmproj"] button');
+    const offerRow = ui.document.querySelector<HTMLElement>('[data-testid="loadout-model-picker:install:mmproj-f16"]');
+    assert.ok(offerRow, 'inline picker exposes installable offers without nested dialog');
+    assert.match(offerRow.textContent ?? '', /F16/, 'versions show exact quantization');
+    assert.match(offerRow.textContent ?? '', /downloadSize 500\.0 MB/, 'transfer size is distinct from installed disk usage');
+    await ui.click('[data-testid="loadout-model-picker:install:mmproj-f16"] button');
+    // The state appears inside the reserved line, so the field stays put.
     assert.match(statusSlot()?.textContent ?? '', /downloadSize 500\.0 MB/, 'the chosen version states its download in the reserved line');
     assert.match(ui.document.querySelector('[data-testid="capability-customize-apply-bar"]')?.textContent ?? '', /customization\.applyHintDownload 500\.0 MB/);
     assert.equal(submitted.length, 0, 'choosing a download is not an apply');
@@ -229,21 +227,19 @@ test('customization keeps exact variant names and refuses offers that Runtime ca
     // jsdom has no layout or scrolling implementation.
     ui.document.defaultView!.HTMLElement.prototype.scrollIntoView = () => {};
     await ui.render(<RuntimeLoadoutOptionsEditor recipe={recipe} candidate={null} assets={[]} verifiedAssets={[]} onChange={(patch) => patches.push(patch)} />);
-    const trigger = ui.document.querySelector<HTMLButtonElement>('[data-testid="runtime-setup-advanced-version:main.text"]')!;
-    await act(async () => {
-      trigger.dispatchEvent(new ui.document.defaultView!.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
-    });
-    const options = [...ui.document.querySelectorAll<HTMLElement>('[role="option"]')];
-    const unavailable = options.find((option) => option.textContent?.includes('F16'));
-    assert.ok(unavailable);
-    assert.equal(unavailable.getAttribute('aria-disabled'), 'true', 'host support does not imply installability');
-    await act(async () => unavailable.click());
+    await ui.click('[data-testid="loadout-model-card:main.text"] button');
+    assert.ok(ui.document.querySelector('[data-testid="loadout-model-picker:install:Q4_K_M"]'), 'the picker must distinguish exact Q4_K_M');
+    assert.ok(ui.document.querySelector('[data-testid="loadout-model-picker:install:Q4_0"]'), 'the picker must distinguish exact Q4_0');
+    assert.match(ui.document.querySelector('[data-testid="loadout-model-picker:install:Q4_K_M"]')?.textContent ?? '', /Q4_K_M/);
+    assert.match(ui.document.querySelector('[data-testid="loadout-model-picker:install:Q4_0"]')?.textContent ?? '', /Q4_0/);
+    assert.equal(ui.document.querySelector('[data-testid="loadout-model-picker:install:F16"]'), null, 'host support does not imply installability');
+    assert.equal(ui.document.querySelector('[data-testid="loadout-model-picker:install:Q8_0"]'), null, 'unsupported offers cannot be queued');
+    await ui.click('[data-testid="loadout-model-picker:incompatible-toggle"]');
+    assert.ok(ui.document.querySelector('[data-testid="loadout-model-picker:incompatible:F16"]'));
+    assert.ok(ui.document.querySelector('[data-testid="loadout-model-picker:incompatible:Q8_0"]'));
+    assert.equal(ui.document.querySelector('[data-testid="loadout-model-picker:incompatible:F16"] button'), null);
     assert.equal(patches.length, 0);
-    assert.equal(options.find((option) => option.textContent?.includes('Q8'))?.getAttribute('aria-disabled'), 'true');
-    const exactVariant = options.find((option) => option.textContent?.includes('Q4_K_M'));
-    assert.ok(exactVariant, 'the selector must distinguish exact Q4 variants');
-    assert.ok(options.some((option) => option.textContent?.includes('Q4_0')));
-    await act(async () => exactVariant.click());
+    await ui.click('[data-testid="loadout-model-picker:install:Q4_K_M"] button');
     assert.equal(patches.length, 1);
     assert.deepEqual(patches[0]?.preferredOffers, { 'main.text': 'Q4_K_M' });
   });
@@ -460,6 +456,83 @@ function setupReviewFixture(recipeCount = 1) {
   return { store, task, ports, writes };
 }
 
+test('returning from the model market refreshes an automatic loadout name and preserves a typed name', async () => {
+  await withRenderer(async ui => {
+    const { SavedConfigsView } = await import('../src/shell/renderer/features/runtime-config/runtime-config-page-loadouts.js');
+    const { LOADOUT_DISPLAY_NAME_SOURCE_PROVENANCE_KEY } = await import('../src/shell/renderer/features/runtime-config/runtime-config-loadout-model-display.js');
+    const { TooltipProvider } = await import('@nimiplatform/kit/ui');
+    const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query');
+    type Props = React.ComponentProps<typeof SavedConfigsView>;
+    const queryClient = new QueryClient();
+    let installed = false;
+    const recipe = (): import('@nimiplatform/sdk/runtime').NimiLoadoutRecipe => ({
+      recipeId: 'text', title: 'Text recipe', capabilityContract: 'text.generate', revision: 'r1',
+      implementation: { implementationId: 'local.text', driverId: 'text', driverDialect: 'text/v1' },
+      defaultOptions: {}, recommendedOptions: {}, implementationSupportedFeatures: [], applicability: 'supported', reasons: [],
+      slots: [{ slotId: 'main.gguf', displayLabel: 'Model', presence: 'required',
+        applicability: 'supported', reasons: [], modelContract: {}, conditionalFeatures: [],
+        recommendedContentIds: [], recommendedVariantIds: [], offers: [{
+          applicability: 'supported', reasons: [], installedModelAssetId: installed ? 'asset-q6' : undefined,
+          candidate: { offerRef: 'offer-q6', title: 'gemma-4-e2b-it-local (Q6_K)', variantLabel: 'gemma-4-E2B-it-Q6_K.gguf',
+            description: '', installable: true, installed, sourceLabel: 'Catalog', verified: true, tags: [], categories: [] },
+        }] }],
+    });
+    const prepared: import('@nimiplatform/sdk/runtime').NimiPrepareLoadoutInput[] = [];
+    const loadouts = {
+      get: async () => ({ loadouts: [], selections: [], selectionRevisions: {} }),
+      listRecipes: async () => [recipe()],
+      prepare: async (input: typeof prepared[number]) => { prepared.push(input); return { prepareId: 'proposal' }; },
+      commit: async () => ({ loadoutId: 'saved' }),
+    };
+    const sdk = {
+      machineProduct: () => ({ local: { loadouts } }),
+      localEnvironmentRpc: () => ({
+        listModelAssets: async () => ({ assets: installed ? [{
+          modelAssetId: 'asset-q6', contentId: 'sha256:' + 'a'.repeat(64), contentVerified: true, files: [],
+          displayName: 'gemma-4-e2b-it-local (Q6_K)', entry: 'gemma-4-E2B-it-Q6_K.gguf',
+        }] : [] }),
+        listVerifiedAssets: async () => ({ assets: [] }),
+      }),
+    };
+    const nameField = () => ui.document.querySelector<HTMLInputElement>('[role="dialog"] label input')!;
+    const win = ui.document.defaultView!;
+    win.HTMLElement.prototype.scrollIntoView = () => {};
+    for (const typedName of [undefined, 'My setup']) {
+      let market: Parameters<Props['onOpenModelMarket']>[0] | undefined;
+      const render = (navigationContext: Props['navigationContext']) => ui.render(
+        <QueryClientProvider client={queryClient}><TooltipProvider>
+          <SavedConfigsView initialCreate capabilityContract="text.generate" navigationContext={navigationContext}
+            onBack={() => {}} onOpenModelMarket={context => { market = context; }} />
+        </TooltipProvider></QueryClientProvider>, sdk);
+      installed = false;
+      await render(null);
+      await ui.click('[data-testid="create-recipe:text"]');
+      assert.equal(nameField().value, 'Text recipe');
+      if (typedName !== undefined) {
+        await act(async () => {
+          Object.getOwnPropertyDescriptor(win.HTMLInputElement.prototype, 'value')!.set!.call(nameField(), typedName);
+          nameField().dispatchEvent(new win.Event('input', { bubbles: true }));
+        });
+      }
+      await ui.click('[data-testid="loadout-model-card:main.gguf"] button');
+      await ui.click('[data-testid="loadout-model-picker:inspect:offer-q6"]');
+      assert.ok(market?.kind === 'slot');
+      await ui.render(<></>);
+      installed = true;
+      await render({ ...market, autoSelectOfferRef: market.candidate.offerRef });
+      assert.equal(nameField().value, typedName ?? 'Gemma 4 2B · Q6');
+      const save = [...ui.document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')]
+        .find(button => button.textContent === 'runtimeConfig.loadouts.commit');
+      assert.ok(save);
+      await act(async () => save.click());
+      const input = prepared.pop();
+      assert.equal(input?.displayName, typedName ?? 'Gemma 4 2B · Q6');
+      assert.equal(input?.provenance?.[LOADOUT_DISPLAY_NAME_SOURCE_PROVENANCE_KEY], typedName === undefined ? 'auto' : 'user');
+      await ui.render(<></>);
+    }
+  });
+});
+
 test('one supported recipe opens a review in place without selecting or downloading, even when ready', async () => {
   await withRenderer(async ui => {
     const { RuntimeConfigSetupTaskView } = await import('../src/shell/renderer/features/runtime-config/runtime-config-setup-task-view.js');
@@ -602,18 +675,20 @@ test('model settings stay scoped to the chosen configuration and protect unappli
       section: 'models', onSection: () => {}, busy: false, disabled: false, navigationContext: null,
       onTask: () => {}, onDiagnostics: () => {}, onModelMarket: () => {},
       onStart: async () => { throw Error('Opening settings must not create a task'); },
+      onSelectLoadout: async (loadout) => { uses.push([loadout]); },
       onEnable: async (...args) => { uses.push(args); },
       onApplyCustomization: async (...args) => { applies.push(args); if (failApply) throw Error('Runtime is unavailable'); },
     };
     const render = async (overrides: Partial<typeof props> = {}) => ui.render(<AppStoreProvider store={appStore}><TooltipProvider><RuntimeCapabilityDetail {...props} {...overrides} /></TooltipProvider></AppStoreProvider>);
     await render();
     assert.equal(ui.document.querySelector('[role="tablist"]'), null);
-    assert.equal(ui.document.querySelector('[data-testid="capability-model-list"] > article')?.getAttribute('data-testid'), 'capability-model:recipe-a');
-    assert.equal(ui.document.querySelectorAll('[data-testid="capability-model:recipe-a"]').length, 1);
+    assert.equal(ui.document.querySelector('[data-testid="capability-saved-loadout-list"] > article')?.getAttribute('data-testid'), 'capability-loadout:current');
+    assert.equal(ui.document.querySelectorAll('[data-testid="capability-loadout:current"]').length, 1);
+    assert.equal(ui.document.querySelectorAll('[data-testid="capability-loadout:saved-version"]').length, 1);
     assert.equal(ui.document.querySelector<HTMLButtonElement>('[data-testid="capability-model-settings:unsupported"]')?.disabled, true);
-    const trigger = ui.document.querySelector<HTMLButtonElement>('[data-testid="capability-model-settings:recipe-b"]')!;
+    const trigger = ui.document.querySelector<HTMLButtonElement>('[data-testid="capability-config-settings:saved-version"]')!;
     trigger.focus();
-    await ui.click('[data-testid="capability-model-settings:recipe-b"]');
+    await ui.click('[data-testid="capability-config-settings:saved-version"]');
     const dialog = () => ui.document.querySelector('[data-testid="capability-model-settings"]');
     assert.equal(dialog()?.querySelector('[data-testid="capability-settings-content"]')?.getAttribute('data-loadout-id'), 'saved-version');
     assert.match(dialog()?.textContent ?? '', /My saved version/);
@@ -625,7 +700,7 @@ test('model settings stay scoped to the chosen configuration and protect unappli
     assert.equal(dialog(), null);
     assert.equal(ui.document.activeElement, trigger);
 
-    await ui.click('[data-testid="capability-model-settings:recipe-b"]');
+    await ui.click('[data-testid="capability-config-settings:saved-version"]');
     await ui.click('input[aria-label="useMmap"]');
     await ui.click('[data-testid="capability-model-settings-close"]');
     assert.match(ui.document.body.textContent ?? '', /settings.discardTitle/, 'dismissal protects the draft');
@@ -647,25 +722,24 @@ test('model settings stay scoped to the chosen configuration and protect unappli
     assert.equal((applies.at(-1)?.[0] as { recipeId: string }).recipeId, 'new');
     assert.equal(applies.at(-1)?.[1], undefined, 'a new recipe never borrows the current configuration');
 
-    await ui.click('[data-testid="capability-model-settings:recipe-a"]');
+    await ui.click('[data-testid="capability-config-settings:current"]');
     await ui.click('input[aria-label="useMmap"]');
     const count = applies.length;
     await ui.click('[data-testid="capability-customize-discard"]');
     assert.equal(dialog(), null);
     assert.equal(applies.length, count, 'cancel never applies');
     assert.deepEqual(uses, []);
-    const second = { ...saved, loadoutId: 'second-version', displayName: 'Second saved version' };
+    const second = { ...saved, loadoutId: 'second-version' };
     await render({ loadouts: [current, saved, second] });
-    await ui.click('[data-testid="capability-model-settings:recipe-b"]');
-    assert.match(dialog()?.textContent ?? '', /settings.chooseConfiguration/);
-    assert.equal(ui.document.querySelector('input[aria-label="useMmap"]'), null, 'multiple configurations require an explicit choice');
-    await ui.click('[data-testid="capability-settings-choose:second-version"]');
-    assert.match(dialog()?.textContent ?? '', /Second saved version/);
+    // Each saved Loadout is its own first-class card with a direct Customize entry (no card-in-card chooser).
+    assert.ok(ui.document.querySelector('[data-testid="capability-loadout:second-version"]'));
+    await ui.click('[data-testid="capability-config-settings:second-version"]');
+    assert.match(dialog()?.textContent ?? '', /My saved version/);
     await ui.click('input[aria-label="useMmap"]');
     await ui.click('[data-testid="capability-customize-apply"]');
     assert.equal(applies.at(-1)?.[1], second);
     await render({ disabled: true });
-    assert.equal(ui.document.querySelector<HTMLButtonElement>('[data-testid="capability-model-settings:recipe-b"]')?.disabled, true);
+    assert.equal(ui.document.querySelector<HTMLButtonElement>('[data-testid="capability-config-settings:saved-version"]')?.disabled, true);
   });
 });
 
@@ -856,11 +930,14 @@ test('model cards read Runtime offers and the main Select reuses a single saved 
       modelAxes: [{ slotId: 'text.model', modelAssetId: `${loadoutId}-asset`, expectedContentId: 'content' }],
     }) as unknown as Loadout;
     const english = saved('english-saved', 'spacy-md-en');
+    const itA = saved('it-a', 'spacy-md-it');
+    const itB = saved('it-b', 'spacy-md-it');
     const starts: unknown[][] = [];
+    const selectedLoadouts: Loadout[] = [];
     const chosenImports: string[] = [];
     let imports = 0;
     const props: React.ComponentProps<typeof RuntimeCapabilityDetail> = {
-      capability: 'text.annotate', loadouts: [english, saved('it-a', 'spacy-md-it'), saved('it-b', 'spacy-md-it')],
+      capability: 'text.annotate', loadouts: [english, itA, itB],
       recipes: [
         recipe('spacy-md-en', [offer('offer-en')]),
         recipe('spacy-md-de', [offer('offer-de')]),
@@ -874,6 +951,7 @@ test('model cards read Runtime offers and the main Select reuses a single saved 
       section: 'models', onSection: () => {}, busy: false, disabled: false, navigationContext: null,
       onTask: () => {}, onDiagnostics: () => {}, onModelMarket: () => {},
       onStart: async () => {},
+      onSelectLoadout: async (loadout) => { selectedLoadouts.push(loadout); },
       onEnable: async (...args) => { starts.push(args); }, onApplyCustomization: async () => {},
       onImportModelFiles: () => { imports += 1; },
       onChooseImportedFiles: (recipeId) => { chosenImports.push(recipeId); },
@@ -899,15 +977,17 @@ test('model cards read Runtime offers and the main Select reuses a single saved 
     await act(async () => button('spacy-md-de', 'runtimeConfig.product.selectModel').click());
     assert.deepEqual(starts.at(-1), ['spacy-md-de']);
 
-    // One saved configuration: the main Select carries exactly that binding.
-    assert.match(card('spacy-md-en').textContent ?? '', /runtimeConfig\.product\.savedConfiguration/);
-    await act(async () => button('spacy-md-en', 'runtimeConfig.product.selectModel').click());
-    assert.deepEqual(starts.at(-1), ['spacy-md-en', english]);
+    // Saved configurations are independent top-level Loadout cards with direct selection.
+    assert.ok(ui.document.querySelector('[data-testid="capability-loadout:english-saved"]'));
+    await ui.click('[data-testid="capability-loadout-select:english-saved"]');
+    assert.deepEqual(selectedLoadouts, [english]);
 
-    // Several saved configurations: Select opens them for an exact choice.
-    await act(async () => button('spacy-md-it', 'runtimeConfig.product.selectModel').click());
-    assert.equal(starts.length, 2);
-    assert.ok(button('spacy-md-it', 'runtimeConfig.product.useSavedVersion'), 'saved configurations open for choosing');
+    // Multiple saved configurations under the same Recipe each have their own top-level card (no card-in-card switcher).
+    assert.ok(ui.document.querySelector('[data-testid="capability-loadout:it-a"]'));
+    assert.ok(ui.document.querySelector('[data-testid="capability-loadout:it-b"]'));
+    await ui.click('[data-testid="capability-loadout-select:it-b"]');
+    assert.deepEqual(selectedLoadouts, [english, itB]);
+    assert.equal(starts.length, 1);
 
     // No offer and nothing imported: lead to import instead of a doomed task.
     assert.match(card('face.swap').textContent ?? '', /runtimeConfig\.product\.noDirectDownload/);
@@ -919,6 +999,74 @@ test('model cards read Runtime offers and the main Select reuses a single saved 
     await render({ assets: [{ modelAssetId: 'imported', catalogVerified: false }] as never });
     await act(async () => button('face.swap', 'runtimeConfig.product.chooseImportedFiles').click());
     assert.deepEqual(chosenImports, ['face.swap']);
-    assert.equal(starts.length, 2);
+    assert.equal(starts.length, 1);
+  });
+});
+
+test('RuntimeLoadoutOptionsEditor shows installed badge when preferredOffer already maps to an installed asset', async () => {
+  await withRenderer(async (ui) => {
+    const { RuntimeLoadoutOptionsEditor } = await import('../src/shell/renderer/features/runtime-config/runtime-config-setup-task-advanced.js');
+    const recipe = {
+      recipeId: 'llama.text-generate.gguf.v1',
+      defaultOptions: {},
+      implementation: { implementationId: 'local.text.generate.llama-cpp', driverId: 'nimi.runtime.driver.llama-cpp', driverDialect: 'llama.cpp/text-generate/v3' },
+      slots: [{
+        slotId: 'main.gguf',
+        displayLabel: 'Main model',
+        presence: 'required',
+        recommendedContentIds: ['sha256:gemma-q8'],
+        offers: [{
+          installedModelAssetId: 'asset-gemma-q8',
+          applicability: 'supported',
+          candidate: { offerRef: 'offer-gemma-q8', title: 'gemma-4-e2b-it-local (Q8_0)', variantLabel: 'gemma-4-E2B-it-Q8_0.gguf', installable: true, downloadSizeBytes: 5_000_000_000 },
+        }],
+      }],
+    } as unknown as import('@nimiplatform/sdk/runtime').NimiLoadoutRecipe;
+    const assets = [{
+      modelAssetId: 'asset-gemma-q8',
+      contentId: 'sha256:gemma-q8',
+      entry: 'gemma-4-E2B-it-Q8_0.gguf',
+      totalSizeBytes: 5_000_000_000,
+    }] as unknown as import('@nimiplatform/sdk/runtime').NimiRuntimeModelAssetRecord[];
+    await ui.render(
+      <RuntimeLoadoutOptionsEditor
+        recipe={recipe}
+        candidate={null}
+        draft={{ preferredOffers: { 'main.gguf': 'offer-gemma-q8' } }}
+        assets={assets}
+        verifiedAssets={[]}
+        onChange={() => {}}
+      />,
+    );
+    const card = ui.document.querySelector('[data-testid="loadout-model-card:main.gguf"]');
+    assert.equal(card?.getAttribute('data-state'), 'selected');
+    assert.doesNotMatch(card?.textContent ?? '', /queuedForDownload/);
+  });
+});
+
+test('Setup Advanced retains pending JSON options when clearing the context field', async () => {
+  await withRenderer(async (ui) => {
+    const { RuntimeLoadoutOptionsEditor } = await import('../src/shell/renderer/features/runtime-config/runtime-config-setup-task-advanced.js');
+    const recipe = {
+      capabilityContract: 'text.generate', implementation: { driverId: 'nimi.runtime.driver.llama-cpp' },
+      slots: [], defaultOptions: {},
+    } as unknown as import('@nimiplatform/sdk/runtime').NimiLoadoutRecipe;
+    const candidate = { modelAxes: [], options: {} } as unknown as import('@nimiplatform/sdk/runtime').NimiMachineLoadout;
+    const patches: unknown[] = [];
+    await ui.render(<RuntimeLoadoutOptionsEditor recipe={recipe} candidate={candidate} assets={[]} verifiedAssets={[]}
+      onChange={patch => patches.push(patch)} />);
+    const win = ui.document.defaultView!;
+    const json = ui.document.querySelector<HTMLTextAreaElement>('textarea')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(win.HTMLTextAreaElement.prototype, 'value')!.set!.call(json, '{"gpuLayers":99,"contextSize":2048}');
+      json.dispatchEvent(new win.Event('input', { bubbles: true }));
+    });
+    const field = ui.document.querySelector<HTMLInputElement>('[data-testid="runtime-setup-advanced-context-size"] input')!;
+    assert.equal(field.value, '2048');
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(win.HTMLInputElement.prototype, 'value')!.set!.call(field, '');
+      field.dispatchEvent(new win.Event('input', { bubbles: true }));
+    });
+    assert.deepEqual(patches.at(-1), { options: { gpuLayers: 99 } });
   });
 });

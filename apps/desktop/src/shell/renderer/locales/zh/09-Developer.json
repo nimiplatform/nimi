@@ -2,7 +2,7 @@
   "pageTitle": "开发者",
   "pageDescription": "管理此设备的开发者模式与本地开发项目。",
   "developerModeTitle": "开发者模式",
-  "developerModeDescription": "开启开发者模式后，Desktop 可注册并管理指定的本地开发项目。注册项目不会自动授予受保护的 App Access。",
+  "developerModeDescription": "开启开发者模式后，Nimi Home 可注册并管理指定的本地开发项目。注册项目不会自动授予受保护的 App Access。",
   "developerModeStatusOn": "开发者模式已开启",
   "developerModeStatusOff": "开发者模式已关闭",
   "developerModeStatusLoading": "正在检查 Nimi Runtime…",

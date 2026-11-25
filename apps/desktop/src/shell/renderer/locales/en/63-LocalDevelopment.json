@@ -35,9 +35,10 @@
   "activity": {
     "title": "Development activity",
     "description": "Live supervised runs and recent fail-closed states. No session, credential, or Runtime endpoint is exposed here.",
-    "empty": "No local development activity has been recorded in this Desktop session.",
+    "empty": "No local development activity has been recorded in this Nimi Home session.",
+    "runningMessage": "Supervised Electron host is running",
     "hostGeneration": "Host generation {{count}}",
-    "retryable": "Desktop will retry while this command remains active."
+    "retryable": "Nimi Home will retry while this command remains active."
   },
   "management": {
     "title": "Registered development projects",

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { type ComponentProps } from 'react';
-import { Avatar } from '@nimiplatform/kit/ui';
+import { Avatar, getAvatarMonogram } from '@nimiplatform/kit/ui';
 import type { MediaDeliveryDto } from '@nimiplatform/kit/core/sdk-contract';
 import { MediaImage } from './media-image.js';
 
@@ -18,5 +18,5 @@ export function MediaAvatar({ delivery, externalUrl, pixelSize, refresh, fallbac
   // Keep Avatar's visual primitive, but avoid its single-src preloader issuing a
   // second format request before the responsive picture chooses its source.
   return <Avatar {...props} fallback={<MediaImage delivery={delivery} purpose="avatar" sizes={pixelSize ? `${pixelSize}px` : 'auto, 40px'} alt={props.alt}
-    className="h-full w-full object-cover" refresh={refresh} fallback={fallback ?? (props.alt.trim().charAt(0).toUpperCase() || '?')} />} />;
+    className="h-full w-full object-cover" refresh={refresh} fallback={fallback ?? getAvatarMonogram(props.alt)} />} />;
 }

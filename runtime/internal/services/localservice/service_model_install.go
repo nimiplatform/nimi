@@ -7,9 +7,12 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/filedownload"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (s *Service) verifiedAssetDescriptorForAssetID(assetID string) *runtimev1.LocalVerifiedAssetDescriptor {
@@ -73,15 +76,23 @@ func (s *Service) ResolveModelInstallPlan(ctx context.Context, req *runtimev1.Re
 	}
 
 	var catalogItem *runtimev1.LocalCatalogModelDescriptor
+	checkpointLayout := ""
 	if offerRef != "" {
 		offer, err := s.resolveCatalogOffer(ctx, offerRef)
 		if err != nil {
 			return nil, err
 		}
+		checkpointLayout = strings.TrimSpace(offer.checkpointLayout)
 		catalogItem = catalogItemFromOffer(offer)
 	} else {
-		catalogItem = cloneCatalogItem(s.resolveCatalogItem(req))
-		if catalogItem == nil && strings.EqualFold(strings.TrimSpace(req.GetSource()), "huggingface") && strings.TrimSpace(req.GetRepo()) != "" {
+		hfSource := strings.EqualFold(strings.TrimSpace(req.GetSource()), "huggingface") && strings.TrimSpace(req.GetRepo()) != ""
+		// An explicit portable file captures a particular revision and payload
+		// even when its model ID also occurs in the device catalog.
+		explicitFile := hfSource && req.GetItemId() == "" && req.GetTemplateId() == "" && req.GetEntry() != ""
+		if !explicitFile {
+			catalogItem = cloneCatalogItem(s.resolveCatalogItem(req))
+		}
+		if catalogItem == nil && hfSource {
 			resolved, err := s.resolveHFCatalogAcquisition(ctx, req)
 			if err != nil {
 				return nil, err
@@ -111,6 +122,18 @@ func (s *Service) ResolveModelInstallPlan(ctx context.Context, req *runtimev1.Re
 		SourceProvenance: catalogItem.GetSourceProvenance(), ModelType: catalogItem.GetModelType(), OfferRef: offerRef,
 	}
 	evaluateCatalogModelAcquisitionPlan(plan)
+	if plan.GetInstallAvailable() {
+		switch checkpointLayout {
+		case string(capabilitydriver.DiffusionCheckpointLayoutSD1):
+			plan.Warnings = append(plan.Warnings, "WARN_NO_HOST_RECIPE_SD1")
+		case string(capabilitydriver.DiffusionCheckpointLayoutSDXL):
+			// Verified standalone SDXL checkpoint matches the native sdxl recipe.
+		default:
+			if strings.EqualFold(strings.TrimSpace(catalogItem.GetSource()), "huggingface") && !catalogItem.GetVerified() {
+				plan.Warnings = append(plan.Warnings, "WARN_COMMUNITY_RECIPE_COMPATIBILITY_UNVERIFIED")
+			}
+		}
+	}
 	now := nowISO()
 	auditPayload := map[string]any{
 		"install_available": plan.GetInstallAvailable(),
@@ -171,6 +194,12 @@ func (s *Service) resolveCatalogOffer(ctx context.Context, offerRef string) (cat
 	}
 	if identity.sourceKind == "huggingface" {
 		offer, err := s.resolveHFCatalogOffer(ctx, identity)
+		if err != nil && ctx.Err() != nil {
+			return catalogOffer{}, ctx.Err()
+		}
+		if err != nil && status.Code(err) != codes.Unknown {
+			return catalogOffer{}, err
+		}
 		if err == nil && offer.offerRef == offerRef {
 			return offer, nil
 		}
@@ -184,7 +213,7 @@ func (s *Service) resolveCatalogOffer(ctx context.Context, offerRef string) (cat
 func (s *Service) resolveHFCatalogOffer(ctx context.Context, identity modelAssetOfferIdentity) (catalogOffer, error) {
 	variants, err := s.listHFCatalogVariants(ctx, identity.locator, identity.revision)
 	if err != nil {
-		return catalogOffer{}, err
+		return catalogOffer{}, hfCatalogRPCError(err, "catalog variant resolution failed")
 	}
 	var offer catalogOffer
 	found := false
@@ -194,6 +223,11 @@ func (s *Service) resolveHFCatalogOffer(ctx context.Context, identity modelAsset
 		}
 		if strings.TrimSpace(variant.Revision) != identity.revision {
 			return catalogOffer{}, fmt.Errorf("Hugging Face offer source revision changed")
+		}
+		if variant.Format == "safetensors" && len(variant.Files) == 0 {
+			if err := s.resolveSingleFileCheckpoint(ctx, identity, &variant); err != nil {
+				return catalogOffer{}, err
+			}
 		}
 		offer, err = catalogOfferFromHFVariant(identity.locator, variant.Revision, variant)
 		if err != nil {
@@ -266,32 +300,52 @@ func (s *Service) resolveHFCatalogAcquisition(
 	if len(capabilities) != 1 {
 		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, grpcerr.ReasonOptions{Message: "catalog acquisition requires one CapabilityContract"})
 	}
-	items, err := s.searchHFCatalog(ctx, hfCatalogSearchRequest{Query: repo, Capability: capabilities[0], Limit: hfCatalogDefaultLimit})
-	if err != nil {
-		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_HF_SEARCH_FAILED, err, grpcerr.ReasonOptions{Message: "catalog source resolution failed"})
-	}
-	var item *runtimev1.LocalCatalogModelDescriptor
-	for _, candidate := range items {
-		if normalized, normalizeErr := normalizeHFRepo(candidate.GetRepo()); normalizeErr == nil && strings.EqualFold(normalized, repo) {
-			item = cloneCatalogItem(candidate)
-			break
+	requestedRevision := strings.TrimSpace(req.GetRevision())
+	sourceRevision := strings.ToLower(requestedRevision)
+	item := &runtimev1.LocalCatalogModelDescriptor{ItemId: "hf_" + slug(repo)}
+	if !hfCommitRevisionPattern.MatchString(sourceRevision) {
+		if s.hasCustomHFCatalogSearch() {
+			items, err := s.searchHFCatalog(ctx, hfCatalogSearchRequest{Query: repo, Capability: capabilities[0], Limit: hfCatalogDefaultLimit})
+			if err != nil {
+				return nil, hfCatalogRPCError(err, "catalog source resolution failed")
+			}
+			sourceRevision = ""
+			for _, candidate := range items {
+				if strings.EqualFold(candidate.GetRepo(), repo) {
+					item = cloneCatalogItem(candidate)
+					sourceRevision = strings.ToLower(strings.TrimSpace(item.GetRevision()))
+					break
+				}
+			}
+		} else {
+			resolvedItem, err := fetchHFRepoHeadRevision(ctx, s.hfHTTPClient(), s.hfCatalogEndpointURL(), repo, requestedRevision)
+			if err != nil {
+				if errors.Is(err, errHFRepoNotFound) {
+					return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_TEMPLATE_NOT_FOUND, grpcerr.ReasonOptions{Message: "portable source is not present in the current catalog"})
+				}
+				return nil, hfCatalogRPCError(err, "catalog source resolution failed")
+			}
+			item = resolvedItem
+			sourceRevision = strings.ToLower(strings.TrimSpace(item.GetRevision()))
+		}
+		if !hfCommitRevisionPattern.MatchString(sourceRevision) {
+			return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_TEMPLATE_NOT_FOUND, grpcerr.ReasonOptions{Message: "portable source is not present in the current catalog"})
 		}
 	}
-	if item == nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_TEMPLATE_NOT_FOUND, grpcerr.ReasonOptions{Message: "portable source is not present in the current catalog"})
-	}
-	sourceRevision := strings.TrimSpace(item.GetRevision())
 	entry, ok := normalizeHFFilePath(req.GetEntry())
 	if !ok {
 		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{Message: "portable source file is invalid"})
 	}
+	if isHFWeightShard(entry) {
+		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{Message: "a single portable source file cannot restore a sharded model distribution"})
+	}
 	variants, err := s.listHFCatalogVariants(ctx, repo, sourceRevision)
 	if err != nil {
-		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_HF_SEARCH_FAILED, err, grpcerr.ReasonOptions{Message: "catalog variant resolution failed"})
+		return nil, hfCatalogRPCError(err, "catalog variant resolution failed")
 	}
 	var variant *hfCatalogVariant
 	for index := range variants {
-		if strings.EqualFold(strings.TrimSpace(variants[index].Entry), entry) {
+		if variants[index].Entry == entry && variants[index].Revision == sourceRevision {
 			variant = &variants[index]
 			break
 		}
@@ -308,9 +362,12 @@ func (s *Service) resolveHFCatalogAcquisition(
 		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DOWNLOAD_HASH_MISMATCH, grpcerr.ReasonOptions{Message: "portable source integrity does not match the current catalog"})
 	}
 	item.Source = "huggingface"
+	item.Title = defaultString(variant.Title, repo)
+	item.License = defaultString(variant.License, item.GetLicense())
+	item.ModelType = defaultString(variant.ModelType, item.GetModelType())
 	item.ModelId = repo
 	item.Repo = repo
-	item.Revision = defaultString(strings.TrimSpace(req.GetRevision()), "main")
+	item.Revision = sourceRevision
 	item.Capabilities = capabilities
 	item.Engine = ""
 	item.EngineRuntimeMode = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED
@@ -445,6 +502,10 @@ func modelInstallRPCError(err error) error {
 			Message:    "model install cancelled",
 			ActionHint: "retry_model_install",
 		})
+	}
+	var rateLimit *filedownload.RateLimitError
+	if errors.As(err, &rateLimit) {
+		return hfRateLimitedRPCError(err, rateLimit.RetryAfter, "model download rate limited")
 	}
 	return err
 }

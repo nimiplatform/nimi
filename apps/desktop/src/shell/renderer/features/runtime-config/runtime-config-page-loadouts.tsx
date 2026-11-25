@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { isNimiError } from '@nimiplatform/sdk/types';
+import type { NimiJsonObject } from '@nimiplatform/sdk/contracts';
 import type {
   NimiLoadoutRecipe,
   NimiMachineLoadout,
@@ -22,14 +23,12 @@ import {
   OverlayShell,
   PillTabs,
   ScrollShell,
-  SelectField,
   StatusBadge,
   Surface,
   TextField,
 } from '@nimiplatform/kit/ui';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
-import { CAPABILITY_INVENTORY_KEY } from './runtime-capability-inventory.js';
 import { RuntimeConfigurationEnvironment } from './runtime-configuration-environment.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import { runtimeConfigLoadoutCatalogBadge } from './runtime-config-loadout-catalog-badge.js';
@@ -38,18 +37,29 @@ import {
   type RuntimeConfigLoadoutPendingImpact,
 } from './runtime-config-loadout-impact-state.js';
 import {
+  deriveLoadoutDefaultDisplayName,
+  LOADOUT_DISPLAY_NAME_SOURCE_PROVENANCE_KEY,
   loadoutAssetLabel,
+  loadoutDisplayNameSource,
   loadoutSlotLabelKey,
-  runtimeConfigLoadoutCandidateAssets,
+  patchLoadoutTextContextOption,
+  resolvePrimaryRecipeSlot,
+  supportsLlamaTextContextSize,
 } from './runtime-config-loadout-model-display.js';
 import {
   LoadoutSelectedModelCard,
   LoadoutSlotModelPicker,
+  LoadoutSlotModelPickerBody,
 } from './runtime-config-loadout-model-picker.js';
 import { RuntimePageHeader, RuntimePageShell } from './runtime-config-page-shell.js';
 import { localizedAssetUnhealthyReason } from './runtime-config-reason-messages.js';
+import {
+  checkExistingLoadoutEnvironment,
+  commitExistingLoadoutSelection,
+  invalidateDesktopLoadoutQueries,
+} from './runtime-config-select-loadout.js';
+import { RuntimeTextContextSizeField } from './runtime-config-text-context-field.js';
 import { loadoutValidationMessages } from './runtime-loadout-validation.js';
-import { LOADOUT_ENVIRONMENT_KEY } from './runtime-local-model-status.js';
 import { configurationShortId } from './runtime-local-model-list.js';
 import type {
   RuntimeConfigLoadoutNavigationContext,
@@ -61,12 +71,19 @@ export {
   runtimeConfigLoadoutCandidateAssets,
 } from './runtime-config-loadout-model-display.js';
 
-type EditDraft = { readonly modelAssetIds: Readonly<Record<string, string>>; readonly displayName: string };
+type EditDraft = {
+  readonly baseRevision: string;
+  readonly displayName: string;
+  readonly contextSize: string;
+};
 
-// SelectField drops empty-valued options (Radix Select reserves '' for the
-// cleared state), so the "unresolved" choice uses a sentinel and maps back to
-// '' (unset binding) at the change boundary.
-const LOADOUT_UNSET_MODEL_OPTION_VALUE = '__loadout_unset_model__';
+type RecipesLoadState = 'loading' | 'loaded' | 'error';
+
+function loadoutNeedsReplacement(loadout: NimiMachineLoadout, recipe: NimiLoadoutRecipe | undefined, recipesLoadState: RecipesLoadState): boolean {
+  return recipesLoadState === 'loaded' && loadout.validationState === 'blocked'
+    && (!recipe || loadout.reasons.includes('AI_LOADOUT_DRIVER_UNAVAILABLE'));
+}
+
 type RecommendedInstallItem = {
   readonly slotId: string;
   readonly displayLabel: string;
@@ -78,11 +95,14 @@ type PendingRecommendedInstall = {
   readonly recipe: NimiLoadoutRecipe;
   readonly items: readonly RecommendedInstallItem[];
   readonly loadout?: NimiMachineLoadout;
+  readonly affectsSelected?: boolean;
 };
 export function SavedConfigsView(props: {
   readonly contextual?: boolean;
   /** Open this exact saved configuration without selecting or changing it. */
   readonly initialLoadoutId?: string;
+  /** Open the create-configuration drawer immediately on mount. */
+  readonly initialCreate?: boolean;
   readonly backLabel?: string;
   readonly capabilityContract?: string;
   readonly navigationContext: RuntimeConfigLoadoutNavigationContext | null;
@@ -99,24 +119,30 @@ export function SavedConfigsView(props: {
   const impactState = useMemo(() => createRuntimeConfigLoadoutImpactState(), []);
   const [aggregate, setAggregate] = useState<NimiMachineLoadouts | null>(null);
   const [recipes, setRecipes] = useState<readonly NimiLoadoutRecipe[]>([]);
+  const [recipesLoadState, setRecipesLoadState] = useState<RecipesLoadState>('loading');
   const [assets, setAssets] = useState<readonly NimiRuntimeModelAssetRecord[]>([]);
   const [verifiedAssets, setVerifiedAssets] = useState<readonly NimiRuntimeLocalVerifiedAssetDescriptor[]>([]);
   const [loading, setLoading] = useState(true);
   const [technicalError, setTechnicalError] = useState('');
+  const [createFormError, setCreateFormError] = useState('');
+  const [manageError, setManageError] = useState('');
   const [axisErrors, setAxisErrors] = useState<Record<string, string>>({});
   const [candidateErrors, setCandidateErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState('');
-  const [showCreate, setShowCreate] = useState(false);
-  const [createStep, setCreateStep] = useState<1 | 2 | 3>(1);
-  const [createCapability, setCreateCapability] = useState('');
+  const [showCreate, setShowCreate] = useState(Boolean(props.initialCreate));
+  const [createStep, setCreateStep] = useState<1 | 2 | 3>(props.initialCreate && props.capabilityContract ? 2 : 1);
+  const [createCapability, setCreateCapability] = useState(props.initialCreate && props.capabilityContract ? props.capabilityContract : '');
+  const [preselectedAssetId, setPreselectedAssetId] = useState('');
+  const [preselectedNeedsManualSlot, setPreselectedNeedsManualSlot] = useState(false);
   const [recipeId, setRecipeId] = useState('');
-  const [displayName, setDisplayName] = useState('');
+  const [customDisplayName, setCustomDisplayName] = useState<string>();
   const [createAxes, setCreateAxes] = useState<Record<string, string>>({});
   const [createContextSize, setCreateContextSize] = useState('');
   const [createContextEdited, setCreateContextEdited] = useState(false);
   const [pickerSlotId, setPickerSlotId] = useState<string | null>(null);
   const [edits, setEdits] = useState<Record<string, EditDraft>>({});
   const [manageLoadoutId, setManageLoadoutId] = useState<string | null>(props.initialLoadoutId ?? null);
+  const [managePicker, setManagePicker] = useState<{ loadoutId: string; slotId: string } | null>(null);
   const [, setImpactRevision] = useState(0);
   const [pendingInstall, setPendingInstall] = useState<PendingRecommendedInstall | null>(null);
   const pendingImpact = impactState.current();
@@ -133,20 +159,41 @@ export function SavedConfigsView(props: {
 
   const refresh = useCallback(async () => {
     setLoading(true);
+    setRecipesLoadState('loading');
     setTechnicalError('');
     try {
-      const [nextAggregate, nextRecipes, nextAssets, nextVerifiedAssets] = await Promise.all([
+      const [aggResult, recipesResult, assetsResult, verifiedResult] = await Promise.allSettled([
         loadoutsClient.get(),
         loadoutsClient.listRecipes(),
         modelAssetsClient.listModelAssets(),
         modelAssetsClient.listVerifiedAssets(),
       ]);
-      setAggregate(nextAggregate);
-      setRecipes(nextRecipes);
-      setAssets(nextAssets);
-      setVerifiedAssets(nextVerifiedAssets);
-    } catch (error) {
-      setTechnicalError(errorMessage(error));
+      const errors: string[] = [];
+      if (aggResult.status === 'fulfilled') {
+        setAggregate(aggResult.value);
+      } else {
+        errors.push(errorMessage(aggResult.reason));
+      }
+      if (recipesResult.status === 'fulfilled') {
+        setRecipes(recipesResult.value);
+        setRecipesLoadState('loaded');
+      } else {
+        setRecipesLoadState('error');
+        errors.push(errorMessage(recipesResult.reason));
+      }
+      if (assetsResult.status === 'fulfilled') {
+        setAssets(assetsResult.value);
+      } else {
+        errors.push(errorMessage(assetsResult.reason));
+      }
+      if (verifiedResult.status === 'fulfilled') {
+        setVerifiedAssets(verifiedResult.value);
+      } else {
+        errors.push(errorMessage(verifiedResult.reason));
+      }
+      if (errors.length > 0) {
+        setTechnicalError(errors.join(' · '));
+      }
     } finally {
       setLoading(false);
     }
@@ -155,12 +202,7 @@ export function SavedConfigsView(props: {
   useEffect(() => { void refresh(); }, [refresh]);
 
   const refreshAIConfigProjections = useCallback(() => {
-    void Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['app-ai-config'] }),
-      queryClient.invalidateQueries({ queryKey: CAPABILITY_INVENTORY_KEY }),
-      queryClient.invalidateQueries({ queryKey: LOADOUT_ENVIRONMENT_KEY }),
-      queryClient.invalidateQueries({ queryKey: ['desktop', 'machine-local-ai-config-selections'] }),
-    ]);
+    void invalidateDesktopLoadoutQueries(queryClient);
   }, [queryClient]);
 
   const capabilities = useMemo(() => {
@@ -242,12 +284,15 @@ export function SavedConfigsView(props: {
     slot.presence === 'required' && !createAxes[slot.slotId]
   )) ?? [];
 
-  const beginCreate = useCallback((capability?: string) => {
+  const beginCreate = useCallback((capability?: string, nextPreselectedAssetId = '') => {
     setRecipeId('');
-    setDisplayName('');
+    setCustomDisplayName(undefined);
     setCreateAxes({});
     setCreateContextSize('');
     setCreateContextEdited(false);
+    setCreateFormError('');
+    setPreselectedAssetId(nextPreselectedAssetId);
+    setPreselectedNeedsManualSlot(false);
     setPickerSlotId(null);
     if (capability) {
       setCreateCapability(capability);
@@ -262,37 +307,80 @@ export function SavedConfigsView(props: {
   const selectCreateCapability = useCallback((capability: string) => {
     setCreateCapability(capability);
     setRecipeId('');
-    setDisplayName('');
+    setCustomDisplayName(undefined);
     setCreateAxes({});
     setCreateContextSize('');
     setCreateContextEdited(false);
+    setCreateFormError('');
+    setPreselectedNeedsManualSlot(false);
     setPickerSlotId(null);
     setCreateStep(2);
   }, []);
 
-  const selectCreateRecipe = useCallback((recipe: NimiLoadoutRecipe) => {
+  const displayName = useMemo(() => {
+    if (customDisplayName !== undefined) return customDisplayName;
+    if (!selectedRecipe) return '';
+    const axes = Object.entries(createAxes)
+      .filter(([, assetId]) => Boolean(assetId))
+      .map(([slotId, modelAssetId]) => ({ slotId, modelAssetId }));
+    return deriveLoadoutDefaultDisplayName(selectedRecipe, axes, verifiedAssets, assets);
+  }, [assets, createAxes, customDisplayName, selectedRecipe, verifiedAssets]);
+
+  const selectCreateRecipe = useCallback((recipe: NimiLoadoutRecipe, explicitPreselectedAssetId?: string) => {
     setRecipeId(recipe.recipeId);
-    const capabilityLabel = t(loadoutCapabilityLabelKey(recipe.capabilityContract), {
-      defaultValue: recipe.capabilityContract,
-    });
-    setDisplayName(`${capabilityLabel} · ${recipe.title}`);
+    setCreateCapability(recipe.capabilityContract);
+    setCreateFormError('');
     const initialAxes = recommendedAxisSelections(recipe, assets);
+    const activePreselectedId = explicitPreselectedAssetId ?? preselectedAssetId;
+    setPreselectedAssetId(activePreselectedId);
+    let needsManualSlot = false;
+    if (activePreselectedId) {
+      const targetAsset = assets.find((asset) => asset.modelAssetId === activePreselectedId);
+      if (targetAsset) {
+        // Match exact slot recommendation/offer first so companion assets (e.g. text encoders)
+        // never get stuffed into the primary diffusion/LLM slot.
+        const offered = recipe.slots.filter((slot) => slot.offers.some((offer) =>
+          offer.applicability !== 'unsupported' && offer.installedModelAssetId === targetAsset.modelAssetId));
+        const matching = offered.length ? offered : recipe.slots.filter((slot) =>
+          slot.recommendedContentIds.includes(targetAsset.contentId));
+        const candidates = matching.length ? matching : recipe.slots.filter((slot) => slot.presence === 'required');
+        if (candidates.length === 1) {
+          initialAxes[candidates[0]!.slotId] = targetAsset.modelAssetId;
+        } else {
+          needsManualSlot = true;
+        }
+      } else {
+        needsManualSlot = true;
+        setCreateFormError(t('runtimeConfig.loadouts.missingAssetError'));
+      }
+    }
+    setPreselectedNeedsManualSlot(needsManualSlot);
     setCreateAxes(initialAxes);
+    setCustomDisplayName(undefined);
     setCreateContextSize(resolveLoadoutCreateContextOption(recipe, initialAxes));
     setCreateContextEdited(false);
     setPickerSlotId(null);
     setCreateStep(3);
     setShowCreate(true);
-  }, [assets, t]);
+  }, [assets, preselectedAssetId, t]);
 
   useEffect(() => {
     const context = props.navigationContext;
     if (!context) return;
-    const key = [context.capabilityContract, context.recipeId, context.recipeRevision, context.slotId].join(':');
+    const key = [
+      context.capabilityContract,
+      context.recipeId,
+      context.recipeRevision,
+      context.slotId,
+      context.preselectedAssetId,
+    ].join(':');
     if (handledNavigationKeyRef.current === key) return;
     if (context.capabilityContract) setActiveCapability(context.capabilityContract);
     if (!context.recipeId) {
       handledNavigationKeyRef.current = key;
+      if (context.preselectedAssetId) {
+        beginCreate(context.capabilityContract || undefined, context.preselectedAssetId);
+      }
       return;
     }
     const recipe = recipes.find((item) => (
@@ -304,8 +392,11 @@ export function SavedConfigsView(props: {
     if (context.draft) {
       setRecipeId(recipe.recipeId);
       setCreateCapability(recipe.capabilityContract);
-      setDisplayName(context.draft.displayName);
+      setCustomDisplayName(context.draft.customDisplayName);
       const returnedAxes = resolveLoadoutReturnedDraftAxes(recipe, context);
+      const pendingFile = context.draft.pendingSlotAssetId;
+      setPreselectedAssetId(pendingFile ?? context.preselectedAssetId ?? '');
+      setPreselectedNeedsManualSlot(Boolean(pendingFile && !Object.values(returnedAxes).includes(pendingFile)));
       setCreateAxes(returnedAxes);
       if (context.draft.contextSizeEdited) {
         setCreateContextSize(context.draft.contextSize ?? '');
@@ -314,15 +405,16 @@ export function SavedConfigsView(props: {
         setCreateContextSize(resolveLoadoutCreateContextOption(recipe, returnedAxes));
         setCreateContextEdited(false);
       }
+      setCreateFormError('');
       setPickerSlotId(null);
       setCreateStep(3);
       setShowCreate(true);
     } else {
-      selectCreateRecipe(recipe);
+      selectCreateRecipe(recipe, context.preselectedAssetId);
     }
-  }, [props.navigationContext, recipes, selectCreateRecipe]);
+  }, [beginCreate, props.navigationContext, recipes, selectCreateRecipe]);
 
-  const run = useCallback(async (key: string, action: () => Promise<void>, onError?: (message: string) => void) => {
+  const run = useCallback(async (key: string, action: () => Promise<void>, onError?: (message: string, cause: unknown) => void) => {
     if (busy) return;
     setBusy(key);
     try {
@@ -332,29 +424,47 @@ export function SavedConfigsView(props: {
       emitFeedbackToast({ kind: 'success', message: t('runtimeConfig.loadouts.saved') });
     } catch (error) {
       const message = errorMessage(error);
-      setTechnicalError(message);
-      onError?.(message);
+      if (onError) onError(message, error);
+      else setTechnicalError(message);
     } finally {
       setBusy('');
     }
   }, [busy, refresh, refreshAIConfigProjections, t]);
 
   const createContextValidation = useMemo(() => (
-    selectedRecipe && selectedRecipe.capabilityContract === 'text.generate' && selectedRecipe.defaultOptions.contextSize === undefined
+    selectedRecipe && supportsLlamaTextContextSize(selectedRecipe)
       ? parseLoadoutCreateContextOption(createContextSize)
       : { valid: true as const }
   ), [createContextSize, selectedRecipe]);
 
   // @nimi-authority: rule.nimi.runtime.model-catalog.r036
   const create = useCallback(() => {
-    if (!selectedRecipe || !displayName.trim() || !createContextValidation.valid) return;
+    if (!selectedRecipe || !displayName.trim() || !createContextValidation.valid || preselectedNeedsManualSlot) return;
     const recipe = selectedRecipe;
     const name = displayName.trim();
     const items = recommendations;
+    // Validate that every explicitly selected modelAssetId still exists in inventory;
+    // never silently skip a missing selected asset.
+    for (const slot of recipe.slots) {
+      const selectedAssetId = createAxes[slot.slotId];
+      if (selectedAssetId && !assets.some((asset) => asset.modelAssetId === selectedAssetId)) {
+        setCreateFormError(t('runtimeConfig.loadouts.missingAssetError'));
+        return;
+      }
+    }
+    setCreateFormError('');
     void run('create', async () => {
       const modelAxes = recipe.slots.flatMap((slot) => {
-        const modelAsset = assets.find((asset) => asset.modelAssetId === createAxes[slot.slotId]);
-        return modelAsset ? [{ slotId: slot.slotId, modelAssetId: modelAsset.modelAssetId, expectedContentId: modelAsset.contentId }] : [];
+        const selectedAssetId = createAxes[slot.slotId];
+        if (selectedAssetId) {
+          const modelAsset = assets.find((asset) => asset.modelAssetId === selectedAssetId)!;
+          return [{ slotId: slot.slotId, modelAssetId: modelAsset.modelAssetId, expectedContentId: modelAsset.contentId }];
+        }
+        if (slot.presence === 'required') {
+          // Send explicit empty axis so Runtime preserves the unresolved choice instead of auto-prefilling.
+          return [{ slotId: slot.slotId, modelAssetId: '', expectedContentId: '' }];
+        }
+        return [];
       });
       const prepared = await loadoutsClient.prepare({
         capabilityContract: recipe.capabilityContract,
@@ -362,20 +472,31 @@ export function SavedConfigsView(props: {
         options: buildLoadoutCreateOptions(recipe, createContextSize),
         displayName: name,
         modelAxes,
+        provenance: {
+          [LOADOUT_DISPLAY_NAME_SOURCE_PROVENANCE_KEY]: customDisplayName === undefined ? 'auto' : 'user',
+        },
       });
       const created = await loadoutsClient.commit(prepared.prepareId, false);
+      setActiveCapability(created.capabilityContract);
       setShowCreate(false);
+      setPreselectedAssetId('');
+      setPreselectedNeedsManualSlot(false);
       if (items.some((item) => !item.installed)) {
         setPendingInstall({ recipe, items, loadout: created });
       }
+    }, (message, cause) => {
+      const explanation = isNimiError(cause) && cause.reasonCode === 'AI_LOADOUT_MODEL_CONTRACT_FAILED'
+        ? t('runtimeConfig.localModels.validation.incompatible')
+        : t('runtimeConfig.loadouts.createFailed');
+      setCreateFormError(`${explanation} (${message})`);
     });
-  }, [assets, createAxes, createContextSize, createContextValidation.valid, displayName, loadoutsClient, recommendations, run, selectedRecipe]);
+  }, [assets, createAxes, createContextSize, createContextValidation.valid, customDisplayName, displayName, loadoutsClient, preselectedNeedsManualSlot, recommendations, run, selectedRecipe, t]);
 
   const requestRecommendedInstallForRecipe = useCallback((recipe: NimiLoadoutRecipe, loadout?: NimiMachineLoadout) => {
     const items = recommendedInstallItems(recipe, loadout ? modelAssetIdsForLoadout(loadout) : {});
     if (!items.some((item) => !item.installed)) return;
-    setPendingInstall({ recipe, items, ...(loadout ? { loadout } : {}) });
-  }, []);
+    setPendingInstall({ recipe, items, ...(loadout ? { loadout, affectsSelected: isSelected(aggregate, loadout) } : {}) });
+  }, [aggregate]);
 
   const confirmRecommendedInstall = useCallback(() => {
     const pending = pendingInstall;
@@ -385,35 +506,105 @@ export function SavedConfigsView(props: {
       await installAndBindRuntimeConfigRecommendedLoadout({
         ...pending,
         assets,
+        verifiedAssets,
         installOffer: async (offerRef) => {
           const plan = await modelAssetsClient.resolveOfferInstallPlan(offerRef);
           const result = await modelAssetsClient.install(plan.planId, { caller: 'core' });
           return result.modelAsset;
         },
-        updateLoadout: (next) => loadoutsClient.update(next, false),
+        updateLoadout: async (next) => {
+          const updated = await loadoutsClient.update(next, pending.affectsSelected === true);
+          setEdits(current => {
+            const draft = current[updated.loadoutId];
+            if (!draft) return current;
+            return { ...current, [updated.loadoutId]: { ...draft, baseRevision: updated.revision,
+              displayName: draft.displayName === pending.loadout?.displayName ? updated.displayName : draft.displayName } };
+          });
+          return updated;
+        },
       });
     });
-  }, [assets, loadoutsClient, modelAssetsClient, pendingInstall, run]);
+  }, [assets, loadoutsClient, modelAssetsClient, pendingInstall, run, verifiedAssets]);
 
-  const requestSelect = useCallback((loadout: NimiMachineLoadout) => {
-    requestImpact({
-      kind: 'select', title: loadout.displayName,
-      run: async () => { await loadoutsClient.select(loadout.capabilityContract, loadout.loadoutId, true); },
-    });
-  }, [loadoutsClient, requestImpact]);
+  const requestSelect = useCallback(async (loadout: NimiMachineLoadout) => {
+    if (busy) return;
+    setBusy(`select:${loadout.loadoutId}`);
+    try {
+      const { ready } = await checkExistingLoadoutEnvironment({
+        loadout,
+        resolveEnvironmentPlan: input => modelAssetsClient.resolveEnvironmentPlan(input),
+      });
+      if (!ready) {
+        if (props.onPrepareEnvironment) props.onPrepareEnvironment(loadout);
+        else setTechnicalError(t('runtimeConfig.setupTask.environmentUnavailable'));
+        return;
+      }
+      requestImpact({
+        kind: 'select',
+        title: loadout.displayName,
+        run: async () => {
+          const result = await commitExistingLoadoutSelection({
+            loadout,
+            aggregate,
+            selectLoadout: (cap, id, confirmed, conditions) => loadoutsClient.select(cap, id, confirmed, conditions),
+            queryClient,
+          });
+          if (result.status !== 'selected') throw new Error(t('runtimeConfig.product.selectionConflict'));
+        },
+      });
+    } catch (error) {
+      setTechnicalError(errorMessage(error));
+    } finally {
+      setBusy('');
+    }
+  }, [aggregate, busy, loadoutsClient, modelAssetsClient, props.onPrepareEnvironment, queryClient, requestImpact, t]);
 
   const requestClear = useCallback((loadout: NimiMachineLoadout) => {
     requestImpact({
       kind: 'clear', title: loadout.displayName,
-      run: async () => { await loadoutsClient.select(loadout.capabilityContract, null, true); },
+      run: async () => {
+        const revision = aggregate?.selectionRevisions[loadout.capabilityContract];
+        if (!revision) throw new Error(t('runtimeConfig.product.selectionConflict'));
+        const result = await loadoutsClient.select(loadout.capabilityContract, null, true, { expectedSelectionRevision: revision });
+        if (!result.applied) throw new Error(t('runtimeConfig.product.selectionConflict'));
+      },
     });
-  }, [loadoutsClient, requestImpact]);
+  }, [aggregate, loadoutsClient, requestImpact, t]);
+
+  const buildInitialEditDraft = useCallback((loadout: NimiMachineLoadout): EditDraft => ({
+    baseRevision: loadout.revision,
+    displayName: loadout.displayName,
+    contextSize: typeof loadout.options?.contextSize === 'number' && Number.isFinite(loadout.options.contextSize)
+      ? String(loadout.options.contextSize)
+      : '',
+  }), []);
+
+  const advanceEditDraftRevision = useCallback((loadoutId: string, updated: NimiMachineLoadout) => {
+    setEdits((current) => {
+      const existing = current[loadoutId];
+      if (!existing) return current;
+      return {
+        ...current,
+        [loadoutId]: {
+          ...existing,
+          baseRevision: updated.revision,
+        },
+      };
+    });
+  }, []);
+
+  const formatManageError = useCallback((message: string) => (
+    /revision|conflict|stale|precondition/i.test(message)
+      ? t('runtimeConfig.loadouts.revisionConflict')
+      : message
+  ), [t]);
 
   const requestUpdate = useCallback((loadout: NimiMachineLoadout, slotId: string, nextModelAssetId: string) => {
-    const draft = edits[loadout.loadoutId] ?? { modelAssetIds: modelAssetIdsForLoadout(loadout), displayName: loadout.displayName };
+    const draft = edits[loadout.loadoutId] ?? buildInitialEditDraft(loadout);
+    const committedAxes = modelAssetIdsForLoadout(loadout);
     const modelAxes = runtimeConfigLoadoutUpdateModelAxes(
       loadout,
-      draft.modelAssetIds,
+      committedAxes,
       assets,
       slotId,
       nextModelAssetId,
@@ -421,18 +612,37 @@ export function SavedConfigsView(props: {
     const errorKey = `${loadout.loadoutId}:${slotId}`;
     const candidateErrorKey = `${errorKey}:${nextModelAssetId}`;
     const selected = isSelected(aggregate, loadout);
-    const updateInput = {
+    const recipe = recipes.find((item) => item.recipeId === loadout.recipeId);
+    const nextDisplayName = loadoutDisplayNameSource(loadout.provenance) === 'auto' && recipe
+      ? deriveLoadoutDefaultDisplayName(
+        recipe,
+        (modelAxes ?? []).map((axis) => ({ slotId: axis.slotId, modelAssetId: axis.modelAssetId ?? '', expectedContentId: axis.expectedContentId })),
+        verifiedAssets,
+        assets,
+      )
+      : loadout.displayName;
+    const updateInput: NimiPrepareLoadoutInput = {
       loadoutId: loadout.loadoutId,
       capabilityContract: loadout.capabilityContract,
       recipeId: loadout.recipeId,
       options: loadout.options,
-      displayName: draft.displayName.trim() || loadout.displayName,
+      displayName: nextDisplayName,
       modelAxes,
       provenance: loadout.provenance,
+      ...(draft.baseRevision ? { expectedLoadoutRevision: draft.baseRevision } : {}),
     };
     setAxisErrors((current) => ({ ...current, [errorKey]: '' }));
+    setManageError('');
     const action = async () => {
-      await loadoutsClient.update(updateInput, selected);
+      const updated = await loadoutsClient.update(updateInput, selected);
+      advanceEditDraftRevision(loadout.loadoutId, updated);
+      if (loadoutDisplayNameSource(loadout.provenance) === 'auto') {
+        setEdits((current) => {
+          const existing = current[loadout.loadoutId];
+          if (!existing || existing.displayName !== loadout.displayName) return current;
+          return { ...current, [loadout.loadoutId]: { ...existing, baseRevision: updated.revision, displayName: updated.displayName } };
+        });
+      }
       setCandidateErrors((current) => {
         const next = { ...current };
         delete next[candidateErrorKey];
@@ -440,37 +650,84 @@ export function SavedConfigsView(props: {
       });
     };
     const onError = (message: string) => {
-      setAxisErrors((current) => ({ ...current, [errorKey]: message }));
-      setCandidateErrors((current) => ({ ...current, [candidateErrorKey]: message }));
+      const formatted = formatManageError(message);
+      setManageError(formatted);
+      setAxisErrors((current) => ({ ...current, [errorKey]: formatted }));
+      setCandidateErrors((current) => ({ ...current, [candidateErrorKey]: formatted }));
     };
     if (selected) {
       requestImpact({ kind: 'update', title: loadout.displayName, run: action, onError });
     } else {
       void run(`update:${loadout.loadoutId}:${slotId}`, action, onError);
     }
-  }, [aggregate, assets, edits, loadoutsClient, requestImpact, run]);
+  }, [advanceEditDraftRevision, aggregate, assets, buildInitialEditDraft, edits, formatManageError, loadoutsClient, recipes, requestImpact, run, verifiedAssets]);
 
   const requestRename = useCallback((loadout: NimiMachineLoadout) => {
-    const draft = edits[loadout.loadoutId] ?? { modelAssetIds: modelAssetIdsForLoadout(loadout), displayName: loadout.displayName };
+    const draft = edits[loadout.loadoutId] ?? buildInitialEditDraft(loadout);
     const nextName = draft.displayName.trim();
     if (!nextName || nextName === loadout.displayName) return;
     const selected = isSelected(aggregate, loadout);
-    const updateInput = {
+    const updateInput: NimiPrepareLoadoutInput = {
       loadoutId: loadout.loadoutId,
       capabilityContract: loadout.capabilityContract,
       recipeId: loadout.recipeId,
       options: loadout.options,
       displayName: nextName,
-      modelAxes: runtimeConfigLoadoutUpdateModelAxes(loadout, draft.modelAssetIds, assets, '', ''),
-      provenance: loadout.provenance,
+      // Always submit committed axes so a cancelled slot change can never leak into Rename.
+      modelAxes: runtimeConfigLoadoutUpdateModelAxes(loadout, modelAssetIdsForLoadout(loadout), assets, '', ''),
+      provenance: {
+        ...loadout.provenance,
+        [LOADOUT_DISPLAY_NAME_SOURCE_PROVENANCE_KEY]: 'user',
+      },
+      ...(draft.baseRevision ? { expectedLoadoutRevision: draft.baseRevision } : {}),
     };
-    const action = async () => { await loadoutsClient.update(updateInput, selected); };
+    setManageError('');
+    const action = async () => {
+      const updated = await loadoutsClient.update(updateInput, selected);
+      advanceEditDraftRevision(loadout.loadoutId, updated);
+    };
+    const onError = (message: string) => {
+      setManageError(formatManageError(message));
+    };
     if (selected) {
-      requestImpact({ kind: 'update', title: loadout.displayName, run: action });
+      requestImpact({ kind: 'update', title: loadout.displayName, run: action, onError });
     } else {
-      void run(`rename:${loadout.loadoutId}`, action);
+      void run(`rename:${loadout.loadoutId}`, action, onError);
     }
-  }, [aggregate, assets, edits, loadoutsClient, requestImpact, run]);
+  }, [advanceEditDraftRevision, aggregate, assets, buildInitialEditDraft, edits, formatManageError, loadoutsClient, requestImpact, run]);
+
+  const requestOptionsUpdate = useCallback((loadout: NimiMachineLoadout) => {
+    const draft = edits[loadout.loadoutId] ?? buildInitialEditDraft(loadout);
+    const patched = patchLoadoutTextContextOption(
+      (loadout.options ?? {}) as NimiJsonObject,
+      draft.contextSize,
+    );
+    if (!patched.valid) return;
+    const selected = isSelected(aggregate, loadout);
+    const updateInput: NimiPrepareLoadoutInput = {
+      loadoutId: loadout.loadoutId,
+      capabilityContract: loadout.capabilityContract,
+      recipeId: loadout.recipeId,
+      options: patched.options,
+      displayName: loadout.displayName,
+      modelAxes: runtimeConfigLoadoutUpdateModelAxes(loadout, modelAssetIdsForLoadout(loadout), assets, '', ''),
+      provenance: loadout.provenance,
+      ...(draft.baseRevision ? { expectedLoadoutRevision: draft.baseRevision } : {}),
+    };
+    setManageError('');
+    const action = async () => {
+      const updated = await loadoutsClient.update(updateInput, selected);
+      advanceEditDraftRevision(loadout.loadoutId, updated);
+    };
+    const onError = (message: string) => {
+      setManageError(formatManageError(message));
+    };
+    if (selected) {
+      requestImpact({ kind: 'update', title: loadout.displayName, run: action, onError });
+    } else {
+      void run(`options:${loadout.loadoutId}`, action, onError);
+    }
+  }, [advanceEditDraftRevision, aggregate, assets, buildInitialEditDraft, edits, formatManageError, loadoutsClient, requestImpact, run]);
 
   const requestDelete = useCallback((loadout: NimiMachineLoadout) => {
     const selected = isSelected(aggregate, loadout);
@@ -494,8 +751,27 @@ export function SavedConfigsView(props: {
     ? recipes.find((recipe) => recipe.recipeId === manageLoadout.recipeId)
     : undefined;
   const manageDraft = manageLoadout
-    ? edits[manageLoadout.loadoutId] ?? { modelAssetIds: modelAssetIdsForLoadout(manageLoadout), displayName: manageLoadout.displayName }
+    ? edits[manageLoadout.loadoutId] ?? buildInitialEditDraft(manageLoadout)
     : null;
+  const editingSlot = managePicker && managePicker.loadoutId === manageLoadout?.loadoutId
+    ? manageRecipe?.slots.find(slot => slot.slotId === managePicker.slotId) : undefined;
+  const manageIsRetiredRecipe = Boolean(
+    manageLoadout && loadoutNeedsReplacement(manageLoadout, manageRecipe, recipesLoadState),
+  );
+  const manageSupportsContextSize = Boolean(manageRecipe && supportsLlamaTextContextSize(manageRecipe));
+  const manageContextValidation = manageDraft && manageSupportsContextSize
+    ? patchLoadoutTextContextOption({}, manageDraft.contextSize)
+    : { valid: true as const };
+  const manageContextChanged = Boolean(
+    manageLoadout
+    && manageDraft
+    && manageSupportsContextSize
+    && manageDraft.contextSize.trim() !== (
+      typeof manageLoadout.options?.contextSize === 'number' && Number.isFinite(manageLoadout.options.contextSize)
+        ? String(manageLoadout.options.contextSize)
+        : ''
+    ),
+  );
 
   const capabilityLabel = useCallback((capabilityContract: string) => (
     t(loadoutCapabilityLabelKey(capabilityContract), { defaultValue: capabilityContract })
@@ -545,6 +821,14 @@ export function SavedConfigsView(props: {
           </>
         )}
       />
+      {recipesLoadState === 'error' ? (
+        <InlineAlert tone="warning" data-testid="loadouts-recipes-load-failed">
+          <p>{t('runtimeConfig.loadouts.recipesLoadFailedHint')}</p>
+          <Button size="sm" className="mt-2" loading={loading} disabled={Boolean(busy)} onClick={() => { void refresh(); }}>
+            {t('Common.retry', { defaultValue: 'Retry' })}
+          </Button>
+        </InlineAlert>
+      ) : null}
       {technicalError ? (
         <InlineAlert tone="danger">
           <p>{t('runtimeConfig.loadouts.loadFailed')}</p>
@@ -582,13 +866,19 @@ export function SavedConfigsView(props: {
                 loadouts={currentLoadouts}
                 aggregate={aggregate}
                 recipes={recipes}
+                recipesLoadState={recipesLoadState}
                 assets={assets}
                 verifiedAssets={verifiedAssets}
                 busy={Boolean(busy)}
                 onSelect={requestSelect}
                 onClear={requestClear}
                 onInstallRecommended={requestRecommendedInstallForRecipe}
-                onManage={(loadout) => setManageLoadoutId(loadout.loadoutId)}
+                onCreateReplacement={(loadout) => beginCreate(loadout.capabilityContract)}
+                onDelete={requestDelete}
+                onManage={(loadout) => {
+                  setManageError('');
+                  setManageLoadoutId(loadout.loadoutId);
+                }}
               />
               {!props.contextual ? <RecipeTemplateGroup
                 title={t('runtimeConfig.loadouts.recommendedTemplates', { defaultValue: 'Recommended plans' })}
@@ -623,13 +913,19 @@ export function SavedConfigsView(props: {
                 loadouts={savedLoadouts}
                 aggregate={aggregate}
                 recipes={recipes}
+                recipesLoadState={recipesLoadState}
                 assets={assets}
                 verifiedAssets={verifiedAssets}
                 busy={Boolean(busy)}
                 onSelect={requestSelect}
                 onClear={requestClear}
                 onInstallRecommended={requestRecommendedInstallForRecipe}
-                onManage={(loadout) => setManageLoadoutId(loadout.loadoutId)}
+                onCreateReplacement={(loadout) => beginCreate(loadout.capabilityContract)}
+                onDelete={requestDelete}
+                onManage={(loadout) => {
+                  setManageError('');
+                  setManageLoadoutId(loadout.loadoutId);
+                }}
               />
               {activeCapabilityLoadouts.length === 0 && props.contextual ? (
                 contextualEmptyState(activeCapability)
@@ -665,7 +961,7 @@ export function SavedConfigsView(props: {
                   size="sm"
                   tone="primary"
                   loading={busy === 'create'}
-                  disabled={!selectedRecipe || !displayName.trim() || !createContextValidation.valid}
+                  disabled={!selectedRecipe || !displayName.trim() || !createContextValidation.valid || preselectedNeedsManualSlot}
                   onClick={create}
                 >
                   {missingRecommendations.length > 0 ? t('runtimeConfig.loadouts.commitDownload') : t('runtimeConfig.loadouts.commit')}
@@ -753,7 +1049,23 @@ export function SavedConfigsView(props: {
 
             {createStep === 3 && selectedRecipe ? (
               <>
-                <label className="grid gap-1 text-sm"><span>{t('runtimeConfig.loadouts.name')}</span><TextField value={displayName} onChange={(event) => setDisplayName(event.currentTarget.value)} /></label>
+                {preselectedNeedsManualSlot ? (
+                  <InlineAlert tone="info" data-testid="create-loadout-preselected-hint">
+                    <p>{t('runtimeConfig.loadouts.preselectedSlotHint', { file: assets.find(asset => asset.modelAssetId === preselectedAssetId)?.entry ?? preselectedAssetId })}</p>
+                  </InlineAlert>
+                ) : null}
+                {createFormError ? (
+                  <InlineAlert tone="danger" data-testid="create-loadout-form-error">
+                    <p>{createFormError}</p>
+                  </InlineAlert>
+                ) : null}
+                <label className="grid gap-1 text-sm">
+                  <span>{t('runtimeConfig.loadouts.name')}</span>
+                  <TextField
+                    value={displayName}
+                    onChange={(event) => setCustomDisplayName(event.currentTarget.value)}
+                  />
+                </label>
                 {selectedRecipe.slots.map((slot) => (
                   <div
                     key={slot.slotId}
@@ -779,6 +1091,8 @@ export function SavedConfigsView(props: {
                   selectedAssetId={pickerSlotId ? createAxes[pickerSlotId] ?? '' : ''}
                   onSelect={(modelAssetId) => {
                     if (!pickerSlotId) return;
+                    setCreateFormError('');
+                    if (modelAssetId === preselectedAssetId) setPreselectedNeedsManualSlot(false);
                     setCreateAxes((current) => {
                       const next = { ...current, [pickerSlotId]: modelAssetId };
                       if (!createContextEdited && selectedRecipe) {
@@ -798,8 +1112,9 @@ export function SavedConfigsView(props: {
                       slotId: slot.slotId,
                       candidate: offer.candidate,
                       draft: {
-                        displayName,
+                        customDisplayName,
                         modelAssetIds: { ...createAxes },
+                        ...(preselectedNeedsManualSlot ? { pendingSlotAssetId: preselectedAssetId } : {}),
                         contextSize: createContextSize,
                         contextSizeEdited: createContextEdited,
                       },
@@ -807,32 +1122,15 @@ export function SavedConfigsView(props: {
                   }}
                   onClose={() => setPickerSlotId(null)}
                 />
-                {selectedRecipe.capabilityContract === 'text.generate' && selectedRecipe.defaultOptions.contextSize === undefined ? (
-                  <label className="grid gap-1 text-sm">
-                    <span>{t('runtimeConfig.loadouts.contextSize')}</span>
-                    <TextField
-                      data-testid="create-loadout-context-size"
-                      inputMode="numeric"
-                      placeholder={t('runtimeConfig.loadouts.contextSizeAuto')}
-                      value={createContextSize}
-                      onChange={(event) => {
-                        setCreateContextEdited(true);
-                        setCreateContextSize(event.currentTarget.value);
-                      }}
-                    />
-                    {!createContextValidation.valid ? (
-                      <span
-                        data-testid="create-loadout-context-size-error"
-                        className="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-status-danger)]"
-                      >
-                        {t('runtimeConfig.loadouts.contextSizeInvalid')}
-                      </span>
-                    ) : (
-                      <span className="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
-                        {t('runtimeConfig.loadouts.contextSizeHint')}
-                      </span>
-                    )}
-                  </label>
+                {supportsLlamaTextContextSize(selectedRecipe) ? (
+                  <RuntimeTextContextSizeField
+                    value={createContextSize}
+                    onChange={(value) => {
+                      setCreateContextEdited(true);
+                      setCreateContextSize(value);
+                    }}
+                    inputTestId="create-loadout-context-size"
+                  />
                 ) : null}
                 {missingRequiredSlots.length > 0 ? (
                   <InlineAlert tone="warning">
@@ -841,11 +1139,11 @@ export function SavedConfigsView(props: {
                       defaultValue: '{{count}} required model(s) still need to be selected. Choose installed models, or download or import them.',
                     })}</p>
                   </InlineAlert>
-                ) : (
+                ) : !createFormError ? (
                   <InlineAlert tone="success">
                     <p>{t('runtimeConfig.loadouts.readySummary')}</p>
                   </InlineAlert>
-                )}
+                ) : null}
                 {recommendations.length > 0 ? (
                   <p className="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
                     {t('runtimeConfig.loadouts.downloadEstimateDisclaimer')}
@@ -862,7 +1160,10 @@ export function SavedConfigsView(props: {
         kind="drawer"
         size="M"
         title={manageLoadout?.displayName ?? ''}
-        onClose={() => props.initialLoadoutId ? props.onBack() : setManageLoadoutId(null)}
+        onClose={() => {
+          setManagePicker(null);
+          if (props.initialLoadoutId) props.onBack(); else setManageLoadoutId(null);
+        }}
         footer={props.initialLoadoutId ? (
           <Button tone="secondary" onClick={props.onBack} data-testid="model-configuration-back">
             {props.backLabel ?? t('runtimeConfig.localModels.backToModels')}
@@ -872,31 +1173,129 @@ export function SavedConfigsView(props: {
         contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden px-0 py-0"
       >
         <ScrollShell className="flex-1 px-6 py-2">
-          {manageLoadout && manageDraft ? (
+          {manageLoadout && manageRecipe && manageDraft && editingSlot ? (
+            <div className="space-y-3" data-testid="loadout-manage-picker">
+              <Button size="sm" tone="ghost" onClick={() => setManagePicker(null)}>{t('runtimeConfig.loadouts.picker.backToSettings')}</Button>
+              <LoadoutSlotLabel slot={editingSlot} />
+              <LoadoutSlotModelPickerBody
+                key={editingSlot.slotId}
+                slot={editingSlot}
+                assets={assets}
+                verifiedAssets={verifiedAssets}
+                selectedAssetId={manageLoadout.modelAxes.find(axis => axis.slotId === editingSlot.slotId)?.modelAssetId ?? ''}
+                allowClear={editingSlot.presence === 'optional-conditional'}
+                clearLabel={t('runtimeConfig.product.customization.notUsed')}
+                assetError={id => candidateErrors[`${manageLoadout.loadoutId}:${editingSlot.slotId}:${id}`]}
+                onSelectAsset={id => {
+                  setManagePicker(null);
+                  requestUpdate(manageLoadout, editingSlot.slotId, id);
+                }}
+                onSelectOffer={offer => {
+                  setManagePicker(null);
+                  setPendingInstall({ recipe: manageRecipe, loadout: { ...manageLoadout, revision: manageDraft.baseRevision },
+                    affectsSelected: isSelected(aggregate, manageLoadout),
+                    items: [{ slotId: editingSlot.slotId, displayLabel: editingSlot.displayLabel, candidate: offer.candidate, installed: false }] });
+                }}
+              />
+            </div>
+          ) : manageLoadout && manageDraft ? (
             <div className="grid gap-5 py-2" data-testid={`loadout-manage:${manageLoadout.loadoutId}`}>
               <p className="text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.localModels.configurationId', { id: configurationShortId(manageLoadout, aggregate?.loadouts ?? []) })}</p>
+              {manageError ? (
+                <InlineAlert tone="warning" data-testid="loadout-manage-error">
+                  <p>{manageError}</p>
+                  <Button
+                    size="sm"
+                    tone="secondary"
+                    className="mt-2"
+                    disabled={Boolean(busy)}
+                    onClick={() => {
+                      setManageError('');
+                      setEdits((current) => {
+                        const next = { ...current };
+                        delete next[manageLoadout.loadoutId];
+                        return next;
+                      });
+                      void refresh();
+                    }}
+                  >
+                    {t('Common.retry', { defaultValue: 'Retry' })}
+                  </Button>
+                </InlineAlert>
+              ) : null}
+              {manageIsRetiredRecipe ? (
+                <InlineAlert tone="warning" data-testid="loadout-manage-retired-recipe">
+                  <p>{t('runtimeConfig.loadouts.retiredRecipeHint')}</p>
+                  <Button
+                    size="sm"
+                    tone="primary"
+                    className="mt-2"
+                    disabled={Boolean(busy)}
+                    onClick={() => {
+                      setManageLoadoutId(null);
+                      beginCreate(manageLoadout.capabilityContract);
+                    }}
+                  >
+                    {t('runtimeConfig.loadouts.createReplacement')}
+                  </Button>
+                </InlineAlert>
+              ) : null}
               <div className="grid gap-1 text-sm">
                 <span>{t('runtimeConfig.loadouts.name')}</span>
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <TextField
                       value={manageDraft.displayName}
-                      onChange={(event) => setEdits((current) => ({
-                        ...current,
-                        [manageLoadout.loadoutId]: { ...manageDraft, displayName: event.currentTarget.value },
-                      }))}
+                      onChange={(event) => {
+                        const nextDisplayName = event.currentTarget.value;
+                        setEdits((current) => ({
+                          ...current,
+                          [manageLoadout.loadoutId]: {
+                            ...(current[manageLoadout.loadoutId] ?? manageDraft),
+                            displayName: nextDisplayName,
+                          },
+                        }));
+                      }}
                     />
                   </div>
                   <Button
                     size="sm"
                     tone="secondary"
-                    disabled={Boolean(busy) || !manageDraft.displayName.trim() || manageDraft.displayName.trim() === manageLoadout.displayName}
+                    disabled={Boolean(busy) || manageIsRetiredRecipe || !manageDraft.displayName.trim() || manageDraft.displayName.trim() === manageLoadout.displayName}
                     onClick={() => requestRename(manageLoadout)}
                   >
                     {t('runtimeConfig.loadouts.renameSave')}
                   </Button>
                 </div>
               </div>
+
+              {manageSupportsContextSize ? (
+                <div className="grid gap-2" data-testid="loadout-manage-options-section">
+                  <RuntimeTextContextSizeField
+                    value={manageDraft.contextSize}
+                    onChange={(nextValue) => setEdits((current) => ({
+                      ...current,
+                      [manageLoadout.loadoutId]: {
+                        ...(current[manageLoadout.loadoutId] ?? manageDraft),
+                        contextSize: nextValue,
+                      },
+                    }))}
+                    disabled={Boolean(busy) || manageIsRetiredRecipe}
+                    testId="loadout-manage-context-size"
+                  />
+                  <div>
+                    <Button
+                      size="sm"
+                      tone="secondary"
+                      data-testid="loadout-manage-save-options"
+                      disabled={Boolean(busy) || manageIsRetiredRecipe || !manageContextChanged || !manageContextValidation.valid}
+                      onClick={() => requestOptionsUpdate(manageLoadout)}
+                    >
+                      {t('runtimeConfig.loadouts.saveOptions')}
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
 
               <section className="grid gap-3" data-testid="loadout-model-parts-editor">
                 <div>
@@ -923,30 +1322,11 @@ export function SavedConfigsView(props: {
                         </div>
                         {error ? <p className="mt-2 text-xs text-[var(--nimi-status-danger)]">{t('runtimeConfig.loadouts.incompatibleSummary')}</p> : null}
                       </div>
-                      <SelectField
-                        value={manageDraft.modelAssetIds[axis.slotId] || (axis.presence === 'optional-conditional' ? LOADOUT_UNSET_MODEL_OPTION_VALUE : '')}
-                        placeholder={t('runtimeConfig.loadouts.chooseModels')}
-                        options={[
-                          ...(axis.presence === 'optional-conditional'
-                            ? [{ value: LOADOUT_UNSET_MODEL_OPTION_VALUE, label: t('runtimeConfig.loadouts.unresolved') }]
-                            : []),
-                          ...runtimeConfigLoadoutCandidateAssets(slot, assets, axis).map((item) => {
-                            const incompatibility = candidateErrors[`${manageLoadout.loadoutId}:${axis.slotId}:${item.modelAssetId}`];
-                            const label = loadoutAssetLabel(item, verifiedAssets);
-                            return { value: item.modelAssetId, label: incompatibility ? `${label} · ${t('runtimeConfig.loadouts.incompatibleOption')}` : label };
-                          }),
-                        ]}
-                        onValueChange={(value) => {
-                          const modelAssetId = value === LOADOUT_UNSET_MODEL_OPTION_VALUE ? '' : value;
-                          setEdits((current) => ({
-                            ...current,
-                            [manageLoadout.loadoutId]: { ...manageDraft, modelAssetIds: { ...manageDraft.modelAssetIds, [axis.slotId]: modelAssetId } },
-                          }));
-                          requestUpdate(manageLoadout, axis.slotId, modelAssetId);
-                        }}
-                        disabled={Boolean(busy)}
-                        contentLayer="dialog"
-                      />
+                      {slot ? (
+                        <LoadoutSelectedModelCard slot={slot} asset={asset ?? null} verifiedAssets={verifiedAssets}
+                          disabled={Boolean(busy) || manageIsRetiredRecipe}
+                          onOpenPicker={() => setManagePicker({ loadoutId: manageLoadout.loadoutId, slotId: slot.slotId })} />
+                      ) : <p>{asset ? loadoutAssetLabel(asset, verifiedAssets) : t('runtimeConfig.loadouts.unresolved')}</p>}
                     </div>
                   );
                 })}
@@ -955,6 +1335,7 @@ export function SavedConfigsView(props: {
               <RuntimeConfigLoadoutTextBehaviors
                 loadoutId={manageLoadout.loadoutId}
                 behaviors={manageLoadout.textBehaviors}
+                hasBoundMainModel={loadoutHasBoundMainModel(manageLoadout, manageRecipe)}
                 compact
               />
 
@@ -1016,7 +1397,7 @@ export function SavedConfigsView(props: {
           download: t('runtimeConfig.loadouts.downloadAction'),
           total: t('runtimeConfig.loadouts.totalDownload'),
           unknownSize: t('runtimeConfig.loadouts.unknownDownloadSize'),
-        })}
+        }) + (pendingInstall?.affectsSelected ? ` ${t('runtimeConfig.loadouts.bindingImpact')}` : '')}
         confirmLabel={t(pendingInstall?.loadout
           ? 'runtimeConfig.loadouts.installRecommendedAndUseConfirm'
           : 'runtimeConfig.loadouts.installRecommendedConfirm')}
@@ -1031,7 +1412,7 @@ export function SavedConfigsView(props: {
           open
           kind="dialog"
           closeOnBackdrop={false}
-          title={t('runtimeConfig.loadouts.impactTitle')}
+          title={t(pendingImpact.kind === 'delete' ? 'runtimeConfig.loadouts.deleteImpactTitle' : 'runtimeConfig.loadouts.impactTitle')}
           onClose={cancelImpact}
           footer={(
             <div className="flex gap-3">
@@ -1041,7 +1422,7 @@ export function SavedConfigsView(props: {
           )}
         >
           <div className="text-sm text-[var(--nimi-text-secondary)]">
-            {t('runtimeConfig.loadouts.impactBody', { name: pendingImpact.title })}
+            {t(pendingImpact.kind === 'delete' ? 'runtimeConfig.loadouts.deleteImpactBody' : 'runtimeConfig.loadouts.impactBody', { name: pendingImpact.title })}
           </div>
         </OverlayShell>
       ) : null}
@@ -1199,17 +1580,36 @@ function RecipeTemplateGroup(props: {
   );
 }
 
+function loadoutHasBoundMainModel(
+  loadout: Pick<NimiMachineLoadout, 'modelAxes'>,
+  recipe?: Pick<NimiLoadoutRecipe, 'slots'>,
+): boolean {
+  if (recipe) {
+    const primary = resolvePrimaryRecipeSlot(recipe);
+    if (primary.kind === 'single') {
+      return loadout.modelAxes.some((axis) => axis.slotId === primary.slot.slotId && Boolean(axis.modelAssetId));
+    }
+  }
+  const requiredAxes = loadout.modelAxes.filter((axis) => axis.presence === 'required');
+  return requiredAxes.length > 0
+    ? requiredAxes.some((axis) => Boolean(axis.modelAssetId))
+    : loadout.modelAxes.some((axis) => Boolean(axis.modelAssetId));
+}
+
 function LoadoutGroup(props: {
   readonly title: string;
   readonly loadouts: readonly NimiMachineLoadout[];
   readonly aggregate: NimiMachineLoadouts | null;
   readonly recipes: readonly NimiLoadoutRecipe[];
+  readonly recipesLoadState: RecipesLoadState;
   readonly assets: readonly NimiRuntimeModelAssetRecord[];
   readonly verifiedAssets: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
   readonly busy: boolean;
   readonly onSelect: (loadout: NimiMachineLoadout) => void;
   readonly onClear: (loadout: NimiMachineLoadout) => void;
   readonly onInstallRecommended: (recipe: NimiLoadoutRecipe, loadout?: NimiMachineLoadout) => void;
+  readonly onCreateReplacement: (loadout: NimiMachineLoadout) => void;
+  readonly onDelete: (loadout: NimiMachineLoadout) => void;
   readonly onManage: (loadout: NimiMachineLoadout) => void;
 }) {
   if (props.loadouts.length === 0) return null;
@@ -1221,6 +1621,7 @@ function LoadoutGroup(props: {
           key={loadout.loadoutId}
           loadout={loadout}
           recipe={props.recipes.find((recipe) => recipe.recipeId === loadout.recipeId)}
+          recipesLoadState={props.recipesLoadState}
           assets={props.assets}
           verifiedAssets={props.verifiedAssets}
           selected={isSelected(props.aggregate, loadout)}
@@ -1228,6 +1629,8 @@ function LoadoutGroup(props: {
           onSelect={() => props.onSelect(loadout)}
           onClear={() => props.onClear(loadout)}
           onInstallRecommended={(recipe) => props.onInstallRecommended(recipe, loadout)}
+          onCreateReplacement={() => props.onCreateReplacement(loadout)}
+          onDelete={() => props.onDelete(loadout)}
           onManage={() => props.onManage(loadout)}
         />
       ))}
@@ -1238,6 +1641,7 @@ function LoadoutGroup(props: {
 function LoadoutCard(props: {
   readonly loadout: NimiMachineLoadout;
   readonly recipe?: NimiLoadoutRecipe;
+  readonly recipesLoadState: RecipesLoadState;
   readonly assets: readonly NimiRuntimeModelAssetRecord[];
   readonly verifiedAssets: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
   readonly selected: boolean;
@@ -1245,10 +1649,13 @@ function LoadoutCard(props: {
   readonly onSelect: () => void;
   readonly onClear: () => void;
   readonly onInstallRecommended: (recipe: NimiLoadoutRecipe) => void;
+  readonly onCreateReplacement: () => void;
+  readonly onDelete: () => void;
   readonly onManage: () => void;
 }) {
   const { t } = useTranslation();
   const tone = props.loadout.validationState === 'configured' ? 'success' : props.loadout.validationState === 'blocked' ? 'danger' : 'warning';
+  const isRetiredRecipe = loadoutNeedsReplacement(props.loadout, props.recipe, props.recipesLoadState);
   const recoveryRecommendations = props.recipe
     ? recommendedInstallItems(props.recipe, modelAssetIdsForLoadout(props.loadout))
     : [];
@@ -1273,10 +1680,28 @@ function LoadoutCard(props: {
           )}
         </div>
         <div className="flex shrink-0 gap-2">
-          {props.selected ? <Button size="sm" tone="ghost" disabled={props.busy} onClick={props.onClear}>{t('runtimeConfig.loadouts.clear')}</Button> : props.loadout.validationState === 'configured' ? <Button size="sm" tone="primary" disabled={props.busy} onClick={props.onSelect}>{t('runtimeConfig.loadouts.select')}</Button> : canInstallRecommended && props.recipe ? <Button data-testid={`loadout-install-recommended:${props.loadout.loadoutId}`} size="sm" tone="primary" disabled={props.busy} onClick={() => props.onInstallRecommended(props.recipe!)}>{t('runtimeConfig.loadouts.installRecommended')}</Button> : <Button size="sm" tone="primary" disabled={props.busy} onClick={props.onManage}>{t('runtimeConfig.loadouts.chooseModels')}</Button>}
-          <Button size="sm" tone="secondary" disabled={props.busy} onClick={props.onManage}>{t('runtimeConfig.loadouts.manage')}</Button>
+          {isRetiredRecipe ? (
+            <>
+              <Button size="sm" tone="primary" disabled={props.busy} onClick={props.onCreateReplacement} data-testid={`loadout-create-replacement:${props.loadout.loadoutId}`}>
+                {t('runtimeConfig.loadouts.createReplacement')}
+              </Button>
+              <Button size="sm" tone="danger" disabled={props.busy} onClick={props.onDelete} data-testid={`loadout-delete-retired:${props.loadout.loadoutId}`}>
+                {t('runtimeConfig.loadouts.delete')}
+              </Button>
+            </>
+          ) : (
+            <>
+              {props.selected ? <Button size="sm" tone="ghost" disabled={props.busy} onClick={props.onClear}>{t('runtimeConfig.loadouts.clear')}</Button> : props.loadout.validationState === 'configured' ? <Button size="sm" tone="primary" disabled={props.busy} onClick={props.onSelect}>{t('runtimeConfig.loadouts.select')}</Button> : canInstallRecommended && props.recipe ? <Button data-testid={`loadout-install-recommended:${props.loadout.loadoutId}`} size="sm" tone="primary" disabled={props.busy} onClick={() => props.onInstallRecommended(props.recipe!)}>{t('runtimeConfig.loadouts.installRecommended')}</Button> : <Button size="sm" tone="primary" disabled={props.busy} onClick={props.onManage}>{t('runtimeConfig.loadouts.chooseModels')}</Button>}
+              <Button size="sm" tone="secondary" disabled={props.busy} onClick={props.onManage}>{t('runtimeConfig.loadouts.manage')}</Button>
+            </>
+          )}
         </div>
       </div>
+      {isRetiredRecipe ? (
+        <p className="text-xs text-[var(--nimi-status-warning)]" data-testid={`loadout-retired-hint:${props.loadout.loadoutId}`}>
+          {t('runtimeConfig.loadouts.retiredRecipeHint')}
+        </p>
+      ) : null}
       <div className="grid gap-2 sm:grid-cols-3">
         {props.loadout.modelAxes.map((axis) => {
           const asset = props.assets.find((item) => item.modelAssetId === axis.modelAssetId);
@@ -1305,6 +1730,7 @@ function LoadoutCard(props: {
       <RuntimeConfigLoadoutTextBehaviors
         loadoutId={props.loadout.loadoutId}
         behaviors={props.loadout.textBehaviors}
+        hasBoundMainModel={loadoutHasBoundMainModel(props.loadout, props.recipe)}
       />
     </Surface>
   );
@@ -1313,6 +1739,7 @@ function LoadoutCard(props: {
 export type RuntimeConfigTextBehaviorPresentationState =
   | 'implementation-supported'
   | 'configured'
+  | 'model-unsupported'
   | 'unavailable';
 
 export function runtimeConfigTextBehaviorPresentationState(
@@ -1320,12 +1747,13 @@ export function runtimeConfigTextBehaviorPresentationState(
     NimiTextBehaviorCapabilityProjection,
     'implementationSupported' | 'configurationState'
   >,
+  options?: { readonly hasBoundMainModel?: boolean },
 ): RuntimeConfigTextBehaviorPresentationState {
   if (behavior.implementationSupported && behavior.configurationState === 'configured') {
     return 'configured';
   }
   if (behavior.implementationSupported && behavior.configurationState === 'unavailable') {
-    return 'implementation-supported';
+    return options?.hasBoundMainModel ? 'model-unsupported' : 'implementation-supported';
   }
   return 'unavailable';
 }
@@ -1335,20 +1763,24 @@ function runtimeConfigTextBehaviorTone(
     NimiTextBehaviorCapabilityProjection,
     'implementationSupported' | 'configurationState'
   >,
-): 'success' | 'info' | 'warning' | 'danger' {
-  const state = runtimeConfigTextBehaviorPresentationState(behavior);
+  options?: { readonly hasBoundMainModel?: boolean },
+): 'success' | 'info' | 'neutral' | 'warning' | 'danger' {
+  const state = runtimeConfigTextBehaviorPresentationState(behavior, options);
   if (state === 'configured') return 'success';
   if (state === 'implementation-supported') return 'info';
+  if (state === 'model-unsupported') return 'neutral';
   return behavior.configurationState === 'ambiguous' ? 'danger' : 'warning';
 }
 
 export function RuntimeConfigLoadoutTextBehaviors(props: {
   readonly loadoutId: string;
   readonly behaviors: readonly NimiTextBehaviorCapabilityProjection[];
+  readonly hasBoundMainModel?: boolean;
   readonly compact?: boolean;
 }) {
   const { t } = useTranslation();
   if (props.behaviors.length === 0) return null;
+  const behaviorOptions = { hasBoundMainModel: props.hasBoundMainModel };
   return (
     <div
       className={props.compact ? 'grid gap-2' : 'grid gap-2 border-t border-[var(--nimi-border-subtle)] pt-3'}
@@ -1359,7 +1791,7 @@ export function RuntimeConfigLoadoutTextBehaviors(props: {
       </h5>
       <div className="grid gap-2 sm:grid-cols-3">
         {props.behaviors.map((behavior) => {
-          const state = runtimeConfigTextBehaviorPresentationState(behavior);
+          const state = runtimeConfigTextBehaviorPresentationState(behavior, behaviorOptions);
           return (
             <div
               key={behavior.kind}
@@ -1371,7 +1803,7 @@ export function RuntimeConfigLoadoutTextBehaviors(props: {
                 <span className="text-xs font-medium text-[var(--nimi-text-primary)]">
                   {t(`runtimeConfig.loadouts.textBehaviors.kind.${behavior.kind}`)}
                 </span>
-                <StatusBadge tone={runtimeConfigTextBehaviorTone(behavior)} shape="soft">
+                <StatusBadge tone={runtimeConfigTextBehaviorTone(behavior, behaviorOptions)} shape="soft">
                   {t(`runtimeConfig.loadouts.textBehaviors.state.${state}`)}
                 </StatusBadge>
               </div>
@@ -1398,9 +1830,13 @@ export function LoadoutSlotLabel({ slot }: {
   const slotLabelKey = slot.slotId ? loadoutSlotLabelKey(slot.slotId) : null;
   const displayLabel = slotLabelKey ? t(slotLabelKey, { defaultValue: slot.displayLabel }) : slot.displayLabel;
   const features = new Intl.ListFormat(i18n.resolvedLanguage || i18n.language || 'en').format(
-    slot.conditionalFeatures.map((feature) => feature === 'input.image'
-      ? t('runtimeConfig.loadouts.imageInput')
-      : feature),
+    slot.conditionalFeatures.map((feature) => (
+      feature === 'input.image'
+        ? t(slot.slotId === 'companion.controlnet'
+          ? 'runtimeConfig.loadouts.controlnetInput'
+          : 'runtimeConfig.loadouts.imageInput')
+        : feature
+    )),
   );
   return (
     <span className="inline-flex min-w-0 flex-wrap items-baseline gap-x-2 text-xs" data-requirement-presence={slot.presence}>
@@ -1467,30 +1903,25 @@ export function recommendedInstallItems(
 
 export function resolveLoadoutCreateContextOption(
   recipe: Pick<NimiLoadoutRecipe, 'capabilityContract' | 'defaultOptions' | 'slots'> & {
+    readonly implementation?: NimiLoadoutRecipe['implementation'];
     readonly recommendedOptions?: NimiLoadoutRecipe['recommendedOptions'];
   },
   selectedAxes: Readonly<Record<string, string>>,
 ): string {
-  if (recipe.capabilityContract !== 'text.generate' || recipe.defaultOptions.contextSize !== undefined) {
+  const supportsContext = recipe.implementation
+    ? supportsLlamaTextContextSize(recipe as Pick<NimiLoadoutRecipe, 'capabilityContract' | 'implementation'>)
+    : (recipe.capabilityContract === 'text.generate' && recipe.defaultOptions.contextSize === undefined);
+  if (!supportsContext) {
     return '';
   }
   const mainSlot = recipe.slots.find((slot) => slot.presence === 'required');
-  const selectedAssetId = mainSlot ? selectedAxes[mainSlot.slotId] : '';
-  if (mainSlot && selectedAssetId) {
-    const fit = mainSlot.offers.find((offer) => offer.installedModelAssetId === selectedAssetId)?.contextFit;
-    return fit && fit.recommendedContextSize < fit.authoredContextSize ? String(fit.recommendedContextSize) : '';
-  }
-  const recommendedFit = mainSlot?.recommendedContextFit;
-  if (recommendedFit) {
-    return recommendedFit.recommendedContextSize < recommendedFit.authoredContextSize
-      ? String(recommendedFit.recommendedContextSize)
-      : '';
-  }
-  const recommendedContextSize = recipe.recommendedOptions?.contextSize;
-  if (typeof recommendedContextSize === 'number' && Number.isSafeInteger(recommendedContextSize) && recommendedContextSize >= 1) {
-    return String(recommendedContextSize);
-  }
-  return '';
+  const selectedAssetId = mainSlot && selectedAxes[mainSlot.slotId];
+  const fit = selectedAssetId
+    ? mainSlot?.offers.find((offer) => offer.installedModelAssetId === selectedAssetId)?.contextFit
+    : mainSlot?.recommendedContextFit;
+  const options = fit?.recommendedOptions
+    ?? (selectedAssetId ? recipe.defaultOptions : recipe.recommendedOptions ?? recipe.defaultOptions);
+  return typeof options.contextSize === 'number' ? String(options.contextSize) : '';
 }
 
 export function parseLoadoutCreateContextOption(
@@ -1511,21 +1942,23 @@ export function parseLoadoutCreateContextOption(
 }
 
 export function buildLoadoutCreateOptions(
-  recipe: Pick<NimiLoadoutRecipe, 'capabilityContract' | 'defaultOptions'>,
+  recipe: Pick<NimiLoadoutRecipe, 'capabilityContract' | 'defaultOptions'> & {
+    readonly implementation?: NimiLoadoutRecipe['implementation'];
+  },
   contextSizeDraft: string,
 ): NimiPrepareLoadoutInput['options'] {
-  const base = { ...recipe.defaultOptions };
-  if (recipe.capabilityContract !== 'text.generate' || base.contextSize !== undefined) {
+  const base = { ...recipe.defaultOptions } as NimiJsonObject;
+  const supportsContext = recipe.implementation
+    ? supportsLlamaTextContextSize(recipe as Pick<NimiLoadoutRecipe, 'capabilityContract' | 'implementation'>)
+    : (recipe.capabilityContract === 'text.generate' && base.contextSize === undefined);
+  if (!supportsContext) {
     return base;
   }
-  const parsed = parseLoadoutCreateContextOption(contextSizeDraft);
-  if (!parsed.valid) {
+  const patched = patchLoadoutTextContextOption(base, contextSizeDraft);
+  if (!patched.valid) {
     throw new Error('Context window must be empty or a positive integer.');
   }
-  if (parsed.contextSize !== undefined) {
-    return { ...base, contextSize: parsed.contextSize };
-  }
-  return base;
+  return patched.options;
 }
 
 export function runtimeConfigRecommendedLoadoutModelAxes(
@@ -1535,35 +1968,14 @@ export function runtimeConfigRecommendedLoadoutModelAxes(
   resolvedBySlot: ReadonlyMap<string, NimiRuntimeModelAssetRecord> = new Map(),
 ): NimiPrepareLoadoutInput['modelAxes'] {
   const assetsById = new Map(assets.map((asset) => [asset.modelAssetId, asset]));
-  const modelAxes: Array<{ slotId: string; modelAssetId?: string; expectedContentId?: string }> = [];
-  for (const slot of recipe.slots) {
-    const current = loadout.modelAxes.find((axis) => axis.slotId === slot.slotId);
-    if (current?.modelAssetId) {
-      const asset = assetsById.get(current.modelAssetId);
-      const expectedContentId = asset?.contentId || current.expectedContentId;
-      if (expectedContentId) {
-        modelAxes.push({ slotId: slot.slotId, modelAssetId: current.modelAssetId, expectedContentId });
-      }
-      continue;
-    }
+  return recipe.slots.flatMap(slot => {
     const resolved = resolvedBySlot.get(slot.slotId);
-    // Optional-conditional slots are never confirmed by recommendedInstallItems,
-    // so never auto-bind an already-installed static recommendation into them.
-    const recommended = slot.presence === 'optional-conditional'
-      ? undefined
-      : slot.recommendedContentIds
-        .map((contentId) => assets.find((asset) => asset.contentId === contentId))
-        .find((asset): asset is NimiRuntimeModelAssetRecord => asset !== undefined);
-    const asset = resolved ?? recommended;
-    if (asset) {
-      modelAxes.push({ slotId: slot.slotId, modelAssetId: asset.modelAssetId, expectedContentId: asset.contentId });
-    }
-    // An unbound slot stays absent from modelAxes: Runtime only accepts
-    // (modelAssetId, expectedContentId) pairs and treats a missing slot as a
-    // legal unresolved axis. The pending content intent stays on the stored
-    // Loadout axis until a real ModelAsset is bound.
-  }
-  return modelAxes;
+    if (resolved) return [{ slotId: slot.slotId, modelAssetId: resolved.modelAssetId, expectedContentId: resolved.contentId }];
+    const current = loadout.modelAxes.find(axis => axis.slotId === slot.slotId);
+    if (current?.modelAssetId) return [{ slotId: slot.slotId, modelAssetId: current.modelAssetId,
+      expectedContentId: current.expectedContentId || assetsById.get(current.modelAssetId)?.contentId || '' }];
+    return slot.presence === 'required' ? [{ slotId: slot.slotId, modelAssetId: '', expectedContentId: '' }] : [];
+  });
 }
 
 export async function installAndBindRuntimeConfigRecommendedLoadout(input: {
@@ -1571,6 +1983,7 @@ export async function installAndBindRuntimeConfigRecommendedLoadout(input: {
   readonly recipe: NimiLoadoutRecipe;
   readonly loadout?: NimiMachineLoadout;
   readonly assets: readonly NimiRuntimeModelAssetRecord[];
+  readonly verifiedAssets?: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
   readonly installOffer: (offerRef: string) => Promise<NimiRuntimeModelAssetRecord>;
   readonly updateLoadout: (next: NimiPrepareLoadoutInput) => Promise<unknown>;
 }): Promise<void> {
@@ -1578,7 +1991,8 @@ export async function installAndBindRuntimeConfigRecommendedLoadout(input: {
   for (const item of input.items) {
     if (item.installedModelAssetId) {
       const installed = input.assets.find((asset) => asset.modelAssetId === item.installedModelAssetId);
-      if (installed) resolvedBySlot.set(item.slotId, installed);
+      if (!installed) throw new Error(`Selected model asset ${item.installedModelAssetId} is no longer available on this device.`);
+      resolvedBySlot.set(item.slotId, installed);
       continue;
     }
     resolvedBySlot.set(item.slotId, await input.installOffer(item.candidate.offerRef));
@@ -1588,13 +2002,22 @@ export async function installAndBindRuntimeConfigRecommendedLoadout(input: {
   const nextAssets = [...input.assets, ...installedAssets.filter((installed) => (
     !input.assets.some((asset) => asset.modelAssetId === installed.modelAssetId)
   ))];
+  const nextModelAxes = runtimeConfigRecommendedLoadoutModelAxes(input.loadout, input.recipe, nextAssets, resolvedBySlot);
+  const nextDisplayName = loadoutDisplayNameSource(input.loadout.provenance) === 'auto'
+    ? deriveLoadoutDefaultDisplayName(
+      input.recipe,
+      (nextModelAxes ?? []).map((axis) => ({ slotId: axis.slotId, modelAssetId: axis.modelAssetId ?? '', expectedContentId: axis.expectedContentId })),
+      input.verifiedAssets ?? [],
+      nextAssets,
+    )
+    : input.loadout.displayName;
   await input.updateLoadout({
     loadoutId: input.loadout.loadoutId,
     capabilityContract: input.loadout.capabilityContract,
     recipeId: input.loadout.recipeId,
     options: input.loadout.options,
-    displayName: input.loadout.displayName,
-    modelAxes: runtimeConfigRecommendedLoadoutModelAxes(input.loadout, input.recipe, nextAssets, resolvedBySlot),
+    displayName: nextDisplayName,
+    modelAxes: nextModelAxes,
     provenance: input.loadout.provenance,
     ...(input.loadout.revision ? { expectedLoadoutRevision: input.loadout.revision } : {}),
   });
@@ -1683,19 +2106,28 @@ export function runtimeConfigLoadoutUpdateModelAxes(
     const modelAssetId = axis.slotId === slotId
       ? nextModelAssetId
       : (draftModelAssetIds[axis.slotId] ?? axis.modelAssetId);
-    if (!modelAssetId && axis.presence === 'optional-conditional') return [];
+    if (!modelAssetId) {
+      if (axis.presence === 'optional-conditional') return [];
+      // Cannot unbind an already-bound required slot through Manage; keep the existing binding.
+      if (axis.slotId === slotId && axis.modelAssetId && axis.expectedContentId) {
+        return { slotId: axis.slotId, modelAssetId: axis.modelAssetId, expectedContentId: axis.expectedContentId };
+      }
+      // Explicitly preserve an already-unresolved required axis so Runtime does not silently auto-prefill.
+      return { slotId: axis.slotId, modelAssetId: '', expectedContentId: '' };
+    }
     const asset = assets.find((item) => item.modelAssetId === modelAssetId);
     if (asset) {
       return { slotId: axis.slotId, modelAssetId: asset.modelAssetId, expectedContentId: asset.contentId };
     }
-    // Runtime only accepts (modelAssetId, expectedContentId) pairs. An
-    // unresolved or inventory-missing axis stays absent from modelAxes — a
-    // legal unresolved state — instead of sending a half-bound axis. The
-    // stored Loadout keeps its own axis projection until a real pair binds.
+    if (axis.slotId === slotId && nextModelAssetId) {
+      throw new Error(`Selected model asset ${nextModelAssetId} is no longer available on this device.`);
+    }
     if (axis.modelAssetId && axis.expectedContentId) {
       return { slotId: axis.slotId, modelAssetId: axis.modelAssetId, expectedContentId: axis.expectedContentId };
     }
-    return [];
+    return axis.presence === 'required'
+      ? { slotId: axis.slotId, modelAssetId: '', expectedContentId: '' }
+      : [];
   });
 }
 

@@ -1,5 +1,5 @@
 import { InlineAlert, LoadingSkeleton, Tooltip } from '@nimiplatform/kit/ui';
-import { ArrowUp, LoaderCircle, Plus, SlidersHorizontal } from 'lucide-react';
+import { ArrowUp, Code2, LoaderCircle, Plus, SlidersHorizontal } from 'lucide-react';
 import { useMemo, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { invokeChecked } from '../../bridge/runtime-bridge/invoke.js';
@@ -277,6 +277,14 @@ export function HomeAppsWorkbench({
                       aria-hidden="true"
                     >
                       <ArrowUp size={10} />
+                    </span>
+                  ) : null}
+                  {disambiguator && entry.localDevelopment && !entry.committedRelease ? (
+                    <span
+                      className="absolute -bottom-1 -left-1 flex size-4.5 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)] shadow-xs"
+                      aria-hidden="true"
+                    >
+                      <Code2 size={10} />
                     </span>
                   ) : null}
                 </button>

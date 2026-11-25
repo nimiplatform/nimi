@@ -243,8 +243,27 @@ export function LabVideoFaceSwapParameterPanel(props: StudioParameterPanelProps)
 export function LabTextExchangeParameterPanel(props: StudioParameterPanelProps) {
   const { t } = useTranslation();
   const parameters = props.parameters as LabTextExchangeParameters;
+  const parametersRef = useRef(parameters);
+  parametersRef.current = parameters;
   const scenario = parameters.scenario === 'structured-output' || parameters.scenario === 'json-object' ? parameters.scenario : 'tool-call';
   const delivery = parameters.delivery === 'stream' ? 'stream' : 'sync';
+  const resource = props.effectiveSelection?.resource;
+  const behaviors = resource?.oneofKind === 'local'
+    ? resource.local.textBehaviors
+    : resource?.oneofKind === 'cloud'
+      ? (resource.cloud.target.textBehaviors ?? [])
+      : [];
+  const activeBehaviorKind = scenario === 'tool-call' ? 'tool-use' : 'structured-output';
+  const activeBehavior = behaviors.find((item) => item.kind === activeBehaviorKind);
+  const behaviorSummary = activeBehavior
+    ? t(`CapabilityTests.textTools.behaviorStatus.${activeBehavior.configurationState}`, {
+        behavior: t(`CapabilityTests.textTools.behaviors.${activeBehaviorKind}`),
+      })
+    : resource
+      ? t('CapabilityTests.textTools.behaviorStatus.unobserved', {
+          behavior: t(`CapabilityTests.textTools.behaviors.${activeBehaviorKind}`),
+        })
+      : '';
   const primary = (
     <div className="studio-parameters__stack">
       <StudioParameterField label={t('CapabilityTests.textTools.scenario')}>
@@ -271,11 +290,31 @@ export function LabTextExchangeParameterPanel(props: StudioParameterPanelProps) 
         />
       </StudioParameterField>
       <p className="text-sm opacity-70">{t(scenario === 'tool-call' ? 'CapabilityTests.textTools.toolHint' : scenario === 'json-object' ? 'CapabilityTests.textTools.jsonObjectHint' : 'CapabilityTests.textTools.structuredHint')}</p>
+      {behaviorSummary ? (
+        <p className="studio-parameters__note" role="status" data-testid="lab-text-behavior-status">{behaviorSummary}</p>
+      ) : null}
     </div>
   );
   return (
     <Frame {...props} primary={primary} onReset={() => props.onChange({ scenario, delivery })}>
-      <LabReasoningControls value={parameters.reasoning} disabled={props.disabled} onChange={(reasoning) => props.onChange({ ...parameters, reasoning })} />
+      <LabReasoningControls
+        value={parameters.reasoning}
+        disabled={props.disabled}
+        onChange={(reasoning) => {
+          const next: LabTextExchangeParameters = { ...parametersRef.current, reasoning };
+          if (reasoning === undefined) delete next.reasoningDraftInvalid;
+          props.onChange(next);
+        }}
+        onValidityChange={(valid) => {
+          const current = parametersRef.current;
+          const nextInvalid = valid ? undefined : true;
+          if (current.reasoningDraftInvalid === nextInvalid) return;
+          const next: LabTextExchangeParameters = { ...current };
+          if (nextInvalid) next.reasoningDraftInvalid = true;
+          else delete next.reasoningDraftInvalid;
+          props.onChange(next);
+        }}
+      />
     </Frame>
   );
 }

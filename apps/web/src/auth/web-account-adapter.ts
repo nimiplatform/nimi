@@ -14,7 +14,7 @@ import {
 import { ReasonCode, createNimiError } from '@nimiplatform/sdk/types';
 import type { WebAccountAuthAdapter } from '@nimiplatform/kit/auth';
 import { continueOauthNext } from './oauth-continuation.js';
-import { beginTikTokAccountLogin } from './web-provider-link.js';
+import { beginTikTokAccountLogin, getWebGoogleClientId } from './web-provider-link.js';
 import { BROWSER_SESSION_RESPONSE, runWebBrowserSessionLogin, createWebBrowserRealm, readWebBrowserAccount } from './browser-realm.js';
 
 function rejectBearerResponse(result: NimiRealmOAuthLoginResult): NimiRealmOAuthLoginResult {
@@ -73,6 +73,7 @@ export function createWebAccountAuthAdapter(
   };
   return {
     supportsPasswordLogin: true,
+    googleClientId: getWebGoogleClientId(),
     checkEmail: (email) => checkNimiRealmAuthEmail(createWebBrowserRealm(), email),
     passwordLogin: async (identifier, password) => observe(() => runWebBrowserSessionLogin(async realm => rejectBearerResponse(
       await loginNimiRealmAuthPassword(realm, identifier, password, BROWSER_SESSION_RESPONSE),

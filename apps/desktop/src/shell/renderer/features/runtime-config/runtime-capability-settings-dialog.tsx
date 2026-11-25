@@ -30,7 +30,7 @@ export function RuntimeCapabilitySettingsDialog(props: {
   const [confirmClose, setConfirmClose] = useState(false);
   const onStateChange = useCallback((changed: boolean, pending: boolean) => { setDirty(changed); setApplying(pending); }, []);
   const close = () => { if (!applying) { if (dirty) setConfirmClose(true); else props.onClose(); } };
-  const identity = capabilityModelIdentity(props.selected, props.recipe ? [props.recipe] : [], props.catalog);
+  const identity = capabilityModelIdentity(props.selected, props.recipe ? [props.recipe] : [], props.catalog, props.assets);
   const name = identity.shortTitle || (props.recipe ? modelDisplayTitle(props.recipe.title) : props.selected?.displayName) || '';
   const unavailable = props.readFailed || !props.recipe || props.missingConfiguration;
   return (
@@ -44,7 +44,7 @@ export function RuntimeCapabilitySettingsDialog(props: {
             <p className="text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.product.settings.chooseConfiguration')}</p>
             <ul className="divide-y divide-[var(--nimi-border-subtle)]">
               {props.configurations.map(configuration => {
-                const model = capabilityModelIdentity(configuration, props.recipe ? [props.recipe] : [], props.catalog);
+                const model = capabilityModelIdentity(configuration, props.recipe ? [props.recipe] : [], props.catalog, props.assets);
                 return <li key={configuration.loadoutId} className="flex items-center justify-between gap-3 py-3">
                   <div className="min-w-0"><p className="break-words text-sm font-medium">{configuration.displayName}</p>
                     <p className="break-all text-xs text-[var(--nimi-text-secondary)]">{[model.versionShort, configuration.loadoutId].filter(Boolean).join(' · ')}</p></div>
@@ -56,7 +56,8 @@ export function RuntimeCapabilitySettingsDialog(props: {
           </div> : <>
           <div className="text-sm text-[var(--nimi-text-secondary)]">
             <p className="font-medium text-[var(--nimi-text-primary)]">{props.selected?.displayName || t('runtimeConfig.product.settings.recommended')}{identity.versionShort ? ` · ${identity.versionShort}` : ''}</p>
-            <p className="mt-1">{t(props.current ? 'runtimeConfig.product.settings.currentScope' : 'runtimeConfig.product.settings.otherScope')}</p>
+            <p className="mt-1">{t(!props.selected ? 'runtimeConfig.product.settings.newScope'
+              : props.current ? 'runtimeConfig.product.settings.currentScope' : 'runtimeConfig.product.settings.otherScope')}</p>
           </div>
           {props.loading ? <LoadingSkeleton lines={4} /> : unavailable ? (
             <InlineAlert tone="warning">{t(props.missingConfiguration ? 'runtimeConfig.localModels.configurationMissing' : 'runtimeConfig.product.customization.unavailable')}

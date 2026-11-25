@@ -22,6 +22,8 @@ export type {
   WebAccountAuthSession,
   WebAccountAuthBranding,
   WebAccountAuthAppearance,
+  WebAccountAuthAlternatives,
+  WebAccountAuthConsent,
   WebAccountAuthCopy,
   WebAccountAuthTestIds,
   WebAccountAuthBackgroundState,

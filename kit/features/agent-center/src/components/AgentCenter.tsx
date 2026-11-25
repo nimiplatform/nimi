@@ -1,4 +1,4 @@
-import { PlayCircle, X } from 'lucide-react';
+import { UserRound, X } from 'lucide-react';
 import { useCallback, useMemo, useState, type KeyboardEvent } from 'react';
 import { Button, ConfirmDialog, IconButton, InlineAlert, LoadingSkeleton } from '@nimiplatform/kit/ui';
 import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
@@ -437,7 +437,7 @@ function AgentCenterChromeActions(props: {
       {props.actions?.launchAvatar ? (
         <IconButton
           aria-label={props.copy.launchAvatarLabel}
-          icon={<PlayCircle aria-hidden="true" className="h-4 w-4" />}
+          icon={<UserRound aria-hidden="true" className="h-4 w-4" />}
           onClick={props.actions.launchAvatar}
           tone="secondary"
         />
@@ -644,7 +644,7 @@ export function AgentCenter(props: AgentCenterProps) {
       ) : null}
       <nav
         aria-label={chromeCopy.navLabel}
-        className="flex shrink-0 items-center gap-1 overflow-x-auto px-1.5 pb-1 pt-2.5"
+        className="flex shrink-0 flex-wrap items-center gap-1 px-1.5 pb-1 pt-2"
         data-agent-center-nav-style="desktop-dynamic-expand"
         onKeyDown={handleTabListKeyDown}
         role="tablist"
@@ -660,14 +660,12 @@ export function AgentCenter(props: AgentCenterProps) {
               aria-label={sectionLabels[section]}
               aria-selected={selected}
               className={cnAgentCenter(
-                'group relative flex h-9 min-w-[36px] shrink-0 items-center rounded-[12px] text-[length:var(--nimi-type-caption-size)] font-medium',
-                'transition-[width,background-color,color,padding] duration-[var(--nimi-motion-slow)] ease-[var(--nimi-motion-ease-emphasized)]',
+                'group relative flex h-8 min-w-[34px] shrink-0 items-center rounded-[10px] text-[length:var(--nimi-type-caption-size)] font-medium',
+                'transition-[background-color,color,padding] duration-[var(--nimi-motion-base)] ease-[var(--nimi-motion-ease-emphasized)]',
                 FOCUS_RING_CLASS_NAME,
                 selected
-                  ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] px-3 text-[var(--nimi-action-primary-bg)] max-[420px]:w-9 max-[420px]:justify-center max-[420px]:px-0'
-                  : badge
-                    ? 'justify-center px-3 text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]'
-                    : 'justify-center px-3 text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]',
+                  ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] px-2.5 text-[var(--nimi-action-primary-bg)]'
+                  : 'justify-center px-2.5 text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]',
               )}
               data-testid={`chat-agent-center-section:${section}`}
               id={`agent-center-tab-${section}`}
@@ -677,20 +675,15 @@ export function AgentCenter(props: AgentCenterProps) {
               tabIndex={selected ? 0 : -1}
               type="button"
             >
-              <Icon aria-hidden="true" className="h-[18px] w-[18px] shrink-0" />
-              <span
-                className={cnAgentCenter(
-                  'overflow-hidden whitespace-nowrap transition-[max-width,opacity,margin-left] duration-[var(--nimi-motion-slow)] ease-[var(--nimi-motion-ease-emphasized)] max-[420px]:hidden',
-                  'ml-2 max-w-[160px] opacity-100 max-[420px]:ml-0 max-[420px]:max-w-0 max-[420px]:opacity-0',
-                )}
-              >
+              <Icon aria-hidden="true" className="h-[15px] w-[15px] shrink-0" />
+              <span className="ml-1.5 whitespace-nowrap">
                 {sectionLabels[section]}
               </span>
               {badge ? (
                 <span
                   aria-hidden="true"
                   className={cnAgentCenter(
-                    'pointer-events-none grid h-[18px] min-w-[18px] place-items-center rounded-full bg-[var(--nimi-status-danger)] px-1 text-[length:var(--nimi-type-overline-size)] font-semibold leading-none text-white shadow-sm ring-2 ring-[var(--nimi-surface-card)]',
+                    'pointer-events-none grid h-[17px] min-w-[17px] place-items-center rounded-full bg-[var(--nimi-status-danger)] px-1 text-[length:var(--nimi-type-overline-size)] font-semibold leading-none text-white shadow-sm ring-2 ring-[var(--nimi-surface-card)]',
                     selected ? 'ml-1.5 shrink-0' : 'ml-1 shrink-0',
                   )}
                 >

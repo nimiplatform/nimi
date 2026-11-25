@@ -123,7 +123,7 @@ export function AvatarAppearanceOverlay(props: AvatarAppearanceOverlayProps) {
     <div
       ref={rootRef}
       id="avatar-appearance-overlay"
-      className="avatar-appearance-overlay nimi-material-glass-thick"
+      className="avatar-appearance-overlay nimi-material-glass-chrome backdrop-blur-[var(--nimi-backdrop-blur-chrome)] backdrop-saturate-[var(--nimi-backdrop-saturate)]"
       style={{ left: position.left, top: position.top }}
       role="dialog"
       aria-label={t('Avatar.appearance.popover_aria')}

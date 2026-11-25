@@ -21,6 +21,7 @@ export function AuthViewEmailLogin(props: {
   onPasswordChange: (value: string) => void;
   onSubmit: (event: FormEvent) => void;
   onUseEmailCodeInstead: () => void;
+  onBack?: () => void;
   testIds?: AuthViewEmailTestIds;
 }) {
   const { t } = useTranslation();
@@ -31,41 +32,47 @@ export function AuthViewEmailLogin(props: {
     onPasswordChange,
     onSubmit,
     onUseEmailCodeInstead,
+    onBack,
     testIds,
   } = props;
 
   const [showOtpConfirm, setShowOtpConfirm] = useState(false);
   const otpTrigger = useRef<HTMLButtonElement>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const backLabel = t('Common.back', { defaultValue: 'Back' });
 
   return (
     <div className="relative w-full">
-      <p className="mb-3 text-center text-sm text-[var(--nimi-text-muted)]">{email}</p>
+      <p className="mb-3 truncate text-center text-sm text-[var(--nimi-text-muted)]">{email}</p>
 
-      <form onSubmit={onSubmit}>
+      <form
+        onSubmit={(event) => {
+          setShowOtpConfirm(false);
+          onSubmit(event);
+        }}
+      >
         <div className={`${capsuleBar} nimi-shell-auth-main-capsule`}>
-          <button
-            type="button"
-            data-testid={testIds?.otpButton}
-            ref={otpTrigger}
-            aria-expanded={showOtpConfirm}
-            onClick={() => setShowOtpConfirm(true)}
-            disabled={pending}
-            aria-label={t('Auth.useEmailCodeInstead')}
-            className={capsuleBarIconButton}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="4" width="20" height="16" rx="2" />
-              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-            </svg>
-          </button>
+          {onBack ? (
+            <button
+              type="button"
+              onClick={onBack}
+              disabled={pending}
+              aria-label={backLabel}
+              title={backLabel}
+              className={capsuleBarIconButton}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12.5 8h-9M7.5 4l-4 4 4 4" />
+              </svg>
+            </button>
+          ) : null}
 
           <input
             type={showPassword ? 'text' : 'password'}
             value={password}
             data-testid={testIds?.passwordInput}
             onChange={(event) => onPasswordChange(event.target.value)}
-            className={capsuleBarInput}
+            className={onBack ? capsuleBarInput : `${capsuleBarInput} pl-5`}
             placeholder={t('Auth.passwordPlaceholder')}
             required
             autoFocus
@@ -105,8 +112,27 @@ export function AuthViewEmailLogin(props: {
         </div>
       </form>
 
-      {!showOtpConfirm && props.passwordRecoveryLink && <div className="mt-3 text-center text-sm">{props.passwordRecoveryLink}</div>}
-      {showOtpConfirm && <div className="absolute left-0 right-0 z-20 mt-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-5 shadow-[var(--nimi-elevation-floating)] backdrop-blur">
+      <div className="nimi-shell-auth-secondary-actions">
+        <button
+          type="button"
+          data-testid={testIds?.otpButton}
+          ref={otpTrigger}
+          aria-expanded={showOtpConfirm}
+          onClick={() => setShowOtpConfirm((current) => !current)}
+          disabled={pending}
+          className="nimi-shell-auth-secondary-action"
+        >
+          {t('Auth.useEmailCodeInstead')}
+        </button>
+        {props.passwordRecoveryLink ? (
+          <>
+            <span aria-hidden="true" className="nimi-shell-auth-secondary-dot">·</span>
+            {props.passwordRecoveryLink}
+          </>
+        ) : null}
+      </div>
+
+      {showOtpConfirm && <div className="mt-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-5 shadow-[var(--nimi-elevation-floating)] backdrop-blur">
         <p className="mb-4 text-center text-sm text-[var(--nimi-text-primary)]">
           {t('Auth.otpConfirmMessage')}
         </p>
@@ -147,6 +173,7 @@ export function AuthViewEmailSetPassword(props: {
   onShowPasswordToggle: () => void;
   onShowConfirmPasswordToggle: () => void;
   onSubmit: (event: FormEvent) => void;
+  onBack?: () => void;
 }) {
   const { t } = useTranslation();
   const {
@@ -160,11 +187,12 @@ export function AuthViewEmailSetPassword(props: {
     onShowPasswordToggle,
     onShowConfirmPasswordToggle,
     onSubmit,
+    onBack,
   } = props;
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <p className="text-sm text-[var(--nimi-text-muted)]">{t('Auth.setPasswordHint')}</p>
+      <p className="text-center text-sm text-[var(--nimi-text-muted)]">{t('Auth.setPasswordHint')}</p>
       <div className="relative">
         <input
           type={showPassword ? 'text' : 'password'}
@@ -210,6 +238,18 @@ export function AuthViewEmailSetPassword(props: {
       >
         {pending ? t('Auth.settingPassword') : t('Auth.setPasswordButton')}
       </button>
+      {onBack ? (
+        <div className="nimi-shell-auth-secondary-actions">
+          <button
+            type="button"
+            onClick={onBack}
+            disabled={pending}
+            className="nimi-shell-auth-secondary-action"
+          >
+            {t('Common.back', { defaultValue: 'Back' })}
+          </button>
+        </div>
+      ) : null}
     </form>
   );
 }
@@ -222,13 +262,14 @@ export function AuthViewEmailOtpVerify(props: {
   onOtpCodeChange: (value: string) => void;
   onSubmit: (event: FormEvent) => void;
   onResendOtp: () => void;
+  onBack?: () => void;
 }) {
   const { t } = useTranslation();
-  const { email, otpCode, otpResendCountdown, pending, onOtpCodeChange, onSubmit, onResendOtp } = props;
+  const { email, otpCode, otpResendCountdown, pending, onOtpCodeChange, onSubmit, onResendOtp, onBack } = props;
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <p className="text-sm text-[var(--nimi-text-muted)]">
+      <p className="text-center text-sm text-[var(--nimi-text-muted)]">
         {t('Auth.otpSentTo')} <span className="font-medium text-[var(--nimi-text-primary)]">{email}</span>.
       </p>
       <input
@@ -248,20 +289,35 @@ export function AuthViewEmailOtpVerify(props: {
       >
         {pending ? t('Auth.verifying') : t('Auth.verifyAndContinue')}
       </button>
-      <button
-        type="button"
-        onClick={() => {
-          void onResendOtp();
-        }}
-        disabled={pending || otpResendCountdown > 0}
-        className={`w-full text-center text-xs ${
-          otpResendCountdown > 0
-            ? 'cursor-not-allowed text-[var(--nimi-text-secondary)]'
-            : 'font-semibold text-[var(--nimi-action-primary-bg)] hover:underline'
-        }`}
-      >
-        {otpResendCountdown > 0 ? t('Auth.resendIn', { count: otpResendCountdown }) : t('Auth.resendCode')}
-      </button>
+      <div className="nimi-shell-auth-secondary-actions">
+        <button
+          type="button"
+          onClick={() => {
+            void onResendOtp();
+          }}
+          disabled={pending || otpResendCountdown > 0}
+          className={`nimi-shell-auth-secondary-action ${
+            otpResendCountdown > 0
+              ? 'cursor-not-allowed text-[var(--nimi-text-muted)]'
+              : 'font-semibold text-[var(--nimi-action-primary-bg)]'
+          }`}
+        >
+          {otpResendCountdown > 0 ? t('Auth.resendIn', { count: otpResendCountdown }) : t('Auth.resendCode')}
+        </button>
+        {onBack ? (
+          <>
+            <span aria-hidden="true" className="nimi-shell-auth-secondary-dot">·</span>
+            <button
+              type="button"
+              onClick={onBack}
+              disabled={pending}
+              className="nimi-shell-auth-secondary-action"
+            >
+              {t('Common.back', { defaultValue: 'Back' })}
+            </button>
+          </>
+        ) : null}
+      </div>
     </form>
   );
 }
@@ -271,13 +327,14 @@ export function AuthViewEmail2Fa(props: {
   pending: boolean;
   onTwoFactorCodeChange: (value: string) => void;
   onSubmit: (event: FormEvent) => void;
+  onBack?: () => void;
 }) {
   const { t } = useTranslation();
-  const { twoFactorCode, pending, onTwoFactorCodeChange, onSubmit } = props;
+  const { twoFactorCode, pending, onTwoFactorCodeChange, onSubmit, onBack } = props;
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <p className="text-sm text-[var(--nimi-text-muted)]">{t('Auth.twoFaHint')}</p>
+      <p className="text-center text-sm text-[var(--nimi-text-muted)]">{t('Auth.twoFaHint')}</p>
       <input
         type="text"
         value={twoFactorCode}
@@ -296,6 +353,18 @@ export function AuthViewEmail2Fa(props: {
       >
         {pending ? t('Auth.verifying') : t('Auth.verifyAndLogin')}
       </button>
+      {onBack ? (
+        <div className="nimi-shell-auth-secondary-actions">
+          <button
+            type="button"
+            onClick={onBack}
+            disabled={pending}
+            className="nimi-shell-auth-secondary-action"
+          >
+            {t('Common.back', { defaultValue: 'Back' })}
+          </button>
+        </div>
+      ) : null}
     </form>
   );
 }

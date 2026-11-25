@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { isRuntimeProfileRunning, runRuntimeProfileTasks } from '../src/shell/renderer/features/runtime-config/runtime-profile-task-runner.js';
+import { getRuntimeProfileRateLimitWait, isRuntimeProfileRunning, runRuntimeProfileTasks, stopRuntimeProfileRun } from '../src/shell/renderer/features/runtime-config/runtime-profile-task-runner.js';
 import { reviewCurrentLocalSetup } from '../src/shell/renderer/features/runtime-config/runtime-setup-current-review.js';
 
 import type {
@@ -9,9 +9,11 @@ import type {
   NimiMachineLoadout,
   NimiRuntimeLocalEnvironmentDependencyJob,
   NimiRuntimeLocalEnvironmentPlan,
+  NimiRuntimeLocalTransferSessionSummary,
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
 import type { NimiPortableAppAIConfig } from '@nimiplatform/sdk/ai';
+import { createNimiLocalAIConfigCapabilityIntent } from '@nimiplatform/sdk/ai';
 import { createNimiError } from '@nimiplatform/sdk/types';
 
 import {
@@ -24,6 +26,7 @@ import {
   commitRuntimeSetupUse,
   createRuntimeSetupCandidate,
   discardRuntimeSetupTask,
+  reopenRuntimeSetupTask,
   resolveRuntimeSetupPreparation,
   resumeRuntimeSetupOwnerRoute,
   reuseRuntimeSetupCurrent,
@@ -119,6 +122,237 @@ test('Profile group stop leaves completed effects intact and never starts stoppe
   assert.equal(store.getTask(stopped)?.status, 'stopped');
   assert.equal(calls.length, 0);
 });
+
+test('Profile group retries only rate-limited tasks after reset window, stops on hash mismatch, and honors Stop immediately', async () => {
+  // 1) Rate-limited task waits the reported window and succeeds on retry without re-downloading done tasks.
+  {
+    const store = makeStore();
+    const calls: CallLog = [];
+    const state = baseState();
+    const basePorts = createPorts(state, calls);
+    let resolveCount = 0;
+    const ports: RuntimeSetupRunnerPorts = {
+      ...basePorts,
+      install: {
+        ...basePorts.install,
+        resolveOfferInstallPlan: async (offerRef) => {
+          resolveCount += 1;
+          if (resolveCount === 1) {
+            throw createNimiError({
+              message: 'rate limited',
+              reasonCode: 'AI_PROVIDER_RATE_LIMITED',
+              actionHint: 'retry_after_rate_limit_window',
+              retryable: true,
+              source: 'runtime',
+              details: { reasonMetadata: { retry_after_seconds: '12' } },
+            });
+          }
+          return basePorts.install.resolveOfferInstallPlan(offerRef);
+        },
+      },
+    };
+    const alreadyDone = await createAppTask(store);
+    store.updateTask(alreadyDone, () => ({ status: 'done', draft: { profileUseId: 'group-rl-resume' } }));
+    const limited = await createAppTask(store);
+    store.updateTask(limited, () => ({ draft: { profileUseId: 'group-rl-resume' } }));
+    const plan = await reachReview(store, limited, ports);
+    const waits: number[] = [];
+    await runRuntimeProfileTasks({
+      store,
+      taskIds: [alreadyDone, limited],
+      ports,
+      plans: { [limited]: plan },
+      choices: {},
+      mode: 'prepare-only',
+      rateLimitRetry: {
+        maxAttempts: 2,
+        sleep: async (ms) => { waits.push(ms); },
+      },
+    });
+    assert.deepEqual(waits, [12_000]);
+    assert.equal(store.getTask(alreadyDone)?.status, 'done');
+    assert.equal(store.getTask(limited)?.status, 'prepared');
+    assert.equal(resolveCount, 2);
+  }
+
+  // 2) Hash mismatch never auto-retries.
+  {
+    const store = makeStore();
+    const basePorts = createPorts(baseState(), []);
+    let attempts = 0;
+    const ports: RuntimeSetupRunnerPorts = {
+      ...basePorts,
+      install: {
+        ...basePorts.install,
+        resolveOfferInstallPlan: async () => {
+          attempts += 1;
+          throw createNimiError({
+            message: 'hash mismatch',
+            reasonCode: 'AI_LOCAL_DOWNLOAD_HASH_MISMATCH',
+            retryable: false,
+            source: 'runtime',
+          });
+        },
+      },
+    };
+    const task = await createAppTask(store);
+    store.updateTask(task, () => ({ draft: { profileUseId: 'group-hash-stop' } }));
+    const plan = await reachReview(store, task, ports);
+    const waits: number[] = [];
+    await runRuntimeProfileTasks({
+      store,
+      taskIds: [task],
+      ports,
+      plans: { [task]: plan },
+      choices: {},
+      mode: 'prepare-only',
+      rateLimitRetry: { maxAttempts: 2, sleep: async (ms) => { waits.push(ms); } },
+    });
+    assert.deepEqual(waits, []);
+    assert.equal(attempts, 1);
+    assert.equal(store.getTask(task)?.status, 'failed');
+    assert.equal(store.getTask(task)?.failure?.reasonCode, 'AI_LOCAL_DOWNLOAD_HASH_MISMATCH');
+  }
+
+  // 3) Stopping during rate-limit cooldown cancels immediately with zero further requests.
+  {
+    const store = makeStore();
+    const basePorts = createPorts(baseState(), []);
+    let attempts = 0;
+    const ports: RuntimeSetupRunnerPorts = {
+      ...basePorts,
+      install: {
+        ...basePorts.install,
+        resolveOfferInstallPlan: async () => {
+          attempts += 1;
+          throw createNimiError({
+            message: 'rate limited',
+            reasonCode: 'AI_PROVIDER_RATE_LIMITED',
+            retryable: true,
+            source: 'runtime',
+            details: { reasonMetadata: { retry_after_seconds: '45' } },
+          });
+        },
+      },
+    };
+    const task = await createAppTask(store);
+    store.updateTask(task, () => ({ draft: { profileUseId: 'group-rl-stop' } }));
+    const plan = await reachReview(store, task, ports);
+    await runRuntimeProfileTasks({
+      store,
+      taskIds: [task],
+      ports,
+      plans: { [task]: plan },
+      choices: {},
+      mode: 'prepare-only',
+      rateLimitRetry: {
+        maxAttempts: 2,
+        sleep: async (_ms, signal) => {
+          stopRuntimeProfileRun('group-rl-stop');
+          store.stopTask(task);
+          assert.equal(signal.aborted, true);
+        },
+      },
+    });
+    assert.equal(attempts, 1);
+    assert.equal(getRuntimeProfileRateLimitWait('group-rl-stop'), undefined);
+    assert.equal(isRuntimeProfileRunning('group-rl-stop'), false);
+    assert.equal(store.getTask(task)?.status, 'failed');
+    assert.equal(store.getTask(task)?.failure?.reasonCode, 'AI_PROVIDER_RATE_LIMITED');
+  }
+});
+
+for (const change of ['candidate revision', 'additional download'] as const) {
+  test(`rate-limit retry requires a new review after ${change}`, async () => {
+    const store = makeStore();
+    const taskId = await createAppTask(store);
+    const calls: CallLog = [];
+    const state = baseState();
+    const ports = createPorts(state, calls);
+    const plan = await reachReview(store, taskId, ports);
+    let attempts = 0;
+    await runRuntimeProfileTasks({
+      store, taskIds: [taskId], plans: { [taskId]: plan }, choices: {}, mode: 'prepare-and-use',
+      ports: { ...ports, install: { ...ports.install, resolveOfferInstallPlan: async ref => {
+        if (++attempts === 1) throw createNimiError({ reasonCode: 'AI_PROVIDER_RATE_LIMITED', message: 'rate limited' });
+        return ports.install.resolveOfferInstallPlan(ref);
+      } } },
+      rateLimitRetry: { sleep: async () => {
+        if (change === 'candidate revision') state.loadouts[0] = { ...state.loadouts[0]!, revision: 'external' };
+        else state.plan = environmentPlan({ dependencies: [...state.plan.dependencies, {
+          ...state.plan.dependencies[0]!, dependencyId: 'additional-package',
+        }] });
+      } },
+    });
+    assert.equal(store.getTask(taskId)?.status, 'needs-attention');
+    assert.equal(store.getTask(taskId)?.failure?.reasonCode,
+      change === 'candidate revision' ? 'AI_LOADOUT_CONDITION_CONFLICT' : 'RUNTIME_SETUP_PLAN_CHANGED');
+    assert.equal(attempts, 1);
+    assert.ok(!calls.some(call => ['install.install', 'environment.applyEnvironmentPlan', 'loadouts.select'].includes(call.method)));
+  });
+}
+
+for (const seconds of [12, 601]) {
+  test(`setup recovers the original download after a ${seconds}-second reset window`, async () => {
+    const storage = createMemoryStorage();
+    let store = makeStore(storage);
+    const calls: CallLog = [];
+    const state = baseState();
+    const base = createPorts(state, calls);
+    let originalPlan = '';
+    let resumed = false;
+    let installs = 0;
+    const original = (): NimiRuntimeLocalTransferSessionSummary => ({
+      planId: originalPlan, installSessionId: 'original', sessionKind: 'download',
+      state: resumed ? 'completed' : 'failed', phase: 'download', sourceLabel: 'shared-label',
+      modelAssetId: resumed ? INSTALLED_ASSET.modelAssetId : '', availableActions: resumed ? [] : ['resume'],
+      createdAt: '', updatedAt: '', bytesReceived: 0, bytesReused: 0, bytesVerified: 0,
+      cleanupPending: false, retryable: !resumed,
+    });
+    const ports: RuntimeSetupRunnerPorts = { ...base, install: {
+      ...base.install,
+      install: async planId => {
+        installs++;
+        originalPlan = planId;
+        throw createNimiError({ reasonCode: 'AI_PROVIDER_RATE_LIMITED', message: 'rate limited',
+          details: { reasonMetadata: { retry_after_seconds: String(seconds) } } });
+      },
+      listTransfers: async () => [{ ...original(), installSessionId: 'other', planId: 'unrelated' }, original()],
+      resumeTransfer: async id => {
+        assert.equal(id, 'original');
+        assert.equal(resumed, false);
+        resumed = true;
+        return { ...original(), state: 'running', modelAssetId: '' };
+      },
+    } };
+    const taskId = await createAppTask(store);
+    let review = await reachReview(store, taskId, ports);
+    const waits: number[] = [];
+    const run = () => runRuntimeProfileTasks({ store, ports, taskIds: [taskId], plans: { [taskId]: review },
+      choices: {}, mode: 'prepare-only', rateLimitRetry: { sleep: async ms => { waits.push(ms); } } });
+    await run();
+    if (seconds > 300) {
+      assert.deepEqual(waits, []);
+      assert.equal(resumed, false);
+      store = makeStore(storage);
+      assert.equal(store.getTask(taskId)?.failure?.retryAfterSeconds, seconds);
+      assert.equal(reopenRuntimeSetupTask(store, taskId).status, 'ok');
+      const fresh = await resolveRuntimeSetupPreparation(store, taskId, ports);
+      assert.equal(fresh.status, 'ok');
+      review = fresh.value;
+      await run();
+    } else {
+      assert.deepEqual(waits, [seconds * 1000]);
+    }
+    assert.equal(installs, 1);
+    assert.equal(resumed, true);
+    assert.equal(store.getTask(taskId)?.status, 'prepared');
+    assert.deepEqual(store.getTask(taskId)?.refs.transferIds, ['original']);
+    assert.equal(store.getTask(taskId)?.refs.rateLimitedInstall, undefined);
+    assert.equal(calls.filter(call => call.method === 'install.resolveOfferInstallPlan').length, 1);
+    assert.ok(calls.some(call => call.method === 'install.getModelAsset' && call.args === INSTALLED_ASSET.modelAssetId));
+  });
+}
 
 function createMemoryStorage() {
   const map = new Map<string, string>();
@@ -243,7 +477,11 @@ const INSTALLED_ASSET = {
   modelAssetId: 'asset-1',
   contentId: 'sha256:model-content',
   displayName: 'Image Model (Q8)',
-} as NimiRuntimeModelAssetRecord;
+  entry: 'model.gguf', files: [{ relativePath: 'model.gguf', sha256: 'f'.repeat(64), sizeBytes: 2048, nonExecutableContent: false }],
+  totalSizeBytes: 2048, contentVerified: true, catalogVerification: 'matched', catalogVerified: true, unclassified: false,
+  createdAt: '2026-11-24T00:00:00Z', updatedAt: '2026-11-24T00:00:00Z', latestIntegrityCheckedAt: '2026-11-24T00:00:00Z',
+  duplicateContent: false, containsNonExecutableCode: false,
+} satisfies NimiRuntimeModelAssetRecord;
 
 type CallLog = { readonly method: string; readonly args: unknown }[];
 
@@ -450,6 +688,13 @@ function createPorts(state: PortState, calls: CallLog): RuntimeSetupRunnerPorts 
       async listTransfers() {
         calls.push({ method: 'install.listTransfers', args: null });
         return [];
+      },
+      async resumeTransfer() {
+        throw new Error('No resumable transfer in this scenario.');
+      },
+      async getModelAsset(id) {
+        calls.push({ method: 'install.getModelAsset', args: id });
+        return state.assets.find(asset => asset.modelAssetId === id) ?? assert.fail('Unknown asset ID');
       },
       async listModelAssets() {
         calls.push({ method: 'install.listModelAssets', args: null });
@@ -955,6 +1200,26 @@ test('Desktop reuse keeps the exact configuration association after restart with
   assert.deepEqual(calls.filter((entry) => !entry.method.endsWith('.get') && !entry.method.includes('list')), []);
 });
 
+test('applying a Local Profile replaces the old owner defaults without copying its Loadout', async () => {
+  const store = makeStore();
+  const calls: CallLog = [];
+  const state = baseState({
+    loadouts: [loadout({ loadoutId: 'current', validationState: 'configured' })],
+    selections: [{ capabilityContract: CAPABILITY, loadoutId: 'current', effectiveDefaults: {} }],
+    aiConfig: {
+      config: { capabilities: [createNimiLocalAIConfigCapabilityIntent({ capabilityContract: CAPABILITY, defaults: { seed: 42 } })] },
+      revision: '7',
+    },
+  });
+  const taskId = await createAppTask(store);
+  store.updateTask(taskId, () => ({ draft: { profileId: 'profile.test', requiredFeatures: ['input.image'] } }));
+  const result = await reuseRuntimeSetupCurrent(store, taskId, createPorts(state, calls));
+  assert.equal(result.status, 'ok');
+  assert.equal(state.aiConfig.config?.capabilities[0]?.defaults, undefined);
+  assert.deepEqual(state.aiConfig.config?.capabilities[0]?.requiredFeatures, ['input.image']);
+  assert.deepEqual(state.loadouts.map(item => item.loadoutId), ['current']);
+});
+
 test('reuseCurrent only overwrites the owner AIConfig when the route must change', async () => {
   const store = makeStore();
   const calls: CallLog = [];
@@ -1290,6 +1555,21 @@ test('profile-derived candidates carry the portable recipe, options, axes, and p
   assert.equal(args.provenance.source_profile_id, 'profile.shared-1');
   assert.equal(args.provenance.desktop_setup_task_id, taskId);
 });
+test('advanced saving an explicit empty required slot suppresses Runtime recommendation prefill', async () => {
+  const store = makeStore();
+  const calls: CallLog = [];
+  const candidate = loadout({ loadoutId: 'explicitly-cleared', modelAxes: [{
+    slotId: 'main.diffusion', displayLabel: 'Main', modelAssetId: INSTALLED_ASSET.modelAssetId,
+    expectedContentId: INSTALLED_ASSET.contentId, recipeCompatible: true, reasons: [], presence: 'required', conditionalFeatures: [], resolution: 'configured',
+  }] });
+  const ports = createPorts(baseState({ loadouts: [candidate], assets: [INSTALLED_ASSET] }), calls);
+  const taskId = await createAppTask(store);
+  store.updateTask(taskId, () => ({ candidateLoadoutId: candidate.loadoutId, candidateRevisionBaseline: candidate.revision }));
+  const updated = await updateRuntimeSetupCandidate(store, taskId, ports, { axes: [] });
+  assert.equal(updated.status, 'ok');
+  assert.deepEqual(rebindPrepareArgs(calls)?.modelAxes, [{ slotId: 'main.diffusion', modelAssetId: '', expectedContentId: '' }]);
+});
+
 test('advanced edits update the unselected candidate under its revision condition', async () => {
   const store = makeStore();
   const calls: CallLog = [];
@@ -1720,7 +2000,7 @@ function draftPendingAxis(store: RuntimeSetupTaskStore, taskId: string, pendingA
 test('a profile pending axis acquires exactly its declared content identity through the portable source plan', async () => {
   const store = makeStore();
   const calls: CallLog = [];
-  const ports = createPorts(baseState(), calls);
+  const ports = createPorts(baseState({ installResult: { ...INSTALLED_ASSET, contentId: PENDING_CONTENT } }), calls);
   const taskId = await createAppTask(store);
   draftPendingAxis(store, taskId, {
     slotId: 'main.diffusion',
@@ -2215,7 +2495,8 @@ test('Stop during account lookup invalidates the pending write admission', async
 test('a catalog multi-file profile keeps its complete template through acquisition and binding', async () => {
   const store = makeStore();
   const calls: CallLog = [];
-  const bundle = { ...INSTALLED_ASSET, contentId: 'sha256:complete-bundle' };
+  const bundle = { ...INSTALLED_ASSET, contentId: 'sha256:complete-bundle', entry: 'model.safetensors',
+    files: [{ relativePath: 'model.safetensors', sha256: 'single-entry', sizeBytes: 128, nonExecutableContent: false }] };
   const state = baseState({ assets: [], installResult: bundle });
   const ports = createPorts(state, calls);
   const taskId = await createAppTask(store);

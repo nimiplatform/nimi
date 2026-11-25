@@ -46,7 +46,7 @@ export async function runLabSpeakerEmbedding(context: StudioCapabilityRuntimeCon
     ai: host.client.ai, jobId, scenarioType: ScenarioType.AUDIO_SPEAKER_EMBED,
     capability, nonSuccess: host.nonSuccess, cancelReason: host.abortReason,
     signal: context.input.observationSignal, cancelSignal: context.input.signal,
-    onObservation: context.input.onObservation,
+    onObservation: context.input.onObservation, onJobUpdate: context.input.onJobUpdate,
   });
   if (outcome.kind === 'non-success') return outcome.result;
   const result = outcome.job.speakerEmbedding;

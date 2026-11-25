@@ -16,6 +16,7 @@ export type WebAccountAuthAdapter = {
   verifyTwoFactor: (tempToken: string, code: string) => Promise<void>;
   walletChallenge: (input: WalletChallengeInput) => Promise<WalletChallengeResult>;
   walletLogin: (input: WalletLoginInput) => Promise<OAuthLoginResultDto>;
+  googleClientId?: string;
   oauthLogin: (input: NimiRealmOAuthLoginInput) => Promise<OAuthLoginResultDto>;
   beginSocialOAuth?: (provider: 'TIKTOK') => Promise<NimiRealmOAuthLoginInput | null>;
   updatePassword: (newPassword: string) => Promise<void>;

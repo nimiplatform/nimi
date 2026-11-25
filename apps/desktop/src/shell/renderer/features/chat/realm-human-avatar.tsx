@@ -16,7 +16,7 @@ export function RealmHumanAvatar({ accountId, name, imageUrl, media, resourceId,
   const { sdk } = useDesktopRendererBindings();
   const { t } = useTranslation();
   const hasResource = Boolean(resourceId || media);
-  return <MediaAvatar alt={name} externalUrl={hasResource ? null : imageUrl} delivery={media}
+  return <MediaAvatar alt={name} seed={accountId || name} externalUrl={hasResource ? null : imageUrl} delivery={media}
     className={className} shape="circle" tone="neutral"
     fallback={hasResource ? <span role="img" aria-label={t('Chat.avatarUnavailable')} title={t('Chat.avatarUnavailable')}>!</span> : undefined}
     refresh={refreshMedia ?? (async () => (await sdk.realm().social.getUser({ path: { id: accountId } })).avatarMedia ?? null)} />;

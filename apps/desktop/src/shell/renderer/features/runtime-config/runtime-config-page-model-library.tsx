@@ -105,6 +105,7 @@ export function ModelLibraryPage(props: {
         )}
         importMenuRequest={importMenuRequest}
         onOpenDiscover={() => openSection('discover')}
+        onUseAssetForNewConfig={(modelAssetId) => model.onOpenSavedConfigs({ preselectedAssetId: modelAssetId })}
         runtimeWritesDisabled={model.runtimeWritesDisabled}
       />
     </RuntimePageShell>

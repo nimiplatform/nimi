@@ -260,43 +260,81 @@ export function DataManagementPage() {
                 <p className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-secondary)]">
                   {t('DataManagement.checkSyncState', { state: checkSync.run.state })}
                 </p>
-                {checkSync.run.owners.map((owner) => (
-                  <div key={owner.ownerId} className="space-y-1 border-t border-[var(--nimi-border-subtle)] pt-2">
-                    <p className="text-xs font-medium text-[var(--nimi-text-primary)]">
-                      {owner.ownerId} · {t(`DataManagement.checkSyncOwnerState.${owner.state}`)}
-                    </p>
-                    {owner.resources.map((resource, index) => (
-                      <div
-                        key={`${resource.kind}-${resource.reference ?? resource.locator ?? index}`}
-                        className="space-y-1"
-                        data-check-sync-next-action={resource.nextAction}
-                      >
-                        <p className="text-xs text-[var(--nimi-text-secondary)]">
-                          {resource.nextAction === 'run_local_model_offline_conversion'
-                            ? t('DataManagement.checkSyncModelOfflineConversion')
+                {checkSync.run.owners.map((owner) => {
+                  const adoptedCount = owner.resources.filter((resource) => resource.change === 'adopted').length;
+                  const rebasedCount = owner.resources.filter((resource) => resource.change === 'rebased').length;
+                  const rebuiltCount = owner.resources.filter((resource) => resource.change === 'rebuilt').length;
+                  const attentionCount = owner.resources.filter((resource) => resource.status !== 'available').length;
+                  const highlighted = owner.resources.filter((resource) => Boolean(resource.change) || resource.status !== 'available');
+                  const unchanged = owner.resources.filter((resource) => !resource.change && resource.status === 'available');
+                  const collapseUnchanged = unchanged.length > 5;
+                  const summaryParts = [
+                    t('DataManagement.checkSyncSummaryChecked', { count: owner.resources.length, defaultValue: '{{count}} checked' }),
+                    ...(adoptedCount > 0 ? [t('DataManagement.checkSyncSummaryAdopted', { count: adoptedCount, defaultValue: '{{count}} re-registered from disk' })] : []),
+                    ...(rebasedCount > 0 ? [t('DataManagement.checkSyncSummaryRebased', { count: rebasedCount, defaultValue: '{{count}} path-updated' })] : []),
+                    ...(rebuiltCount > 0 ? [t('DataManagement.checkSyncSummaryRebuilt', { count: rebuiltCount, defaultValue: '{{count}} rebuilt' })] : []),
+                    ...(attentionCount > 0 ? [t('DataManagement.checkSyncSummaryAttention', { count: attentionCount, defaultValue: '{{count}} need attention' })] : []),
+                    ...(unchanged.length > 0 && (highlighted.length > 0 || collapseUnchanged)
+                      ? [t('DataManagement.checkSyncSummaryUnchanged', { count: unchanged.length, defaultValue: '{{count}} unchanged' })]
+                      : []),
+                  ];
+                  const renderResource = (resource: (typeof owner.resources)[number], index: number) => (
+                    <div
+                      key={`${resource.kind}-${resource.reference ?? resource.locator ?? index}`}
+                      className="space-y-1"
+                      data-check-sync-next-action={resource.nextAction}
+                      data-check-sync-change={resource.change}
+                    >
+                      <p className="text-xs text-[var(--nimi-text-secondary)]">
+                        {resource.nextAction === 'run_local_model_offline_conversion'
+                          ? t('DataManagement.checkSyncModelOfflineConversion')
+                          : resource.change
+                            ? `${t(`DataManagement.checkSyncResourceChange.${resource.change}`, { defaultValue: resource.change })}${resource.reference ? ` · ${resource.reference}` : ''}`
                             : t(`DataManagement.checkSyncResourceStatus.${resource.status}`)}
+                      </p>
+                      <details className="text-xs text-[var(--nimi-text-muted)]">
+                        <summary className="cursor-pointer">{t('DataManagement.checkSyncTechnicalDetails')}</summary>
+                        <p className="mt-1 break-all">
+                          {[resource.kind, resource.reference ?? resource.locator, resource.status, resource.change, resource.reason, resource.nextAction]
+                            .filter(Boolean)
+                            .join(' · ')}
                         </p>
+                      </details>
+                      {resource.nextAction && isExecutableCheckSyncNextAction(resource.nextAction) ? (
+                        <Button
+                          variant="secondary"
+                          disabled={dataRootBusy}
+                          onClick={() => { void handleCheckSync(); }}
+                        >
+                          {t('DataManagement.checkSyncRerun')}
+                        </Button>
+                      ) : null}
+                    </div>
+                  );
+                  return (
+                    <div key={owner.ownerId} className="space-y-1 border-t border-[var(--nimi-border-subtle)] pt-2">
+                      <p className="text-xs font-medium text-[var(--nimi-text-primary)]">
+                        {owner.ownerId} · {t(`DataManagement.checkSyncOwnerState.${owner.state}`)}
+                      </p>
+                      {owner.resources.length > 0 ? (
+                        <p className="text-xs text-[var(--nimi-text-muted)]" data-testid={`data-management-check-sync-summary-${owner.ownerId}`}>
+                          {summaryParts.join(' · ')}
+                        </p>
+                      ) : null}
+                      {highlighted.map(renderResource)}
+                      {collapseUnchanged ? (
                         <details className="text-xs text-[var(--nimi-text-muted)]">
-                          <summary className="cursor-pointer">{t('DataManagement.checkSyncTechnicalDetails')}</summary>
-                          <p className="mt-1 break-all">
-                            {[resource.kind, resource.reference ?? resource.locator, resource.status, resource.reason, resource.nextAction]
-                              .filter(Boolean)
-                              .join(' · ')}
-                          </p>
+                          <summary className="cursor-pointer">
+                            {t('DataManagement.checkSyncUnchangedToggle', { count: unchanged.length, defaultValue: 'Show {{count}} unchanged items' })}
+                          </summary>
+                          <div className="mt-2 space-y-2">{unchanged.map(renderResource)}</div>
                         </details>
-                        {resource.nextAction && isExecutableCheckSyncNextAction(resource.nextAction) ? (
-                          <Button
-                            variant="secondary"
-                            disabled={dataRootBusy}
-                            onClick={() => { void handleCheckSync(); }}
-                          >
-                            {t('DataManagement.checkSyncRerun')}
-                          </Button>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
-                ))}
+                      ) : (
+                        unchanged.map(renderResource)
+                      )}
+                    </div>
+                  );
+                })}
                 {checkSync.run.unclaimed.map((entry) => (
                   <p key={entry.locator} className="break-all text-xs text-[var(--nimi-status-warning)]">
                     {entry.locator}: {entry.status} · {entry.reason}

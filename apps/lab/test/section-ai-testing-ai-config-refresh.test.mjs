@@ -92,11 +92,17 @@ async function mountSection(capabilityContract, renderAIConfigPanel) {
         get:async()=>{ reads.config++; return state.snapshot.config; },
       },
       listLocalAppVoiceAssets:async()=>[],
-      storage:{
-        readJson:async relativePath=>{
-          if (relativePath === 'studio/audio-separation-recovery.json') reads.recovery++;
-          return { value:[] };
+      assets:{
+        list:async({ prefix = '' } = {})=>{
+          if (prefix === 'studio/recovery/audio.separate/') reads.recovery++;
+          return { assets:[], nextCursor:'' };
         },
+        read:async()=>{ throw { code:'not-found' }; },
+        write:async()=>{},
+        remove:async()=>({ removed:false }),
+      },
+      storage:{
+        readJson:async()=>({ value:[] }),
         writeJson:async()=>{},
       },
       runCapability:async()=>{ throw new Error('refreshing readiness must not run the capability'); },

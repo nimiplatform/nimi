@@ -334,6 +334,13 @@ func streamAttempt(ctx context.Context, opts Options, partialPath string, resume
 		if total <= 0 && resp.ContentLength > 0 {
 			total = resumeFrom + resp.ContentLength
 		}
+	case http.StatusTooManyRequests:
+		// 429 rate-limit: do not burn quota with immediate sub-second retries.
+		// Surface the typed window so callers retain any partial bytes and wait.
+		return 0, 0, false, &nonTransientError{err: &RateLimitError{
+			StatusCode: resp.StatusCode,
+			RetryAfter: ParseRetryAfter(resp.Header, time.Now()),
+		}}
 	default:
 		if resp.StatusCode >= 500 {
 			// 5xx: transient — retry.

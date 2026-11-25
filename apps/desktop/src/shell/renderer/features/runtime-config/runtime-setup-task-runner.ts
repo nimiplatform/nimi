@@ -7,6 +7,7 @@ import type {
   NimiRuntimeLocalEnvironmentClient,
   NimiRuntimeLocalEnvironmentDependencyJob,
   NimiRuntimeLocalEnvironmentPlan,
+  NimiRuntimeLocalInstallResult,
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
 import {
@@ -24,10 +25,16 @@ import type {
 } from '@nimiplatform/sdk/ai';
 import {
   createNimiCloudAIConfigCapabilityIntent,
+  createNimiLocalAIConfigCapabilityIntent,
   runtimeAIConfigStructToJson,
 } from '@nimiplatform/sdk/ai';
 import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
-import { loadoutModelPresentation } from './runtime-config-loadout-model-display.js';
+import {
+  deriveLoadoutDefaultDisplayName,
+  LOADOUT_DISPLAY_NAME_SOURCE_PROVENANCE_KEY,
+  loadoutDisplayNameSource,
+  resolvePrimaryRecipeSlot,
+} from './runtime-config-loadout-model-display.js';
 import type {
   RuntimeSetupAuthorization,
   RuntimeSetupAuthorizationMode,
@@ -40,6 +47,7 @@ import type {
   RuntimeSetupTaskStore,
 } from './runtime-setup-task-store';
 import { runtimeSetupTaskUnconfirmed } from './runtime-setup-task-store.js';
+import { matchPortableModelAsset, matchesExpectedAxisIntegrity, runtimeConfigAIProfileHashMismatch } from './runtime-config-ai-profile-transfer.js';
 
 /**
  * Orchestration logic for one Runtime model setup task. All Runtime access is
@@ -63,7 +71,8 @@ export type RuntimeSetupRunnerAIConfigPort = {
 export type RuntimeSetupRunnerPorts = {
   readonly loadouts: Pick<NimiMachineLoadoutClient, 'listRecipes' | 'get' | 'prepare' | 'commit' | 'select'>;
   readonly environment: Pick<NimiRuntimeLocalEnvironmentClient, 'resolveEnvironmentPlan' | 'applyEnvironmentPlan' | 'listEnvironmentDependencyJobs'>;
-  readonly install: Pick<NimiRuntimeLocalEnvironmentClient, 'resolveInstallPlan' | 'resolveOfferInstallPlan' | 'install' | 'listTransfers' | 'listModelAssets'>;
+  readonly install: Pick<NimiRuntimeLocalEnvironmentClient, 'resolveInstallPlan' | 'resolveOfferInstallPlan' | 'install' | 'listTransfers' | 'resumeTransfer' | 'getModelAsset' | 'listModelAssets'>
+    & Partial<Pick<NimiRuntimeLocalEnvironmentClient, 'listVerifiedAssets'>>;
   /** null when the source has no consumer AIConfig route to save. */
   readonly aiConfigForSource: (source: RuntimeSetupTaskSource) => RuntimeSetupRunnerAIConfigPort | null;
   readonly account: { readonly currentAccountId: () => string | Promise<string> };
@@ -192,8 +201,28 @@ function errorReasonCode(error: unknown): string | undefined {
   return reasonCode || undefined;
 }
 
+function errorRetryAfterSeconds(error: unknown): number | undefined {
+  if (!error || typeof error !== 'object') return undefined;
+  const details = (error as { readonly details?: unknown }).details;
+  if (!details || typeof details !== 'object') return undefined;
+  const record = details as Record<string, unknown>;
+  const metadata = record.reasonMetadata && typeof record.reasonMetadata === 'object'
+    ? (record.reasonMetadata as Record<string, unknown>)
+    : undefined;
+  const raw = record.retryAfterSeconds ?? record.retry_after_seconds ?? metadata?.retry_after_seconds;
+  const parsed = typeof raw === 'number' ? raw : typeof raw === 'string' && /^\d+$/u.test(raw.trim()) ? Number(raw.trim()) : NaN;
+  if (!Number.isFinite(parsed) || parsed <= 0) return undefined;
+  return Math.min(86400, Math.ceil(parsed));
+}
+
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error || 'Unknown error');
+}
+
+function preparationFailure(stage: RuntimeSetupTaskStage, error: unknown): RuntimeSetupRunnerFailure {
+  const reasonCode = errorReasonCode(error);
+  const retryAfterSeconds = reasonCode === 'AI_PROVIDER_RATE_LIMITED' ? errorRetryAfterSeconds(error) : undefined;
+  return { stage, reasonCode, message: errorMessage(error), ...(retryAfterSeconds ? { retryAfterSeconds } : {}) };
 }
 
 function isConditionConflict(error: unknown): boolean {
@@ -213,7 +242,7 @@ function sleepFor(ports: RuntimeSetupRunnerPorts, ms: number): Promise<void> {
  * Saves for the same account-scoped owner share one read/merge/write queue.
  */
 function ownerRouteKey(source: RuntimeSetupTaskSource): string {
-  return `${source.kind}:${source.ownerAppId ?? ''}:${source.accountId}`;
+  return `${source.kind}:${source.ownerAppId ?? ''}:${source.configRef ?? ''}:${source.accountId}`;
 }
 
 /**
@@ -568,6 +597,7 @@ function planSlot(
     // content matched the current binding, so this is always new content.
     return { kind: 'acquire', slotId: slot.slotId, label: slot.displayLabel || slot.slotId, offer: acquireOptionFromOffer(preferred) };
   }
+  if (preferredOfferRef) return { kind: 'unavailable', slotId: slot.slotId, label: slot.displayLabel || slot.slotId };
   if (bound) {
     return { kind: 'reuse', slotId: slot.slotId, label: slot.displayLabel || slot.slotId, modelAssetId: bound.modelAssetId, ...installedContextFit(slot, bound.modelAssetId) };
   }
@@ -670,10 +700,11 @@ function planPendingSlot(
 ) {
   const label = slot.displayLabel || slot.slotId;
   const bound = candidate.modelAxes.find((axis) => axis.slotId === slot.slotId && axis.modelAssetId);
-  if (bound && bound.expectedContentId === pending.contentId) {
+  const boundAsset = bound && installedAssets.find(asset => asset.modelAssetId === bound.modelAssetId);
+  if (bound && boundAsset && matchesExpectedAxisIntegrity(boundAsset, pending)) {
     return { kind: 'reuse', slotId: slot.slotId, label, modelAssetId: bound.modelAssetId, ...installedContextFit(slot, bound.modelAssetId) };
   }
-  const installed = installedAssets.find((asset) => asset.contentId === pending.contentId);
+  const installed = matchPortableModelAsset(installedAssets, pending);
   if (installed) {
     return {
       kind: 'acquire', slotId: slot.slotId, label,
@@ -873,13 +904,11 @@ async function computePreparation(
   };
 }
 
+function acquisitionIdentity(offer: RuntimeSetupAcquireOption): string {
+  return JSON.stringify([offer.offerRef, offer.expectedContentId, offer.templateId, offer.portableSource]);
+}
+
 function samePlan(left: RuntimeSetupPreparationPlan, right: RuntimeSetupPreparationPlan): boolean {
-  const acquisitionIdentity = (offer: RuntimeSetupAcquireOption) => JSON.stringify([
-    offer.offerRef,
-    offer.expectedContentId,
-    offer.templateId,
-    offer.portableSource,
-  ]);
   // A newly missing asset adds work even when its content identity is unchanged.
   // Only downloads already reviewed from the same source may still be dispatched.
   if (right.acquire.some((item) => {
@@ -1129,27 +1158,26 @@ function buildAuthorization(input: {
  * draft resolves one, so multiple candidates of one recipe stay
  * distinguishable in Saved configurations.
  */
-function candidateDisplayName(
+async function resolveAutoDisplayNameForAxes(
   recipe: NimiLoadoutRecipe,
-  axes: readonly { readonly slotId: string; readonly modelAssetId: string }[],
+  modelAxes: readonly { readonly slotId: string; readonly modelAssetId: string; readonly expectedContentId?: string }[],
   preferredOffers: Readonly<Record<string, string>> | undefined,
-): string {
-  for (const slot of recipe.slots) {
-    if (slot.presence === 'optional-conditional') continue;
-    const bound = axes.find((axis) => axis.slotId === slot.slotId);
-    const preferredRef = preferredOffers?.[slot.slotId];
-    const offer = slot.offers.find((item) => (
-      (bound && item.installedModelAssetId === bound.modelAssetId)
-      || (preferredRef && item.candidate.offerRef === preferredRef)
-    ));
-    if (!offer) continue;
-    const headline = loadoutModelPresentation({
-      title: offer.candidate.title,
-      variantLabel: offer.candidate.variantLabel,
-    }).headline.trim();
-    if (headline) return `${recipe.title} · ${headline}`;
+  ports: RuntimeSetupRunnerPorts,
+  existingAssets?: readonly NimiRuntimeModelAssetRecord[],
+): Promise<string> {
+  const primary = resolvePrimaryRecipeSlot(recipe);
+  let assets = existingAssets;
+  if (primary.kind === 'single' && !assets) {
+    const bound = modelAxes.find((axis) => axis.slotId === primary.slot.slotId && axis.modelAssetId);
+    const matchedOffer = bound
+      ? primary.slot.offers.find((offer) => offer.installedModelAssetId === bound.modelAssetId)
+      : undefined;
+    if (bound && !matchedOffer) {
+      assets = await ports.install.listModelAssets();
+    }
   }
-  return recipe.title;
+  const catalog = modelAxes.some(axis => axis.modelAssetId) ? await ports.install.listVerifiedAssets?.() : undefined;
+  return deriveLoadoutDefaultDisplayName(recipe, modelAxes, catalog ?? [], assets ?? [], preferredOffers);
 }
 
 export async function createRuntimeSetupCandidate(
@@ -1160,6 +1188,7 @@ export async function createRuntimeSetupCandidate(
     readonly recipeId: string;
     readonly options?: NimiPrepareLoadoutInput['options'];
     readonly displayName?: string;
+    readonly displayNameSource?: 'auto' | 'user';
     readonly axes?: readonly { readonly slotId: string; readonly modelAssetId: string; readonly expectedContentId: string }[];
     /** Extra provenance facts (e.g. source_profile_id) merged over the task reference. */
     readonly provenance?: Readonly<Record<string, string>>;
@@ -1182,9 +1211,12 @@ export async function createRuntimeSetupCandidate(
       ...(input.axes ? { axes: input.axes } : {}),
     },
   }));
-  const modelAxes = (input.axes ?? [])
-    .filter((axis) => axis.slotId && axis.modelAssetId && axis.expectedContentId)
-    .map((axis) => ({ slotId: axis.slotId, modelAssetId: axis.modelAssetId, expectedContentId: axis.expectedContentId }));
+  const modelAxes = [...(input.axes ?? [])];
+  for (const pending of task.draft?.pendingAxes ?? []) {
+    if (!modelAxes.some(axis => axis.slotId === pending.slotId)) {
+      modelAxes.push({ slotId: pending.slotId, modelAssetId: '', expectedContentId: '' });
+    }
+  }
   try {
     const recipes = await ports.loadouts.listRecipes(task.capabilityContract);
     const recipe = recipes.find((item) => item.recipeId === input.recipeId);
@@ -1193,6 +1225,11 @@ export async function createRuntimeSetupCandidate(
       failTask(store, taskId, 'failed', failure);
       return failed(failure);
     }
+    const explicitName = input.displayName?.trim() ?? '';
+    const nameSource: 'auto' | 'user' = input.displayNameSource ?? (explicitName ? 'user' : 'auto');
+    const resolvedDisplayName = nameSource === 'user' && explicitName
+      ? explicitName
+      : await resolveAutoDisplayNameForAxes(recipe, modelAxes, task.draft?.preferredOffers, ports);
     const prepareAdmission = await guardWrite(store, taskId, ports, { stage });
     if (!('task' in prepareAdmission)) return prepareAdmission;
     const prepared = await ports.loadouts.prepare({
@@ -1200,8 +1237,12 @@ export async function createRuntimeSetupCandidate(
       recipeId: recipe.recipeId,
       options: input.options ?? recipe.defaultOptions,
       modelAxes,
-      displayName: input.displayName?.trim() || candidateDisplayName(recipe, modelAxes, task.draft?.preferredOffers),
-      provenance: { desktop_setup_task_id: task.taskId, ...(input.provenance ?? {}) },
+      displayName: resolvedDisplayName,
+      provenance: {
+        desktop_setup_task_id: task.taskId,
+        [LOADOUT_DISPLAY_NAME_SOURCE_PROVENANCE_KEY]: nameSource,
+        ...(input.provenance ?? {}),
+      },
     });
     // A fresh unselected draft must not carry a machine-impact confirmation;
     // if Runtime ever requires one, the typed failure surfaces instead.
@@ -1261,9 +1302,26 @@ export async function updateRuntimeSetupCandidate(
       return attention(failure, { candidateRevision: candidate.revision });
     }
     const draftAxes = input.axes ?? candidate.modelAxes;
-    const modelAxes = draftAxes
-      .filter((axis) => axis.slotId && axis.modelAssetId && axis.expectedContentId)
-      .map((axis) => ({ slotId: axis.slotId, modelAssetId: axis.modelAssetId, expectedContentId: axis.expectedContentId }));
+    const modelAxes = draftAxes.map(({ slotId, modelAssetId, expectedContentId }) => ({
+      slotId, modelAssetId: modelAssetId ?? '', expectedContentId: expectedContentId ?? '',
+    }));
+    for (const slot of candidate.modelAxes) {
+      if (slot.presence === 'required' && !modelAxes.some(axis => axis.slotId === slot.slotId)) {
+        modelAxes.push({ slotId: slot.slotId, modelAssetId: '', expectedContentId: '' });
+      }
+    }
+    const existingNameSource = loadoutDisplayNameSource(candidate.provenance);
+    let nextDisplayName = input.displayName?.trim() || candidate.displayName;
+    let nextProvenance = candidate.provenance;
+    if (input.displayName?.trim()) {
+      nextProvenance = { ...candidate.provenance, [LOADOUT_DISPLAY_NAME_SOURCE_PROVENANCE_KEY]: 'user' };
+    } else if (existingNameSource === 'auto') {
+      const recipes = await ports.loadouts.listRecipes(task.capabilityContract);
+      const recipe = recipes.find((item) => item.recipeId === candidate.recipeId);
+      if (recipe) {
+        nextDisplayName = await resolveAutoDisplayNameForAxes(recipe, modelAxes, task.draft?.preferredOffers, ports);
+      }
+    }
     const prepareAdmission = await guardWrite(store, taskId, ports, { stage });
     if (!('task' in prepareAdmission)) return prepareAdmission;
     const prepared = await ports.loadouts.prepare({
@@ -1272,8 +1330,8 @@ export async function updateRuntimeSetupCandidate(
       recipeId: candidate.recipeId,
       options: input.options ?? candidate.options,
       modelAxes,
-      displayName: input.displayName?.trim() || candidate.displayName,
-      provenance: candidate.provenance,
+      displayName: nextDisplayName,
+      provenance: nextProvenance,
       ...(task.candidateRevisionBaseline ? { expectedLoadoutRevision: task.candidateRevisionBaseline } : {}),
     });
     const commitAdmission = await guardWrite(store, taskId, ports, { stage });
@@ -1337,10 +1395,75 @@ export async function resolveRuntimeSetupPreparation(
     }));
     return ok(computed.plan);
   } catch (error) {
-    const failure: RuntimeSetupRunnerFailure = { stage, reasonCode: errorReasonCode(error), message: errorMessage(error) };
+    const failure = preparationFailure(stage, error);
     failTask(store, taskId, 'failed', failure);
     return failed(failure);
   }
+}
+
+async function acquireSetupModel(
+  store: RuntimeSetupTaskStore,
+  task: RuntimeSetupTask,
+  ports: RuntimeSetupRunnerPorts,
+  offer: RuntimeSetupAcquireOption,
+): Promise<RuntimeSetupRunnerResult<NimiRuntimeLocalInstallResult>> {
+  const taskId = task.taskId;
+  const pending = task.refs.rateLimitedInstall;
+  const identity = acquisitionIdentity(offer);
+  const resumePlan = pending?.offerIdentity === identity ? pending.planId : undefined;
+  const planId = resumePlan ?? (offer.templateId
+    ? await ports.install.resolveInstallPlan({ templateId: offer.templateId })
+    : offer.portableSource
+      ? await ports.install.resolveInstallPlan(portableSourceInstallPlanInput(task.capabilityContract, offer.portableSource))
+      : await ports.install.resolveOfferInstallPlan(offer.offerRef)).planId;
+  store.updateTask(taskId, (current) => ({
+    refs: {
+      ...current.refs,
+      installPlanIds: resumePlan ? current.refs.installPlanIds : [...current.refs.installPlanIds, planId],
+      downloadPlans: { ...current.refs.downloadPlans, [offer.offerRef]: planId },
+    },
+  }));
+
+  if (!resumePlan) {
+    const admission = await guardWrite(store, taskId, ports, { stage: 'install' });
+    if (!('task' in admission)) return admission;
+    try {
+      return ok(await ports.install.install(planId, { caller: 'core' }));
+    } catch (error) {
+      if (errorReasonCode(error) === 'AI_PROVIDER_RATE_LIMITED') {
+        store.updateTask(taskId, current => ({
+          refs: { ...current.refs, rateLimitedInstall: { planId, offerIdentity: identity } },
+        }));
+      }
+      throw error;
+    }
+  }
+
+  // Runtime creates the transfer before fetching bytes. Its plan ID survives a failed install RPC.
+  let transfer = (await ports.install.listTransfers()).find(row => row.planId === planId && row.sessionKind === 'download');
+  if (transfer?.state === 'failed' && transfer.availableActions.includes('resume')) {
+    const admission = await guardWrite(store, taskId, ports, { stage: 'install' });
+    if (!('task' in admission)) return admission;
+    transfer = await ports.install.resumeTransfer(transfer.installSessionId, { caller: 'core' });
+  }
+  while (transfer?.state === 'running' || transfer?.state === 'queued') {
+    await sleepFor(ports, 1000);
+    const admission = await guardWrite(store, taskId, ports, { stage: 'install' });
+    if (!('task' in admission)) return admission;
+    const sessionId = transfer.installSessionId;
+    transfer = (await ports.install.listTransfers()).find(row => row.installSessionId === sessionId);
+  }
+  if (!transfer || transfer.state === 'completed' || transfer.state === 'cancelled' || (transfer.state === 'failed' && !transfer.retryable)) {
+    store.updateTask(taskId, current => ({ refs: { ...current.refs, rateLimitedInstall: undefined } }));
+  }
+  if (transfer?.state === 'completed' && transfer.modelAssetId) {
+    return ok({ installSessionId: transfer.installSessionId, modelAsset: await ports.install.getModelAsset(transfer.modelAssetId) });
+  }
+  return failed({
+    stage: 'install',
+    reasonCode: transfer?.reasonCode,
+    message: transfer?.message || 'Check the original transfer in Downloads before retrying setup.',
+  });
 }
 
 /**
@@ -1387,11 +1510,12 @@ export async function runRuntimeSetupPreparation(
   try {
     computed = await computePreparation(task, ports);
   } catch (error) {
-    const failure: RuntimeSetupRunnerFailure = { stage: 'resolve-preparation', reasonCode: errorReasonCode(error), message: errorMessage(error) };
+    const failure = preparationFailure('resolve-preparation', error);
     failTask(store, taskId, 'failed', failure);
     return failed(failure);
   }
-  if (computed.candidate.revision !== task.candidateRevisionBaseline) {
+  if (computed.candidate.revision !== task.candidateRevisionBaseline
+    || computed.candidate.revision !== input.reviewedPlan.candidateRevision) {
     const failure: RuntimeSetupRunnerFailure = {
       stage,
       reasonCode: RUNTIME_SETUP_CONDITION_CONFLICT,
@@ -1485,6 +1609,10 @@ export async function runRuntimeSetupPreparation(
         const assets = await ports.install.listModelAssets();
         const asset = assets.find((entry) => entry.modelAssetId === item.offer.installedModelAssetId);
         if (!asset) throw new Error(`Installed ModelAsset ${item.offer.installedModelAssetId} is no longer present.`);
+        const pendingAxis = item.offer.expectedContentId && task.draft?.pendingAxes?.find(axis => axis.slotId === item.slotId);
+        if (pendingAxis && asset.contentId === pendingAxis.contentId && !matchesExpectedAxisIntegrity(asset, pendingAxis)) {
+          throw runtimeConfigAIProfileHashMismatch(`Profile entry mismatch for ${item.label}`);
+        }
         bindings.set(item.slotId, { modelAssetId: asset.modelAssetId, expectedContentId: item.offer.expectedContentId ?? asset.contentId });
       } catch (error) {
         const failure: RuntimeSetupRunnerFailure = { stage: 'install', reasonCode: errorReasonCode(error), message: errorMessage(error) };
@@ -1494,21 +1622,16 @@ export async function runRuntimeSetupPreparation(
       continue;
     }
     try {
-      const installPlan = item.offer.templateId
-        ? await ports.install.resolveInstallPlan({ templateId: item.offer.templateId })
-        : item.offer.portableSource
-          ? await ports.install.resolveInstallPlan(portableSourceInstallPlanInput(task.capabilityContract, item.offer.portableSource))
-          : await ports.install.resolveOfferInstallPlan(item.offer.offerRef);
-      store.updateTask(taskId, (current) => ({
-        refs: {
-          ...current.refs,
-          installPlanIds: [...current.refs.installPlanIds, installPlan.planId],
-          downloadPlans: { ...current.refs.downloadPlans, [item.offer.offerRef]: installPlan.planId },
-        },
-      }));
-      const installGuard = await guardWrite(store, taskId, ports, { stage: 'install' });
-      if (!('task' in installGuard)) return installGuard;
-      const installed = await ports.install.install(installPlan.planId, { caller: 'core' });
+      const result = await acquireSetupModel(store, installAdmission.task, ports, item.offer);
+      if (result.status !== 'ok') {
+        if (result.status === 'failed') failTask(store, taskId, 'failed', result.failure);
+        return result;
+      }
+      const installed = result.value;
+      const pendingAxis = item.offer.expectedContentId && task.draft?.pendingAxes?.find(axis => axis.slotId === item.slotId);
+      if (pendingAxis && installed.modelAsset.contentId === pendingAxis.contentId && !matchesExpectedAxisIntegrity(installed.modelAsset, pendingAxis)) {
+        throw runtimeConfigAIProfileHashMismatch(`Profile entry mismatch for ${item.label}`);
+      }
       store.updateTask(taskId, (current) => ({
         refs: {
           ...current.refs,
@@ -1525,7 +1648,7 @@ export async function runRuntimeSetupPreparation(
         expectedContentId: item.offer.expectedContentId ?? installed.modelAsset.contentId,
       });
     } catch (error) {
-      const failure: RuntimeSetupRunnerFailure = { stage: 'install', reasonCode: errorReasonCode(error), message: errorMessage(error) };
+      const failure = preparationFailure('install', error);
       failTask(store, taskId, 'failed', failure);
       return failed(failure);
     }
@@ -1544,10 +1667,11 @@ export async function runRuntimeSetupPreparation(
           (axis) => axis.slotId === item.slotId && axis.modelAssetId === item.modelAssetId,
         ),
     );
+    let cachedAssets: readonly NimiRuntimeModelAssetRecord[] | undefined;
     if (reusesToBind.length > 0) {
-        const assets = await ports.install.listModelAssets();
+      cachedAssets = await ports.install.listModelAssets();
       for (const item of reusesToBind) {
-        const asset = assets.find((asset) => asset.modelAssetId === item.modelAssetId);
+        const asset = cachedAssets.find((asset) => asset.modelAssetId === item.modelAssetId);
         if (!asset) throw new Error(`The model to reuse is no longer present: ${item.label}`);
         bindings.set(item.slotId, {
           modelAssetId: asset.modelAssetId,
@@ -1562,6 +1686,20 @@ export async function runRuntimeSetupPreparation(
     for (const [slotId, binding] of bindings) {
       modelAxes.push({ slotId, modelAssetId: binding.modelAssetId, expectedContentId: binding.expectedContentId });
     }
+    let nextDisplayName = candidate.displayName;
+    if (loadoutDisplayNameSource(candidate.provenance) === 'auto') {
+      const recipes = await ports.loadouts.listRecipes(task.capabilityContract);
+      const recipe = recipes.find((item) => item.recipeId === candidate.recipeId);
+      if (recipe) {
+        nextDisplayName = await resolveAutoDisplayNameForAxes(
+          recipe,
+          modelAxes,
+          { ...task.draft?.preferredOffers, ...choices },
+          ports,
+          cachedAssets,
+        );
+      }
+    }
     const context = runtimeSetupContextApplication(task.draft?.options, runtimeSetupPlanContextFit(freshPlan));
     const prepared = await ports.loadouts.prepare({
       loadoutId: candidate.loadoutId,
@@ -1569,7 +1707,7 @@ export async function runRuntimeSetupPreparation(
       recipeId: candidate.recipeId,
       options: context.options ?? candidate.options,
       modelAxes,
-      displayName: candidate.displayName,
+      displayName: nextDisplayName,
       provenance: candidate.provenance,
       ...(task.candidateRevisionBaseline ? { expectedLoadoutRevision: task.candidateRevisionBaseline } : {}),
     });
@@ -1683,25 +1821,6 @@ function canonicalJson(value: unknown): string {
 }
 
 /**
- * Identity of what a Loadout runs: recipe, implementation, bound model
- * files, options and the user-facing name. Provenance, timestamps, derived
- * feature projections and the Loadout id itself are deliberately excluded.
- */
-export function loadoutCompositionKey(loadout: NimiMachineLoadout): string {
-  return canonicalJson({
-    capabilityContract: loadout.capabilityContract,
-    recipeId: loadout.recipeId,
-    recipeRevision: loadout.recipeRevision,
-    implementation: loadout.implementation,
-    options: loadout.options,
-    displayName: loadout.displayName.trim(),
-    modelAxes: [...loadout.modelAxes]
-      .map((axis) => ({ slotId: axis.slotId, modelAssetId: axis.modelAssetId, expectedContentId: axis.expectedContentId }))
-      .sort((left, right) => (left.slotId < right.slotId ? -1 : left.slotId > right.slotId ? 1 : 0)),
-  });
-}
-
-/**
  * Final use: conditional machine selection, then — only when the source has
  * an owner route — the whole-object AIConfig save under the baseline CAS.
  * A declined condition or AIConfig conflict never triggers a blind retry.
@@ -1763,11 +1882,10 @@ export async function commitRuntimeSetupUse(
     updateLiveTask(store, taskId, { status: 'done', nextAction: 'return-to-source' });
     return ok({ selected: true, selectionRevision: selection.selectionRevision, ownerRouteSaved: false });
   }
-  const saved = await writeRuntimeSetupOwnerConfig(store, ports, [taskId], (snapshot) => (
-    snapshot.config?.capabilities.some((entry) => (
-      entry.capabilityContract === task.capabilityContract && entry.route.oneofKind === 'local'
-    )) ? null : [buildRuntimeSetupLocalOwnerIntent(snapshot, task.capabilityContract)]
-  ), {
+  const saved = await writeRuntimeSetupOwnerConfig(store, ports, [taskId], (snapshot) => {
+    const desired = buildRuntimeSetupLocalOwnerIntent(snapshot, task.capabilityContract, task.draft);
+    return isLocalOwnerIntentUnchanged(snapshot, task.capabilityContract, desired) ? null : [desired];
+  }, {
     requireClaim: true,
     machineSelected: true,
     conflictMessage: 'The machine selection switched, but the app route was not saved because the app configuration changed elsewhere.',
@@ -1827,11 +1945,10 @@ export async function reuseRuntimeSetupCurrent(
       updateLiveTask(store, taskId, { ...reusedConfiguration, status: 'done', nextAction: 'return-to-source' });
       return ok({ machineWrites: 0, ownerRouteSaved: false, alreadyLocalIntent: true, selectedLoadoutId });
     }
-    const saved = await writeRuntimeSetupOwnerConfig(store, ports, [taskId], (snapshot) => (
-      snapshot.config?.capabilities.some((entry) => (
-        entry.capabilityContract === task.capabilityContract && entry.route.oneofKind === 'local'
-      )) ? null : [buildRuntimeSetupLocalOwnerIntent(snapshot, task.capabilityContract)]
-    ), {
+    const saved = await writeRuntimeSetupOwnerConfig(store, ports, [taskId], (snapshot) => {
+      const desired = buildRuntimeSetupLocalOwnerIntent(snapshot, task.capabilityContract, task.draft);
+      return isLocalOwnerIntentUnchanged(snapshot, task.capabilityContract, desired) ? null : [desired];
+    }, {
       conflictMessage: 'The app configuration changed elsewhere before the route could be saved.',
       machineSelected: task.failure?.machineSelected,
     });
@@ -1918,23 +2035,47 @@ export function reopenRuntimeSetupTask(
   return ok({ reopened: true });
 }
 
+function isLocalOwnerIntentUnchanged(
+  snapshot: NimiAIConfigSnapshot,
+  capabilityContract: string,
+  desired: NimiPortableAppAIConfigIntent,
+): boolean {
+  const existing = snapshot.config?.capabilities.find(
+    (entry) => entry.capabilityContract === capabilityContract,
+  );
+  if (!existing || existing.route.oneofKind !== 'local') return false;
+  const existingFeatures = [...existing.requiredFeatures].sort();
+  const desiredFeatures = [...desired.requiredFeatures].sort();
+  if (canonicalJson(existingFeatures) !== canonicalJson(desiredFeatures)) return false;
+  const existingDefaults = existing.defaults ? runtimeAIConfigStructToJson(existing.defaults) : {};
+  const desiredDefaults = desired.defaults ? runtimeAIConfigStructToJson(desired.defaults) : {};
+  return canonicalJson(existingDefaults) === canonicalJson(desiredDefaults);
+}
+
 /**
  * The owner intent "follow this machine's local configuration" for one
- * capability, preserving the owner's existing required features and defaults.
+ * capability, carrying explicit Profile requiredFeatures/defaults when present
+ * and otherwise preserving the owner's existing required features and defaults.
  */
 export function buildRuntimeSetupLocalOwnerIntent(
   snapshot: NimiAIConfigSnapshot,
   capabilityContract: string,
+  draft?: Pick<NonNullable<RuntimeSetupTask['draft']>, 'profileId' | 'requiredFeatures' | 'defaults'>,
 ): NimiPortableAppAIConfigIntent {
   const current = snapshot.config?.capabilities.find(
     (entry) => entry.capabilityContract === capabilityContract,
   );
-  return {
+  const requiredFeatures = draft?.requiredFeatures !== undefined
+    ? [...draft.requiredFeatures]
+    : current ? [...current.requiredFeatures] : [];
+  const defaults = draft?.profileId || draft?.defaults !== undefined
+    ? draft.defaults
+    : current?.defaults ? runtimeAIConfigStructToJson(current.defaults) : undefined;
+  return createNimiLocalAIConfigCapabilityIntent({
     capabilityContract,
-    requiredFeatures: current ? [...current.requiredFeatures] : [],
-    ...(current?.defaults ? { defaults: current.defaults } : {}),
-    route: { oneofKind: 'local', local: {} },
-  };
+    requiredFeatures,
+    ...(defaults && Object.keys(defaults).length > 0 ? { defaults } : {}),
+  });
 }
 
 /**
@@ -1970,16 +2111,21 @@ function buildCloudIntent(
   snapshot: NimiAIConfigSnapshot,
   capabilityContract: string,
   selection: RuntimeSetupCloudTargetSelection,
+  draft?: Pick<NonNullable<RuntimeSetupTask['draft']>, 'profileId' | 'requiredFeatures' | 'defaults'>,
 ): NimiPortableAppAIConfigIntent {
   const existing = snapshot.config?.capabilities.find(
     (entry) => entry.capabilityContract === capabilityContract,
   );
   const existingDefaults = existing?.defaults ? runtimeAIConfigStructToJson(existing.defaults) : undefined;
+  const requiredFeatures = draft?.requiredFeatures !== undefined
+    ? [...draft.requiredFeatures]
+    : existing ? [...existing.requiredFeatures] : undefined;
+  const defaults = draft?.profileId || draft?.defaults !== undefined ? draft.defaults : existingDefaults;
   return createNimiCloudAIConfigCapabilityIntent({
     capabilityContract,
     connectorRef: selection.connectorRef,
-    ...(existing ? { requiredFeatures: [...existing.requiredFeatures] } : {}),
-    ...(existingDefaults && Object.keys(existingDefaults).length > 0 ? { defaults: existingDefaults } : {}),
+    ...(requiredFeatures ? { requiredFeatures } : {}),
+    ...(defaults && Object.keys(defaults).length > 0 ? { defaults } : {}),
     implementation: selection.implementation,
     providerModelTarget: selection.providerModelTarget,
   });
@@ -2000,7 +2146,7 @@ export async function commitRuntimeSetupCloudUse(
 ): Promise<RuntimeSetupRunnerResult<RuntimeSetupCloudUseValue>> {
   const saved = await writeRuntimeSetupOwnerConfig(store, ports, [taskId], (snapshot) => {
     const task = store.getTask(taskId)!;
-    return [buildCloudIntent(snapshot, task.capabilityContract, input)];
+    return [buildCloudIntent(snapshot, task.capabilityContract, input, task.draft)];
   }, { conflictMessage: 'The app configuration changed elsewhere before the cloud route could be saved. The draft is kept; review the current value.' });
   if (saved.status !== 'ok') return saved;
   updateLiveTask(store, taskId, { status: 'done', nextAction: 'return-to-source', failure: undefined });

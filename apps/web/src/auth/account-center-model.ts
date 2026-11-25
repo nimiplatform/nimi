@@ -8,6 +8,7 @@ export const accountDestinations = [
   '/account/security',
   '/account/sessions',
   '/account/runtime',
+  '/account/download',
   '/account/connect',
   '/account/data',
   '/account/delete',
@@ -108,7 +109,32 @@ export function accountReturnTo(search: string): string {
 
 export function accountLoginUrl(path: string, search = ''): string {
   const admitted = admittedDestination(path + search);
-  return `/login?returnTo=${encodeURIComponent(admitted)}`;
+  const params = new URLSearchParams();
+  params.set('returnTo', admitted);
+  const lang = new URLSearchParams(search).get('lang')?.trim().toLowerCase();
+  if (lang === 'zh' || lang === 'en') {
+    params.set('lang', lang);
+  }
+  return `/login?${params.toString()}`;
+}
+
+export type WebAuthHeadingKey =
+  | 'Auth.signInTitle'
+  | 'Auth.signUpTitle'
+  | 'Auth.runtimeSignInTitle'
+  | 'Auth.connectSignInTitle'
+  | 'Auth.oauthSignInTitle';
+
+export function resolveWebAuthHeadingKey(pathname: string, search = ''): WebAuthHeadingKey {
+  const params = new URLSearchParams(search);
+  if (params.has('oauth_next')) return 'Auth.oauthSignInTitle';
+  if (params.has('returnTo')) {
+    const target = accountReturnTo(search);
+    if (target.startsWith('/account/runtime?intent=')) return 'Auth.runtimeSignInTitle';
+    if (target.startsWith('/account/connect?')) return 'Auth.connectSignInTitle';
+  }
+  if (pathname === '/register') return 'Auth.signUpTitle';
+  return 'Auth.signInTitle';
 }
 
 export function profilePatch(

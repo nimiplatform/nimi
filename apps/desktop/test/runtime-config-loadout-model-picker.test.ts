@@ -190,7 +190,7 @@ test('returned draft auto-selects the offer installed during the market detour',
   const axes = resolveLoadoutReturnedDraftAxes(recipe, {
     slotId: 'main.gguf',
     autoSelectOfferRef: 'offer:q6',
-    draft: { displayName: 'Setup', modelAssetIds: { 'main.gguf': 'asset-q8', 'companion.mmproj': 'asset-mm' } },
+    draft: { modelAssetIds: { 'main.gguf': 'asset-q8', 'companion.mmproj': 'asset-mm' } },
   });
   assert.equal(axes['main.gguf'], 'asset-q6');
   assert.equal(axes['companion.mmproj'], 'asset-mm');
@@ -204,12 +204,12 @@ test('returned draft auto-selects the offer installed during the market detour',
   const kept = resolveLoadoutReturnedDraftAxes(noInstallRecipe, {
     slotId: 'main.gguf',
     autoSelectOfferRef: 'offer:q6',
-    draft: { displayName: 'Setup', modelAssetIds: { 'main.gguf': 'asset-q8' } },
+    draft: { modelAssetIds: { 'main.gguf': 'asset-q8' } },
   });
   assert.equal(kept['main.gguf'], 'asset-q8');
 
   const withoutOfferRef = resolveLoadoutReturnedDraftAxes(recipe, {
-    draft: { displayName: 'Setup', modelAssetIds: { 'main.gguf': 'asset-q8' } },
+    draft: { modelAssetIds: { 'main.gguf': 'asset-q8' } },
   });
   assert.equal(withoutOfferRef['main.gguf'], 'asset-q8');
 });
@@ -265,6 +265,7 @@ test('model picker locale keys stay in parity and drop the market-task CTA', asy
       };
     };
     assert.deepEqual(Object.keys(document.loadouts.slotLabels).sort(), [
+      'controlnet',
       'embeddingModel',
       'mainModel',
       'mediaProjector',
@@ -284,6 +285,7 @@ test('model picker locale keys stay in parity and drop the market-task CTA', asy
       'spaceSaving',
     ]);
     assert.deepEqual(Object.keys(document.loadouts.picker).sort(), [
+      'backToSettings',
       'change',
       'choose',
       'current',
@@ -291,6 +293,11 @@ test('model picker locale keys stay in parity and drop the market-task CTA', asy
       'installAndUse',
       'installableSection',
       'installedSection',
+      'matchingFormatSection',
+      'otherFilesSection',
+      'queueForDownload',
+      'queuedForDownload',
+      'selectVerified',
       'title',
       'unsupportedToggle',
     ]);

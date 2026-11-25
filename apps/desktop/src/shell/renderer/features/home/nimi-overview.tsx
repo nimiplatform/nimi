@@ -42,6 +42,7 @@ import { HomeMessagesDrawer } from './home-messages-drawer.js';
 import {
   setHomeMessagesDrawerOpen,
   toggleHomeMessagesDrawer,
+  useHomeMessagesDrawerFilter,
   useHomeMessagesDrawerOpen,
 } from './home-messages-drawer-state.js';
 import {
@@ -298,6 +299,7 @@ export function NimiOverview() {
   const [integrationIntent, setIntegrationIntent] = useState<IntegrationsPanelIntent | null>(null);
   const [quickJumpOpen, setQuickJumpOpen] = useState(false);
   const messagesDrawerOpen = useHomeMessagesDrawerOpen();
+  const messagesDrawerFilter = useHomeMessagesDrawerFilter();
 
   useEffect(() => {
     if (!isOverviewActive) {
@@ -517,6 +519,7 @@ export function NimiOverview() {
       buildHomeQuickJumpItems({
         t,
         apps: entries,
+        iconUrls,
         partners: agents.data ?? [],
         capabilities: inventory.capabilities,
         actions: {
@@ -766,7 +769,7 @@ export function NimiOverview() {
           { count: pending.count },
         ),
         actionLabel: t('runtimeConfig.overview.attention.openMessagesAction'),
-        onAction: () => setHomeMessagesDrawerOpen(true),
+        onAction: () => setHomeMessagesDrawerOpen(true, 'pending'),
       });
     }
 
@@ -799,7 +802,7 @@ export function NimiOverview() {
                   <button
                     type="button"
                     aria-expanded={messagesDrawerOpen}
-                    onClick={toggleHomeMessagesDrawer}
+                    onClick={() => toggleHomeMessagesDrawer(hasPending ? 'pending' : 'unread')}
                     data-testid="home-messages-drawer-trigger"
                     className="inline-flex items-center gap-2 rounded-full bg-[var(--nimi-home-porcelain-card)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-primary)] shadow-[var(--nimi-home-porcelain-shadow)] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--nimi-home-porcelain-shadow-hover)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
                   >
@@ -949,6 +952,7 @@ export function NimiOverview() {
         {isOverviewActive ? (
           <HomeMessagesDrawer
             open={messagesDrawerOpen}
+            initialFilter={messagesDrawerFilter}
             messages={messages}
             context={resolvedContext}
             appArtworkForNotice={appArtworkForNotice}

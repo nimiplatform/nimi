@@ -23,8 +23,11 @@ import {
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { LocalAgentListItem } from '../agents/local-agent-list-model.js';
+import { AppArtworkIcon } from '../apps/apps-card-visuals.js';
 import type { DesktopAppsEntry } from '../apps/apps-panel-projection.js';
 import { displayRuntimeConfigCapabilityLabel } from '../runtime-config/runtime-config-capability-labels.js';
+
+const zhiyuIcon = new URL('../../../../../../zhiyu/src/shell/assets/app-icon.png', import.meta.url).href;
 
 export type HomeQuickJumpGroup = 'apps' | 'partners' | 'capabilities' | 'pages';
 
@@ -32,6 +35,7 @@ export type HomeQuickJumpItem = Readonly<{
   id: string;
   group: HomeQuickJumpGroup;
   label: string;
+  badge?: string;
   keywords: string;
   icon: ReactNode;
   onSelect: () => void;
@@ -69,11 +73,12 @@ const QUICK_JUMP_CAPABILITIES = [
 export function buildHomeQuickJumpItems(input: {
   t: TFunction;
   apps: readonly DesktopAppsEntry[];
+  iconUrls?: ReadonlyMap<string, string | null>;
   partners: readonly LocalAgentListItem[];
   capabilities?: readonly string[];
   actions: HomeQuickJumpActions;
 }): HomeQuickJumpItem[] {
-  const { t, apps, partners, actions } = input;
+  const { t, apps, iconUrls, partners, actions } = input;
   const capabilityList = input.capabilities?.length ? input.capabilities : QUICK_JUMP_CAPABILITIES;
 
   const bundledAppIds = new Set<string>(['nimi.zhiyu']);
@@ -85,23 +90,42 @@ export function buildHomeQuickJumpItems(input: {
     ).values(),
   ];
 
+  const bundledZhiyuLabel = t('Apps.bundled.zhiyu');
+  const hasSameNameInstalledZhiyu = installedApps.some(
+    (entry) => entry.identity.displayName.trim().toLocaleLowerCase() === bundledZhiyuLabel.trim().toLocaleLowerCase(),
+  );
+
   const appItems: HomeQuickJumpItem[] = [
     {
       id: 'app:zhiyu',
       group: 'apps',
-      label: t('Apps.bundled.zhiyu'),
-      keywords: `${t('Apps.bundled.zhiyu')} zhiyu ${t('Apps.bundled.zhiyuDescription')}`,
-      icon: <AppWindow size={15} aria-hidden="true" />,
+      label: bundledZhiyuLabel,
+      badge: hasSameNameInstalledZhiyu ? t('runtimeConfig.overview.appsWorkbench.builtInBadge') : undefined,
+      keywords: `${bundledZhiyuLabel} zhiyu ${t('Apps.bundled.zhiyuDescription')}`,
+      icon: <img src={zhiyuIcon} alt="" className="size-6 rounded-md object-contain" />,
       onSelect: actions.onOpenZhiyu,
     },
-    ...installedApps.map((entry) => ({
-      id: `app:${entry.identity.appId}`,
-      group: 'apps' as const,
-      label: entry.identity.displayName,
-      keywords: `${entry.identity.displayName} ${entry.identity.appId} ${entry.summary ?? ''}`,
-      icon: <AppWindow size={15} aria-hidden="true" />,
-      onSelect: () => actions.onOpenApp(entry.identity.appId, entry.identity.entryKey),
-    })),
+    ...installedApps.map((entry) => {
+      const resolvedIcon = entry.iconUrl ?? iconUrls?.get(entry.identity.appId) ?? null;
+      return {
+        id: `app:${entry.identity.appId}`,
+        group: 'apps' as const,
+        label: entry.identity.displayName,
+        badge: entry.localDevelopment && !entry.committedRelease
+          ? t('runtimeConfig.overview.appsWorkbench.devBadge')
+          : undefined,
+        keywords: `${entry.identity.displayName} ${entry.identity.appId} ${entry.summary ?? ''}`,
+        icon: (
+          <AppArtworkIcon
+            appId={entry.identity.appId}
+            displayName={entry.identity.displayName}
+            iconUrl={resolvedIcon}
+            size="xs"
+          />
+        ),
+        onSelect: () => actions.onOpenApp(entry.identity.appId, entry.identity.entryKey),
+      };
+    }),
   ];
 
   const partnerItems: HomeQuickJumpItem[] = partners.map((partner) => ({
@@ -372,6 +396,11 @@ export function HomeQuickJumpModal({
                       {item.icon}
                     </span>
                     <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                    {item.badge ? (
+                      <span className="shrink-0 rounded-md bg-[var(--nimi-surface-panel)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--nimi-text-secondary)]">
+                        {item.badge}
+                      </span>
+                    ) : null}
                   </button>
                 );
               })}

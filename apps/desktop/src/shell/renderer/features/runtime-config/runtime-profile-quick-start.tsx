@@ -22,17 +22,21 @@ import { useTranslation } from 'react-i18next';
 import { formatBytes } from '../../components/download-format.js';
 import { IdentityTile } from '../../components/identity-tile.js';
 import type { capabilityPreparationState } from './runtime-capability-inventory.js';
+import type { RuntimeConfigLoadoutNavigationContext } from './runtime-config-panel-types.js';
 import {
   capabilityGroup,
   contextFitReduced,
+  exactRecommendedSlotOffer,
   formatContextTokens,
   groupCapabilities,
   modelDisplayTitle,
-  recipeOfferSummary,
   recipeRecommendedContextFit,
-  recipeResourceSummary,
   type CapabilityGroup,
 } from './runtime-capability-presentation.js';
+import {
+  loadoutModelPresentation,
+  resolvePrimaryRecipeSlot,
+} from './runtime-config-loadout-model-display.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import { runtimeSetupFailureText } from './runtime-setup-failure-message.js';
 
@@ -94,8 +98,17 @@ export function canBuildRecommendedPortableProfile(
         item.templateId === slot.recommendedVariantIds[0]
         && item.contentId === slot.recommendedContentIds[0],
     );
-    return Boolean(asset && asset.hashes[asset.entry]);
+    return Boolean(asset && /^(?:sha256:)?[a-f0-9]{64}$/iu.test(asset.hashes[asset.entry] ?? ''));
   });
+}
+
+function starterModelTitle(recipe: NimiLoadoutRecipe, catalog: readonly NimiRuntimeLocalVerifiedAssetDescriptor[]): string {
+  const primary = resolvePrimaryRecipeSlot(recipe);
+  if (primary.kind === 'single') {
+    const descriptor = exactRecommendedSlotOffer(primary.slot, catalog)?.descriptor;
+    if (descriptor) return loadoutModelPresentation({ title: descriptor.title, variantLabel: descriptor.entry }).headline;
+  }
+  return modelDisplayTitle(recipe.title);
 }
 
 // @nimi-authority: rule.nimi.desktop.ai-consumption.capability-workspace
@@ -171,7 +184,7 @@ export function RuntimeProfileQuickStart(props: {
   readonly onRetry: () => void;
   readonly onOpenCapability: (capability: string) => void;
   readonly onOpenTask: (taskId: string) => void;
-  readonly onStartRecipe?: (capability: string, recipeId: string) => void;
+  readonly onOpenSavedConfigs?: (context: RuntimeConfigLoadoutNavigationContext) => void;
   readonly onOpenCloudServices?: () => void;
   readonly onOpenRecommendations?: () => void;
   readonly onImportProfile?: () => void;
@@ -280,7 +293,7 @@ export function RuntimeProfileQuickStart(props: {
         libraryError={props.libraryError ?? false}
         onRetry={props.onRetry}
         onOpenCapability={props.onOpenCapability}
-        onStartRecipe={props.onStartRecipe}
+        onOpenSavedConfigs={props.onOpenSavedConfigs}
         onOpenCloudServices={props.onOpenCloudServices}
         onOpenRecommendations={props.onOpenRecommendations}
         onImportProfile={props.onImportProfile}
@@ -388,7 +401,7 @@ function MultiModalStarterSection(props: {
   readonly libraryError: boolean;
   readonly onRetry: () => void;
   readonly onOpenCapability: (capability: string) => void;
-  readonly onStartRecipe?: (capability: string, recipeId: string) => void;
+  readonly onOpenSavedConfigs?: (context: RuntimeConfigLoadoutNavigationContext) => void;
   readonly onOpenCloudServices?: () => void;
   readonly onOpenRecommendations?: () => void;
   readonly onImportProfile?: () => void;
@@ -455,12 +468,12 @@ function MultiModalStarterSection(props: {
                     const capLabel = displayRuntimeConfigCapabilityLabel(recipe.capabilityContract, t);
                     props.onUse({
                       ...recommendedPortableProfile(recipe, props.catalog),
-                      title: `${capLabel} · ${modelDisplayTitle(recipe.title)}`,
+                      title: `${capLabel} · ${starterModelTitle(recipe, props.catalog)}`,
                     });
                     return;
                   }
-                  if (props.onStartRecipe) {
-                    props.onStartRecipe(recipe.capabilityContract, recipe.recipeId);
+                  if (props.onOpenSavedConfigs) {
+                    props.onOpenSavedConfigs({ capabilityContract: recipe.capabilityContract, recipeId: recipe.recipeId, recipeRevision: recipe.revision });
                     return;
                   }
                   props.onOpenCapability(recipe.capabilityContract);
@@ -524,25 +537,38 @@ function StarterCapabilityCard(props: {
   const group = capabilityGroup(props.capability);
   const { selected } = props;
 
-  const resourceSummary =
-    selected && props.catalog.length > 0
-      ? recipeResourceSummary(selected, props.catalog, props.assets)
-      : null;
-  const offerSummary = selected ? recipeOfferSummary(selected) : null;
+  const exactRequiredSlots = selected
+    ? selected.slots.filter((slot) => slot.presence === 'required')
+    : [];
+  const exactSlotOffers = exactRequiredSlots.map((slot) => ({
+    slot,
+    exact: exactRecommendedSlotOffer(slot, props.catalog, props.assets),
+  }));
+  const hasExactRecommendation = selected ? canBuildRecommendedPortableProfile(selected, props.catalog) : false;
+  const filesOnDevice = hasExactRecommendation && exactSlotOffers.every(({ exact }) => Boolean(exact?.installedAsset));
 
-  const filesOnDevice = Boolean(
-    (offerSummary && offerSummary.required > 0 && offerSummary.installed === offerSummary.required)
-    || (resourceSummary && resourceSummary.required > 0 && resourceSummary.missing === 0),
-  );
-  const downloadBytes = filesOnDevice
-    ? 0
-    : resourceSummary?.bytes ?? offerSummary?.downloadBytes ?? null;
+  const exactDownloadBytes = (() => {
+    if (!hasExactRecommendation) return null;
+    if (filesOnDevice) return 0;
+    let total = 0;
+    for (const { exact } of exactSlotOffers) {
+      if (exact?.installedAsset) continue;
+      const size = exact?.offer?.candidate.downloadSizeBytes ?? exact?.descriptor?.totalSizeBytes;
+      if (!size || size <= 0) return null;
+      total += size;
+    }
+    return total;
+  })();
+  const downloadBytes = filesOnDevice ? 0 : exactDownloadBytes;
 
-  const modelTitle = selected ? modelDisplayTitle(selected.title) : '';
-  const contextFit = selected ? recipeRecommendedContextFit(selected) : undefined;
+  const modelTitle = selected && hasExactRecommendation
+    ? starterModelTitle(selected, props.catalog)
+    : t('runtimeConfig.quickStart.modelPending');
+  const contextFit = selected && hasExactRecommendation ? recipeRecommendedContextFit(selected) : undefined;
 
   const actionLabel = !selected
     ? t('runtimeConfig.quickStart.exploreModels')
+    : !hasExactRecommendation ? t('runtimeConfig.loadouts.chooseModels')
     : filesOnDevice
       ? t('runtimeConfig.quickStart.configureOnDevice')
       : downloadBytes !== null && downloadBytes > 0
@@ -595,7 +621,9 @@ function StarterCapabilityCard(props: {
                 data-testid={`ai-starter-select:${props.capability}`}
                 options={props.supportedRecipes.map((recipe) => ({
                   value: recipe.recipeId,
-                  label: modelDisplayTitle(recipe.title),
+                  label: canBuildRecommendedPortableProfile(recipe, props.catalog)
+                    ? starterModelTitle(recipe, props.catalog)
+                    : `${modelDisplayTitle(recipe.title)} · ${t('runtimeConfig.quickStart.modelPending')}`,
                 }))}
               />
             ) : (
@@ -605,7 +633,7 @@ function StarterCapabilityCard(props: {
               </div>
             )}
 
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--nimi-text-secondary)]">
+            {hasExactRecommendation && <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--nimi-text-secondary)]">
               <span className="inline-flex items-center gap-1">
                 <Check size={13} className="shrink-0 text-[var(--nimi-status-success)]" aria-hidden="true" />
                 {t('runtimeConfig.product.deviceRecommendation')}
@@ -624,7 +652,7 @@ function StarterCapabilityCard(props: {
                       ? t('Common.loading')
                       : t('runtimeConfig.product.downloadSizeUnknown')}
               </span>
-            </div>
+            </div>}
 
             {contextFit ? (
               <p
@@ -646,9 +674,9 @@ function StarterCapabilityCard(props: {
 
       {selected ? (
         <Button
-          tone="primary"
+          tone="secondary"
           size="sm"
-          className="w-full justify-center border-transparent bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)]"
+          className="w-full justify-center border-[var(--nimi-status-info-soft-border)] bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)] hover:bg-[color-mix(in_srgb,var(--nimi-status-info)_22%,transparent)]"
           disabled={props.disabled}
           onClick={() => props.onPrepare(selected)}
           data-testid={`ai-starter-use:${props.capability}`}

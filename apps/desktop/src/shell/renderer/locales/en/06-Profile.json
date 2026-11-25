@@ -144,6 +144,18 @@
   },
   "removePhoto": "Remove photo",
   "photoUploaded": "Photo uploaded.",
+  "defaultAvatarPresets": "Default monogram colors",
+  "applyAvatarPreset": "Use {{color}} default avatar",
+  "avatarPresetColors": {
+    "glacier": "Glacier Blue",
+    "mint": "Mint Breeze",
+    "apricot": "Warm Apricot",
+    "sage": "Sage Dew",
+    "rose": "Rose Cloud",
+    "amber": "Amber Sand",
+    "periwinkle": "Periwinkle Mist",
+    "slate": "Slate Pearl"
+  },
   "usernameIdentityHint": "Share this username with people you know. Changing it later won’t affect your existing friends.",
   "usernameWebHandoffHint": "Share this username with people you know. Usernames can be changed once a year in your Web account and sync here automatically.",
   "manageUsernameInWeb": "Change in Web account",

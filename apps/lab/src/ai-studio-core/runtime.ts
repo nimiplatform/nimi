@@ -1,5 +1,18 @@
 import { verifyStudioManagedAsset } from './managed-result-references.js';
-import { beginStudioJobRecovery, captureStudioJobRecoveryJobId, isStudioJobRecoveryCapability, readStudioJobRecovery, recoverStudioJobId, restoreSavedStudioJobResult, saveStudioJobRecoveryResult, studioJobRecoverySignal, type StudioJobRecoveryDetails } from './job-recovery.js';
+import {
+  beginStudioJobRecovery,
+  StudioRecoveryWriteUnconfirmed,
+  captureStudioJobRecoveryJobId,
+  cleanupRejectedStudioRecoveryEntry,
+  isDefiniteStudioPreAdmissionRejection,
+  isStudioJobRecoveryCapability,
+  readStudioJobRecovery,
+  recoverStudioJobId,
+  restoreSavedStudioJobResult,
+  saveStudioJobRecoveryResult,
+  studioJobRecoverySignal,
+  type StudioJobRecoveryDetails,
+} from './job-recovery.js';
 import { ScenarioType } from '@nimiplatform/sdk/runtime/generated';
 import {
   runRuntimeAIConsumeCapability,
@@ -172,7 +185,7 @@ export async function runStudioCapability(
       const result = await dispatched;
       if (result.ok) studioJobRecoverySignal(input).throwIfAborted();
       if (context.jobActionId && isStudioJobRecoveryCapability(capability.id)) {
-        await saveStudioJobRecoveryResult(context.host.client.storage, context.jobActionId, result, capability.id);
+        await saveStudioJobRecoveryResult(context.host.client.storage.assets, context.jobActionId, result, capability.id);
       }
       return result;
     }
@@ -209,7 +222,15 @@ export function createStudioScenarioJobClient(context: StudioCapabilityRuntimeCo
     const id = await beginStudioJobAction(context, details);
     context.input.signal?.throwIfAborted();
     context.input.observationSignal?.throwIfAborted();
-    const response = await client.submitScenarioJob({ ...request, idempotencyKey: id }, options);
+    let response;
+    try {
+      response = await client.submitScenarioJob({ ...request, idempotencyKey: id }, options);
+    } catch (cause) {
+      if (isStudioJobRecoveryCapability(context.capability.id) && isDefiniteStudioPreAdmissionRejection(context.capability.id, cause)) {
+        await cleanupRejectedStudioRecoveryEntry(context.host.client.storage.assets, context.capability.id, id);
+      }
+      throw cause;
+    }
     await captureStudioJobAction(context, id, response.job?.jobId ?? '');
     return response;
   } };
@@ -219,15 +240,20 @@ export async function beginStudioJobAction(context: StudioCapabilityRuntimeConte
   context.input.signal?.throwIfAborted();
   context.input.observationSignal?.throwIfAborted();
   if (!isStudioJobRecoveryCapability(context.capability.id)) throw new Error('This capability has no saved Job action');
-  const id = await beginStudioJobRecovery(context.host.client.storage, context.capability.id, undefined, undefined, undefined,
-    context.input.recordedRunConfig, context.input.recordedPrompt ?? context.input.prompt, details);
-  context.jobActionId = id;
-  return id;
+  try {
+    const id = await beginStudioJobRecovery(context.host.client.storage.assets, context.capability.id, undefined, undefined, undefined,
+      context.input.recordedRunConfig, context.input.recordedPrompt ?? context.input.prompt, details);
+    context.jobActionId = id;
+    return id;
+  } catch (cause) {
+    if (cause instanceof StudioRecoveryWriteUnconfirmed) context.jobActionId = cause.submissionId;
+    throw cause;
+  }
 }
 
 export async function captureStudioJobAction(context: StudioCapabilityRuntimeContext, id: string, jobId: string): Promise<void> {
   if (!isStudioJobRecoveryCapability(context.capability.id)) throw new Error('Unknown Job capability');
-  await captureStudioJobRecoveryJobId(context.host.client.storage, id, jobId, context.capability.id);
+  await captureStudioJobRecoveryJobId(context.host.client.storage.assets, id, jobId, context.capability.id);
 }
 
 /** Reopening a business action only resolves its original identity. */
@@ -235,7 +261,7 @@ export async function recoverStudioJobAction(context: StudioCapabilityRuntimeCon
   const id = context.input.parameters?.recoverySubmissionId;
   if (id === undefined) return null;
   if (typeof id !== 'string' || !isStudioJobRecoveryCapability(context.capability.id)) throw new Error('Invalid saved action');
-  const entry = (await readStudioJobRecovery(context.host.client.storage, context.capability.id)).find(item => item.clientSubmissionId === id);
+  const entry = (await readStudioJobRecovery(context.host.client.storage.assets, context.capability.id)).find(item => item.clientSubmissionId === id);
   if (!entry || entry.details?.scenarioType !== scenarioType) throw new Error(context.host.translate('Music.recoveryMissing'));
   context.jobActionId = id;
   const saved = await restoreSavedStudioJobResult(entry, context.capability.label, context.capability.id, context.host.client.storage.assets, studioJobRecoverySignal(context.input));
@@ -247,7 +273,15 @@ export async function submitStudioLocalJob(context: StudioCapabilityRuntimeConte
   const id = await beginStudioJobAction(context, details);
   context.input.signal?.throwIfAborted();
   context.input.observationSignal?.throwIfAborted();
-  const response = await context.host.client.ai.scenarioJobs.submit(spec, { clientSubmissionId: id });
+  let response;
+  try {
+    response = await context.host.client.ai.scenarioJobs.submit(spec, { clientSubmissionId: id });
+  } catch (cause) {
+    if (isStudioJobRecoveryCapability(context.capability.id) && isDefiniteStudioPreAdmissionRejection(context.capability.id, cause)) {
+      await cleanupRejectedStudioRecoveryEntry(context.host.client.storage.assets, context.capability.id, id);
+    }
+    throw cause;
+  }
   await captureStudioJobAction(context, id, response.job.jobId);
   return response;
 }

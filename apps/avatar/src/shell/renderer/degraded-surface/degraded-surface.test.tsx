@@ -53,7 +53,7 @@ describe('DegradedSurface — composition postures', () => {
     ['degraded_reauth_required', 'Sign in to continue'],
     ['degraded_cloud_offline', 'Nimi Cloud is temporarily unavailable'],
     ['degraded_runtime_unavailable', "Can't connect to Runtime"],
-    ['degraded_launch_context_invalid', 'Open the avatar from Nimi Desktop'],
+    ['degraded_launch_context_invalid', 'Open the avatar from Nimi Home'],
     ['error_bootstrap_fatal', "The avatar couldn't start"],
   ] as const)('renders %s posture with i18n title', (state, expectedTitle) => {
     render(<DegradedSurface composition={makeComposition(state as CompositionState)} onRestart={restartAvatarMock} />);

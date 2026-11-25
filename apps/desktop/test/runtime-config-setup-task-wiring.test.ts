@@ -46,7 +46,7 @@ test('consumer entries open the shared setup task instead of the legacy pages', 
   }
   // The Apps entry carries the exact owner identity and a return handle.
   assert.match(appsSection, /ownerAppId: appId/u);
-  assert.match(appsSection, /returnFocus: `apps:\$\{appId\}`/u);
+  assert.match(appsSection, /id: 'apps', appId, appSection: 'ai-models', appEntryKey: destination\.appEntryKey, appConfigRef: activeConfigRef/u);
   // The Chat settings entry owns the Nimi first-party app identity.
   assert.match(chatSettings, /ownerAppId: DESKTOP_NIMI_APP_ID/u);
   // Voice creation uses the consuming App; companion playback uses LocalAgent.
@@ -78,7 +78,8 @@ test('the AI settings page notice leaves recorded failures to the task view and 
   // Home, closing the task view and returning to the source each drop the notice.
   const between = (start: string, end: string) => page.slice(page.indexOf(start), page.indexOf(end, page.indexOf(start)));
   assert.match(between('const onHome = () => {', '};'), /setError\(null\)/u);
-  assert.match(between('const onReturnToSource = () => {', '};'), /setError\(null\)/u);
+  assert.match(between('const returnToSource = (', 'const onReturnToSource'), /setError\(null\)/u);
+  assert.match(page, /onReturnToSource = \(\) => returnToSource\(focusedTask\?\.source\)/u);
   assert.match(between('<RuntimeConfigSetupTaskView', 'onReturnToSource='), /navigation\.push\(homeRuntimeDestination\('aiSettings', \{ capabilityContract: focusedTask\.capabilityContract \}\)\);\s*setError\(null\);/u);
 });
 

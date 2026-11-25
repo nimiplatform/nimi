@@ -186,7 +186,7 @@ export function HomeAmbientStatusStrip({
         </>
       ) : null}
 
-      <span className="text-[var(--nimi-border-strong)]" aria-hidden="true">|</span>
+      <span className="text-[var(--nimi-border-strong)]" aria-hidden="true">·</span>
 
       <button
         type="button"
@@ -206,7 +206,7 @@ export function HomeAmbientStatusStrip({
 
       {remoteLabel ? (
         <>
-          <span className="text-[var(--nimi-border-strong)]" aria-hidden="true">|</span>
+          <span className="text-[var(--nimi-border-strong)]" aria-hidden="true">·</span>
           <button
             type="button"
             onClick={onOpenConnections}
@@ -220,7 +220,7 @@ export function HomeAmbientStatusStrip({
 
       {activeIntegrationCount > 0 ? (
         <>
-          <span className="text-[var(--nimi-border-strong)]" aria-hidden="true">|</span>
+          <span className="text-[var(--nimi-border-strong)]" aria-hidden="true">·</span>
           <button
             type="button"
             onClick={onOpenIntegrations}

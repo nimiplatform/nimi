@@ -1,7 +1,7 @@
 import { formatBytes } from '../../components/download-format.js';
 import { useState } from 'react';
 import { Tooltip } from '@nimiplatform/kit/ui';
-import type { NimiRuntimeModelAssetRecord } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeModelAssetRecord, NimiRuntimeLocalVerifiedAssetDescriptor } from '@nimiplatform/sdk/runtime';
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
 
 import {
@@ -17,6 +17,7 @@ import {
 
 type InstalledAssetsSectionProps = {
   modelAssets: NimiRuntimeModelAssetRecord[];
+  catalog?: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
   query?: string;
   loadingInstalledAssets: boolean;
   assetBusy: boolean;
@@ -24,17 +25,20 @@ type InstalledAssetsSectionProps = {
   onRefreshAssets: () => void;
   onInspectRemoval: (modelAssetId: string) => Promise<LocalModelAssetRemovalImpact>;
   onRemoveAsset: (modelAssetId: string) => Promise<void>;
+  /** Neutral entry to create a new Loadout prefilled with this verified asset. */
+  onUseAssetForNewConfig?: (modelAssetId: string) => void;
   /** Empty-state shortcut to the Discover tab. */
   onOpenDiscover?: () => void;
   /** Empty-state shortcut to the file import picker. */
   onImportFile?: () => void;
 };
 
-export function filterModelAssetsForSearch(assets: readonly NimiRuntimeModelAssetRecord[], query: string): NimiRuntimeModelAssetRecord[] {
+export function filterModelAssetsForSearch(assets: readonly NimiRuntimeModelAssetRecord[], query: string, catalog?: readonly NimiRuntimeLocalVerifiedAssetDescriptor[]): NimiRuntimeModelAssetRecord[] {
   const normalized = query.trim().toLowerCase();
   const terms = normalized.split(/[\s._-]+/u).filter(Boolean);
   return assets.filter((asset) => {
-    const facts = [asset.displayName, asset.modelAssetId, asset.entry, asset.contentId].join(' ').toLowerCase();
+    if (!terms.length) return true;
+    const facts = [describeModelAssetPresentation(asset, catalog).title, asset.displayName, asset.modelAssetId, asset.entry, asset.contentId].join(' ').toLowerCase();
     return terms.every((term) => facts.includes(term));
   });
 }
@@ -65,7 +69,7 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
   const i18n = useDesktopI18nResource().instance;
   const t = i18n.t.bind(i18n);
   const query = props.query?.trim().toLowerCase() ?? '';
-  const visibleAssets = filterModelAssetsForSearch(props.modelAssets, query);
+  const visibleAssets = filterModelAssetsForSearch(props.modelAssets, query, props.catalog);
   const [pendingRemoval, setPendingRemoval] = useState<{ readonly modelAssetId: string; readonly impact: LocalModelAssetRemovalImpact } | null>(null);
   const [removing, setRemoving] = useState(false);
   const [expandedAssetId, setExpandedAssetId] = useState('');
@@ -179,7 +183,7 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
               : asset.catalogVerification === 'not_matched'
                 ? t('runtimeConfig.localModelCenter.catalogNotMatched', { defaultValue: 'Not matched to catalog' })
                 : t('runtimeConfig.localModelCenter.catalogVerificationUnknown', { defaultValue: 'Catalog verification unknown' });
-            const presentation = describeModelAssetPresentation(asset);
+            const presentation = describeModelAssetPresentation(asset, props.catalog);
             const metaText = [
               `${asset.files.length} ${t('runtimeConfig.localModelCenter.files', { defaultValue: 'files' })}`,
               formatBytes(asset.totalSizeBytes),
@@ -227,6 +231,17 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
                     ) : null}
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
+                    {props.onUseAssetForNewConfig && asset.contentVerified ? (
+                      <button
+                        type="button"
+                        onClick={() => props.onUseAssetForNewConfig?.(asset.modelAssetId)}
+                        disabled={props.assetBusy || removing || props.runtimeWritesDisabled}
+                        className={SECONDARY_ACTION_CLASS}
+                        data-testid={`installed-asset-use-config:${asset.modelAssetId}`}
+                      >
+                        {t('runtimeConfig.localModels.useForNewConfig')}
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() => setExpandedAssetId(detailsVisible ? '' : asset.modelAssetId)}

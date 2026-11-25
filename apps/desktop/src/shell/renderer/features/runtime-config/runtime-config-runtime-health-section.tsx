@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { projectNimiRuntimeHealthStatusName } from '@nimiplatform/sdk/runtime';
 import type { GetRuntimeHealthResponse } from '@nimiplatform/sdk/runtime/wire-types';
 import { StatusBadge as KitStatusBadge, Surface, cn } from '@nimiplatform/kit/ui';
 import {
@@ -61,7 +62,9 @@ export function RuntimeHealthSection({
           </h3>
           {health ? (
             <span className={cn('text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>
-              {runtimeHealthStatusLabel(health.status)}
+              {t(`runtimeConfig.runtime.healthStatus.${projectNimiRuntimeHealthStatusName(health.status)}`, {
+                defaultValue: runtimeHealthStatusLabel(health.status),
+              })}
             </span>
           ) : null}
         </div>

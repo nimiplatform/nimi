@@ -182,6 +182,29 @@ func (r *ggufProbeReader) actualFailure() error {
 	return r.failure
 }
 
+func (r *ggufProbeReader) inspectModel(size int64) (ggufmeta.Summary, error) {
+	summary, end, err := ggufmeta.InspectModel(r, size)
+	if failure := r.actualFailure(); failure != nil {
+		return ggufmeta.Summary{}, failure
+	}
+	if err != nil {
+		if (r.budgetExceeded || (r.budgetLimited && r.position >= r.limit)) &&
+			(errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF)) {
+			return ggufmeta.Summary{}, fmt.Errorf("%w (%d bytes)", ErrGGUFMetadataBudgetExceeded, r.limit)
+		}
+		return ggufmeta.Summary{}, err
+	}
+	var lastByte [1]byte
+	_, err = r.source.ReadAt(lastByte[:], end-1)
+	if failure := r.actualFailure(); failure != nil {
+		return ggufmeta.Summary{}, failure
+	}
+	if err != nil {
+		return ggufmeta.Summary{}, fmt.Errorf("read GGUF tensor data boundary: %w", err)
+	}
+	return summary, nil
+}
+
 func encodeLlamaGGUFProbe(facts llamaGGUFProbe) ([]byte, error) {
 	data, err := json.Marshal(facts)
 	if err != nil {
@@ -242,24 +265,9 @@ func (driver LlamaTextDriver) ProbeModelAsset(input ModelAssetFormatProbeInput, 
 	if input.RequirementID != MainGGUFRequirementID && input.RequirementID != CompanionMMProjRequirementID {
 		return nil, fmt.Errorf("unsupported GGUF slot")
 	}
-	summary, tensorEnd, inspectErr := ggufmeta.InspectModel(reader, size)
-	if failure := reader.actualFailure(); failure != nil {
-		return nil, failure
-	}
-	if inspectErr != nil {
-		if (reader.budgetExceeded || (reader.budgetLimited && reader.position >= reader.limit)) &&
-			(errors.Is(inspectErr, io.EOF) || errors.Is(inspectErr, io.ErrUnexpectedEOF)) {
-			return nil, fmt.Errorf("%w (%d bytes)", ErrGGUFMetadataBudgetExceeded, reader.limit)
-		}
-		return nil, inspectErr
-	}
-	var lastByte [1]byte
-	_, err = reader.source.ReadAt(lastByte[:], tensorEnd-1)
-	if failure := reader.actualFailure(); failure != nil {
-		return nil, failure
-	}
+	summary, err := reader.inspectModel(size)
 	if err != nil {
-		return nil, fmt.Errorf("read GGUF tensor data boundary: %w", err)
+		return nil, err
 	}
 	switch input.RequirementID {
 	case MainGGUFRequirementID:
@@ -386,13 +394,17 @@ func (driver LlamaEmbedDriver) ProbeModelAsset(input ModelAssetFormatProbeInput,
 	if input.RequirementID != EmbeddingGGUFRequirementID || !ggufmeta.IsGGUFExtension(input.RelativePath) {
 		return nil, fmt.Errorf("embedding GGUF entry required")
 	}
-	reader, err := newGGUFProbeReader(source, size, driver.ModelAssetFormatProbeBytes(input))
+	limit := driver.ModelAssetFormatProbeBytes(input)
+	if input.RecipeID == LlamaEmbeddingGemma2RecipeID {
+		limit = maxStructuredGGUFMetadataBytes
+	}
+	reader, err := newGGUFProbeReader(source, size, limit)
 	if err != nil {
 		return nil, err
 	}
 	var summary ggufmeta.Summary
 	if input.RecipeID == LlamaEmbeddingGemma2RecipeID {
-		summary, err = ggufmeta.Inspect(reader)
+		summary, err = reader.inspectModel(size)
 	} else {
 		summary, err = ggufmeta.InspectEmbeddingMetadata(reader)
 	}

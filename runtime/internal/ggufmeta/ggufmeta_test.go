@@ -486,16 +486,22 @@ func TestInspectMetadataCapturesTokenizerFactsAndQwen3VLProjectorDimensions(t *t
 	writeTestString(t, &buf, "tokenizer.ggml.token_type")
 	mustBinaryWrite(t, &buf, uint32(ValueTypeArray))
 	mustBinaryWrite(t, &buf, uint32(ValueTypeInt32))
-	mustBinaryWrite(t, &buf, uint64(4))
+	mustBinaryWrite(t, &buf, uint64(5004))
 	for _, tt := range []int32{1, 3, 4, 3} {
 		mustBinaryWrite(t, &buf, tt)
+	}
+	for range 5000 {
+		mustBinaryWrite(t, &buf, int32(4))
 	}
 	writeTestString(t, &buf, "tokenizer.ggml.tokens")
 	mustBinaryWrite(t, &buf, uint32(ValueTypeArray))
 	mustBinaryWrite(t, &buf, uint32(ValueTypeString))
-	mustBinaryWrite(t, &buf, uint64(4))
+	mustBinaryWrite(t, &buf, uint64(5004))
 	for _, tok := range []string{"hello", "<bos>", "<|channel>", "<turn|>"} {
 		writeTestString(t, &buf, tok)
+	}
+	for range 5000 {
+		writeTestString(t, &buf, "reserved")
 	}
 	writeTensor := func(name string, dims ...uint64) {
 		writeTestString(t, &buf, name)

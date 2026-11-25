@@ -82,7 +82,7 @@
   "logsDirectoryLabel": "日志目录",
   "logsOpenButton": "打开日志文件夹",
   "logsAreasTitle": "日志区",
-  "logsAreasDescription": "Desktop 按以下模块分类记录运行事件。",
+  "logsAreasDescription": "Nimi Home 按以下模块分类记录运行事件。",
   "logsExportTitle": "导出日志",
   "logsExportDescription": "导出日志，方便在本机查找并排查问题。",
   "logsExportButton": "导出日志",

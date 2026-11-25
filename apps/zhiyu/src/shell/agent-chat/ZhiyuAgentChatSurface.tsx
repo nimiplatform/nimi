@@ -168,7 +168,7 @@ export function ZhiyuAgentChatSurface({
   const currentPartnerAvatar = currentPartnerAvatarUrl(evidence);
   const hasCurrentPartner = evidence.localAgent.ready;
   const hasLocalPartners = evidence.inventory.localAgents.length > 0;
-  const primaryPartnerName = hasCurrentPartner ? '当前伙伴' : currentPartnerName;
+  const primaryPartnerName = currentPartnerName;
   const readIntroduction = useCallback<NimiLocalAppAgentIntroductionClient['getIntroduction']>(request => boundClient.agents.getIntroduction(request), []);
   const { introduction, unavailable: introductionUnavailable, retry: retryIntroduction } = useAgentIntroduction({ agentHandle: hasCurrentPartner ? evidence.localAgent.agentHandle : null, getIntroduction: readIntroduction });
   const emptyTitle = hasCurrentPartner
@@ -640,7 +640,7 @@ export function ZhiyuAgentChatSurface({
                 contentBottomInsetPx={hasCurrentPartner ? composerInset : undefined}
                 disableRpContent
                 renderMessageContent={message => message.kind === 'text' && message.metadata?.canonicalPartial && !message.text.trim() && message.status !== 'streaming' && message.status !== 'pending'
-                  ? <p role="status" className="text-sm text-[var(--nimi-text-secondary)]">{message.status === 'canceled' ? '已停止。' : '这次未收到完整回复。'}</p>
+                  ? <p role="status" className="inline-flex items-center rounded-xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_82%,transparent)] px-3 py-1.5 text-xs text-[var(--nimi-text-secondary)]">{message.status === 'canceled' ? '已停止。' : '这次未收到完整回复。'}</p>
                   : undefined}
                 renderMessageAccessory={(message) => {
                   const reply = !destination.panel && message.sessionId === evidence.conversation.conversationAnchorId
@@ -689,7 +689,7 @@ export function ZhiyuAgentChatSurface({
                 disabled={chatDisabled}
                 submitDisabled={quote.state.status !== 'empty' && quote.state.status !== 'ready'}
                 quoteSlot={<LocalAppConversationQuotePreview quote={quote} copy={messageCopy} onReturnToComposer={() => composerRootRef.current?.querySelector('textarea')?.focus()} />}
-                placeholder={hasCurrentPartner ? '和这个伙伴聊点什么...' : hasLocalPartners ? '先选择本地伙伴...' : '添加本地伙伴后开始聊天...'}
+                placeholder={hasCurrentPartner ? `和 ${currentPartnerName} 聊点什么...` : hasLocalPartners ? '先选择本地伙伴...' : '添加本地伙伴后开始聊天...'}
                 runtimeHint={chatRuntimeHint}
                 sendHint={evidence.chat.state === 'streaming' ? '回复中' : isZhiyuAgentBusyReason(evidence.chat.reasonCode) ? '重试' : undefined}
                 layout="stacked"

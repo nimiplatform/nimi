@@ -1,4 +1,5 @@
 import {
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -49,14 +50,21 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
     session,
     branding,
     appearance,
+    alternatives,
+    consent,
     background,
+    header,
     footer,
     copy,
     semanticIds,
     testIds,
   } = props;
   const [isLogoHovered, setIsLogoHovered] = useState(false);
+  const [consentPrompted, setConsentPrompted] = useState(false);
   const actionableReadyReportedRef = useRef(false);
+  const consentInputRef = useRef<HTMLInputElement | null>(null);
+  const consentId = useId();
+  const consentLabelId = `${consentId}-label`;
 
   const flow = useAuthFlow({
     adapter,
@@ -76,8 +84,21 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
       ? background({ isLogoHovered, mode: session.mode })
       : background;
   const isLogoStage = flow.view === 'main' && flow.embeddedStage === 'logo';
+  const logoInteractive = isLogoStage || props.initialStage !== 'email';
   const actionableLogoReady = !flow.pending && isLogoStage;
-  const displayError = flow.loginError || session.authError || null;
+  const activeConsentError = consent && !consent.checked && consentPrompted
+    ? consent.requiredMessage
+    : null;
+  const displayError = activeConsentError || flow.loginError || session.authError || null;
+  const ensureConsent = (): boolean => {
+    if (!consent || consent.checked) {
+      if (consentPrompted) setConsentPrompted(false);
+      return true;
+    }
+    setConsentPrompted(true);
+    consentInputRef.current?.focus();
+    return false;
+  };
   const logoAltText = branding.logoAltText || branding.networkLabel;
   const entryLabel = t('Auth.signIn', { defaultValue: 'Sign in to Nimi' });
   useLayoutEffect(() => {
@@ -114,44 +135,67 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
         </div>
       ) : null}
 
+      {header ? (
+        <div className="nimi-shell-auth-topbar">
+          {header}
+        </div>
+      ) : null}
+
       <div className={shellClassName}>
         <div className={contentClassName}>
-          {copy?.title || copy?.subtitle ? (
-            <div className="nimi-shell-auth-header">
-              {copy.title ? <div className="nimi-shell-auth-title">{copy.title}</div> : null}
-              {copy.subtitle ? <div className="nimi-shell-auth-subtitle">{copy.subtitle}</div> : null}
-            </div>
-          ) : null}
-
           <div className="pointer-events-auto flex w-full flex-col items-center gap-6">
-              <button
-                type="button"
-                aria-label={isLogoStage ? entryLabel : t('Common.back', { defaultValue: 'Back' })}
-                data-nimi-semantic-id={isLogoStage ? semanticIds?.entryAction : undefined}
-                data-testid={testIds?.logoTrigger}
-                onClick={() => {
-                  if (isLogoStage) {
-                    props.onEntryAction?.();
-                    flow.handleEmbeddedLogoClick();
-                  } else {
-                    flow.handleHeaderBack();
-                  }
-                }}
-                onMouseEnter={() => setIsLogoHovered(true)}
-                onMouseLeave={() => setIsLogoHovered(false)}
-                disabled={flow.pending}
-                className="group relative cursor-pointer rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-[var(--nimi-focus-ring-color)] transition-all duration-500 ease-out"
-              >
-                {renderLogo(
-                  branding.logo,
-                  logoAltText,
-                  `rounded-full object-cover select-none pointer-events-none transition-all duration-500 ease-out ${
-                    isLogoStage
-                      ? 'h-32 w-32 group-hover:scale-105'
-                      : 'h-16 w-16'
-                  }`,
+              <div className="flex w-full flex-col items-center gap-3">
+                {logoInteractive ? (
+                  <button
+                    type="button"
+                    aria-label={isLogoStage ? entryLabel : t('Common.back', { defaultValue: 'Back' })}
+                    data-nimi-semantic-id={isLogoStage ? semanticIds?.entryAction : undefined}
+                    data-testid={testIds?.logoTrigger}
+                    onClick={() => {
+                      if (isLogoStage) {
+                        props.onEntryAction?.();
+                        flow.handleEmbeddedLogoClick();
+                      } else {
+                        flow.handleHeaderBack();
+                      }
+                    }}
+                    onMouseEnter={() => setIsLogoHovered(true)}
+                    onMouseLeave={() => setIsLogoHovered(false)}
+                    disabled={flow.pending}
+                    className="group relative cursor-pointer rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-[var(--nimi-focus-ring-color)] transition-all duration-500 ease-out"
+                  >
+                    {renderLogo(
+                      branding.logo,
+                      logoAltText,
+                      `rounded-full object-cover select-none pointer-events-none transition-all duration-500 ease-out ${
+                        isLogoStage
+                          ? 'h-32 w-32 group-hover:scale-105'
+                          : 'h-16 w-16'
+                      }`,
+                    )}
+                  </button>
+                ) : (
+                  <div
+                    data-testid={testIds?.logoTrigger}
+                    onMouseEnter={() => setIsLogoHovered(true)}
+                    onMouseLeave={() => setIsLogoHovered(false)}
+                    className="relative rounded-2xl transition-all duration-500 ease-out"
+                  >
+                    {renderLogo(
+                      branding.logo,
+                      logoAltText,
+                      'h-16 w-16 rounded-full object-cover select-none pointer-events-none transition-all duration-500 ease-out',
+                    )}
+                  </div>
                 )}
-              </button>
+
+                {copy?.title || copy?.subtitle ? (
+                  <div className="nimi-shell-auth-header">
+                    {copy.title ? <h1 className="nimi-shell-auth-title">{copy.title}</h1> : null}
+                    {copy.subtitle ? <p className="nimi-shell-auth-subtitle">{copy.subtitle}</p> : null}
+                  </div>
+                ) : null}
+              </div>
 
               {flow.view === 'main' && flow.embeddedStage === 'email' ? (
                 <AnimateIn className="w-full">
@@ -159,12 +203,37 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
                     email={flow.email}
                     pending={flow.pending}
                     showAlternatives={flow.showAlternatives}
+                    googleDisabledReason={alternatives?.googleDisabledReason}
+                    tikTokDisabledReason={alternatives?.tikTokDisabledReason}
                     onEmailChange={flow.setEmail}
-                    onContinue={flow.handleInlineEmailContinue}
-                    onAlternativeToggle={() => flow.setShowAlternatives((current) => !current)}
-                    onGoogleLogin={flow.handleGoogleLogin}
-                    onTikTokLogin={flow.handleTikTokLogin}
-                    onWeb3Login={flow.handleWeb3Login}
+                    onContinue={(event) => {
+                      if (!flow.email.trim()) {
+                        flow.handleInlineEmailContinue(event);
+                        return;
+                      }
+                      if (!ensureConsent()) {
+                        event.preventDefault();
+                        return;
+                      }
+                      flow.handleInlineEmailContinue(event);
+                    }}
+                    onAlternativeToggle={() => {
+                      const next = !flow.showAlternatives;
+                      if (next) flow.handleCancelRegister();
+                      flow.setShowAlternatives(next);
+                    }}
+                    onGoogleLogin={() => {
+                      if (!ensureConsent()) return;
+                      flow.handleGoogleLogin();
+                    }}
+                    onTikTokLogin={() => {
+                      if (!ensureConsent()) return;
+                      flow.handleTikTokLogin();
+                    }}
+                    onWeb3Login={alternatives?.showWallet ? () => {
+                      if (!ensureConsent()) return;
+                      flow.handleWeb3Login();
+                    } : undefined}
                     testIds={{
                       emailInput: testIds?.emailInput,
                       emailSubmitArrow: testIds?.emailSubmitArrow,
@@ -172,6 +241,45 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
                       alternativePanel: testIds?.alternativePanel,
                     }}
                   />
+                  {consent ? (
+                    <div
+                      className="nimi-shell-auth-consent"
+                      lang={consent.lang}
+                      data-invalid={activeConsentError ? 'true' : undefined}
+                    >
+                      <span className="nimi-shell-auth-consent-control">
+                        <input
+                          ref={consentInputRef}
+                          id={consentId}
+                          type="checkbox"
+                          data-testid={testIds?.consentCheckbox}
+                          checked={consent.checked}
+                          disabled={flow.pending}
+                          aria-invalid={activeConsentError ? true : undefined}
+                          aria-labelledby={consentLabelId}
+                          onChange={(event) => {
+                            const next = event.currentTarget.checked;
+                            consent.onChange(next);
+                            if (next) setConsentPrompted(false);
+                          }}
+                        />
+                        <span className="nimi-shell-auth-consent-box" aria-hidden="true">
+                          <svg viewBox="0 0 12 12" fill="none">
+                            <path
+                              d="M2.5 6.2 4.9 8.6 9.5 3.6"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </span>
+                      </span>
+                      <span id={consentLabelId} className="nimi-shell-auth-consent-text">
+                        {typeof consent.label === 'function' ? consent.label(consentId) : consent.label}
+                      </span>
+                    </div>
+                  ) : null}
                 </AnimateIn>
               ) : null}
 
@@ -198,7 +306,10 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
                       </button>
                       <button
                         type="button"
-                        onClick={flow.handleConfirmRegister}
+                        onClick={() => {
+                          if (!ensureConsent()) return;
+                          flow.handleConfirmRegister();
+                        }}
                         disabled={flow.pending}
                         className="rounded-full bg-[var(--nimi-action-primary-bg)] px-5 py-2 text-sm font-medium text-[var(--nimi-action-primary-text)] transition hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:opacity-50"
                       >
@@ -219,6 +330,7 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
                     onPasswordChange={flow.setPassword}
                     onSubmit={flow.handleEmailLogin}
                     onUseEmailCodeInstead={flow.handleInlineOtpRequest}
+                    onBack={flow.handleHeaderBack}
                     testIds={{
                       passwordInput: testIds?.passwordInput,
                       otpButton: testIds?.otpButton,
@@ -237,6 +349,7 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
                     onOtpCodeChange={flow.setOtpCode}
                     onSubmit={flow.handleOtpVerify}
                     onResendOtp={flow.handleResendOtp}
+                    onBack={flow.handleHeaderBack}
                   />
                 </AnimateIn>
               ) : null}
@@ -254,6 +367,7 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
                     onShowPasswordToggle={() => flow.setShowPassword(!flow.showPassword)}
                     onShowConfirmPasswordToggle={() => flow.setShowConfirmPassword(!flow.showConfirmPassword)}
                     onSubmit={flow.handleSetPasswordAfterOtp}
+                    onBack={flow.handleHeaderBack}
                   />
                 </AnimateIn>
               ) : null}
@@ -265,22 +379,24 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
                     pending={flow.pending}
                     onTwoFactorCodeChange={flow.setTwoFactorCode}
                     onSubmit={flow.handleVerify2Fa}
+                    onBack={flow.handleHeaderBack}
                   />
                 </AnimateIn>
               ) : null}
 
-              {flow.view === 'wallet_select' ? (
+              {alternatives?.showWallet && flow.view === 'wallet_select' ? (
                 <AnimateIn className="w-full">
                   <AuthViewWalletSelect
                     pending={flow.pending}
                     onWalletLogin={flow.handleWalletLogin}
+                    onBack={flow.handleHeaderBack}
                   />
                 </AnimateIn>
               ) : null}
 
               {displayError && !flow.pending ? (
                 <AnimateIn>
-                  <p className="text-center text-xs text-[var(--nimi-status-danger)]">{displayError}</p>
+                  <p role="alert" className="text-center text-xs text-[var(--nimi-status-danger)]">{displayError}</p>
                 </AnimateIn>
               ) : null}
           </div>

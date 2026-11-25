@@ -3,6 +3,7 @@ package engine
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"image"
 	_ "image/png"
@@ -106,29 +107,24 @@ func (s *managerImageInvocationSubstrate) Ensure(
 	if err != nil {
 		return false, err
 	}
-	// Supervisor lifetime is Host-owned, not request-owned. Terminal Job
-	// cancellation must not silently orphan the resident process monitor.
-	if err := s.manager.StartEngine(context.Background(), engineConfig); err != nil {
+	// Supervisor.Start bounds startup with this context and owns the resident lifetime.
+	if err := s.manager.StartEngine(ctx, engineConfig); err != nil {
 		return false, fmt.Errorf("start image substrate: %w", err)
 	}
 	if err := ctx.Err(); err != nil {
-		_ = s.stopProcess()
 		return false, err
 	}
 	if !s.Healthy() {
-		_ = s.stopProcess()
 		return false, fmt.Errorf("image substrate did not become healthy")
 	}
 
 	protocol := imageExecutionProtocol(engineConfig.BinaryPath)
 	loadRequest, err := imageLoadRequest(address, plan, protocol)
 	if err != nil {
-		_ = s.stopProcess()
 		return false, err
 	}
 	if _, err := managedimagebackend.LoadModel(ctx, loadRequest); err != nil {
 		processHealthy := s.Healthy()
-		_ = s.stopProcess()
 		if !processHealthy && ctx.Err() == nil {
 			return false, executionFailure(localexecution.FailureProcessCrash, fmt.Errorf("image substrate exited while loading model: %w", err))
 		}
@@ -351,10 +347,11 @@ func (s *managerImageInvocationSubstrate) stopProcess() error {
 	s.currentKey = ""
 	s.address = ""
 	s.mu.Unlock()
-	if _, err := s.manager.EngineStatus(engineImageExecutionHost); err != nil {
+	err := s.manager.StopEngine(engineImageExecutionHost)
+	if errors.Is(err, ErrEngineNotRunning) {
 		return nil
 	}
-	return s.manager.StopEngine(engineImageExecutionHost)
+	return err
 }
 
 func (s *managerImageInvocationSubstrate) resolveEngineConfig(address string) (EngineConfig, error) {

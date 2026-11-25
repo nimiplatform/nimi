@@ -166,6 +166,66 @@ test('public profile editor', async (t) => {
       assert.doesNotMatch(dom.window.document.querySelector('[data-testid="profile-tags-field"]')!.textContent!, /worldbuilder/);
     });
 
+    await t.test('default avatar renders Scheme A mesh fallback and preset swatches upload through the standard draft flow', async () => {
+      const renderedPresets: Array<{ name: string; paletteId: string }> = [];
+      const uploadedFiles: File[] = [];
+      const savedPatches: JsonObject[] = [];
+      await act(async () => {
+        root.render(
+          <AppStoreProvider store={store}>
+            <DesktopI18nResourceProvider resource={productionDesktopI18n}>
+              <DesktopMotionProvider>
+                <PublicProfileEditor
+                  profile={profile}
+                  onRenderAvatarPreset={async (options) => {
+                    renderedPresets.push({ name: options.name, paletteId: options.paletteId });
+                    return new File(['png-bytes'], `nimi-avatar-${options.paletteId}.png`, { type: 'image/png' });
+                  }}
+                  onUploadAvatar={async (file) => {
+                    uploadedFiles.push(file);
+                    return {
+                      avatarUrl: `https://cdn.nimi.test/${file.name}`,
+                      avatarResourceId: `res-${file.name}`,
+                      avatarMedia: null,
+                    };
+                  }}
+                  onSave={async (patch) => {
+                    savedPatches.push(patch);
+                    return {
+                      ...profile,
+                      avatarUrl: patch.avatarResourceId ? `https://cdn.nimi.test/${String(patch.avatarResourceId)}` : null,
+                      avatarResourceId: typeof patch.avatarResourceId === 'string' ? patch.avatarResourceId : null,
+                    };
+                  }}
+                />
+              </DesktopMotionProvider>
+            </DesktopI18nResourceProvider>
+          </AppStoreProvider>,
+        );
+      });
+
+      const avatarFallback = dom.window.document.querySelector('[data-nimi-avatar-mesh]');
+      assert.ok(avatarFallback, 'default avatar fallback must emit Scheme A mesh attribute');
+
+      const presetButtons = dom.window.document.querySelectorAll('[data-testid="profile-avatar-preset-picker"] button');
+      assert.equal(presetButtons.length, 8, 'must expose all 8 curated Scheme A default presets');
+
+      const mintPreset = dom.window.document.querySelector<HTMLButtonElement>('[data-testid="profile-avatar-preset-mint"]')!;
+      await act(async () => { mintPreset.click(); });
+      assert.deepEqual(renderedPresets, [{ name: 'Alice', paletteId: 'mint' }]);
+      assert.equal(uploadedFiles.length, 1);
+      assert.equal(uploadedFiles[0]!.name, 'nimi-avatar-mint.png');
+      assert.equal(mintPreset.getAttribute('aria-pressed'), 'true');
+      assert.ok(dom.window.document.querySelector('[data-testid="profile-dirty-bar"]'));
+
+      await act(async () => { button('Save profile')!.click(); });
+      assert.deepEqual(savedPatches, [{ avatarResourceId: 'res-nimi-avatar-mint.png' }]);
+
+      await act(async () => { button('Remove photo')!.click(); });
+      assert.equal(mintPreset.getAttribute('aria-pressed'), 'false');
+      assert.ok(dom.window.document.querySelector('[data-testid="profile-dirty-bar"]'));
+    });
+
     await t.test('returning from Web account handoff refreshes profile handle without losing draft edits', async () => {
       const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query');
       const { DesktopRendererBindingProvider } = await import('../src/shell/renderer/renderer/binding-context.js');

@@ -17,13 +17,26 @@ import {
 } from './lab-ai-config-store.js';
 import { createLabRunTargetSummary } from './lab-run-target.js';
 
+let nextLabScopeId = 1;
+const labScopeIds = new WeakMap<object, string>();
+
+function labSessionScopeKey(aiConfig: object): string {
+  const existing = labScopeIds.get(aiConfig);
+  if (existing) return existing;
+  const assigned = `lab-ai-config-${nextLabScopeId++}`;
+  labScopeIds.set(aiConfig, assigned);
+  return assigned;
+}
+
 export function LabAIStudioAdapter({ children }: { readonly children: ReactNode }) {
   const rendererHost = useLabRendererHost();
   const { t, i18n } = useTranslation();
+  const sessionScopeKey = labSessionScopeKey(rendererHost.sdk.aiConfig);
   const value = useMemo<AIStudioHostPort>(() => ({
     appTitle,
     translate: (key, values) => t(key, values),
     locale: i18n.language,
+    sessionScopeKey,
     clock: { now: () => rendererHost.clock.now() },
     app: {
       projection: {
@@ -71,6 +84,6 @@ export function LabAIStudioAdapter({ children }: { readonly children: ReactNode 
         get: async () => (await loadLabAIConfig(rendererHost.sdk.aiConfig)).config,
       },
     },
-  }), [i18n.language, rendererHost, t]);
+  }), [i18n.language, rendererHost, sessionScopeKey, t]);
   return <AIStudioHostProvider value={value}>{children}</AIStudioHostProvider>;
 }

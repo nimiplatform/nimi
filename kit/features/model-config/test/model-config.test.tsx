@@ -8,7 +8,7 @@ import {
   type NimiAIConfigEffectiveSelection,
   type NimiCapabilityAIConfigIntent,
 } from '@nimiplatform/kit/core/sdk-contract';
-import { AppModelConfigSurface } from '../src/components/app-model-config-surface.js';
+import { AIConfigRecordControls, AppModelConfigSurface } from '../src/components/app-model-config-surface.js';
 import type { NimiAppScope } from '@nimiplatform/kit/core/app-session';
 import { CAPABILITY_DEFAULT_FIELDS } from '../src/capability-defaults.js';
 import { ModelConfigAIConfigSurface } from '../src/components/model-config-ai-config-surface.js';
@@ -1269,5 +1269,122 @@ describe('Model Config capability sections', () => {
     const node = await renderSurface(committedOverwrite(), vi.fn(), { showTitle: false });
 
     expect(node.querySelector('h2')).toBeNull();
+  });
+
+  it('uses configuredFeatures for ready and blocked AI_LOCAL_CAPABILITY_MISMATCH across badge, summary, and picker', async () => {
+    const localResource = {
+      loadoutRef: 'text-local',
+      label: 'Gemma 4 2B',
+      capabilityContract: 'text.generate',
+      implementation: { implementationId: 'local.text.generate.llama-cpp', driverId: 'nimi.runtime.driver.llama-cpp', driverDialect: 'llama.cpp/text-generate/v3' },
+      implementationSupportedFeatures: ['input.image'],
+      configuredFeatures: [] as string[],
+      textBehaviors: [],
+      state: 'blocked' as const,
+      reasons: ['AI_LOCAL_CAPABILITY_MISMATCH'],
+    };
+    const intent = createNimiLocalAIConfigCapabilityIntent({
+      capabilityContract: 'text.generate',
+      requiredFeatures: ['input.image'],
+    });
+    const readyUnbound: NimiAIConfigEffectiveSelection = {
+      capabilityContract: 'text.generate',
+      state: 'ready',
+      resource: { oneofKind: 'local', local: { ...localResource, state: 'ready', reasons: [] } },
+      reasons: [],
+    };
+    expect(modelConfigMissingRequiredFeatures(intent, readyUnbound)).toEqual(['input.image']);
+    expect(modelConfigCapabilityPosture(intent, readyUnbound)).toBe('local-feature-mismatch');
+
+    const blockedMismatch: NimiAIConfigEffectiveSelection = {
+      capabilityContract: 'text.generate',
+      state: 'blocked',
+      resource: { oneofKind: 'local', local: localResource },
+      reasons: ['AI_LOCAL_CAPABILITY_MISMATCH'],
+    };
+    expect(modelConfigMissingRequiredFeatures(intent, blockedMismatch)).toEqual(['input.image']);
+    expect(modelConfigCapabilityPosture(intent, blockedMismatch)).toBe('local-feature-mismatch');
+
+    // Empty reasons on blocked must stay generic blocked (guard [].every() vacuous truth).
+    expect(modelConfigCapabilityPosture(intent, { ...blockedMismatch, reasons: [] })).toBe('local-configuration-blocked');
+    // Mixed blocking reasons stay local-configuration-blocked while still exposing missing features.
+    const mixedBlocked: NimiAIConfigEffectiveSelection = {
+      ...blockedMismatch,
+      reasons: ['AI_LOADOUT_BLOCKED', 'AI_LOCAL_CAPABILITY_MISMATCH'],
+    };
+    expect(modelConfigCapabilityPosture(intent, mixedBlocked)).toBe('local-configuration-blocked');
+    expect(modelConfigMissingRequiredFeatures(intent, mixedBlocked)).toEqual(['input.image']);
+
+    // Component-level rendering check: badge and detail summary agree on missing input.image (not unavailable).
+    const node = await renderSurface(committedOverwrite(), vi.fn(), {
+      initialCapabilityContract: 'text.generate',
+      capabilities: [intent],
+      effectiveSelections: [blockedMismatch],
+    });
+    expect(node.textContent).toContain('Feature mismatch · input.image');
+    expect(node.textContent).toContain('The selected on-device model does not support: input.image');
+    expect(node.textContent).not.toContain('The selected on-device model is unavailable.');
+    expect(node.textContent).not.toContain('Required features');
+  });
+
+  it('renders AIConfigRecordControls with Kit SelectField, aria-label, disabled busy state, and stable mount on switch', async () => {
+    const onSelect = vi.fn();
+    const onEdit = vi.fn(async () => true);
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    const snapshot = {
+      config: null,
+      revision: 'rev-1',
+      effectiveSelections: [],
+      record: { configRef: 'cfg-default', name: 'Default', isDefault: true },
+      records: [
+        { configRef: 'cfg-default', name: 'Default', isDefault: true },
+        { configRef: 'cfg-alt', name: 'Alt', isDefault: false },
+      ],
+    } as never;
+
+    await act(async () => {
+      root?.render(
+        <AIConfigRecordControls
+          snapshot={snapshot}
+          busy={false}
+          language="en"
+          contentLayer="dialog"
+          onSelect={onSelect}
+          onEdit={onEdit}
+        />,
+      );
+    });
+    expect(container.querySelector('select')).toBeNull();
+    const trigger = container.querySelector('button[aria-label="Configuration"]') as HTMLButtonElement;
+    expect(trigger).toBeTruthy();
+    expect(trigger.disabled).toBe(false);
+    act(() => { trigger.click(); });
+    await flush();
+    const altOption = Array.from(document.body.querySelectorAll('[role="option"]')).find(
+      (item) => item.textContent?.includes('Alt'),
+    ) as HTMLElement;
+    expect(altOption).toBeTruthy();
+    act(() => { altOption.click(); });
+    await flush();
+    expect(onSelect).toHaveBeenCalledWith('cfg-alt');
+
+    await act(async () => {
+      root?.render(
+        <AIConfigRecordControls
+          snapshot={snapshot}
+          selectedRef="cfg-alt"
+          busy={true}
+          language="en"
+          contentLayer="dialog"
+          onSelect={onSelect}
+          onEdit={onEdit}
+        />,
+      );
+    });
+    const busyTrigger = container.querySelector('button[aria-label="Configuration"]') as HTMLButtonElement;
+    expect(busyTrigger).toBeTruthy();
+    expect(busyTrigger.disabled).toBe(true);
   });
 });

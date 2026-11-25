@@ -35,9 +35,10 @@
   "activity": {
     "title": "开发活动",
     "description": "查看受监管的实时运行状态与最近的停止记录。此处不会显示会话、凭据或 Runtime endpoint。",
-    "empty": "本次 Desktop 会话中尚无本地开发活动。",
+    "empty": "本次 Nimi Home 会话中尚无本地开发活动。",
+    "runningMessage": "受监管的 Electron 开发宿主正在运行",
     "hostGeneration": "宿主第 {{count}} 代",
-    "retryable": "只要当前命令保持运行，Desktop 就会继续自动重试。"
+    "retryable": "只要当前命令保持运行，Nimi Home 就会继续自动重试。"
   },
   "management": {
     "title": "已注册的开发项目",

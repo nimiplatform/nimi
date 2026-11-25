@@ -62,6 +62,61 @@ test('an installed model offers the downloaded inventory from the header instead
   assert.equal(panelHtml, '');
 });
 
+test('a checked component cannot present a ready plan or start a standalone installation', async () => {
+  const i18n = createInstance();
+  await i18n.init({ lng: 'en', resources: {} });
+  const plan = { installAvailable: false, files: [], warnings: [], reasonCode: 'AI_LOCAL_MANIFEST_INVALID' } as unknown as NimiRuntimeLocalInstallPlanDescriptor;
+  const html = renderToStaticMarkup(<I18nextProvider i18n={i18n}>
+    <ModelInstallAction installed={false} installable plan={plan} busy={false} runtimeWritesDisabled={false}
+      onReview={() => {}} onInstall={() => {}} onOpenLocalAssets={() => {}} />
+    <InstallPlanPanel installed={false} installable={false} plan={plan} error="" busy={false}
+      onReview={() => {}} onImport={() => {}} />
+  </I18nextProvider>);
+  assert.doesNotMatch(html, /Install plan ready|Download and install/);
+  assert.match(html, /manualImportHint/);
+  assert.match(html, /Open Model Library Import/);
+});
+
+test('install plan panel discloses host recipe compatibility warnings before download', async () => {
+  const i18n = createInstance();
+  await i18n.init({ lng: 'en', resources: {} });
+  const sd1Plan = {
+    installAvailable: true,
+    entry: 'DreamShaper_8_pruned.safetensors',
+    repo: 'Lykon/DreamShaper',
+    revision: '228d79cb20811466f5c5710aa91f05dabd0b8a14',
+    files: ['DreamShaper_8_pruned.safetensors'],
+    totalSizeBytes: 2132625894,
+    warnings: ['WARN_NO_HOST_RECIPE_SD1'],
+  } as unknown as NimiRuntimeLocalInstallPlanDescriptor;
+  const sd1Html = renderToStaticMarkup(<I18nextProvider i18n={i18n}>
+    <InstallPlanPanel installed={false} installable plan={sd1Plan} error="" busy={false} onReview={() => {}} />
+  </I18nextProvider>);
+  assert.match(sd1Html, /No SD 1\.x recipe on this host/);
+  assert.match(sd1Html, /cannot generate images in Lab/);
+
+  const communityPlan = {
+    installAvailable: true,
+    entry: 'Qwen3-ASR-0.6B-Q8_0.gguf',
+    repo: 'ggml-org/Qwen3-ASR-0.6B-GGUF',
+    revision: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    files: ['Qwen3-ASR-0.6B-Q8_0.gguf'],
+    totalSizeBytes: 700000000,
+    warnings: ['WARN_COMMUNITY_RECIPE_COMPATIBILITY_UNVERIFIED'],
+  } as unknown as NimiRuntimeLocalInstallPlanDescriptor;
+  const communityHtml = renderToStaticMarkup(<I18nextProvider i18n={i18n}>
+    <InstallPlanPanel installed={false} installable plan={communityPlan} error="" busy={false} onReview={() => {}} />
+  </I18nextProvider>);
+  assert.match(communityHtml, /Checked when creating a configuration/);
+  assert.match(communityHtml, /verified for integrity and SHA-256 on download/);
+  const indexPlan = { ...communityPlan, source: 'model-index', warnings: [] };
+  const renderIndexed = (matched?: boolean) => renderToStaticMarkup(<I18nextProvider i18n={i18n}>
+    <InstallPlanPanel installed={false} installable plan={indexPlan} hostRecipeMatched={matched} error="" busy={false} onReview={() => {}} />
+  </I18nextProvider>);
+  assert.match(renderIndexed(), /Compatibility has not been checked/);
+  assert.match(renderIndexed(true), /Supported by the selected recipe/);
+});
+
 test('model card preserves document content while hiding metadata and resolving repository assets', () => {
   const markdown = '---\nlicense: apache-2.0\n---\n# Model\n\n![Diagram](./assets/model.png)\n\n[Instructions](docs/usage.md)\n\n| Model | Score |\n| --- | --- |\n| A | 42 |\n\n<details><summary>Example</summary><p>Content</p><img src="./chart.png" /></details>\n\n```python\nprint("hello")\n```';
   const html = renderToStaticMarkup(<ModelCardMarkdown markdown={markdown} baseUrl={baseUrl} />);

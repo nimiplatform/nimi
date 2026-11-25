@@ -238,3 +238,161 @@ button:not(:disabled),
     background: linear-gradient(135deg, var(--nimi-ambient-mesh-base-start) 0%, var(--nimi-ambient-mesh-base-end) 100%) !important;
   }
 }
+
+/* Soft Mesh Monogram default avatar palettes (Scheme A) via non-generator data attributes.
+ * Layered in @layer components so explicit caller Tailwind utilities remain overrideable. */
+@layer components {
+  [data-nimi-avatar-mesh="glacier"] {
+    background-color: #EBF4FF;
+    background-image:
+      radial-gradient(circle at 22% 18%, rgba(147, 197, 253, 0.76) 0%, transparent 72%),
+      radial-gradient(circle at 84% 82%, rgba(191, 219, 254, 0.72) 0%, transparent 74%),
+      radial-gradient(circle at 78% 18%, rgba(224, 242, 254, 0.58) 0%, transparent 56%);
+    color: #1E40AF;
+    box-shadow: inset 0 0 0 1px rgba(29, 78, 216, 0.12);
+  }
+  [data-nimi-avatar-mesh="mint"] {
+    background-color: #E6FBF6;
+    background-image:
+      radial-gradient(circle at 22% 18%, rgba(94, 234, 212, 0.72) 0%, transparent 72%),
+      radial-gradient(circle at 84% 82%, rgba(153, 246, 228, 0.68) 0%, transparent 74%),
+      radial-gradient(circle at 78% 18%, rgba(186, 230, 253, 0.58) 0%, transparent 56%);
+    color: #0F5E59;
+    box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.12);
+  }
+  [data-nimi-avatar-mesh="apricot"] {
+    background-color: #FFF2E6;
+    background-image:
+      radial-gradient(circle at 22% 18%, rgba(253, 186, 116, 0.72) 0%, transparent 72%),
+      radial-gradient(circle at 84% 82%, rgba(254, 205, 211, 0.68) 0%, transparent 74%),
+      radial-gradient(circle at 78% 18%, rgba(254, 243, 199, 0.58) 0%, transparent 56%);
+    color: #9A3412;
+    box-shadow: inset 0 0 0 1px rgba(194, 65, 12, 0.12);
+  }
+  [data-nimi-avatar-mesh="sage"] {
+    background-color: #ECFDF3;
+    background-image:
+      radial-gradient(circle at 22% 18%, rgba(134, 239, 172, 0.68) 0%, transparent 72%),
+      radial-gradient(circle at 84% 82%, rgba(167, 243, 208, 0.68) 0%, transparent 74%),
+      radial-gradient(circle at 78% 18%, rgba(217, 249, 157, 0.50) 0%, transparent 56%);
+    color: #166534;
+    box-shadow: inset 0 0 0 1px rgba(21, 128, 61, 0.12);
+  }
+  [data-nimi-avatar-mesh="rose"] {
+    background-color: #FFF0F6;
+    background-image:
+      radial-gradient(circle at 22% 18%, rgba(249, 168, 212, 0.68) 0%, transparent 72%),
+      radial-gradient(circle at 84% 82%, rgba(254, 205, 211, 0.68) 0%, transparent 74%),
+      radial-gradient(circle at 78% 18%, rgba(253, 230, 138, 0.46) 0%, transparent 56%);
+    color: #9D174D;
+    box-shadow: inset 0 0 0 1px rgba(190, 24, 93, 0.12);
+  }
+  [data-nimi-avatar-mesh="amber"] {
+    background-color: #FFFBEB;
+    background-image:
+      radial-gradient(circle at 22% 18%, rgba(252, 211, 77, 0.66) 0%, transparent 72%),
+      radial-gradient(circle at 84% 82%, rgba(253, 186, 116, 0.64) 0%, transparent 74%),
+      radial-gradient(circle at 78% 18%, rgba(254, 240, 138, 0.52) 0%, transparent 56%);
+    color: #92400E;
+    box-shadow: inset 0 0 0 1px rgba(180, 83, 9, 0.12);
+  }
+  [data-nimi-avatar-mesh="periwinkle"] {
+    background-color: #EEF2FF;
+    background-image:
+      radial-gradient(circle at 22% 18%, rgba(165, 180, 252, 0.70) 0%, transparent 72%),
+      radial-gradient(circle at 84% 82%, rgba(191, 219, 254, 0.68) 0%, transparent 74%),
+      radial-gradient(circle at 78% 18%, rgba(224, 231, 255, 0.58) 0%, transparent 56%);
+    color: #3730A3;
+    box-shadow: inset 0 0 0 1px rgba(67, 56, 202, 0.12);
+  }
+  [data-nimi-avatar-mesh="slate"] {
+    background-color: #F1F5F9;
+    background-image:
+      radial-gradient(circle at 22% 18%, rgba(148, 163, 184, 0.52) 0%, transparent 72%),
+      radial-gradient(circle at 84% 82%, rgba(203, 213, 225, 0.66) 0%, transparent 74%),
+      radial-gradient(circle at 78% 18%, rgba(219, 234, 254, 0.56) 0%, transparent 56%);
+    color: #1E293B;
+    box-shadow: inset 0 0 0 1px rgba(51, 65, 85, 0.13);
+  }
+
+  .dark [data-nimi-avatar-mesh="glacier"],
+  [data-nimi-scheme="dark"] [data-nimi-avatar-mesh="glacier"] {
+    background-color: #132544;
+    background-image:
+      radial-gradient(circle at 22% 18%, rgba(37, 99, 235, 0.60) 0%, transparent 72%),
+      radial-gradient(circle at 84% 82%, rgba(56, 189, 248, 0.36) 0%, transparent 74%),
+      radial-gradient(circle at 78% 18%, rgba(30, 58, 138, 0.48) 0%, transparent 56%);
+    color: #DBEAFE;
+    box-shadow: inset 0 0 0 1px rgba(191, 219, 254, 0.16);
+  }
+  .dark [data-nimi-avatar-mesh="mint"],
+  [data-nimi-scheme="dark"] [data-nimi-avatar-mesh="mint"] {
+    background-color: #0E2E2E;
+    background-image:
+      radial-gradient(circle at 22% 18%, rgba(13, 148, 136, 0.58) 0%, transparent 72%),
+      radial-gradient(circle at 84% 82%, rgba(34, 211, 238, 0.34) 0%, transparent 74%),
+      radial-gradient(circle at 78% 18%, rgba(17, 94, 89, 0.46) 0%, transparent 56%);
+    color: #CCFBF1;
+    box-shadow: inset 0 0 0 1px rgba(153, 246, 228, 0.16);
+  }
+  .dark [data-nimi-avatar-mesh="apricot"],
+  [data-nimi-scheme="dark"] [data-nimi-avatar-mesh="apricot"] {
+    background-color: #3A1F14;
+    background-image:
+      radial-gradient(circle at 22% 18%, rgba(234, 88, 12, 0.56) 0%, transparent 72%),
+      radial-gradient(circle at 84% 82%, rgba(251, 113, 133, 0.36) 0%, transparent 74%),
+      radial-gradient(circle at 78% 18%, rgba(154, 52, 18, 0.46) 0%, transparent 56%);
+    color: #FFEDD5;
+    box-shadow: inset 0 0 0 1px rgba(254, 215, 170, 0.16);
+  }
+  .dark [data-nimi-avatar-mesh="sage"],
+  [data-nimi-scheme="dark"] [data-nimi-avatar-mesh="sage"] {
+    background-color: #112E22;
+    background-image:
+      radial-gradient(circle at 22% 18%, rgba(22, 163, 74, 0.54) 0%, transparent 72%),
+      radial-gradient(circle at 84% 82%, rgba(45, 212, 191, 0.34) 0%, transparent 74%),
+      radial-gradient(circle at 78% 18%, rgba(22, 101, 52, 0.46) 0%, transparent 56%);
+    color: #DCFCE7;
+    box-shadow: inset 0 0 0 1px rgba(187, 247, 208, 0.16);
+  }
+  .dark [data-nimi-avatar-mesh="rose"],
+  [data-nimi-scheme="dark"] [data-nimi-avatar-mesh="rose"] {
+    background-color: #381529;
+    background-image:
+      radial-gradient(circle at 22% 18%, rgba(219, 39, 119, 0.56) 0%, transparent 72%),
+      radial-gradient(circle at 84% 82%, rgba(251, 113, 133, 0.36) 0%, transparent 74%),
+      radial-gradient(circle at 78% 18%, rgba(157, 23, 77, 0.46) 0%, transparent 56%);
+    color: #FCE7F3;
+    box-shadow: inset 0 0 0 1px rgba(251, 207, 232, 0.16);
+  }
+  .dark [data-nimi-avatar-mesh="amber"],
+  [data-nimi-scheme="dark"] [data-nimi-avatar-mesh="amber"] {
+    background-color: #36240D;
+    background-image:
+      radial-gradient(circle at 22% 18%, rgba(217, 119, 6, 0.56) 0%, transparent 72%),
+      radial-gradient(circle at 84% 82%, rgba(245, 158, 11, 0.34) 0%, transparent 74%),
+      radial-gradient(circle at 78% 18%, rgba(146, 64, 14, 0.46) 0%, transparent 56%);
+    color: #FEF3C7;
+    box-shadow: inset 0 0 0 1px rgba(253, 230, 138, 0.16);
+  }
+  .dark [data-nimi-avatar-mesh="periwinkle"],
+  [data-nimi-scheme="dark"] [data-nimi-avatar-mesh="periwinkle"] {
+    background-color: #1B204A;
+    background-image:
+      radial-gradient(circle at 22% 18%, rgba(79, 70, 229, 0.58) 0%, transparent 72%),
+      radial-gradient(circle at 84% 82%, rgba(96, 165, 250, 0.36) 0%, transparent 74%),
+      radial-gradient(circle at 78% 18%, rgba(55, 48, 163, 0.46) 0%, transparent 56%);
+    color: #E0E7FF;
+    box-shadow: inset 0 0 0 1px rgba(199, 210, 254, 0.16);
+  }
+  .dark [data-nimi-avatar-mesh="slate"],
+  [data-nimi-scheme="dark"] [data-nimi-avatar-mesh="slate"] {
+    background-color: #1B2538;
+    background-image:
+      radial-gradient(circle at 22% 18%, rgba(71, 85, 105, 0.56) 0%, transparent 72%),
+      radial-gradient(circle at 84% 82%, rgba(100, 116, 139, 0.38) 0%, transparent 74%),
+      radial-gradient(circle at 78% 18%, rgba(51, 65, 85, 0.46) 0%, transparent 56%);
+    color: #E2E8F0;
+    box-shadow: inset 0 0 0 1px rgba(203, 213, 225, 0.16);
+  }
+}

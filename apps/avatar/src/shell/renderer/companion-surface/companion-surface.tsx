@@ -63,7 +63,7 @@ export type CompanionSurfaceProps = {
 };
 
 const GLASS_REGULAR_SURFACE_CLASS =
-  'nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]';
+  'nimi-material-glass-chrome backdrop-blur-[var(--nimi-backdrop-blur-chrome)] backdrop-saturate-[var(--nimi-backdrop-saturate)]';
 const ICON_SIZE = 16;
 
 type CompanionSurfaceStyle = CSSProperties & {

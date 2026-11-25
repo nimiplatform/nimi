@@ -64,3 +64,64 @@ test('storage read failures stay unknown and prepared version maintenance does n
     for (const [key, descriptor] of previous) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as Record<string, unknown>)[key]; }
   }
 });
+
+test('Check & Sync summarizes adopted disk assets separately from unchanged items', async () => {
+  const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost', pretendToBeVisual: true });
+  const globals = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
+    HTMLElement: dom.window.HTMLElement, HTMLInputElement: dom.window.HTMLInputElement, HTMLButtonElement: dom.window.HTMLButtonElement,
+    Element: dom.window.Element, Node: dom.window.Node, NodeFilter: dom.window.NodeFilter, DocumentFragment: dom.window.DocumentFragment,
+    MutationObserver: dom.window.MutationObserver, CustomEvent: dom.window.CustomEvent, getComputedStyle: dom.window.getComputedStyle,
+    requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window), cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window),
+    React, IS_REACT_ACT_ENVIRONMENT: true };
+  const previous = new Map(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+  const { createRoot } = await import('react-dom/client');
+  const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query');
+  const { initI18n, changeLocale } = await import('../src/shell/renderer/i18n/index.js');
+  const { DesktopRendererBindingProvider } = await import('../src/shell/renderer/renderer/binding-context.js');
+  const { ProductUpdateProvider } = await import('../src/shell/renderer/features/home/product-update-context.js');
+  const { DataManagementPage } = await import('../src/shell/renderer/features/settings/settings-data-management-page.js');
+  const { DesktopMotionProvider } = await import('../src/shell/renderer/ui/motion/desktop-motion-context.js');
+  await initI18n(); await changeLocale('en');
+  const resources = [
+    ...Array.from({ length: 6 }, (_, i) => ({ kind: 'model_asset', reference: `asset-unchanged-${i}`, status: 'available' as const, reason: 'MODEL_MANIFEST_REUSED' })),
+    { kind: 'model_asset', reference: 'asset-adopted-inkling', status: 'available' as const, change: 'adopted' as const, reason: 'MODEL_MANIFEST_ADOPTED' },
+    { kind: 'model_asset', reference: 'asset-adopted-mmproj', status: 'available' as const, change: 'adopted' as const, reason: 'MODEL_MANIFEST_ADOPTED' },
+  ];
+  const bindings = { app: { commands: { settings: {
+    estimateStorageUsage: async () => ({ localStorageBytes: 0, estimatedUsageBytes: 0, estimatedQuotaBytes: 0 }),
+    loadStorageDirs: async () => ({ nimiDataDir: 'D:/DataNimi', runtimeModelsDir: 'D:/DataNimi/models' }),
+    loadCheckSync: async () => ({
+      run: {
+        runId: 'run-1', rootActivationId: 'act-1', trigger: 'manual', state: 'completed',
+        owners: [{ ownerId: 'local_model_assets', state: 'completed', resources }],
+        unclaimed: [],
+      },
+      obligation: null, error: null,
+    }),
+  }, supportRepair: {}, productUpdate: {
+    status: async () => ({ phase: 'idle', currentVersion: '0.2.0', channel: 'beta', target: 'windows-amd64', candidateVersion: null, releaseId: null, downloadedBytes: 0, totalBytes: 0, checkedAt: null, reason: null, installationAvailable: false, checkAvailable: false, recoveryAction: 'none', recoveryError: null, maintenanceAvailable: false }),
+    homeReady: async () => null,
+    check: async () => null,
+    install: async () => null,
+  } } } } as never;
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+  const root = createRoot(dom.window.document.getElementById('root')!);
+  try {
+    await act(async () => { root.render(<QueryClientProvider client={client}><DesktopRendererBindingProvider bindings={bindings}>
+      <DesktopMotionProvider><ProductUpdateProvider><DataManagementPage /></ProductUpdateProvider></DesktopMotionProvider>
+    </DesktopRendererBindingProvider></QueryClientProvider>); await new Promise(resolve => setTimeout(resolve, 20)); });
+    const summary = dom.window.document.querySelector('[data-testid="data-management-check-sync-summary-local_model_assets"]');
+    assert.ok(summary, 'expected Check & Sync owner summary');
+    assert.match(summary.textContent!, /8 checked/);
+    assert.match(summary.textContent!, /2 re-registered from disk/);
+    assert.match(summary.textContent!, /6 unchanged/);
+    const checkSyncEl = dom.window.document.querySelector('[data-testid="data-management-check-sync"]')!;
+    assert.match(checkSyncEl.textContent!, /Re-registered from existing files on disk · asset-adopted-inkling/);
+    assert.match(checkSyncEl.textContent!, /Re-registered from existing files on disk · asset-adopted-mmproj/);
+    assert.match(checkSyncEl.textContent!, /Show 6 unchanged items/);
+  } finally {
+    await act(async () => root.unmount()); client.clear(); dom.window.close();
+    for (const [key, descriptor] of previous) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as Record<string, unknown>)[key]; }
+  }
+});

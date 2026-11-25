@@ -4,10 +4,32 @@ import (
 	"bytes"
 	"encoding/binary"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
+
+// @nimi-authority: rule.nimi.runtime.local-compute.audio-cpp-speech-slot-dialects
+func TestSpeechSlotPoliciesResolveOnlyTheirExactDialect(t *testing.T) {
+	registry := NewProductionRegistry()
+	for _, registration := range append(AudioCppSpeechRegistrations(), AudioCppReferenceVoiceRegistrations()...) {
+		strict := registration.CapabilityContract == AudioSynthesizeContract &&
+			(registration.Family == "pocket_tts" || registration.Family == "minimax_h3")
+		want, other := "/v2", "/v1"
+		if strict {
+			want, other = other, want
+		}
+		if !strings.HasSuffix(registration.Identity.DriverDialect, want) {
+			t.Fatalf("%s: unexpected dialect %s", registration.RecipeID, registration.Identity.DriverDialect)
+		}
+		wrong := registration.Identity
+		wrong.DriverDialect = strings.TrimSuffix(wrong.DriverDialect, want) + other
+		if d, reason := registry.Resolve(registration.CapabilityContract, wrong); d != nil || reason == runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+			t.Fatalf("%s resolves an undeclared dialect %s", registration.RecipeID, wrong.DriverDialect)
+		}
+	}
+}
 
 func TestAudioCppSpeechProductionRegistryHasExactReleaseFamilies(t *testing.T) {
 	registrations := AudioCppSpeechRegistrations()

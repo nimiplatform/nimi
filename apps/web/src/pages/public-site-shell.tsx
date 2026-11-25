@@ -345,7 +345,8 @@ export function PublicSiteHeader({
           aria-label={copy.accountLabel}
           title={copy.accountLabel}
         >
-          <UserRound size={18} aria-hidden="true" />
+          <UserRound size={16} aria-hidden="true" />
+          <span>{copy.accountLabel}</span>
         </PublicSiteLink>
         <PublicSiteLink
           className={`story-download${downloadActive ? ' is-active' : ''}`}

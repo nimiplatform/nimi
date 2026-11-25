@@ -11,10 +11,10 @@ import {
   updateNimiRealmPassword,
   type NimiRealmTwoFactorPrepareOutput,
 } from '@nimiplatform/sdk/realm';
-import { getGoogleClientId, requestGoogleIdToken } from '@nimiplatform/kit/auth';
+import { requestGoogleIdToken } from '@nimiplatform/kit/auth';
 import { createWebBrowserRealm } from './browser-realm.js';
 import { loadWebCurrentAccount } from './web-account-adapter.js';
-import { beginTikTokAccountLink } from './web-provider-link.js';
+import { beginTikTokAccountLink, getWebGoogleClientId } from './web-provider-link.js';
 import { AccountFeedback, AccountHeading } from './account-center-layout.js';
 import { useAccountCopy } from './account-center-copy.js';
 
@@ -311,7 +311,7 @@ export function AccountCredentials({
                           await beginTikTokAccountLink(String(user.id));
                           return;
                         }
-                        const clientId = getGoogleClientId();
+                        const clientId = getWebGoogleClientId();
                         if (!clientId) throw new Error(t('Account.googleNotConfigured'));
                         const idToken = await requestGoogleIdToken(clientId);
                         await linkNimiRealmOAuth(createWebBrowserRealm(), {

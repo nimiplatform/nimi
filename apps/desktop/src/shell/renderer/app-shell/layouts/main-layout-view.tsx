@@ -223,14 +223,16 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     return () => cancelAnimationFrame(frame);
   }, [settingsMenuOpen]);
 
+  const currentUserAvatarSeed = String(authUser?.id || authUser?.handle || props.displayName);
   const avatarNode = (
     <EntityAvatar
       imageUrl={props.userAvatarUrl}
       name={props.displayName}
+      seed={currentUserAvatarSeed}
       kind="human"
       sizeClassName="h-6 w-6"
-      className="shrink-0 ring-1 ring-black/8"
-      textClassName="text-[11px]"
+      className="shrink-0"
+      textClassName="text-[11px] font-semibold"
     />
   );
   const nimiHomeNode = (
@@ -450,7 +452,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
           }`}
         >
           <OfflineShellStrip />
-          <NimiToaster />
+          <NimiToaster dismissLabel={t('Common.close', { defaultValue: 'Close' })} />
 
           <MainLayoutPanelStack
             activeTab={props.activeTab}
@@ -483,6 +485,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
           >
             <MainLayoutSettingsMenu
               userAvatarUrl={props.userAvatarUrl}
+              userSeed={currentUserAvatarSeed}
               displayName={props.displayName}
               userEmail={props.userEmail}
               isItemActive={isSettingsMenuItemActive}

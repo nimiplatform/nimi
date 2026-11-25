@@ -329,7 +329,7 @@ type HostPlatformRecipeDriver interface {
 // or interprets the option key.
 type TextContextOptionDriver interface {
 	RecipeDriver
-	WithTextContextSize(options *structpb.Struct, contextSize uint64) (*structpb.Struct, error)
+	RecommendedTextContextOptions(defaults *structpb.Struct, recommended, authored uint64) (*structpb.Struct, error)
 }
 
 // MediaCodecRequirementDriver declares whether a configured recipe requires

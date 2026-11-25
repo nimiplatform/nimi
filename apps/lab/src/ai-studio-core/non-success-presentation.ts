@@ -79,6 +79,7 @@ const TARGET_RESELECTION_KEY_SEGMENTS: ReadonlyMap<string, string> = new Map([
   ['AI_CONNECTOR_NOT_FOUND', 'connectorNotFound'],
   ['AI_CONFIG_INVALID', 'configInvalid'],
   ['AI_MODEL_NOT_FOUND', 'modelNotFound'],
+  ['AI_LOCAL_ASSET_SLOT_MISSING', 'localAssetSlotMissing'],
 ]);
 
 function targetReselectionKeySegment(diagnostics?: StudioNonSuccessDiagnostics): string {

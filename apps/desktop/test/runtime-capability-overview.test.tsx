@@ -47,6 +47,7 @@ function makeRecipe(input: {
   const pinned = input.pinRecommendation !== false;
   return {
     recipeId: input.recipeId,
+    revision: 'rev-1',
     capabilityContract: input.capability,
     title: input.title,
     applicability: input.applicability ?? 'supported',
@@ -68,6 +69,8 @@ function makeRecipe(input: {
             ...(input.installedModelAssetId ? { installedModelAssetId: input.installedModelAssetId } : {}),
             candidate: {
               offerRef: `offer-${input.recipeId}`,
+              title: `Model ${input.variantId ?? input.recipeId}`,
+              variantLabel: `${input.variantId ?? input.recipeId}.gguf`,
               installable: true,
               totalSizeBytes: input.downloadSizeBytes ?? 4_294_967_296,
               downloadSizeBytes: input.downloadSizeBytes ?? 4_294_967_296,
@@ -86,6 +89,7 @@ const SHA_ZIMAGE = `sha256:${'c'.repeat(64)}`;
 function makeCatalogAsset(templateId: string, contentId: string, totalSizeBytes: number): NimiRuntimeLocalVerifiedAssetDescriptor {
   return {
     templateId,
+    title: `Model ${templateId}`,
     contentId,
     repo: 'nimi/test-models',
     revision: 'main',
@@ -210,7 +214,7 @@ test('cold-start overview presents multi-modal starters with pre-selected recipe
     makeCatalogAsset('v-zimage', SHA_ZIMAGE, 6 * 1024 ** 3),
   ];
   const assets = [
-    { modelAssetId: 'asset-zimage', contentId: SHA_ZIMAGE, contentVerified: true } as unknown as NimiRuntimeModelAssetRecord,
+    { modelAssetId: 'asset-zimage', contentId: SHA_ZIMAGE, contentVerified: true, entry: 'v-zimage.gguf' } as unknown as NimiRuntimeModelAssetRecord,
   ];
   const capabilities = [unset('text.generate'), unset('text.embed'), unset('image.generate'), unset('audio.synthesize')];
   const picked = selectStarterCapabilities(capabilities, recipes);
@@ -222,14 +226,14 @@ test('cold-start overview presents multi-modal starters with pre-selected recipe
   assert.doesNotMatch(html, /设置你的第一个本机对话/);
   // Text card pre-selects the first supported recipe (never blank) and shows reduced context + reason.
   assert.match(html, /data-starter-capability="text.generate"/);
-  assert.match(html, /Qwen 3 8B/);
+  assert.match(html, /Model V Qwen/i);
   assert.match(html, /data-testid="ai-starter-context:text.generate"/);
   assert.match(html, /64K/);
   assert.match(html, /256K/);
   assert.match(html, /查看推荐 · 5\.00 GB/);
   // Image card reports on-device files without claiming readiness.
   assert.match(html, /data-starter-capability="image.generate"/);
-  assert.match(html, /Z-Image Turbo/);
+  assert.match(html, /Model V Zimage/i);
   assert.match(html, /配置并启用/);
   assert.doesNotMatch(html, /data-ready-capability=/);
   // Unsupported audio card explains limitation honestly and offers Cloud Services escape.
@@ -292,7 +296,7 @@ test('ready overview uses neutral card surface, groups by domain, and filters vi
   const root = createRoot(container);
   const opened: string[] = [];
   const usedProfiles: NimiPortableAIProfile[] = [];
-  const startedRecipes: Array<{ capability: string; recipeId: string }> = [];
+  const openedDrafts: unknown[] = [];
   try {
     await act(async () => {
       root.render(
@@ -361,7 +365,7 @@ test('ready overview uses neutral card surface, groups by domain, and filters vi
             onRetry={() => {}}
             onOpenCapability={(id) => opened.push(id)}
             onOpenTask={() => {}}
-            onStartRecipe={(capability, recipeId) => startedRecipes.push({ capability, recipeId })}
+            onOpenSavedConfigs={context => openedDrafts.push(context)}
             onUse={(profile) => usedProfiles.push(profile)}
           />
         </I18nextProvider>,
@@ -380,7 +384,8 @@ test('ready overview uses neutral card surface, groups by domain, and filters vi
     await act(async () => {
       imageBtn.click();
     });
-    assert.deepEqual(startedRecipes, [{ capability: 'image.generate', recipeId: 'r-flux' }]);
+    assert.deepEqual(openedDrafts, [{ capabilityContract: 'image.generate', recipeId: 'r-flux', recipeRevision: 'rev-1' }]);
+    assert.equal(usedProfiles.length, 1);
   } finally {
     await act(async () => {
       root.unmount();

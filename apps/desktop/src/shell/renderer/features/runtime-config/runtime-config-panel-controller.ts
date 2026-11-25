@@ -42,8 +42,9 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   const [offeredSelection, setOfferedSelection] = useState<{ entryKey: string; offerRef: string } | null>(null);
   const [pendingAction, setPendingAction] = useState<{ entryKey: string; action: RuntimeConfigActionFocus } | null>(null);
   const actionFocus = pendingAction?.entryKey === entryKey ? pendingAction.action : null;
-  const loadoutNavigationContext = useMemo<RuntimeConfigLoadoutNavigationContext | null>(() => activePage === 'aiSettings' && position?.section === 'saved' && position.capabilityContract ? {
+  const loadoutNavigationContext = useMemo<RuntimeConfigLoadoutNavigationContext | null>(() => activePage === 'aiSettings' && position?.section === 'saved' && (position.capabilityContract || position.preselectedAssetId) ? {
     capabilityContract: position.capabilityContract, recipeId: position.recipeId, recipeRevision: position.recipeRevision, slotId: position.slotId,
+    preselectedAssetId: position.preselectedAssetId,
     draft: drafts.current.get(draftKey(position)), autoSelectOfferRef: offeredSelection?.entryKey === entryKey ? offeredSelection.offerRef : undefined,
   } : null, [activePage, position, offeredSelection, entryKey]);
   const modelMarketContext: RuntimeConfigModelMarketContext | null = activePage === 'modelLibrary' && position?.market && position.capabilityContract
@@ -142,7 +143,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     capabilityContract: position?.capabilityContract, profileViewId: position?.profileViewId, profileOwner: position?.profileOwner,
   })); }, [homeNavigation, position]);
   const onOpenSavedConfigs = useCallback((context?: RuntimeConfigLoadoutNavigationContext) => {
-    const refs: HomeRuntimePosition = { section: 'saved', capabilityContract: context?.capabilityContract, recipeId: context?.recipeId, recipeRevision: context?.recipeRevision, slotId: context?.slotId };
+    const refs: HomeRuntimePosition = { section: 'saved', capabilityContract: context?.capabilityContract, recipeId: context?.recipeId, recipeRevision: context?.recipeRevision, slotId: context?.slotId, preselectedAssetId: context?.preselectedAssetId };
     if (context?.draft) drafts.current.set(draftKey(refs), context.draft);
     void homeNavigation.push(homeRuntimeDestination('aiSettings', refs));
     if (context?.autoSelectOfferRef) setOfferedSelection({ entryKey: homeNavigation.getSnapshot().current.key, offerRef: context.autoSelectOfferRef });

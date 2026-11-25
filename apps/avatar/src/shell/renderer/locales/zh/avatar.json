@@ -62,9 +62,9 @@
       "degraded_reauth_required": {
         "badge": "需要登录",
         "title": "登录后继续",
-        "summary": "请先登录 Nimi Desktop，再启动伙伴形象。",
-        "summary_with_reason": "请先登录 Nimi Desktop，再启动伙伴形象。原因：{{reason}}。",
-        "recovery": "请在 Nimi Desktop 中登录，然后重新启动伙伴形象。"
+        "summary": "请先登录 Nimi Home，再启动伙伴形象。",
+        "summary_with_reason": "请先登录 Nimi Home，再启动伙伴形象。原因：{{reason}}。",
+        "recovery": "请在 Nimi Home 中登录，然后重新启动伙伴形象。"
       },
       "degraded_cloud_offline": {
         "badge": "云服务离线",
@@ -78,13 +78,13 @@
         "title": "无法连接运行时",
         "summary": "伙伴形象暂未收到来自运行时的实时数据。",
         "summary_with_reason": "伙伴形象暂未收到来自运行时的实时数据。原因：{{reason}}。",
-        "recovery": "请启动或重启运行时，然后从 Nimi Desktop 重新启动伙伴形象。"
+        "recovery": "请启动或重启运行时，然后从 Nimi Home 重新启动伙伴形象。"
       },
       "degraded_launch_context_invalid": {
         "badge": "需要重新启动",
-        "title": "请从 Nimi Desktop 启动伙伴形象",
+        "title": "请从 Nimi Home 启动伙伴形象",
         "summary": "当前未关联有效的伙伴。",
-        "recovery": "请在 Nimi Desktop 中选择伙伴，然后重新启动伙伴形象。"
+        "recovery": "请在 Nimi Home 中选择伙伴，然后重新启动伙伴形象。"
       },
       "error_bootstrap_fatal": {
         "badge": "界面不可用",
@@ -211,7 +211,7 @@
       "always_on_top": "始终置顶",
       "hide": "隐藏伙伴形象",
       "close": "关闭伙伴形象",
-      "quit_app": "退出 Avatar App",
+      "quit_app": "退出 Nimi Avatar",
       "settings": "设置",
       "pending": "处理中"
     },

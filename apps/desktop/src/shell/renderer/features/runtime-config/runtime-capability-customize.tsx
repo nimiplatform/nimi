@@ -1,6 +1,6 @@
 // @nimi-authority: rule.nimi.desktop.ai-consumption.capability-workspace
 
-import { Button, InlineAlert, SelectField, StatusBadge, TextareaField } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, StatusBadge, TextareaField } from '@nimiplatform/kit/ui';
 import type { NimiJsonObject, NimiJsonValue } from '@nimiplatform/sdk/contracts';
 import type {
   NimiLoadoutRecipe,
@@ -9,46 +9,37 @@ import type {
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
 import type { TFunction } from 'i18next';
-import { Braces, Check, CircleAlert, Download, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Braces, Check, CircleAlert, Download, RotateCcw } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatBytes } from '../../components/download-format.js';
 import {
-  loadoutAssetLabel,
-  loadoutCandidatePresentation,
-  loadoutModelPresentation,
   loadoutSlotLabelKey,
-  runtimeConfigLoadoutCandidateAssets,
-  type LoadoutModelPresentation,
+  patchLoadoutTextContextOption,
+  parseLoadoutOptionsJson,
+  resolvePrimaryRecipeSlot,
+  supportsLlamaTextContextSize,
   type NimiLoadoutRecipeSlot,
 } from './runtime-config-loadout-model-display.js';
 import {
+  LoadoutSelectedModelCard,
+  LoadoutSlotModelPickerBody,
+} from './runtime-config-loadout-model-picker.js';
+import {
   buildLoadoutCreateOptions,
   resolveLoadoutCreateContextOption,
+  RuntimeConfigLoadoutTextBehaviors,
 } from './runtime-config-page-loadouts.js';
+import { RuntimeTextContextSizeField } from './runtime-config-text-context-field.js';
 import type { RuntimeSetupTaskDraft } from './runtime-setup-task-store.js';
 
 const NOT_USED = '__not-used__';
-const UNRESOLVED = '__unresolved__';
 
 type SlotStatus = { readonly tone: 'ready' | 'download' | 'attention'; readonly text: string };
-type SlotChoice = {
-  readonly value: string;
-  readonly name: string;
-  readonly file: string;
-  readonly status?: SlotStatus;
-  readonly disabled?: boolean;
-};
 
 function slotLabel(slot: Pick<NimiLoadoutRecipeSlot, 'slotId' | 'displayLabel'>, t: TFunction): string {
   const key = loadoutSlotLabelKey(slot.slotId);
   return key ? t(key, { defaultValue: slot.displayLabel }) : slot.displayLabel;
-}
-
-/** "Gemma 4 2B · Q8_0". The quantization stays exact so Q4_K_M and Q4_0 remain distinct choices. */
-function exactVersionName(presentation: LoadoutModelPresentation): string {
-  const model = presentation.sizeLabel ? `${presentation.family} ${presentation.sizeLabel}` : presentation.family;
-  return [model, presentation.quant.technical].filter(Boolean).join(' · ') || presentation.rawLabel;
 }
 
 function optionValueType(value: unknown): 'boolean' | 'number' | 'string' | 'json' {
@@ -58,13 +49,9 @@ function optionValueType(value: unknown): 'boolean' | 'number' | 'string' | 'jso
   return 'json';
 }
 
-function parseOptions(text: string): NimiJsonObject | null {
-  try {
-    const value: unknown = JSON.parse(text);
-    return value && typeof value === 'object' && !Array.isArray(value) ? value as NimiJsonObject : null;
-  } catch {
-    return null;
-  }
+function contextSizeDraftFromOptions(options: NimiJsonObject | undefined): string {
+  const value = options?.contextSize;
+  return typeof value === 'number' && Number.isFinite(value) ? String(value) : '';
 }
 
 /** Order-insensitive identity of what an apply would submit. */
@@ -86,16 +73,6 @@ function draftIdentity(draft: RuntimeSetupTaskDraft): string {
 
 function withoutSlot(record: Readonly<Record<string, string>> | undefined, slotId: string): Record<string, string> {
   return Object.fromEntries(Object.entries(record ?? {}).filter(([id]) => id !== slotId));
-}
-
-function ChoiceLabel(props: { readonly name: string; readonly meta?: string }) {
-  return (
-    <span className="flex min-w-0 items-baseline gap-2">
-      <span className="truncate">{props.name}</span>
-      {/* Hidden in the closed field: the row shows the chosen version's state beside its name. */}
-      {props.meta ? <span data-choice-meta className="shrink-0 text-xs text-[var(--nimi-text-secondary)]">{props.meta}</span> : null}
-    </span>
-  );
 }
 
 function StatusLine({ status }: { readonly status: SlotStatus }) {
@@ -148,6 +125,7 @@ export function RuntimeCapabilityCustomize(props: {
 }) {
   const { t } = useTranslation();
   const { recipe } = props;
+  const hasLlamaContextField = supportsLlamaTextContextSize(recipe);
   const initial = useMemo<RuntimeSetupTaskDraft>(() => {
     const initialAxes = (props.selected?.modelAxes ?? []).filter((axis) => axis.modelAssetId && axis.expectedContentId)
       .map(({ slotId, modelAssetId, expectedContentId }) => ({ slotId, modelAssetId, expectedContentId }));
@@ -172,15 +150,26 @@ export function RuntimeCapabilityCustomize(props: {
     };
   }, [props.selected, recipe]);
   const initialText = useMemo(() => JSON.stringify(initial.options ?? {}, null, 2), [initial]);
+  const initialContextDraft = useMemo(
+    () => contextSizeDraftFromOptions(initial.options as NimiJsonObject | undefined),
+    [initial],
+  );
   const [draft, setDraft] = useState(initial);
   const [optionsText, setOptionsText] = useState(initialText);
+  const [contextSizeDraft, setContextSizeDraft] = useState(initialContextDraft);
   const [optionsEdited, setOptionsEdited] = useState(false);
+  const [pickingSlotId, setPickingSlotId] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
   const [applyError, setApplyError] = useState('');
 
-  const parsedOptions = parseOptions(optionsText);
+  const parsedOptions = parseLoadoutOptionsJson(optionsText);
   const optionsInvalid = parsedOptions === null;
-  const changed = optionsInvalid || draftIdentity(draft) !== draftIdentity(initial);
+  const contextValidation = hasLlamaContextField
+    ? patchLoadoutTextContextOption({}, contextSizeDraft)
+    : { valid: true as const };
+  const contextInvalid = !contextValidation.valid;
+  const formInvalid = optionsInvalid || contextInvalid;
+  const changed = formInvalid || draftIdentity(draft) !== draftIdentity(initial);
   const disabled = props.disabled || applying;
   useEffect(() => { props.onStateChange?.(changed, applying); }, [changed, applying, props.onStateChange]);
   const options = draft.options ?? {};
@@ -190,12 +179,26 @@ export function RuntimeCapabilityCustomize(props: {
     setOptionsEdited(true);
     setDraft((current) => ({ ...current, options: next }));
     setOptionsText(JSON.stringify(next, null, 2));
+    setContextSizeDraft(contextSizeDraftFromOptions(next));
   };
   const onOptionsText = (text: string) => {
     setOptionsEdited(true);
     setOptionsText(text);
-    const next = parseOptions(text);
-    if (next) setDraft((current) => ({ ...current, options: next }));
+    const next = parseLoadoutOptionsJson(text);
+    if (next) {
+      setDraft((current) => ({ ...current, options: next }));
+      setContextSizeDraft(contextSizeDraftFromOptions(next));
+    }
+  };
+  const onContextSizeChange = (nextText: string) => {
+    setOptionsEdited(true);
+    setContextSizeDraft(nextText);
+    const base = parsedOptions ?? options;
+    const patched = patchLoadoutTextContextOption(base, nextText);
+    if (patched.valid) {
+      setDraft((current) => ({ ...current, options: patched.options }));
+      setOptionsText(JSON.stringify(patched.options, null, 2));
+    }
   };
   const onOption = (key: string, value: NimiJsonValue) => writeOptions({ ...options, [key]: value });
 
@@ -210,6 +213,7 @@ export function RuntimeCapabilityCustomize(props: {
     const syncUneditedContextOptions = (nextOptions: NimiJsonObject | undefined) => {
       if (props.selected || optionsEdited || !nextOptions) return;
       setOptionsText(JSON.stringify(nextOptions, null, 2));
+      setContextSizeDraft(contextSizeDraftFromOptions(nextOptions));
     };
     if (next === NOT_USED) {
       setDraft((current) => ({
@@ -223,15 +227,8 @@ export function RuntimeCapabilityCustomize(props: {
       const offer = slot.offers.find((item) => item.candidate.offerRef === next.slice('offer:'.length));
       if (!offer || offer.applicability === 'unsupported' || (!offer.installedModelAssetId && !offer.candidate.installable)) return;
       // Acquisition is reviewed in the preparation list; the pick is recorded as its preferred choice.
-      const syncedOptions = (!props.selected && !optionsEdited && slot.presence === 'required' && recipe.capabilityContract === 'text.generate' && recipe.defaultOptions.contextSize === undefined
-        ? (offer.contextFit
-          ? buildLoadoutCreateOptions(
-            recipe,
-            offer.contextFit.recommendedContextSize < offer.contextFit.authoredContextSize
-              ? String(offer.contextFit.recommendedContextSize)
-              : '',
-          )
-          : buildLoadoutCreateOptions(recipe, ''))
+      const syncedOptions = (!props.selected && !optionsEdited && slot.presence === 'required' && hasLlamaContextField
+        ? (offer.contextFit?.recommendedOptions ?? recipe.defaultOptions)
         : undefined) as RuntimeSetupTaskDraft['options'];
       syncUneditedContextOptions(syncedOptions);
       setDraft((current) => {
@@ -249,7 +246,7 @@ export function RuntimeCapabilityCustomize(props: {
     if (next.startsWith('asset:')) {
       const asset = props.assets.find((entry) => entry.modelAssetId === next.slice('asset:'.length));
       if (!asset) return;
-      const syncedOptions = (!props.selected && !optionsEdited && slot.presence === 'required' && recipe.capabilityContract === 'text.generate' && recipe.defaultOptions.contextSize === undefined
+      const syncedOptions = (!props.selected && !optionsEdited && slot.presence === 'required' && hasLlamaContextField
         ? buildLoadoutCreateOptions(recipe, resolveLoadoutCreateContextOption(recipe, { [slot.slotId]: asset.modelAssetId }))
         : undefined) as RuntimeSetupTaskDraft['options'];
       syncUneditedContextOptions(syncedOptions);
@@ -271,81 +268,41 @@ export function RuntimeCapabilityCustomize(props: {
     const label = slotLabel(slot, t);
     const bound = (draft.axes ?? []).find((axis) => axis.slotId === slot.slotId);
     const preferred = draft.preferredOffers?.[slot.slotId];
-    const value = optional && disabledSlots.has(slot.slotId)
-      ? NOT_USED
-      : preferred ? `offer:${preferred}` : bound ? `asset:${bound.modelAssetId}` : UNRESOLVED;
-    const installed = runtimeConfigLoadoutCandidateAssets(slot, props.assets);
-    const offers = slot.offers.filter((offer) => !offer.installedModelAssetId
-      || !installed.some((asset) => asset.modelAssetId === offer.installedModelAssetId));
-    const choices: SlotChoice[] = [
-      ...installed.map((asset) => ({
-        value: `asset:${asset.modelAssetId}`,
-        name: exactVersionName(loadoutModelPresentation({ title: loadoutAssetLabel(asset, props.catalog), variantLabel: asset.entry })),
-        file: asset.entry,
-        status: {
-          tone: 'ready' as const,
-          text: [t('runtimeConfig.loadouts.installed'), asset.totalSizeBytes ? formatBytes(asset.totalSizeBytes) : ''].filter(Boolean).join(' · '),
-        },
-      })),
-      ...offers.map((offer) => {
-        const unavailable = !offer.installedModelAssetId && !offer.candidate.installable;
-        const acquisition: SlotStatus = offer.installedModelAssetId
-          ? { tone: 'ready', text: t('runtimeConfig.loadouts.installed') }
-          : unavailable
-            ? { tone: 'attention', text: t('runtimeConfig.recommend.notInstallable') }
-            : {
-              tone: 'download',
-              text: offer.candidate.downloadSizeBytes
-                ? t('runtimeConfig.product.downloadSize', { size: formatBytes(offer.candidate.downloadSizeBytes) })
-                : t('runtimeConfig.product.downloadSizeUnknown'),
-            };
-        return {
-          value: `offer:${offer.candidate.offerRef}`,
-          name: exactVersionName(loadoutCandidatePresentation(offer.candidate)),
-          file: offer.candidate.variantLabel,
-          // Host fit is only worth a word when it is not a plain "runs here".
-          status: offer.applicability === 'supported' ? acquisition : {
-            ...acquisition,
-            text: `${acquisition.text} · ${t(`runtimeConfig.loadouts.hostFit.${offer.applicability}`)}`,
-          },
-          disabled: offer.applicability === 'unsupported' || unavailable,
-        };
-      }),
-    ];
-    // Two files can read as the same version; their file names tell them apart.
-    const named = choices.map((choice) => (
-      choices.filter((other) => other.name === choice.name).length > 1 && choice.file
-        ? { ...choice, name: `${choice.name} · ${choice.file}` }
-        : choice
-    ));
-    const current = named.find((choice) => choice.value === value);
-    const selectOptions = [
-      ...(optional ? [{
-        value: NOT_USED,
-        label: <span className="text-[var(--nimi-text-secondary)]">{t('runtimeConfig.product.customization.notUsed')}</span>,
-      }] : []),
-      ...named.map((choice) => ({
-        value: choice.value,
-        label: <ChoiceLabel name={choice.name} meta={choice.status?.text} />,
-        disabled: choice.disabled,
-      })),
-      ...(value === UNRESOLVED ? [{ value: UNRESOLVED, label: t('runtimeConfig.loadouts.unresolved') }] : []),
-      // Keep a missing current binding visible rather than silently showing another version.
-      ...(value !== NOT_USED && value !== UNRESOLVED && !current ? [{
-        value,
-        label: props.selected?.modelAxes.find((axis) => axis.slotId === slot.slotId)?.displayLabel || label,
-      }] : []),
-    ];
-    const status: SlotStatus | undefined = value === UNRESOLVED
-      ? { tone: 'attention', text: t('runtimeConfig.loadouts.unresolved') }
-      : current?.status;
-    const help = optional && recipe.capabilityContract === 'text.generate' && slot.conditionalFeatures?.length
+    const notUsed = optional && disabledSlots.has(slot.slotId);
+    const asset = !notUsed && !preferred && bound
+      ? props.assets.find((entry) => entry.modelAssetId === bound.modelAssetId) ?? null
+      : null;
+    const queuedOffer = !notUsed && preferred
+      ? slot.offers.find((item) => item.candidate.offerRef === preferred) ?? null
+      : null;
+    const status: SlotStatus | undefined = notUsed
+      ? undefined
+      : queuedOffer
+        ? {
+          tone: 'download',
+          text: queuedOffer.candidate.downloadSizeBytes
+            ? t('runtimeConfig.product.downloadSize', { size: formatBytes(queuedOffer.candidate.downloadSizeBytes) })
+            : t('runtimeConfig.product.downloadSizeUnknown'),
+        }
+        : asset
+          ? {
+            tone: 'ready',
+            text: [t('runtimeConfig.loadouts.installed'), asset.totalSizeBytes ? formatBytes(asset.totalSizeBytes) : ''].filter(Boolean).join(' · '),
+          }
+          : { tone: 'attention', text: t('runtimeConfig.loadouts.unresolved') };
+    const help = optional && slot.conditionalFeatures?.length
       ? t('runtimeConfig.product.customization.slotHelp.inputMedia', {
-        features: slot.conditionalFeatures.map((feature) => t(`runtimeConfig.product.customization.slotHelp.${feature.replace('.', '_')}`, { defaultValue: feature })).join(' · '),
+        features: slot.conditionalFeatures.map((feature) => (
+          slot.slotId === 'companion.controlnet' && feature === 'input.image'
+            ? t('runtimeConfig.loadouts.controlnetInput')
+            : t(`runtimeConfig.product.customization.slotHelp.${feature.replace('.', '_')}`, { defaultValue: feature })
+        )).join(' · '),
       })
       : '';
-    return { slot, label, optional, value, selectOptions, status: value === NOT_USED ? undefined : status, help };
+    return { slot, label, optional, notUsed, asset, queuedOffer, bound, preferred, status, help };
   });
+
+  const pickingRow = pickingSlotId ? rows.find((row) => row.slot.slotId === pickingSlotId) ?? null : null;
 
   let downloadBytes = 0;
   let downloadUnknown = false;
@@ -355,15 +312,20 @@ export function RuntimeCapabilityCustomize(props: {
     if (offer.candidate.downloadSizeBytes) downloadBytes += offer.candidate.downloadSizeBytes;
     else downloadUnknown = true;
   }
-  const applyHint = optionsInvalid
-    ? t('runtimeConfig.product.customization.applyInvalid')
-    : downloadUnknown
-      ? t('runtimeConfig.product.customization.applyHintDownloadUnknown')
-      : downloadBytes
-        ? t('runtimeConfig.product.customization.applyHintDownload', { size: formatBytes(downloadBytes) })
-        : t('runtimeConfig.product.customization.applyHint');
+  const applyHint = contextInvalid
+    ? t('runtimeConfig.loadouts.contextSizeInvalid')
+    : optionsInvalid
+      ? t('runtimeConfig.product.customization.applyInvalid')
+      : downloadUnknown
+        ? t('runtimeConfig.product.customization.applyHintDownloadUnknown')
+        : downloadBytes
+          ? t('runtimeConfig.product.customization.applyHintDownload', { size: formatBytes(downloadBytes) })
+          : t('runtimeConfig.product.customization.applyHint');
 
-  const scalarKeys = Object.keys(options).filter((key) => optionValueType(options[key]) !== 'json');
+  const scalarKeys = Object.keys(options).filter((key) => (
+    optionValueType(options[key]) !== 'json'
+    && !(hasLlamaContextField && key === 'contextSize')
+  ));
   const optionCount = parsedOptions ? Object.keys(parsedOptions).length : 0;
   const optionsSummary = optionsInvalid
     ? t('runtimeConfig.setupTask.advanced.optionsInvalid')
@@ -371,13 +333,23 @@ export function RuntimeCapabilityCustomize(props: {
       ? t('runtimeConfig.product.customization.optionsCustomized', { count: optionCount })
       : t('runtimeConfig.product.customization.optionsDefault');
 
+  const primarySlot = resolvePrimaryRecipeSlot(recipe);
+  const selectedHasBoundMainModel = props.selected
+    ? (primarySlot.kind === 'single'
+      ? props.selected.modelAxes.some((axis) => axis.slotId === primarySlot.slot.slotId && Boolean(axis.modelAssetId))
+      : props.selected.modelAxes.some((axis) => Boolean(axis.modelAssetId)))
+    : false;
+
   const discard = () => {
     setDraft(initial);
     setOptionsText(initialText);
+    setContextSizeDraft(initialContextDraft);
+    setOptionsEdited(false);
+    setPickingSlotId(null);
     setApplyError('');
   };
   const apply = async () => {
-    if (disabled || !parsedOptions || !changed) return;
+    if (disabled || !parsedOptions || contextInvalid || !changed) return;
     setApplying(true);
     setApplyError('');
     try {
@@ -389,6 +361,45 @@ export function RuntimeCapabilityCustomize(props: {
     }
   };
 
+  if (pickingRow) {
+    return (
+      <div className="space-y-4" data-testid="capability-customize-picker-subview">
+        <div className="flex items-center justify-between gap-3">
+          <Button
+            tone="ghost"
+            size="sm"
+            onClick={() => setPickingSlotId(null)}
+            data-testid="capability-customize-picker-back"
+          >
+            <ArrowLeft size={14} />
+            {t('runtimeConfig.loadouts.picker.backToSettings')}
+          </Button>
+          <span className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+            {t('runtimeConfig.loadouts.picker.title', { slot: pickingRow.label })}
+          </span>
+        </div>
+        <LoadoutSlotModelPickerBody
+          slot={pickingRow.slot}
+          assets={props.assets}
+          verifiedAssets={props.catalog}
+          selectedAssetId={pickingRow.notUsed ? '' : (pickingRow.bound?.modelAssetId ?? '')}
+          selectedOfferRef={pickingRow.preferred ?? ''}
+          allowClear={pickingRow.optional}
+          clearLabel={pickingRow.optional ? t('runtimeConfig.product.customization.notUsed') : undefined}
+          offerActionMode="queue-offer"
+          onSelectAsset={(assetId) => {
+            choose(pickingRow.slot, assetId ? `asset:${assetId}` : NOT_USED);
+            setPickingSlotId(null);
+          }}
+          onSelectOffer={(offer) => {
+            choose(pickingRow.slot, `offer:${offer.candidate.offerRef}`);
+            setPickingSlotId(null);
+          }}
+        />
+      </div>
+    );
+  }
+
   const fieldClass = 'rounded-[var(--nimi-radius-sm)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-2.5 py-1.5 text-sm text-[var(--nimi-text-primary)]';
   return (
     <div className="space-y-4" data-testid="capability-customize-editor">
@@ -398,7 +409,7 @@ export function RuntimeCapabilityCustomize(props: {
             {rows.map((row) => (
               <div
                 key={row.slot.slotId}
-                className="grid gap-x-6 gap-y-2 py-3.5 sm:grid-cols-[minmax(0,1fr)_minmax(0,18.75rem)] sm:items-center"
+                className="grid gap-y-2 py-3.5"
                 data-testid={`capability-customize-slot:${row.slot.slotId}`}
               >
                 <div className="min-w-0">
@@ -409,27 +420,43 @@ export function RuntimeCapabilityCustomize(props: {
                     ) : null}
                   </div>
                   {row.help ? <p className="mt-0.5 text-xs text-[var(--nimi-text-secondary)]">{row.help}</p> : null}
-                  {/* The state line keeps its height while empty, so picking or clearing a
-                      version never moves the field or the list still fading under it. */}
                   <div className="mt-0.5 min-h-4" data-testid={`capability-customize-slot-status:${row.slot.slotId}`}>
                     {row.status ? <StatusLine status={row.status} /> : null}
                   </div>
                 </div>
-                <SelectField
-                  contentLayer="dialog"
-                  aria-label={row.label}
-                  data-testid={`capability-customize-version:${row.slot.slotId}`}
-                  value={row.value}
-                  options={row.selectOptions}
+                <LoadoutSelectedModelCard
+                  slot={row.slot}
+                  asset={row.asset}
+                  queuedOffer={row.queuedOffer}
+                  notUsed={row.notUsed}
                   disabled={disabled}
-                  // Kit select values inherit the trigger's type size, so the field carries the body size.
-                  selectClassName="text-[length:var(--nimi-type-body-size)] [&_[data-choice-meta]]:hidden"
-                  onValueChange={(next) => choose(row.slot, next)}
+                  verifiedAssets={props.catalog}
+                  onOpenPicker={() => setPickingSlotId(row.slot.slotId)}
                 />
               </div>
             ))}
           </Band>
+          {props.selected && (props.selected.textBehaviors ?? []).length > 0 ? (
+            <div className="border-t border-[var(--nimi-border-subtle)] px-5 py-4 lg:px-6">
+              <RuntimeConfigLoadoutTextBehaviors
+                loadoutId={props.selected.loadoutId}
+                behaviors={props.selected.textBehaviors ?? []}
+                hasBoundMainModel={selectedHasBoundMainModel}
+                compact
+              />
+            </div>
+          ) : null}
           <Band title={t('runtimeConfig.setupTask.advanced.optionsTitle')}>
+            {hasLlamaContextField ? (
+              <div className="py-3">
+                <RuntimeTextContextSizeField
+                  value={contextSizeDraft}
+                  onChange={onContextSizeChange}
+                  disabled={disabled}
+                  testId="capability-customize-context-size"
+                />
+              </div>
+            ) : null}
             {scalarKeys.map((key) => {
               const value = options[key];
               const valueType = optionValueType(value);
@@ -521,7 +548,7 @@ export function RuntimeCapabilityCustomize(props: {
             <Button tone="ghost" disabled={disabled} onClick={props.onCancel ?? discard} data-testid="capability-customize-discard">
               {t(props.onCancel ? 'Common.cancel' : 'runtimeConfig.product.customization.discard')}
             </Button>
-            <Button tone="primary" disabled={disabled || optionsInvalid || !changed} onClick={() => { void apply(); }} data-testid="capability-customize-apply">
+            <Button tone="primary" disabled={disabled || formInvalid || !changed} onClick={() => { void apply(); }} data-testid="capability-customize-apply">
               {applying ? t('runtimeConfig.setupTask.advanced.applying') : (props.applyLabel ?? t('runtimeConfig.product.customization.apply'))}
             </Button>
           </div>

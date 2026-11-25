@@ -17,6 +17,7 @@ export type HomeRuntimePosition = {
   readonly loadoutId?: string;
   readonly profileOwner?: RuntimeConfigProfileUseOwner;
   readonly recipeId?: string; readonly recipeRevision?: string; readonly slotId?: string;
+  readonly preselectedAssetId?: string;
   readonly market?: 'browse' | 'slot'; readonly offerRef?: string;
   readonly connectorId?: string;
   readonly pane?: RuntimeAdvancedDiagnosticsPane;
@@ -49,6 +50,7 @@ export type HomeDestination = {
   readonly appId?: string;
   readonly appEntryKey?: string;
   readonly appSection?: HomeAppSection;
+  readonly appConfigRef?: string;
   readonly settingsSection?: string;
   readonly messageFilter?: 'all' | 'unread' | 'pending';
   readonly messageSource?: string;
@@ -68,7 +70,7 @@ export type HomeChatPosition = {
 const CATALOG: Record<AppTab, readonly string[]> = {
   home: ['homeSection'], chat: ['chat'], contacts: ['chat', 'profileId', 'contactView', 'conversationFilter', 'partnerQuery', 'partner', 'partnerManagerAnchorId', 'partnerManagerSection', 'partnerChat'], explore: ['exploreSection', 'exploreSearchKind', 'search', 'exploreWorldId', 'exploreTopicId', 'worldSearch', 'worldTopicId', 'worldCollection'],
   connections: ['connectionAppId', 'connectionSourceId'],
-  apps: ['appId', 'appEntryKey', 'appSection'], runtime: ['runtime'], cloud: ['runtime'], downloads: [], diagnostics: ['runtime'],
+  apps: ['appId', 'appEntryKey', 'appSection', 'appConfigRef'], runtime: ['runtime'], cloud: ['runtime'], downloads: [], diagnostics: ['runtime'],
   settings: ['settingsSection'], profile: ['profileId'],
   'source-detail': ['sourceRef'], 'world-detail': ['worldId', 'worldSubpage', 'search'],
   notification: ['messageFilter', 'messageSource'],
@@ -86,7 +88,7 @@ export function validateHomeDestination(value: unknown): HomeDestination {
   if (Object.keys(input).some(key => key !== 'id' && !CATALOG[id].includes(key))) throw new Error('Unexpected Home destination fields.');
   const result: Record<string, unknown> = { id };
   for (const key of CATALOG[id]) if (input[key] !== undefined) result[key] = input[key];
-  for (const key of ['profileId', 'worldId', 'exploreWorldId', 'exploreTopicId', 'worldTopicId', 'appId', 'appEntryKey']) if (result[key] !== undefined) result[key] = stringRef(result[key]);
+  for (const key of ['profileId', 'worldId', 'exploreWorldId', 'exploreTopicId', 'worldTopicId', 'appId', 'appEntryKey', 'appConfigRef']) if (result[key] !== undefined) result[key] = stringRef(result[key]);
   if (typeof result.profileId === 'string' && /^(local-agent:|runtime-source:)/.test(result.profileId)) throw new Error('A human profile requires an account reference.');
   if (id === 'world-detail' && !result.worldId) throw new Error('World detail requires a world reference.');
   if (id === 'source-detail') {
@@ -147,6 +149,7 @@ export function validateHomeDestination(value: unknown): HomeDestination {
     result.partner = { localAgentRef: stringRef(partner.localAgentRef), ...(partner.settingsSection ? { settingsSection: partner.settingsSection } : {}), ...(activity ? { activity } : {}) };
   }
   if (!result.appId && (result.appSection || result.appEntryKey)) throw new Error('App detail requires an App reference.');
+  if (result.appConfigRef && result.appSection !== 'ai-models') throw new Error('An App configuration reference requires the AI models section.');
   if (id === 'home') result.homeSection ??= 'overview';
   if (id === 'explore') { result.exploreSection ??= 'worlds'; result.search ??= ''; }
   if (id === 'settings') result.settingsSection ??= 'appearance';
@@ -156,11 +159,11 @@ export function validateHomeDestination(value: unknown): HomeDestination {
     if (!position || typeof position !== 'object' || Array.isArray(position)) throw new Error('Invalid Runtime position.');
     const fields = position as Record<string, unknown>;
     const allowed = id === 'cloud' ? ['connectorId'] : id === 'diagnostics' ? ['pane']
-      : ['page', 'section', 'capabilityContract', 'setupTaskId', 'profileViewId', 'profileTaskDetailId', 'loadoutId', 'profileOwner', 'recipeId', 'recipeRevision', 'slotId', 'market', 'offerRef'];
+      : ['page', 'section', 'capabilityContract', 'setupTaskId', 'profileViewId', 'profileTaskDetailId', 'loadoutId', 'profileOwner', 'recipeId', 'recipeRevision', 'slotId', 'preselectedAssetId', 'market', 'offerRef'];
     if (Object.keys(fields).some(key => !allowed.includes(key))) throw new Error('Unexpected Runtime position fields.');
     const normalized: Record<string, unknown> = {};
     for (const key of allowed) if (fields[key] !== undefined) normalized[key] = fields[key];
-    for (const key of ['capabilityContract', 'setupTaskId', 'profileViewId', 'profileTaskDetailId', 'loadoutId', 'recipeId', 'recipeRevision', 'slotId', 'offerRef', 'connectorId']) if (normalized[key] !== undefined) normalized[key] = stringRef(normalized[key]);
+    for (const key of ['capabilityContract', 'setupTaskId', 'profileViewId', 'profileTaskDetailId', 'loadoutId', 'recipeId', 'recipeRevision', 'slotId', 'preselectedAssetId', 'offerRef', 'connectorId']) if (normalized[key] !== undefined) normalized[key] = stringRef(normalized[key]);
     if (id === 'runtime') {
       normalized.page ??= 'aiSettings';
       if (!['aiSettings', 'modelLibrary'].includes(normalized.page as string)) throw new Error('Invalid Runtime page.');
@@ -176,9 +179,13 @@ export function validateHomeDestination(value: unknown): HomeDestination {
       if (normalized.profileOwner !== undefined) {
         const owner = normalized.profileOwner as Record<string, unknown>;
         if (!owner || typeof owner !== 'object' || Array.isArray(owner) || !['app', 'local-agent'].includes(owner.kind as string)
-          || Object.keys(owner).some(key => !['kind', 'ownerAppId', 'returnFocus'].includes(key)) || owner.kind === 'local-agent' && owner.ownerAppId !== undefined) throw new Error('Invalid profile owner reference.');
+          || Object.keys(owner).some(key => !['kind', 'ownerAppId', 'configRef', 'returnFocus'].includes(key))
+          || owner.kind === 'local-agent' && (owner.ownerAppId !== undefined || owner.configRef !== undefined)) throw new Error('Invalid profile owner reference.');
         const copy: Record<string, string> = { kind: owner.kind as string };
-        if (owner.kind === 'app') copy.ownerAppId = stringRef(owner.ownerAppId);
+        if (owner.kind === 'app') {
+          copy.ownerAppId = stringRef(owner.ownerAppId);
+          if (owner.configRef !== undefined) copy.configRef = stringRef(owner.configRef);
+        }
         if (owner.returnFocus !== undefined) copy.returnFocus = stringRef(owner.returnFocus);
         normalized.profileOwner = copy;
       }

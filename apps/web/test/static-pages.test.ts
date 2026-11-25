@@ -421,7 +421,10 @@ test('capability route counts expose local model counts and hover popovers for l
   assert.equal(visionLocate.cloudServices.length, 0);
 
   const textGenerate = getCapabilityRouteDetails('text.generate');
-  assert.ok(textGenerate.localModels.length >= 6);
+  assert.deepEqual(
+    textGenerate.localModels.map((model) => model.label),
+    ['Gemma 4 E2B IT', 'Gemma 4 12B Unified'],
+  );
   assert.ok(textGenerate.cloudServices.length >= 20);
   assert.ok(textGenerate.cloudServices.some((service) => service.label === 'OpenAI'));
 

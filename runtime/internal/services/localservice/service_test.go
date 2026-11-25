@@ -478,8 +478,8 @@ func TestResolveModelInstallPlanHFCatalogSourceIsEngineNeutral(t *testing.T) {
 	if plan.GetModelId() != "example/model" || plan.GetHashes()["model.gguf"] != strings.Repeat("a", 64) {
 		t.Fatalf("plan did not use catalog identity: %+v", plan)
 	}
-	if plan.GetSource() != "huggingface" || plan.GetRevision() != "main" {
-		t.Fatalf("legacy catalog acquisition identity changed: %+v", plan)
+	if plan.GetSource() != "huggingface" || plan.GetRevision() != immutableHFRevisionForTest {
+		t.Fatalf("catalog acquisition did not pin resolved immutable revision: %+v", plan)
 	}
 }
 

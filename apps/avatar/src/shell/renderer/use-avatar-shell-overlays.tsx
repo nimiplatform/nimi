@@ -304,11 +304,15 @@ export function useAvatarShellOverlays(input: {
         return;
       }
       if (action === 'quiet') {
-        onQuiet();
+        if (quietLatched) {
+          onReengage();
+        } else {
+          onQuiet();
+          dismissTransientComposer('composition_change');
+          dismissSettingsOverlay('composition_change');
+          dismissAppearanceOverlay('composition_change');
+        }
         dismissContextMenu('action');
-        dismissTransientComposer('composition_change');
-        dismissSettingsOverlay('composition_change');
-        dismissAppearanceOverlay('composition_change');
         return;
       }
       if (action === 'toggle_always_on_top') {
@@ -350,6 +354,7 @@ export function useAvatarShellOverlays(input: {
       onOpenCapsule,
       onReengage,
       onQuiet,
+      quietLatched,
       beginLocalShutdown,
       persistShellSettings,
       requestShellLifecycle,

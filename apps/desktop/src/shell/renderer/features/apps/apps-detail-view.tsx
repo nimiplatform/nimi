@@ -484,7 +484,7 @@ function LocalDevelopmentAppsDetailView({
 
           {activeTab === 'ai-models' && aiModelsAvailable ? (
             <div role="tabpanel" id="apps-detail-panel-ai-models" aria-labelledby="apps-detail-tab-ai-models" tabIndex={0} className="outline-none">
-              <AppsAIConfigSection
+              <AppsAIConfigSection key={entry.identity.appId}
                 appId={identity.appId}
                 appDisplayName={identity.displayName}
                 allowedRoutes={registration.aiConfigAllowedRoutes}
@@ -983,7 +983,7 @@ function InstalledAppsDetailView({
 
           {activeTab === 'ai-models' && aiModelsAvailable ? (
             <div role="tabpanel" id="apps-detail-panel-ai-models" tabIndex={0}>
-              <AppsAIConfigSection appId={entry.identity.appId} appDisplayName={entry.identity.displayName}
+              <AppsAIConfigSection key={entry.identity.appId} appId={entry.identity.appId} appDisplayName={entry.identity.displayName}
                 allowedRoutes={['local', 'cloud']}
                 declaredCapabilityRefs={entry.appInfo?.capabilityContractRefs ?? []}
                 onAIConfigChanged={onAIConfigChanged} />

@@ -101,14 +101,14 @@ func TestWindowsJobNaturalExitAndAccountingQueryFailure(t *testing.T) {
 	if err := command.Start(); err != nil {
 		t.Fatal(err)
 	}
-	defer command.Process.Kill()
+	defer func() { _ = command.Process.Kill() }()
 	reaped := make(chan error, 1)
 	go func() { reaped <- command.Wait() }()
 	tree, err := bindSupervisorProcessLifecycle(command)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer releaseSupervisorProcessLifecycle(tree)
+	defer func() { _ = releaseSupervisorProcessLifecycle(tree) }()
 
 	// Keep a real handle to the same Job, but without JOB_OBJECT_QUERY.
 	const jobObjectTerminateAccess = 0x0008
@@ -117,7 +117,7 @@ func TestWindowsJobNaturalExitAndAccountingQueryFailure(t *testing.T) {
 	if err := windows.DuplicateHandle(self, tree.job, self, &limited, jobObjectTerminateAccess, false, 0); err != nil {
 		t.Fatal(err)
 	}
-	defer windows.CloseHandle(limited)
+	defer func() { _ = windows.CloseHandle(limited) }()
 	withoutQuery := &supervisorProcessLifecycle{job: limited}
 	if exited, err := supervisorProcessLifecycleExited(withoutQuery); exited || !errors.Is(err, windows.ERROR_ACCESS_DENIED) {
 		t.Fatalf("query with insufficient access: exited=%v err=%v", exited, err)

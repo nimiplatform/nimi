@@ -35,6 +35,8 @@ export interface NimiAIProfileLocalImplementationAuthoringInput {
   readonly recipe: NimiLoadoutRecipe;
   /** Omit to use the Runtime-owned Recipe defaults. */
   readonly portableConfig?: NimiJsonObject;
+  /** Preserve an omitted driverPortableConfig on imported portable profiles. */
+  readonly omitPortableConfig?: boolean;
 }
 
 export interface NimiAIProfileCloudRecommendationAuthoringInput {
@@ -164,14 +166,20 @@ export interface NimiAIProfileAuthoringMachineLoadoutProjection {
   readonly capabilityContract: string;
   readonly implementation: CapabilityImplementationIdentity;
   readonly portableConfig?: NimiJsonObject;
-  readonly supportedFeatures: readonly string[];
+  readonly implementationSupportedFeatures: readonly string[];
+  readonly configuredFeatures: readonly string[];
   readonly requirementResolution: 'unresolved' | 'configured';
   readonly provenance?: NimiJsonObject;
   /** Optional source identity projected by the caller; Runtime does not infer it. */
   readonly sourceProfileId?: string;
   readonly loadout?: {
     readonly recipeId: string;
-    readonly axes: readonly { readonly slotId: string; readonly contentId: string }[];
+    readonly axes: readonly {
+      readonly slotId: string;
+      readonly contentId: string;
+      readonly entry?: string;
+      readonly expectedHash?: string;
+    }[];
     readonly options: NimiJsonObject;
   };
 }
@@ -281,7 +289,9 @@ export function createNimiAIProfileLocalImplementation(
   const normalized = normalizeLocalImplementationInput(input, input.recipe.capabilityContract);
   return Object.freeze({
     recipe: input.recipe,
-    portableConfig: normalized.portableConfig,
+    ...(input.omitPortableConfig === true
+      ? { omitPortableConfig: true as const }
+      : { portableConfig: normalized.portableConfig }),
   });
 }
 export class NimiAIProfileAuthoringBuilder {
@@ -694,7 +704,8 @@ export function deriveNimiAIProfileLocalConfigurationPreview(input: {
       loadout.implementation,
       capability.implementation!,
     ))
-    .filter((loadout) => localConfigurationDigestFromMachineLoadout(loadout) === equivalenceDigest)
+    .filter((loadout) => localConfigurationDigestFromMachineLoadout(loadout, capability) === equivalenceDigest)
+    .filter((loadout) => matchesPortableEntries(loadout, capability))
     .sort((left, right) => compareCanonicalText(left.loadoutId, right.loadoutId));
   const sameSource = equivalent.length > 0
     ? []
@@ -795,7 +806,7 @@ export function deriveNimiAIProfileSelectionMismatchPreview(input: {
   const localCapability = capability.route === 'local' && capability.implementation
     ? capability
     : null;
-  const equivalentLoadoutIds = localCapability?.implementation
+  const equivalentLoadouts = localCapability?.implementation
     ? machine.loadouts
       .filter((loadout) => loadout.capabilityContract === capabilityContract)
       .filter((loadout) => sameImplementation(
@@ -803,11 +814,11 @@ export function deriveNimiAIProfileSelectionMismatchPreview(input: {
         localCapability.implementation!,
       ))
       .filter((loadout) => (
-        localConfigurationDigestFromMachineLoadout(loadout)
+        localConfigurationDigestFromMachineLoadout(loadout, localCapability)
           === localConfigurationDigestFromProfile(capabilityContract, localCapability)
       ))
-      .map((loadout) => loadout.loadoutId)
-      .sort()
+      .filter((loadout) => matchesPortableEntries(loadout, localCapability))
+      .sort((left, right) => compareCanonicalText(left.loadoutId, right.loadoutId))
     : [];
 
   const cloud = capability.route === 'cloud'
@@ -821,11 +832,25 @@ export function deriveNimiAIProfileSelectionMismatchPreview(input: {
       : normalizeSelectionCloudAlternative(input.cloudAlternative);
 
   const currentFeatureSubset = currentLoadout
-    ? deriveFeatureSubset(requiredFeatures, currentLoadout.supportedFeatures)
+    ? deriveFeatureSubset(requiredFeatures, currentLoadout.configuredFeatures)
     : unavailableFeatureSubset(requiredFeatures);
-  const recommendedFeatureSubset = localCapability?.implementation
-    ? deriveFeatureSubset(requiredFeatures, localCapability.implementation.supportedFeatures)
-    : unavailableFeatureSubset(requiredFeatures);
+  const compatibleEquivalents = equivalentLoadouts.filter(
+    (loadout) => deriveFeatureSubset(requiredFeatures, loadout.configuredFeatures).compatible,
+  );
+  const matchedEquivalentForSubset = compatibleEquivalents.find((loadout) => loadout.loadoutId === currentLoadout?.loadoutId)
+    ?? compatibleEquivalents[0] ?? equivalentLoadouts[0];
+  // This branch has one shared feature projection. Name only records for which
+  // that projection is true, including when equivalent portable content exists.
+  const equivalentLoadoutIds = equivalentLoadouts
+    .filter(loadout => matchedEquivalentForSubset
+      && loadout.configuredFeatures.length === matchedEquivalentForSubset.configuredFeatures.length
+      && loadout.configuredFeatures.every((feature, index) => feature === matchedEquivalentForSubset.configuredFeatures[index]))
+    .map(loadout => loadout.loadoutId);
+  const recommendedFeatureSubset = !localCapability?.implementation
+    ? unavailableFeatureSubset(requiredFeatures)
+    : matchedEquivalentForSubset
+      ? deriveFeatureSubset(requiredFeatures, matchedEquivalentForSubset.configuredFeatures)
+      : deriveFeatureSubset(requiredFeatures, localCapability.implementation.supportedFeatures);
   const cloudFeatureSubset = cloud
     ? deriveFeatureSubset(requiredFeatures, cloud.supportedFeatures)
     : unavailableFeatureSubset(requiredFeatures);
@@ -890,13 +915,19 @@ function normalizeLocalImplementationInput(
 ): {
   readonly implementation: CapabilityImplementationIdentity;
   readonly supportedFeatures: readonly string[];
-  readonly portableConfig: NimiJsonObject;
+  readonly portableConfig: NimiJsonObject | undefined;
 } {
   assertExactRecord(
     input,
-    new Set(['recipe', 'portableConfig']),
+    new Set(['recipe', 'portableConfig', 'omitPortableConfig']),
     `${capabilityContract} Local implementation`,
   );
+  if (input.omitPortableConfig !== undefined && typeof input.omitPortableConfig !== 'boolean') {
+    return authoringError(`${capabilityContract} omitPortableConfig must be a boolean`);
+  }
+  if (input.omitPortableConfig === true && input.portableConfig !== undefined) {
+    return authoringError(`${capabilityContract} cannot both omit and set portableConfig`);
+  }
   const recipe = requireRecord(
     input.recipe,
     `${capabilityContract} Runtime Recipe is required`,
@@ -919,10 +950,12 @@ function normalizeLocalImplementationInput(
       recipe.implementationSupportedFeatures,
       `${capabilityContract} Runtime Recipe implementationSupportedFeatures`,
     ),
-    portableConfig: normalizeAuthoringJsonObject(
-      input.portableConfig ?? recipe.defaultOptions,
-      `${capabilityContract} portableConfig`,
-    ),
+    portableConfig: input.omitPortableConfig === true
+      ? undefined
+      : normalizeAuthoringJsonObject(
+        input.portableConfig ?? recipe.defaultOptions,
+        `${capabilityContract} portableConfig`,
+      ),
   });
 }
 function normalizeCloudRecommendation(
@@ -1148,6 +1181,17 @@ function portableProfileContent(profile: NimiPortableAIProfile): unknown {
   };
 }
 
+function matchesPortableEntries(
+  machine: NimiAIProfileAuthoringMachineLoadoutProjection,
+  profile: Extract<NimiPortableAIProfileCapability, { readonly route: 'local' }>,
+): boolean {
+  return (profile.loadout?.axes ?? []).every(axis => {
+    const bound = machine.loadout?.axes.find(item => item.slotId === axis.slotId);
+    return bound !== undefined && (bound.expectedHash ?? bound.contentId) === axis.expectedHash
+      && (!axis.source || axis.expectedHash === axis.contentId || bound.entry === axis.source.file);
+  });
+}
+
 function localConfigurationDigestFromProfile(
   capabilityContract: string,
   capability: Extract<NimiPortableAIProfileCapability, { readonly route: 'local' }>,
@@ -1169,14 +1213,15 @@ function localConfigurationDigestFromProfile(
 
 function localConfigurationDigestFromMachineLoadout(
   loadout: NimiAIProfileAuthoringMachineLoadoutProjection,
+  profileCapability: Extract<NimiPortableAIProfileCapability, { readonly route: 'local' }>,
 ): NimiAIProfileEquivalenceDigest {
   const implementation = normalizeImplementation(
     loadout.implementation,
     `${loadout.capabilityContract} machine implementation`,
   );
   const supportedFeatures = normalizeFeatureSet(
-    loadout.supportedFeatures,
-    `${loadout.capabilityContract} machine supportedFeatures`,
+    loadout.implementationSupportedFeatures,
+    `${loadout.capabilityContract} machine implementationSupportedFeatures`,
   );
   const portableConfig = loadout.portableConfig === undefined
     ? Object.freeze({})
@@ -1184,26 +1229,43 @@ function localConfigurationDigestFromMachineLoadout(
       loadout.portableConfig,
       `${loadout.capabilityContract} machine portableConfig`,
     );
+  // Home also projects the Loadout options as driver config. When the Profile
+  // omits separate driver settings, those same options are already compared below.
+  const optionsAlreadyCompared = profileCapability.driverPortableConfig === undefined
+    && loadout.loadout !== undefined
+    && canonicalJson(portableConfig) === canonicalJson(loadout.loadout.options);
   return digestCanonical(
     'nimi.loadout.portable-content/v1',
     {
       capabilityContract: loadout.capabilityContract,
       implementation: implementationContent(implementation),
-      driverPortableConfig: portableConfig,
-      loadout: loadout.loadout ?? null,
+      driverPortableConfig: optionsAlreadyCompared ? {} : portableConfig,
+      loadout: loadout.loadout ? canonicalLoadoutEquivalence(loadout.loadout) : null,
       supportedFeatures,
     },
   );
 }
 
-function portableLoadoutEquivalence(
-  loadout: NonNullable<Extract<NimiPortableAIProfileCapability, { readonly route: 'local' }>['loadout']>,
+function canonicalLoadoutEquivalence(
+  loadout: {
+    readonly recipeId: string;
+    readonly axes: readonly { readonly slotId: string; readonly contentId: string }[];
+    readonly options: NimiJsonObject;
+  },
 ): unknown {
   return {
     recipeId: loadout.recipeId,
-    axes: loadout.axes.map((axis) => ({ slotId: axis.slotId, contentId: axis.contentId })),
+    axes: [...loadout.axes]
+      .sort((left, right) => compareCanonicalText(left.slotId, right.slotId))
+      .map((axis) => ({ slotId: axis.slotId, contentId: axis.contentId })),
     options: loadout.options,
   };
+}
+
+function portableLoadoutEquivalence(
+  loadout: NonNullable<Extract<NimiPortableAIProfileCapability, { readonly route: 'local' }>['loadout']>,
+): unknown {
+  return canonicalLoadoutEquivalence(loadout);
 }
 
 function implementationContent(
@@ -1274,9 +1336,13 @@ function normalizeMachineProjection(
           ),
         }
         : {}),
-      supportedFeatures: normalizeFeatureSet(
-        loadout.supportedFeatures,
-        `Machine Loadout[${index}].supportedFeatures`,
+      implementationSupportedFeatures: normalizeFeatureSet(
+        loadout.implementationSupportedFeatures,
+        `Machine Loadout[${index}].implementationSupportedFeatures`,
+      ),
+      configuredFeatures: normalizeFeatureSet(
+        loadout.configuredFeatures,
+        `Machine Loadout[${index}].configuredFeatures`,
       ),
       requirementResolution: requireRequirementResolution(
         loadout.requirementResolution,
@@ -1360,7 +1426,14 @@ function normalizeMachineLoadoutIntent(
     if (!/^sha256:[a-f0-9]{64}$/u.test(contentId)) {
       return authoringError(`Machine Loadout[${loadoutIndex}].loadout.axes[${axisIndex}].contentId is invalid`);
     }
-    return Object.freeze({ slotId, contentId });
+    if (axis.expectedHash !== undefined && !/^sha256:[a-f0-9]{64}$/u.test(axis.expectedHash)) {
+      return authoringError(`Machine Loadout[${loadoutIndex}] entry hash is invalid`);
+    }
+    return Object.freeze({
+      slotId, contentId,
+      ...(axis.entry !== undefined ? { entry: requireExactNonEmptyText(axis.entry, 'Machine Loadout entry') } : {}),
+      ...(axis.expectedHash !== undefined ? { expectedHash: axis.expectedHash } : {}),
+    });
   });
   assertUnique(axes.map((axis) => axis.slotId), `Machine Loadout[${loadoutIndex}] slots`);
   return Object.freeze({

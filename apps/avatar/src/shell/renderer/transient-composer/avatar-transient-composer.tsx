@@ -116,7 +116,7 @@ export function AvatarTransientComposer(props: AvatarTransientComposerProps) {
   return (
     <form
       ref={rootRef}
-      className="avatar-transient-composer nimi-material-glass-thick"
+      className="avatar-transient-composer nimi-material-glass-chrome backdrop-blur-[var(--nimi-backdrop-blur-chrome)] backdrop-saturate-[var(--nimi-backdrop-saturate)]"
       style={{ left: position.left, top: position.top }}
       data-testid="avatar-transient-composer"
       data-avatar-interactive-region="true"

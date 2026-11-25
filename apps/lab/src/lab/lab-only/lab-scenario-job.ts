@@ -12,7 +12,12 @@ import type {
   StudioRuntimeCapabilityDescriptor,
 } from '../../ai-studio-core/runtime-types.js';
 
-import { observeNimiRuntimeScenarioJob, getNimiRuntimeScenarioJobTerminalStatusFromError, type NimiRuntimeScenarioJobObservation } from '@nimiplatform/sdk/runtime';
+import {
+  observeNimiRuntimeScenarioJob,
+  getNimiRuntimeScenarioJobTerminalStatusFromError,
+  type NimiRuntimeScenarioJob,
+  type NimiRuntimeScenarioJobObservation,
+} from '@nimiplatform/sdk/runtime';
 import type { ScenarioType } from '@nimiplatform/sdk/runtime/generated';
 
 export type LabScenarioJobOutcome =
@@ -39,6 +44,7 @@ export async function observeLabScenarioJob(input: {
   readonly getIntervalMs?: number;
   readonly onObservation?: (response: NimiRuntimeScenarioJobObservation) => void;
   readonly onJob?: (job: NimiLocalAppScenarioJob) => void;
+  readonly onJobUpdate?: (job: NimiRuntimeScenarioJob) => void;
 }): Promise<LabScenarioJobOutcome> {
   let full: NimiLocalAppScenarioJobGetResult | undefined;
   const ai = createNimiLocalAppRuntimeScenarioJobClient({ ...input.ai, scenarioJobs: {
@@ -53,6 +59,7 @@ export async function observeLabScenarioJob(input: {
     await observeNimiRuntimeScenarioJob({ ai, jobId: input.jobId, scenarioType: input.scenarioType,
       signal: input.signal, cancelSignal: input.cancelSignal, abortReason: input.cancelReason,
       getIntervalMs: input.getIntervalMs,
+      onJobUpdate: input.onJobUpdate,
       onObservation: response => {
         input.onObservation?.(response);
         if (full) input.onJob?.(full.job);

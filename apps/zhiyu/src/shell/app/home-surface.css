@@ -141,11 +141,11 @@
 .zhiyu-agent-rail__agent-indicator {
   position: absolute;
   top: 50%;
-  left: 0;
+  left: 3px;
   width: 3px;
   height: 0;
   transform: translateY(-50%);
-  border-radius: 0 999px 999px 0;
+  border-radius: 999px;
   background: var(--nimi-action-primary-bg);
   opacity: 0;
   transition: height 200ms ease, opacity 200ms ease;
@@ -498,10 +498,11 @@
 
 .zhiyu-home__composer-avatar {
   overflow: hidden;
-  background: transparent;
-  color: #64748b;
-  font-weight: 600;
-  transition: transform 120ms ease;
+  background: color-mix(in srgb, var(--nimi-action-primary-bg) 14%, #fff);
+  color: var(--nimi-action-primary-bg);
+  font-size: 13px;
+  font-weight: 700;
+  transition: transform 120ms ease, background 120ms ease;
 }
 
 .zhiyu-home__composer-avatar img {
@@ -757,23 +758,19 @@
 }
 
 .zhiyu-agent-center [data-agent-center-nav-style] {
+  flex-wrap: wrap;
   gap: 4px;
   margin: 0;
   padding: 5px;
   border: 1px solid rgba(255, 255, 255, 0.58);
   border-radius: 16px;
   background: rgba(235, 241, 248, 0.7);
-  scrollbar-width: none;
-}
-
-.zhiyu-agent-center [data-agent-center-nav-style]::-webkit-scrollbar {
-  display: none;
 }
 
 .zhiyu-agent-center [data-agent-center-nav-style] button {
-  height: 36px;
-  padding: 0 11px;
-  border-radius: 11px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 10px;
   color: #7a8499;
 }
 
@@ -789,12 +786,12 @@
 }
 
 .zhiyu-agent-center [data-agent-center-nav-style] button > svg {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
 }
 
 .zhiyu-agent-center [data-agent-center-nav-style] button > span:not([aria-hidden="true"]) {
-  margin-left: 6px;
+  margin-left: 5px;
   font-size: 12px;
 }
 
@@ -1218,7 +1215,7 @@
 .zhiyu-discovery__identity { display: flex; align-items: center; gap: 16px; }
 .zhiyu-discovery__identity img { width: 80px; height: 80px; object-fit: cover; border-radius: 50%; }
 .zhiyu-discovery__actions { display: flex; flex-wrap: wrap; gap: 12px; padding-block: 20px; }
-.zhiyu-discovery__notice { padding-block: 12px; font-size: 13px; }
+.zhiyu-discovery__notice { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 16px; padding: 11px 14px; border: 1px solid var(--nimi-status-warning-soft-border); border-radius: 12px; background: var(--nimi-status-warning-soft-bg); color: var(--nimi-status-warning-soft-text); font-size: 13px; }
 .zhiyu-discovery button:focus-visible { outline: 2px solid var(--nimi-focus-ring-color); outline-offset: 3px; }
 @media (max-width: 640px) { .zhiyu-discovery { padding: 16px; } .zhiyu-agent-rail__discover { margin: 0 8px; } }
 }

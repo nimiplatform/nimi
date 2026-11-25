@@ -128,11 +128,14 @@ export function Kv(props: {
   return (
     <div className="min-w-0">
       <div className="text-[length:var(--nimi-type-overline-size)] font-semibold text-[var(--nimi-text-muted)]">{props.label}</div>
-      <div className={cn(
-        'mt-1 min-w-0 truncate text-[length:var(--nimi-type-body-sm-size)] font-semibold',
-        props.mono && 'font-mono text-[length:var(--nimi-type-mono-size)] tabular-nums',
-        props.muted ? 'text-[var(--nimi-text-muted)]' : 'text-[var(--nimi-text-primary)]',
-      )}>
+      <div
+        title={typeof props.value === 'string' ? props.value : undefined}
+        className={cn(
+          'mt-1 min-w-0 break-words leading-snug text-[length:var(--nimi-type-body-sm-size)] font-semibold',
+          props.mono && 'font-mono text-[length:var(--nimi-type-mono-size)] tabular-nums',
+          props.muted ? 'text-[var(--nimi-text-muted)]' : 'text-[var(--nimi-text-primary)]',
+        )}
+      >
         {props.value}
       </div>
     </div>

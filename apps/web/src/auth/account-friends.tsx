@@ -83,7 +83,10 @@ const empty: Record<PeopleView, [AccountCopyKey, AccountCopyKey, typeof UsersRou
 };
 
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-web-005f
-export function AccountFriends({ accountId }: { accountId: string }) {
+export function AccountFriends({ accountId, onRequestsChanged }: {
+  accountId: string;
+  onRequestsChanged: () => void;
+}) {
   const c = useAccountCopy();
   const [params, setParams] = useSearchParams();
   const view = tabs.find(([key]) => key === params.get('view'))?.[0] ?? 'friends';
@@ -118,6 +121,7 @@ export function AccountFriends({ accountId }: { accountId: string }) {
           onClose={() => setAdding(false)}
           onSent={(outcome) => {
             setAdding(false);
+            if (outcome === 'accepted' || outcome === null) onRequestsChanged();
             setListRevision((value) => value + 1);
             setNotice(
               outcome
@@ -151,6 +155,7 @@ export function AccountFriends({ accountId }: { accountId: string }) {
         accountId={accountId}
         view={view}
         onAdd={() => setAdding(true)}
+        onRequestsChanged={onRequestsChanged}
       />
       <p className="ac-footnote">{c('chatHome')}</p>
     </>
@@ -277,10 +282,12 @@ function PeopleList({
   accountId,
   view,
   onAdd,
+  onRequestsChanged,
 }: {
   accountId: string;
   view: PeopleView;
   onAdd: () => void;
+  onRequestsChanged: () => void;
 }) {
   const c = useAccountCopy();
   const [page, setPage] = useState<PeoplePage | null>(null);
@@ -368,6 +375,7 @@ function PeopleList({
           relationshipId: person.relationshipId,
         });
       }
+      if (kind === 'accept' || kind === 'reject' || kind === 'block') onRequestsChanged();
       if (!active.current) return;
       setConfirm(null);
       setMessage(c('actionDone'));

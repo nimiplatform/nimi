@@ -176,7 +176,7 @@ export function AppearancePage() {
       return;
     }
     autosaveTimerRef.current?.();
-    autosaveTimerRef.current = bindings.clock.schedule(700, (result) => {
+    autosaveTimerRef.current = bindings.clock.schedule(0, (result) => {
       if (result.ok) void handleSave();
       else setFeedback({ kind: 'error', message: result.error });
     });

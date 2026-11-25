@@ -34,13 +34,34 @@ export type LabTextExchangeDelivery = 'sync' | 'stream';
 
 export type LabTextExchangeParameters = {
   reasoning?: NimiRuntimeAIReasoningOptions;
+  reasoningDraftInvalid?: boolean;
   scenario?: LabTextExchangeScenario;
   delivery?: LabTextExchangeDelivery;
 };
 
+function hasInvalidReasoningBudget(parameters: LabTextExchangeParameters | undefined): boolean {
+  if (!parameters) return false;
+  if (parameters.reasoningDraftInvalid) return true;
+  const budget = parameters.reasoning?.exactBudgetTokens;
+  return budget !== undefined && (!Number.isSafeInteger(budget) || budget < 1 || budget > 0xffff_ffff);
+}
+
 export const labTextExchangeParameters = defineStudioParameters<LabTextExchangeParameters>({
   initial: () => ({ scenario: 'tool-call', delivery: 'sync' }),
-  routeMatrix: { scenario: LOCAL_AND_CLOUD_STUDIO_PARAMETER, delivery: LOCAL_AND_CLOUD_STUDIO_PARAMETER, reasoning: LOCAL_AND_CLOUD_STUDIO_PARAMETER },
+  routeMatrix: {
+    scenario: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
+    delivery: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
+    reasoning: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
+    reasoningDraftInvalid: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
+  },
+  summarize: (parameters) => ({
+    ...(parameters.scenario !== undefined ? { scenario: parameters.scenario } : {}),
+    ...(parameters.delivery !== undefined ? { delivery: parameters.delivery } : {}),
+    ...(parameters.reasoning !== undefined ? { reasoning: parameters.reasoning } : {}),
+  }),
+  requiredInputIssue: (parameters) => (
+    hasInvalidReasoningBudget(parameters) ? 'CapabilityTests.reasoning.budgetInvalid' : undefined
+  ),
 });
 
 // One fixed, side-effect-free test tool. The App validates its arguments and
@@ -216,6 +237,9 @@ export async function runLabTextExchange(context: StudioCapabilityRuntimeContext
   const delivery: LabTextExchangeDelivery = parameters?.delivery === 'stream' ? 'stream' : 'sync';
   const prompt = context.input.prompt.trim();
   if (!prompt) return host.nonSuccess(capability, 'input-invalid', host.translate('CapabilityTests.textTools.inputRequired'));
+  if (hasInvalidReasoningBudget(parameters)) {
+    return host.nonSuccess(capability, 'input-invalid', host.translate('CapabilityTests.reasoning.budgetInvalid'));
+  }
   const steps: StudioTextExchangeStep[] = [];
   const messages: NimiLocalAppTextMessage[] = [{ role: 'user', text: prompt }];
   const seenToolCallIds = new Set<string>();

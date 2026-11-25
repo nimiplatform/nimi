@@ -54,14 +54,17 @@ export function ExplorePanel(props: {
   >
     <UsersRound size={17} />{t('runtimeConfig.partners.discoverPartners')}
   </Button>;
+  const headerNav = (
+    <div className="flex items-center gap-7">
+      {sectionNav}
+      {partnerAction}
+    </div>
+  );
   return <div data-testid="panel:explore" className="flex min-h-0 flex-1 flex-col gap-3 px-3 pb-3 pt-2">
     {props.activeSection === 'worlds' && !characters ? null : <header className="mx-auto flex w-full max-w-[1480px] flex-wrap items-center justify-between gap-3 px-5 pt-1">
-      <div className="flex items-center gap-7">
-        {sectionNav}
-        {partnerAction}
-      </div>
+      {headerNav}
     </header>}
-    {characters ? <CharacterDiscovery /> : <WorldDiscovery headerLeading={sectionNav} headerTrailing={partnerAction} />}
+    {characters ? <CharacterDiscovery /> : <WorldDiscovery headerLeading={headerNav} headerTrailing={null} />}
   </div>;
 }
 

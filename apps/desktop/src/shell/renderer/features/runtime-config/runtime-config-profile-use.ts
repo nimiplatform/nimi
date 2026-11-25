@@ -41,7 +41,6 @@ export type RuntimeSetupProfileUseCandidateInput = {
    * recommendation.
    */
   readonly pendingAxes: readonly RuntimeSetupTaskPendingAxis[];
-  readonly displayName: string;
   readonly provenance: Readonly<Record<string, string>>;
 };
 
@@ -49,6 +48,8 @@ export type RuntimeSetupProfileUseCapability = {
   readonly capabilityContract: string;
   readonly route: 'local' | 'cloud';
   readonly state: RuntimeSetupProfileUseCapabilityState;
+  readonly requiredFeatures: readonly string[];
+  readonly defaults?: Readonly<NimiJsonObject>;
   readonly reasonCode?: string;
   readonly candidate?: RuntimeSetupProfileUseCandidateInput;
   readonly cloudRecommendation?: RuntimeSetupCloudRecommendation;
@@ -66,11 +67,15 @@ export function planRuntimeSetupProfileUse(input: {
     if (!capabilityContract) continue;
     const profileCapability = input.profile.capabilities[capabilityContract];
     if (!profileCapability) continue;
+    const requiredFeatures = Object.freeze([...profileCapability.requiredFeatures]);
+    const defaults = profileCapability.defaults;
     if (profileCapability.route === 'cloud') {
       result.push(Object.freeze({
         capabilityContract,
         route: 'cloud' as const,
         state: 'cloud-requires-owner' as const,
+        requiredFeatures,
+        ...(defaults !== undefined ? { defaults } : {}),
         reasonCode: 'AI_PROFILE_CLOUD_REQUIRES_OWNER',
         cloudRecommendation: {
           implementation: profileCapability.implementation,
@@ -84,6 +89,8 @@ export function planRuntimeSetupProfileUse(input: {
         capabilityContract,
         route: 'local' as const,
         state: 'no-local-intent' as const,
+        requiredFeatures,
+        ...(defaults !== undefined ? { defaults } : {}),
         reasonCode: 'AI_PROFILE_NO_LOCAL_LOADOUT_INTENT',
       }));
       continue;
@@ -96,6 +103,8 @@ export function planRuntimeSetupProfileUse(input: {
         capabilityContract,
         route: 'local' as const,
         state: 'unsupported' as const,
+        requiredFeatures,
+        ...(defaults !== undefined ? { defaults } : {}),
         reasonCode: transferCapability?.reasonCode ?? 'AI_PROFILE_RECIPE_UPGRADE_REQUIRED',
       }));
       continue;
@@ -108,6 +117,8 @@ export function planRuntimeSetupProfileUse(input: {
         capabilityContract,
         route: 'local' as const,
         state: 'missing-source' as const,
+        requiredFeatures,
+        ...(defaults !== undefined ? { defaults } : {}),
         reasonCode: missingSourceAxis.reasonCode ?? 'AI_PROFILE_MODEL_SOURCE_REQUIRED',
       }));
       continue;
@@ -142,17 +153,17 @@ export function planRuntimeSetupProfileUse(input: {
         : []
     ));
     const needsAcquisition = pendingAxes.length > 0;
-    const recipeTitle = transferCapability.recipe?.title ?? transferCapability.recipeId;
     result.push(Object.freeze({
       capabilityContract,
       route: 'local' as const,
       state: needsAcquisition ? 'needs-acquisition' as const : 'ready' as const,
+      requiredFeatures,
+      ...(defaults !== undefined ? { defaults } : {}),
       candidate: Object.freeze({
         recipeId: transferCapability.recipeId,
         options: profileCapability.loadout.options,
         axes: Object.freeze(axes),
         pendingAxes: Object.freeze(pendingAxes),
-        displayName: `${input.profile.title} · ${recipeTitle}`,
         provenance: Object.freeze({ source_profile_id: input.profile.profileId }),
       }),
     }));

@@ -491,6 +491,50 @@ describe('App context menu overlay', () => {
     expect((screen.getByLabelText('Start voice input') as HTMLButtonElement).disabled).toBe(false);
   });
 
+  it('allows toggling Quiet off from the context menu and does not label disabled items In progress', async () => {
+    const handle = createBootstrapHandle();
+    bootstrapAvatarMock.mockResolvedValue(handle);
+    render(<App />);
+    act(() => {
+      seedReadyState();
+    });
+
+    const stage = await readyEmbodimentStage();
+    fireEvent.pointerDown(stage, {
+      button: 2,
+      buttons: 2,
+      pointerId: 244,
+      clientX: 140,
+      clientY: 180,
+    });
+    const menu = await screen.findByTestId('avatar-context-menu');
+    expect(menu.textContent).not.toContain('In progress');
+    fireEvent.click(screen.getByTestId('avatar-context-menu-item-quiet'));
+
+    fireEvent.pointerDown(stage, {
+      button: 2,
+      buttons: 2,
+      pointerId: 245,
+      clientX: 140,
+      clientY: 180,
+    });
+    const quietItem = await screen.findByTestId('avatar-context-menu-item-quiet') as HTMLButtonElement;
+    expect(quietItem.disabled).toBe(false);
+    expect(quietItem.getAttribute('aria-checked')).toBe('true');
+    expect(quietItem.textContent).not.toContain('In progress');
+    fireEvent.click(quietItem);
+
+    fireEvent.pointerDown(stage, {
+      button: 2,
+      buttons: 2,
+      pointerId: 246,
+      clientX: 140,
+      clientY: 180,
+    });
+    const quietAfterToggle = await screen.findByTestId('avatar-context-menu-item-quiet') as HTMLButtonElement;
+    expect(quietAfterToggle.getAttribute('aria-checked')).toBe('false');
+  });
+
   it('enters the same Quiet cleanup on host suspend and does not auto-resume capture', async () => {
     avatarHostRuntime = true;
     const handle = createBootstrapHandle();

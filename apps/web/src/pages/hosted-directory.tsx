@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ReactElement } from 'react';
 import { withLocaleQuery } from '../landing/config/landing-links.js';
 import type { LandingLocale } from '../landing/i18n/locale.js';
 import { CAPABILITY_LABELS } from './informational-content.js';
+import { DIRECTORY_ENDPOINT, fetchDirectoryPage, isDirectoryMediaUrl, isDirectorySlug, isRecord, readProductSummary } from './hosted-directory-data.js';
 import { PublicSiteLink } from './public-site-shell.js';
 
 export type ProductOrigin = 'nimi-official' | 'open-source-adapted' | 'community';
@@ -98,14 +99,6 @@ export type Product = {
   detail?: ProductStorefrontDetail | null;
 };
 
-const label = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
-const endpoint = '/.well-known/nimi-apps';
-const safeMediaUrl = (value: unknown): value is string =>
-  typeof value === 'string' && value.startsWith('/.well-known/nimi-apps/media/');
-
-function object(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 function strings(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((v) => typeof v === 'string');
 }
@@ -116,16 +109,16 @@ function parseOrigin(value: unknown): ProductOrigin | null {
 }
 
 function parseUpstream(value: unknown): { name: string; url: string } | null {
-  if (!object(value)) return null;
+  if (!isRecord(value)) return null;
   if (typeof value.name !== 'string' || typeof value.url !== 'string' || !value.url.startsWith('https://')) return null;
   return { name: value.name, url: value.url };
 }
 
 function parseTargetReleases(value: unknown): Record<string, ProductTargetRelease> {
-  if (!object(value)) return {};
+  if (!isRecord(value)) return {};
   const out: Record<string, ProductTargetRelease> = {};
   for (const [key, entry] of Object.entries(value)) {
-    if (object(entry) && typeof entry.version === 'string' && entry.version.length > 0) {
+    if (isRecord(entry) && typeof entry.version === 'string' && entry.version.length > 0) {
       out[key] = {
         version: entry.version,
         ...(typeof entry.size === 'number' ? { size: entry.size } : {}),
@@ -138,12 +131,12 @@ function parseTargetReleases(value: unknown): Record<string, ProductTargetReleas
 }
 
 function parseCoverUrls(value: unknown): { default: string; locales?: Record<string, string> } | null {
-  if (!object(value) || !safeMediaUrl(value.default)) return null;
+  if (!isRecord(value) || !isDirectoryMediaUrl(value.default)) return null;
   const out: { default: string; locales?: Record<string, string> } = { default: value.default };
-  if (object(value.locales)) {
+  if (isRecord(value.locales)) {
     const locales: Record<string, string> = {};
     for (const [k, v] of Object.entries(value.locales)) {
-      if (safeMediaUrl(v)) locales[k] = v;
+      if (isDirectoryMediaUrl(v)) locales[k] = v;
     }
     if (Object.keys(locales).length > 0) out.locales = locales;
   }
@@ -151,7 +144,7 @@ function parseCoverUrls(value: unknown): { default: string; locales?: Record<str
 }
 
 function parseTagsMap(value: unknown): Record<string, string[]> {
-  if (!object(value)) return {};
+  if (!isRecord(value)) return {};
   const out: Record<string, string[]> = {};
   for (const [k, v] of Object.entries(value)) {
     if (strings(v)) out[k] = v;
@@ -160,29 +153,11 @@ function parseTagsMap(value: unknown): Record<string, string[]> {
 }
 
 function product(value: unknown): Product {
-  if (
-    !object(value) ||
-    typeof value.slug !== 'string' ||
-    !label.test(value.slug) ||
-    typeof value.app_id !== 'string' ||
-    typeof value.display_name !== 'string' ||
-    typeof value.publisher !== 'string' ||
-    typeof value.repository !== 'string' ||
-    !/^https:\/\/github\.com\/[a-z\d-]+\/[\w.-]+$/i.test(value.repository) ||
-    typeof value.license !== 'string' ||
-    typeof value.blocked !== 'boolean' ||
-    !strings(value.pc_targets) ||
-    !strings(value.capabilities) ||
-    !object(value.summary) ||
-    typeof value.summary.en !== 'string' ||
-    typeof value.summary.zh !== 'string' ||
-    !(
-      value.web === null ||
-      (object(value.web) &&
-        value.web.url === 'https://' + value.slug + '.nimi.xyz/' &&
-        typeof value.web.version === 'string')
-    )
-  ) {
+  if (!isRecord(value)) throw Error('Invalid public product');
+  const summary = readProductSummary(value);
+  if (!summary || typeof value.app_id !== 'string' || typeof value.publisher !== 'string'
+    || typeof value.repository !== 'string' || !/^https:\/\/github\.com\/[a-z\d-]+\/[\w.-]+$/i.test(value.repository)
+    || typeof value.license !== 'string' || !strings(value.pc_targets) || !strings(value.capabilities)) {
     throw Error('Invalid public product');
   }
   const detailStatus =
@@ -195,28 +170,23 @@ function product(value: unknown): Product {
 
   return {
     app_id: value.app_id,
-    slug: value.slug,
-    display_name: value.display_name,
+    ...summary,
     publisher: value.publisher,
     repository: value.repository,
     license: value.license,
-    summary: { en: value.summary.en, zh: value.summary.zh },
     origin: parseOrigin(value.origin),
     upstream: parseUpstream(value.upstream),
     pc_targets: value.pc_targets,
     pc_target_releases: parseTargetReleases(value.pc_target_releases),
     displayed_version: typeof value.displayed_version === 'string' ? value.displayed_version : null,
     capabilities: value.capabilities,
-    blocked: value.blocked,
-    web: value.web as { url: string; version: string } | null,
     has_storefront: Boolean(value.has_storefront),
     category: typeof value.category === 'string' ? value.category : null,
     default_locale: typeof value.default_locale === 'string' ? value.default_locale : null,
     tags: parseTagsMap(value.tags),
-    icon_url: safeMediaUrl(value.icon_url) ? value.icon_url : null,
     cover_urls: parseCoverUrls(value.cover_urls),
     detail_status: detailStatus,
-    detail: object(value.detail) ? (value.detail as unknown as ProductStorefrontDetail) : null,
+    detail: isRecord(value.detail) ? (value.detail as unknown as ProductStorefrontDetail) : null,
   };
 }
 
@@ -232,36 +202,25 @@ export function useHostedDirectory(slug?: string) {
   const [after, setAfter] = useState<string | null>(null);
   useEffect(() => {
     const abort = new AbortController();
-    if (slug && !label.test(slug)) {
+    if (slug && !isDirectorySlug(slug)) {
       setState({ ...empty(slug), status: 'missing' });
       return;
     }
     if (slug || !after) setState(empty(slug));
-    const url = slug
-      ? endpoint + '/' + slug
-      : endpoint + (after ? '?after=' + encodeURIComponent(after) : '');
     void (async () => {
-      const response = await fetch(url, { signal: abort.signal, credentials: 'omit' });
-      if (response.status === 404 && slug) {
-        setState({ ...empty(slug), status: 'missing' });
-        return;
-      }
-      if (!response.ok) throw Error('Directory unavailable');
-      const data: unknown = await response.json();
       if (slug) {
-        const item = product(data);
+        const response = await fetch(DIRECTORY_ENDPOINT + '/' + slug, { signal: abort.signal, credentials: 'omit' });
+        if (response.status === 404) {
+          setState({ ...empty(slug), status: 'missing' });
+          return;
+        }
+        if (!response.ok) throw Error('Directory unavailable');
+        const item = product(await response.json());
         if (item.slug !== slug) throw Error('Mismatched slug');
         setState({ slug, status: 'ok', products: [item], next: null });
       } else {
-        if (
-          !object(data) ||
-          !Array.isArray(data.products) ||
-          !(data.next === null || (typeof data.next === 'string' && label.test(data.next)))
-        ) {
-          throw Error('Invalid directory page');
-        }
-        const items = data.products.map(product);
-        const next = data.next;
+        const { products, next } = await fetchDirectoryPage(after, abort.signal);
+        const items = products.map(product);
         setState((prev) => ({
           slug,
           status: 'ok',

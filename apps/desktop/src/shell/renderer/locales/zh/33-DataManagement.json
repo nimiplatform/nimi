@@ -31,6 +31,18 @@
   "checkSyncFailed": "无法启动检查与同步",
   "checkSyncRerun": "再次检查与同步",
   "checkSyncModelOfflineConversion": "这个模型的本地数据需要离线转换后才能使用。转换完成前本地模型功能受限，其他功能照常可用。",
+  "checkSyncSummaryChecked": "共检查 {{count}} 项",
+  "checkSyncSummaryAdopted": "{{count}} 项从已有文件恢复登记",
+  "checkSyncSummaryRebased": "{{count}} 项路径已更新",
+  "checkSyncSummaryRebuilt": "{{count}} 项已重建",
+  "checkSyncSummaryAttention": "{{count}} 项需要处理",
+  "checkSyncSummaryUnchanged": "{{count}} 项无变化",
+  "checkSyncUnchangedToggle": "查看其余 {{count}} 项无变化记录",
+  "checkSyncResourceChange": {
+    "adopted": "从已有磁盘文件恢复登记",
+    "rebased": "路径已更新至当前数据位置",
+    "rebuilt": "已从本地状态重建"
+  },
   "checkSyncTechnicalDetails": "技术详情",
   "checkSyncOwnerState": {
     "pending": "等待中",

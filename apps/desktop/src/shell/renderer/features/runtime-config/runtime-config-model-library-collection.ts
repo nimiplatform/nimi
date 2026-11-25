@@ -4,7 +4,7 @@ import type {
   NimiRuntimeLocalVerifiedAssetDescriptor,
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
-import { loadoutModelPresentation, loadoutSlotLabelKey } from './runtime-config-loadout-model-display.js';
+import { isGenericEngineRecipeTitle, loadoutModelPresentation, loadoutSlotLabelKey } from './runtime-config-loadout-model-display.js';
 import { modelDisplayTitle, modelFamilySeed } from './runtime-capability-presentation.js';
 
 // Projection of the Runtime verified catalog ("Nimi 收录") for Model Library
@@ -322,7 +322,11 @@ export function buildNimiCollection(input: {
   const recipeName = new Map<string, string>();
   for (const recipe of input.recipes) {
     const name = modelDisplayTitle(recipe.title);
-    if (modelsByRecipe.get(recipe.recipeId)?.size === 1 && name !== recipe.title.trim()) {
+    if (
+      modelsByRecipe.get(recipe.recipeId)?.size === 1
+      && name !== recipe.title.trim()
+      && !isGenericEngineRecipeTitle(recipe.title)
+    ) {
       recipeName.set(recipe.recipeId, name);
     }
   }
@@ -430,7 +434,8 @@ export function buildNimiCollection(input: {
       continue;
     }
     const reference = draft.references[0];
-    const recipeTitle = reference ? modelDisplayTitle(reference.recipe.title) : '';
+    const genericRecipe = reference ? isGenericEngineRecipeTitle(reference.recipe.title) : false;
+    const recipeTitle = reference && !genericRecipe ? modelDisplayTitle(reference.recipe.title) : '';
     // "Gemma 4 26B" says more than the recipe's "Gemma 4" when the catalog id adds only a size.
     const specific = catalogModelName(first);
     const sizeOnly = recipeTitle !== '' && specific.startsWith(`${recipeTitle} `)

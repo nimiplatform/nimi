@@ -310,7 +310,7 @@ func (s *Service) projectLoadoutRecipeDescriptor(
 		contextOptions = &recipeContextOptions{defaults: options, driver: contextDriver}
 	}
 	recommendedOptions := proto.Clone(options).(*structpb.Struct)
-	reducedContextSlot := ""
+	contextSlot := ""
 	result := &runtimev1.LoadoutRecipeDescriptor{
 		RecipeId: recipe.RecipeID, Revision: recipe.Revision, Title: recipe.Title,
 		CapabilityContract:              recipe.CapabilityContract,
@@ -361,14 +361,12 @@ func (s *Service) projectLoadoutRecipeDescriptor(
 				return nil, err
 			}
 		}
-		// The recommended configuration carries the one explicit context size
-		// its Driver owns; two reduced slots would be two sizes for one option.
-		if recommendedContextFit != nil && recommendedContextFit.GetRecommendedContextSize() < recommendedContextFit.GetAuthoredContextSize() {
-			if reducedContextSlot != "" {
-				return nil, fmt.Errorf("recipe slots %q and %q both reduce the recommended context", reducedContextSlot, slot.SlotID)
+		if recommendedContextFit != nil {
+			if contextSlot != "" {
+				return nil, fmt.Errorf("recipe slots %q and %q both set the recommended context", contextSlot, slot.SlotID)
 			}
-			reducedContextSlot = slot.SlotID
-			recommendedOptions = proto.Clone(recommendedContextFit.GetRecommendedOptions()).(*structpb.Struct)
+			contextSlot = slot.SlotID
+			recommendedOptions = recommendedContextFit.GetRecommendedOptions()
 		}
 		slotApplicability, slotReasons := recipeSlotApplicability(offers)
 		result.Slots = append(result.Slots, &runtimev1.LoadoutRecipeSlotDescriptor{
@@ -408,12 +406,9 @@ func (s *Service) recipeContextFit(variantID string, hostProfile *runtimev1.Loca
 	if !ok {
 		return nil, nil
 	}
-	options := proto.Clone(context.defaults).(*structpb.Struct)
-	if fit.Reduced() {
-		var err error
-		if options, err = context.driver.WithTextContextSize(context.defaults, fit.RecommendedContextSize); err != nil {
-			return nil, fmt.Errorf("variant %q recommended context: %w", variantID, err)
-		}
+	options, err := context.driver.RecommendedTextContextOptions(context.defaults, fit.RecommendedContextSize, fit.AuthoredContextSize)
+	if err != nil {
+		return nil, fmt.Errorf("variant %q recommended context: %w", variantID, err)
 	}
 	return &runtimev1.LoadoutRecipeContextFit{
 		AuthoredContextSize:    fit.AuthoredContextSize,
@@ -708,6 +703,13 @@ func (s *Service) PrepareLoadout(ctx context.Context, request *runtimev1.Prepare
 		}
 		if existing.GetRevision() != expectedRevision {
 			return nil, loadoutError(codes.Aborted, runtimev1.ReasonCode_AI_LOADOUT_CONDITION_CONFLICT, "Loadout revision changed after the caller observed it", map[string]string{"loadout_id": existing.GetLoadoutId()})
+		}
+	}
+	// @nimi-authority: rule.nimi.runtime.local-compute.audio-cpp-speech-slot-dialects
+	if existing != nil {
+		_, reason := s.capabilityDrivers.Resolve(contract, capabilitydriver.IdentityFromProto(existing.GetImplementation()))
+		if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+			return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE, "The saved Loadout Driver is unavailable; create a replacement Loadout", map[string]string{"local_reason": reason.String()})
 		}
 	}
 	options := cloneStruct(request.GetOptions())
@@ -1572,9 +1574,13 @@ func (s *Service) deriveCurrentLoadoutProjection(ctx context.Context, stored *ru
 	}
 	driver, requirements, err := s.projectStoredLoadout(loadout)
 	if err != nil {
-		loadout.ValidationState = runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED
-		loadout.Reasons = []runtimev1.ReasonCode{runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE}
-		return loadout, loadoutValidationResult{}, nil
+		validation := loadoutValidationResult{
+			state:   runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED,
+			reasons: []runtimev1.ReasonCode{runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE},
+		}
+		loadout.TextBehaviors = nil
+		applyLoadoutValidation(loadout, validation)
+		return loadout, validation, nil
 	}
 	validation, validationErr := s.validateLoadoutWithAxisResolver(ctx, loadout, driver, requirements, func(loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, axis *runtimev1.LoadoutModelAxis) (resolvedLoadoutAxis, runtimev1.ReasonCode, error) {
 		return s.resolveLoadoutModelAxis(ctx, loadout, driver, requirement, axis, probePass)

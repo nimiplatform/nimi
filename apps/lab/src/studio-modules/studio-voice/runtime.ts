@@ -69,6 +69,7 @@ async function runSpeechSynthesize(context: StudioCapabilityRuntimeContext) {
     surfaceId: context.host.surfaceId,
     observationSignal: context.input.observationSignal,
     onObservation: context.input.onObservation,
+    onJobUpdate: context.input.onJobUpdate,
     ...(context.input.signal ? {
       signal: context.input.signal,
       abortReason: context.host.abortReason,
@@ -123,6 +124,7 @@ async function runSpeechTranscribe(context: StudioCapabilityRuntimeContext) {
     surfaceId: context.host.surfaceId,
     observationSignal: context.input.observationSignal,
     onObservation: context.input.onObservation,
+    onJobUpdate: context.input.onJobUpdate,
     ...(context.input.signal ? {
       signal: context.input.signal,
       abortReason: context.host.abortReason,
@@ -229,6 +231,7 @@ async function runVoiceCreate(context: StudioCapabilityRuntimeContext) {
     },
     observationSignal: context.input.observationSignal,
     onObservation: context.input.onObservation,
+    onJobUpdate: context.input.onJobUpdate,
     ...(context.input.signal ? {
       signal: context.input.signal,
       abortReason: context.host.abortReason,

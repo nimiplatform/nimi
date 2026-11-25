@@ -10,6 +10,7 @@ import type {
 import { parseNimiPortableAIProfile } from '@nimiplatform/sdk/ai';
 import { createNimiError } from '@nimiplatform/sdk/types';
 import {
+  classifyRuntimeConfigLoadoutExportPortability,
   executeRuntimeConfigAIProfileTransfer,
   exportRuntimeConfigAIProfileFromLoadouts,
   isRuntimeConfigAIProfileCapabilityReady,
@@ -18,6 +19,7 @@ import {
   selectRuntimeConfigAIProfileLoadouts,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-ai-profile-transfer.js';
 import { prepareRuntimeConfigAIProfilePreview } from '../src/shell/renderer/features/runtime-config/runtime-config-ai-profile-preview.js';
+import { verifiedAssetForOfferInstallPlan } from '../src/shell/renderer/features/runtime-config/runtime-config-profile-authoring-state.js';
 import { recommendedPortableProfile } from '../src/shell/renderer/features/runtime-config/runtime-profile-quick-start.js';
 import { recipeRecommendedContextFit } from '../src/shell/renderer/features/runtime-config/runtime-capability-presentation.js';
 import { runtimeSetupContextApplication } from '../src/shell/renderer/features/runtime-config/runtime-setup-task-runner.js';
@@ -176,6 +178,19 @@ const VERIFIED = [{
   hashes: { 'config.json': C, 'model.gguf': B },
   totalSizeBytes: 200,
 }] as unknown as NimiRuntimeLocalVerifiedAssetDescriptor[];
+
+test('authoring resolves the chosen opaque offer to exactly one complete catalog manifest', () => {
+  const exact = VERIFIED[0]!;
+  const sibling = { ...exact, templateId: 'sibling', hashes: { ...exact.hashes, 'model.gguf': D } };
+  const plan = { ...exact, offerRef: 'opaque:chosen', files: [...exact.files].reverse(),
+    hashes: { 'config.json': C.toUpperCase(), 'model.gguf': B.slice(7) } };
+  const catalog = [sibling, exact];
+  assert.equal(verifiedAssetForOfferInstallPlan('opaque:chosen', plan, catalog), exact);
+  assert.equal(verifiedAssetForOfferInstallPlan('opaque:other', plan, catalog), undefined);
+  assert.equal(verifiedAssetForOfferInstallPlan('opaque:chosen', { ...plan, files: ['sibling.json', 'model.gguf'] }, catalog), undefined);
+  assert.equal(verifiedAssetForOfferInstallPlan('opaque:chosen', { ...plan, templateId: 'sibling' }, catalog), undefined);
+  assert.equal(verifiedAssetForOfferInstallPlan('opaque:chosen', plan, [exact, exact]), undefined);
+});
 
 function committedLoadout(capability: string, id: string, configured = true): NimiMachineLoadout {
   return {
@@ -426,6 +441,14 @@ test('AIProfile plan fails closed when one content identity has conflicting acqu
     planRuntimeConfigAIProfileTransfer({ profile: profile as never, assets: [], recipes, verifiedAssets: verified }),
     /conflicting acquisition intent/u,
   );
+  const installed = await planRuntimeConfigAIProfileTransfer({
+    profile: profile as never,
+    assets: [asset({ id: 'shared-model', contentId: B, hash: B })],
+    recipes,
+    verifiedAssets: verified,
+  });
+  assert.deepEqual(installed.capabilities.map(cap => cap.axes[0]?.state), ['matched', 'matched']);
+  assert.deepEqual(installed.downloads, []);
 });
 
 test('AIProfile plan keeps a rejected portable source and rejects a conflicting shared acquisition before network', async () => {
@@ -794,9 +817,8 @@ test('unknown recipe produces typed upgrade result and Prepare only receives ful
   });
   assert.equal(result.capabilities.find((item) => item.capabilityContract === 'image.generate')?.reasonCode, 'AI_PROFILE_RECIPE_UPGRADE_REQUIRED');
   assert.equal(prepared.includes('image.generate'), false);
-  // The content-only text axis is unresolved, so it stays out of modelAxes
-  // entirely — a legal empty binding instead of an expectedContentId-only axis.
-  assert.deepEqual(preparedAxes.get('text.generate'), []);
+  // An explicit empty axis prevents Runtime from binding an installed recommendation.
+  assert.deepEqual(preparedAxes.get('text.generate'), [{ slotId: 'model', modelAssetId: '', expectedContentId: '' }]);
 });
 
 test('Profile supportedFeatures drift from the current Recipe fails closed', async () => {
@@ -864,10 +886,7 @@ test('content-only axis commits as unresolved and becomes matched on a later inv
   const unresolvedImage = result.capabilities.find((item) => item.capabilityContract === 'image.generate');
   assert.deepEqual(unresolvedImage?.unresolvedSlotIds, ['main']);
   assert.equal(unresolvedImage?.reasonCode, 'AI_PROFILE_MODEL_SOURCE_REQUIRED');
-  // An unresolved axis stays out of modelAxes entirely: Runtime only accepts
-  // (modelAssetId, expectedContentId) pairs, and the pending content intent
-  // remains on the plan axis and provenance until a real pair binds.
-  assert.deepEqual(preparedAxes.get('image.generate'), []);
+  assert.deepEqual(preparedAxes.get('image.generate'), [{ slotId: 'main', modelAssetId: '', expectedContentId: '' }]);
   assert.equal(result.capabilities.find((item) => item.capabilityContract === 'text.generate')?.loadout?.validationState, 'configured');
   const selected: string[] = [];
   await selectRuntimeConfigAIProfileLoadouts({
@@ -1311,3 +1330,140 @@ test('Loadout export skips an unbound optional slot and fails clearly on an unbo
 function reparseAxes(capability: { loadout?: { axes: readonly { slotId: string }[] } }): string[] {
   return capability.loadout?.axes.map((axis) => axis.slotId) ?? [];
 }
+
+test('AIProfile reuses verified single-file content with a different installed filename', async () => {
+  const text = asset({ id: 'text-model', contentId: A, hash: A });
+  const original = asset({ id: 'image-model', contentId: B, hash: B });
+  const renamed = { ...original, entry: 'renamed.gguf', files: [
+    { ...original.files[0]!, relativePath: 'renamed.gguf' },
+  ] };
+  for (const inventory of [[renamed], [renamed, { ...original, modelAssetId: 'z-original' }]]) {
+    const plan = await planRuntimeConfigAIProfileTransfer({
+      profile: loadoutProfile(B), assets: [text, ...inventory], recipes: RECIPES, verifiedAssets: [],
+    });
+    const axis = plan.capabilities.find(cap => cap.capabilityContract === 'image.generate')?.axes[0];
+    assert.equal(axis?.state, 'matched');
+    assert.equal(axis?.modelAssetId, inventory.length === 1 ? 'image-model' : 'z-original');
+    assert.deepEqual(plan.downloads, []);
+  }
+});
+
+test('a profile with an obsolete model slot blocks only its capability before acquisition', async () => {
+  const [textRecipe, imageRecipe] = RECIPES;
+  const currentImage = { ...imageRecipe!, slots: [
+    { ...imageRecipe!.slots[0]!, slotId: 'current-slot' },
+  ] };
+  const plan = await planRuntimeConfigAIProfileTransfer({
+    profile: loadoutProfile(B),
+    assets: [asset({ id: 'text-model', contentId: A, hash: A })],
+    recipes: [textRecipe!, currentImage],
+    verifiedAssets: VERIFIED,
+  });
+  const imagePlan = plan.capabilities.find(cap => cap.capabilityContract === 'image.generate');
+  assert.equal(imagePlan?.state, 'upgrade-required');
+  assert.equal(imagePlan?.reasonCode, 'AI_PROFILE_LOADOUT_SLOT_UNKNOWN');
+  assert.equal(plan.capabilities.find(cap => cap.capabilityContract === 'text.generate')?.axes[0]?.state, 'matched');
+  assert.deepEqual(plan.downloads, []);
+});
+
+test('two distributions containing both files bind the declared entry in either inventory order', async () => {
+  const files = ['model.gguf', 'other.gguf'].map((relativePath, index) => ({
+    relativePath, sha256: (index ? C : B).slice(7), sizeBytes: 100, nonExecutableContent: false,
+  }));
+  const exact = { ...asset({ id: 'exact', contentId: B, hash: B }), files };
+  const other = { ...exact, entry: 'other.gguf', modelAssetId: 'other' };
+  for (const inventory of [[exact, other], [other, exact]]) {
+    const plan = await planRuntimeConfigAIProfileTransfer({ profile: loadoutProfile(B), assets: inventory, recipes: RECIPES, verifiedAssets: [] });
+    assert.equal(plan.capabilities.find(cap => cap.capabilityContract === 'image.generate')?.axes[0]?.modelAssetId, 'exact');
+  }
+  const needsEntry = await planRuntimeConfigAIProfileTransfer({ profile: loadoutProfile(B), assets: [other], recipes: RECIPES, verifiedAssets: VERIFIED });
+  assert.equal(needsEntry.capabilities.find(cap => cap.capabilityContract === 'image.generate')?.axes[0]?.state, 'download-required');
+});
+
+test('AIProfile plan matches duplicate contentId assets by declared entry and file hash regardless of inventory order', async () => {
+  const otherHash = `sha256:${'9'.repeat(64)}`;
+  const wrongEntry = asset({ id: 'asset-wrong-entry', contentId: B, hash: otherHash });
+  const rightEntry = {
+    ...asset({ id: 'asset-right-entry', contentId: B, hash: B }),
+    entry: 'model.gguf',
+    files: [{ relativePath: 'model.gguf', sha256: B.replace(/^sha256:/u, ''), sizeBytes: 200, nonExecutableContent: false }],
+  };
+  const textAsset = asset({ id: 'text-model', contentId: A, hash: A });
+  for (const orderedAssets of [[textAsset, wrongEntry, rightEntry], [textAsset, rightEntry, wrongEntry]]) {
+    const plan = await planRuntimeConfigAIProfileTransfer({
+      profile: loadoutProfile(B),
+      assets: orderedAssets,
+      recipes: RECIPES,
+      verifiedAssets: VERIFIED,
+    });
+    const imageCap = plan.capabilities.find((item) => item.capabilityContract === 'image.generate');
+    assert.equal(imageCap?.axes[0]?.state, 'matched');
+    assert.equal(imageCap?.axes[0]?.modelAssetId, 'asset-right-entry');
+  }
+});
+
+test('export portability distinguishes auto-downloadable, local-only, uncataloged multi-file, and cataloged multi-file loadouts', () => {
+  const singleHf = {
+    ...asset({ id: 'asset-single-hf', contentId: A, hash: A }),
+    provenance: { source_repo: 'org/single', source_revision: 'a'.repeat(40) },
+  };
+  const localOnly = {
+    ...asset({ id: 'asset-local-only', contentId: B, hash: B }),
+    provenance: { source_kind: 'local_import' },
+  };
+  const multiBundleId = `sha256:${'d'.repeat(64)}`;
+  const entryHash = `sha256:${'e'.repeat(64)}`;
+  const uncatalogedMulti = {
+    ...asset({ id: 'asset-multi-uncataloged', contentId: multiBundleId, hash: entryHash }),
+    entry: 'part-00001-of-00002.gguf',
+    files: [
+      { relativePath: 'part-00001-of-00002.gguf', sha256: 'e'.repeat(64), sizeBytes: 100, nonExecutableContent: false },
+      { relativePath: 'part-00002-of-00002.gguf', sha256: 'f'.repeat(64), sizeBytes: 100, nonExecutableContent: false },
+    ],
+    totalSizeBytes: 200,
+    provenance: { source_repo: 'org/multi', source_revision: 'b'.repeat(40) },
+  };
+  const loadoutWith = (modelAssetId: string, expectedContentId: string): NimiMachineLoadout => ({
+    ...committedLoadout('text.generate', `loadout-${modelAssetId}`),
+    modelAxes: [{
+      slotId: 'main.gguf',
+      displayLabel: 'Main',
+      modelAssetId,
+      expectedContentId,
+      recipeCompatible: true,
+      reasons: [],
+      presence: 'required',
+      conditionalFeatures: [],
+      resolution: 'configured',
+    }],
+  });
+
+  assert.deepEqual(
+    classifyRuntimeConfigLoadoutExportPortability({ loadout: loadoutWith(singleHf.modelAssetId, A), assets: [singleHf], verifiedAssets: [] }),
+    { status: 'auto-downloadable', manualSlotIds: [], reason: 'all-downloadable' },
+  );
+  assert.deepEqual(
+    classifyRuntimeConfigLoadoutExportPortability({ loadout: loadoutWith(localOnly.modelAssetId, B), assets: [localOnly], verifiedAssets: [] }),
+    { status: 'manual-import-required', manualSlotIds: ['main.gguf'], reason: 'missing-source' },
+  );
+  assert.deepEqual(
+    classifyRuntimeConfigLoadoutExportPortability({ loadout: loadoutWith(uncatalogedMulti.modelAssetId, multiBundleId), assets: [uncatalogedMulti], verifiedAssets: [] }),
+    { status: 'manual-import-required', manualSlotIds: ['main.gguf'], reason: 'uncataloged-multifile' },
+  );
+  const catalogedVerified = [{
+    templateId: 'catalog.multi.v1',
+    assetId: 'catalog.multi.v1',
+    title: 'Multi bundle',
+    repo: 'org/multi',
+    revision: 'b'.repeat(40),
+    entry: 'part-00001-of-00002.gguf',
+    contentId: multiBundleId,
+    files: ['part-00001-of-00002.gguf', 'part-00002-of-00002.gguf'],
+    hashes: { 'part-00001-of-00002.gguf': 'e'.repeat(64), 'part-00002-of-00002.gguf': 'f'.repeat(64) },
+    totalSizeBytes: 200,
+  }] as unknown as NimiRuntimeLocalVerifiedAssetDescriptor[];
+  assert.deepEqual(
+    classifyRuntimeConfigLoadoutExportPortability({ loadout: loadoutWith(uncatalogedMulti.modelAssetId, multiBundleId), assets: [uncatalogedMulti], verifiedAssets: catalogedVerified }),
+    { status: 'auto-downloadable', manualSlotIds: [], reason: 'all-downloadable' },
+  );
+});

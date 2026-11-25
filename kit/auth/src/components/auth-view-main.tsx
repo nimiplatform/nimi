@@ -22,7 +22,7 @@ export function AuthViewMain(props: {
   onAlternativeToggle: () => void;
   onGoogleLogin: () => void;
   onTikTokLogin: () => void;
-  onWeb3Login: () => void;
+  onWeb3Login?: () => void;
   testIds?: AuthViewMainTestIds;
 }) {
   const { t } = useTranslation();
@@ -97,7 +97,7 @@ export function AuthViewMain(props: {
       <div
         data-testid={testIds?.alternativePanel}
         hidden={!showAlternatives}
-        className={`absolute left-0 right-0 z-20 mt-3 origin-top rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-4 shadow-[var(--nimi-elevation-floating)] backdrop-blur transition-all duration-200 ease-out ${
+        className={`mt-3 origin-top rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-4 shadow-[var(--nimi-elevation-floating)] backdrop-blur transition-all duration-200 ease-out ${
           showAlternatives
             ? 'scale-100 opacity-100'
             : 'scale-95 opacity-0 pointer-events-none'
@@ -106,8 +106,8 @@ export function AuthViewMain(props: {
         <p className="mb-3 text-center text-xs font-medium uppercase tracking-[0.22em] text-[var(--nimi-text-muted)]">
           {t('Auth.chooseAlternative')}
         </p>
-        <div className="flex items-center justify-center gap-4">
-          <div className="relative group">
+        <div className="flex items-start justify-center gap-6">
+          <div className="flex flex-col items-center gap-1.5">
             <CircleIconButton
               label={googleDisabledReason ? `Google unavailable: ${googleDisabledReason}` : 'Google'}
               onClick={onGoogleLogin}
@@ -121,12 +121,13 @@ export function AuthViewMain(props: {
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
               </svg>
             </CircleIconButton>
+            <span className="text-[11px] font-medium text-[var(--nimi-text-secondary)]">Google</span>
             {googleDisabledReason ? (
-              <span className="pointer-events-none absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-[var(--nimi-surface-overlay)] px-2 py-0.5 text-[10px] text-[var(--nimi-text-primary)] opacity-0 transition group-hover:opacity-100">{googleDisabledReason}</span>
+              <span className="text-[10px] text-[var(--nimi-text-muted)]">{googleDisabledReason}</span>
             ) : null}
           </div>
 
-          <div className="relative group">
+          <div className="flex flex-col items-center gap-1.5">
             <CircleIconButton
               label={tikTokDisabledReason ? `TikTok unavailable: ${tikTokDisabledReason}` : 'TikTok'}
               onClick={onTikTokLogin}
@@ -137,23 +138,29 @@ export function AuthViewMain(props: {
                 <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
               </svg>
             </CircleIconButton>
+            <span className="text-[11px] font-medium text-[var(--nimi-text-secondary)]">TikTok</span>
             {tikTokDisabledReason ? (
-              <span className="pointer-events-none absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-[var(--nimi-surface-overlay)] px-2 py-0.5 text-[10px] text-[var(--nimi-text-primary)] opacity-0 transition group-hover:opacity-100">{tikTokDisabledReason}</span>
+              <span className="text-[10px] text-[var(--nimi-text-muted)]">{tikTokDisabledReason}</span>
             ) : null}
           </div>
 
-          <CircleIconButton
-            label={t('Auth.web3')}
-            onClick={onWeb3Login}
-            disabled={pending}
-            className="h-[52px] w-[52px] border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[0_12px_24px_rgba(157,145,123,0.12)]"
-          >
-            <svg viewBox="0 0 24 24" className="mx-auto h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2.5" y="6" width="19" height="12" rx="2.5" />
-              <path d="M2.5 10.5h19" />
-              <circle cx="17.5" cy="14" r="1.4" />
-            </svg>
-          </CircleIconButton>
+          {onWeb3Login ? (
+            <div className="flex flex-col items-center gap-1.5">
+              <CircleIconButton
+                label={t('Auth.web3')}
+                onClick={onWeb3Login}
+                disabled={pending}
+                className="h-[52px] w-[52px] border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[0_12px_24px_rgba(157,145,123,0.12)]"
+              >
+                <svg viewBox="0 0 24 24" className="mx-auto h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2.5" y="6" width="19" height="12" rx="2.5" />
+                  <path d="M2.5 10.5h19" />
+                  <circle cx="17.5" cy="14" r="1.4" />
+                </svg>
+              </CircleIconButton>
+              <span className="text-[11px] font-medium text-[var(--nimi-text-secondary)]">{t('Auth.web3')}</span>
+            </div>
+          ) : null}
         </div>
       </div>
     </form>

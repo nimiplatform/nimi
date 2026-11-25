@@ -74,7 +74,7 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
                   {i18n.t('runtimeConfig.localModelCenter.importModelFile', { defaultValue: 'Import Model File' })}
                 </div>
                 <div className="mt-0.5 text-[var(--nimi-text-muted)]">
-                  {i18n.t('runtimeConfig.localModelCenter.importModelFileDescription', { defaultValue: 'Single-file model, e.g. GGUF' })}
+                  {i18n.t('runtimeConfig.localModelCenter.importModelFileDescription')}
                 </div>
               </button>
               <button type="button" disabled={props.runtimeWritesDisabled} onClick={() => { void props.onImportDirectory().catch(() => undefined); }} className="w-full border-t border-[var(--nimi-border-subtle)] px-3 py-2.5 text-left text-xs transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)] disabled:opacity-50">
@@ -82,7 +82,7 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
                   {i18n.t('runtimeConfig.localModelCenter.importModelDirectory', { defaultValue: 'Import Model Folder' })}
                 </div>
                 <div className="mt-0.5 text-[var(--nimi-text-muted)]">
-                  {i18n.t('runtimeConfig.localModelCenter.importModelDirectoryDescription', { defaultValue: 'Multi-file model, e.g. safetensors' })}
+                  {i18n.t('runtimeConfig.localModelCenter.importModelDirectoryDescription')}
                 </div>
               </button>
             </div>

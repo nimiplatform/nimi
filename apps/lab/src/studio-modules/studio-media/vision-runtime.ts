@@ -49,17 +49,26 @@ export async function runVisionLocate(context: StudioCapabilityRuntimeContext) {
     throw error;
   }
   if (context.input.signal?.aborted) return abortedBeforeSubmit();
-  const { asset } = await adoptStudioJobArtifact(context, upload, await managedStudioAssetPath('vision.locate.source', upload.artifactId, 0));
+  const { asset, created } = await adoptStudioJobArtifact(context, upload, await managedStudioAssetPath('vision.locate.source', crypto.randomUUID(), 0));
   const sourceImage: StudioManagedArtifact = { ...asset, displayName: image.name, previewSource: 'managed-asset' };
-  const result = await runNimiRuntimeScenarioJob({
-    ai: createStudioScenarioJobClient(context, { sourceImage }),
-    request: {
-      head: { appId: context.host.appId, subjectUserId: '', timeoutMs: 0 }, scenarioType: ScenarioType.VISION_LOCATE, executionMode: ExecutionMode.ASYNC_JOB,
-      spec: { spec: { oneofKind: 'visionLocate', visionLocate: { imageArtifactId: upload.artifactId, query: context.prompt, geometry: context.input.parameters?.geometry === 'point' ? VisionLocateGeometry.POINT : VisionLocateGeometry.BOX } } },
-      requestId: '', idempotencyKey: '', labels: {}, extensions: [],
-    },
-    signal: context.input.signal, observationSignal: context.input.observationSignal, onObservation: context.input.onObservation, abortReason: context.host.abortReason, onJobUpdate: context.input.onJobUpdate,
-  });
+  let result;
+  try {
+    result = await runNimiRuntimeScenarioJob({
+      ai: createStudioScenarioJobClient(context, { sourceImage }),
+      request: {
+        head: { appId: context.host.appId, subjectUserId: '', timeoutMs: 0 }, scenarioType: ScenarioType.VISION_LOCATE, executionMode: ExecutionMode.ASYNC_JOB,
+        spec: { spec: { oneofKind: 'visionLocate', visionLocate: { imageArtifactId: upload.artifactId, query: context.prompt, geometry: context.input.parameters?.geometry === 'point' ? VisionLocateGeometry.POINT : VisionLocateGeometry.BOX } } },
+        requestId: '', idempotencyKey: '', labels: {}, extensions: [],
+      },
+      signal: context.input.signal, observationSignal: context.input.observationSignal, onObservation: context.input.onObservation, abortReason: context.host.abortReason, onJobUpdate: context.input.onJobUpdate,
+    });
+  } catch (error) {
+    // Reclaim the freshly adopted source image only if failure/abort occurred before beginStudioJobAction recorded ownership.
+    if (created && !context.jobActionId) {
+      await context.host.client.storage.assets.remove(asset.relativePath).catch(() => undefined);
+    }
+    throw error;
+  }
   return projectLocateResult(context, result, sourceImage, image.dataUrl);
 }
 

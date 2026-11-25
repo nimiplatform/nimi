@@ -1,5 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
-import { runtimeAIConfigStructToJson, type NimiAIConfigSnapshot } from '@nimiplatform/sdk/ai';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  runtimeAIConfigStructToJson,
+  type NimiAIConfigEffectiveSelection,
+  type NimiAIConfigSnapshot,
+} from '@nimiplatform/sdk/ai';
 
 import { findStudioCapabilityIntent } from './ai-config.js';
 import { useAIStudioHost } from './host-context.js';
@@ -21,12 +25,19 @@ import {
 import type { StudioTranslate } from './non-success-presentation.js';
 import type { StudioParameterValue } from './parameters.js';
 
+export type StudioJobProgress = {
+  readonly percent: number;
+  readonly currentStep: number;
+  readonly totalSteps: number;
+};
+
 export type TextStudioActiveRun = {
   attachmentCount?: number;
   replayMedia?: StudioManagedArtifact;
   // Latest submission's session-only input; history never stores these bytes.
   submittedParameters?: StudioParameterValue;
   jobStatus?: 'queued' | 'running';
+  jobProgress?: StudioJobProgress;
   id: string;
   prompt: string;
   context: string;
@@ -77,61 +88,121 @@ export function canConfigureRunTarget(runTarget: StudioRunTargetSummary): boolea
   return !runTarget.canDispatch && runTarget.status === 'blocked' && Boolean(runTarget.capabilityContract);
 }
 
+let fallbackScopeSeq = 1;
+const fallbackScopeIds = new WeakMap<object, string>();
+
+function resolveRunTargetScopeKey(host: ReturnType<typeof useAIStudioHost>): string {
+  if (host.sessionScopeKey) return host.sessionScopeKey;
+  const existing = fallbackScopeIds.get(host.sdk.aiConfig);
+  if (existing) return existing;
+  const assigned = `studio-ai-config-${fallbackScopeSeq++}`;
+  fallbackScopeIds.set(host.sdk.aiConfig, assigned);
+  return assigned;
+}
+
+export type StudioTargetRefreshWaitResult =
+  | { readonly waited: false }
+  | { readonly waited: true; readonly snapshot: NimiAIConfigSnapshot | null };
+
 export function useStudioRunTargetSummary(
   registration: StudioCapabilityRegistration,
   runtime: StudioRuntimeInspection | null,
-): StudioRunTargetSummary & { readonly snapshot: NimiAIConfigSnapshot | null; readonly configReadFailed: boolean } {
+): StudioRunTargetSummary & {
+  readonly snapshot: NimiAIConfigSnapshot | null;
+  readonly effectiveSelection: NimiAIConfigEffectiveSelection | undefined;
+  readonly configReadFailed: boolean;
+  readonly waitForTargetRefresh: () => Promise<StudioTargetRefreshWaitResult>;
+} {
   const host = useAIStudioHost();
+  const hostRef = useRef(host);
+  hostRef.current = host;
+  const scopeKey = resolveRunTargetScopeKey(host);
+  const inFlightRefreshRef = useRef<{ settled: Promise<void>; release: () => void } | null>(null);
+  const lastRefresh = useRef<{ scopeKey: string; snapshot: NimiAIConfigSnapshot | null } | null>(null);
   const [configProjection, setConfigProjection] = useState<{
+    scopeKey: string;
     state: 'loading' | 'loaded' | 'failed';
     snapshot: NimiAIConfigSnapshot | null;
     error: string | null;
-  }>({ state: 'loading', snapshot: null, error: null });
+  }>({ scopeKey, state: 'loading', snapshot: null, error: null });
 
   useEffect(() => {
-    let cancelled = false;
-    let requestGeneration = 0;
-    const refresh = () => {
-      const generation = ++requestGeneration;
-      setConfigProjection({ state: 'loading', snapshot: null, error: null });
-      void host.sdk.aiConfig.getSnapshot()
+    const refresh = (preserveSnapshot: boolean) => {
+      let release!: () => void;
+      const settled = new Promise<void>(resolve => { release = resolve; });
+      const pending = { settled, release };
+      const previous = inFlightRefreshRef.current;
+      inFlightRefreshRef.current = pending;
+      // A submission waiting on a superseded refresh can now await the latest one.
+      previous?.release();
+      if (!preserveSnapshot) {
+        setConfigProjection({ scopeKey, state: 'loading', snapshot: null, error: null });
+      }
+      void hostRef.current.sdk.aiConfig.getSnapshot()
         .then((next) => {
-          if (!cancelled && generation === requestGeneration) {
-            setConfigProjection({ state: 'loaded', snapshot: next, error: null });
-          }
+          if (inFlightRefreshRef.current !== pending) return;
+          lastRefresh.current = { scopeKey, snapshot: next };
+          setConfigProjection({ scopeKey, state: 'loaded', snapshot: next, error: null });
         })
         .catch((cause) => {
-          if (!cancelled && generation === requestGeneration) {
-            setConfigProjection({
-              state: 'failed',
-              snapshot: null,
-              error: cause instanceof Error ? cause.message : String(cause || host.translate('Studio.run.aiConfigLoadFailed')),
-            });
+          if (inFlightRefreshRef.current !== pending) return;
+          lastRefresh.current = { scopeKey, snapshot: null };
+          setConfigProjection({
+            scopeKey,
+            state: 'failed',
+            snapshot: null,
+            error: cause instanceof Error ? cause.message : String(cause || hostRef.current.translate('Studio.run.aiConfigLoadFailed')),
+          });
+        })
+        .finally(() => {
+          if (inFlightRefreshRef.current === pending) {
+            inFlightRefreshRef.current = null;
           }
+          pending.release();
         });
     };
-    refresh();
-    const unsubscribe = host.app.events.subscribeAIConfigRefresh(refresh);
+    refresh(false);
+    const unsubscribe = hostRef.current.app.events.subscribeAIConfigRefresh(() => refresh(true));
     return () => {
-      cancelled = true;
-      requestGeneration += 1;
+      inFlightRefreshRef.current?.release();
+      inFlightRefreshRef.current = null;
+      lastRefresh.current = null;
       unsubscribe();
     };
-  }, [host]);
+  }, [scopeKey]);
+
+  const waitForTargetRefresh = useCallback(async (): Promise<StudioTargetRefreshWaitResult> => {
+    if (!inFlightRefreshRef.current) return { waited: false };
+    while (inFlightRefreshRef.current) {
+      await inFlightRefreshRef.current.settled;
+    }
+    return { waited: true, snapshot: lastRefresh.current?.scopeKey === scopeKey ? lastRefresh.current.snapshot : null };
+  }, [scopeKey]);
 
   return useMemo(() => {
-    const { snapshot } = configProjection;
+    const scopeMatches = configProjection.scopeKey === scopeKey;
+    const projectionState = scopeMatches ? configProjection.state : 'loading';
+    const snapshot = scopeMatches ? configProjection.snapshot : null;
+    const projectionError = scopeMatches ? configProjection.error : null;
     const config = snapshot?.config ?? null;
     const target = host.app.projection.projectRunTarget({
       capability: registration.descriptor,
       runtime,
       config,
-      configState: configProjection.state,
-      configError: configProjection.error,
+      configState: projectionState,
+      configError: projectionError,
     });
-    const readState = { snapshot, configReadFailed: configProjection.state === 'failed' };
+    const effectiveSelection = target.capabilityContract
+      ? snapshot?.effectiveSelections.find((item) => item.capabilityContract === target.capabilityContract)
+      : undefined;
+    const readState = {
+      snapshot,
+      effectiveSelection,
+      configReadFailed: projectionState === 'failed',
+      waitForTargetRefresh,
+    };
     if (!target.capabilityContract || !target.canDispatch) return { ...target, ...readState };
-    const selection = snapshot?.effectiveSelections.find((item) => item.capabilityContract === target.capabilityContract);
+    const selection = effectiveSelection;
     const resource = selection?.resource;
     const intent = findStudioCapabilityIntent(config, target.capabilityContract);
     const configuredCloudModel = intent?.route.oneofKind === 'cloud'
@@ -153,7 +224,7 @@ export function useStudioRunTargetSummary(
         detail: host.translate('Studio.run.effectiveTargetUnavailable') };
     }
     return { ...target, ...readState, ...recordedConfig };
-  }, [configProjection, host, registration.descriptor, runtime]);
+  }, [configProjection, host, registration.descriptor, runtime, scopeKey, waitForTargetRefresh]);
 }
 
 export type TextStudioPromptStyle = { tone: string; length: string };

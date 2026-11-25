@@ -5,6 +5,7 @@ import { Avatar } from './avatar.js';
 import { Surface } from './surface.js';
 
 export type AccountPanelUser = {
+  id?: string | null;
   displayName?: string | null;
   email?: string | null;
   avatarSrc?: string | null;
@@ -35,10 +36,6 @@ export type AccountPanelProps = {
 
 function displayNameFor(user: AccountPanelUser | null): string {
   return user?.displayName?.trim() || 'Runtime account';
-}
-
-function fallbackFor(user: AccountPanelUser | null, displayName: string): ReactNode {
-  return user?.fallback ?? (displayName.charAt(0).toUpperCase() || '?');
 }
 
 function AccountPanelItemButton({ item }: { item: AccountPanelItem }) {
@@ -82,7 +79,7 @@ export function AccountPanel({
   statusMessage,
 }: AccountPanelProps) {
   const displayName = displayNameFor(user);
-  const fallback = fallbackFor(user, displayName);
+  const avatarSeed = user?.id?.trim() || user?.email?.trim() || displayName;
 
   return (
     <Surface
@@ -99,10 +96,11 @@ export function AccountPanel({
         <Avatar
           src={user?.avatarSrc ?? null}
           alt={displayName}
+          seed={avatarSeed}
           size="lg"
           tone="neutral"
-          fallback={fallback}
-          className="nimi-account-panel__avatar bg-[var(--nimi-surface-canvas)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)]"
+          fallback={user?.fallback}
+          className="nimi-account-panel__avatar shadow-[var(--nimi-elevation-base)]"
         />
         <div className="min-w-0 flex-1">
           <p className="nimi-account-panel__name m-0 truncate text-[length:var(--nimi-type-section-title-size)] font-bold leading-tight text-[var(--nimi-text-primary)]">

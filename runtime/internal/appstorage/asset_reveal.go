@@ -44,7 +44,7 @@ func (s *AssetStore) PublishVerifiedReveal(ctx context.Context, owner ManagedOwn
 	if err != nil {
 		return AssetRecord{}, "", err
 	}
-	defer body.Close()
+	defer func() { _ = body.Close() }()
 	var target string
 	err = guard(func() error {
 		var publishErr error

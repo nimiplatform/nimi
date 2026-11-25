@@ -2,6 +2,8 @@ import { capabilityIcon, Button, InlineAlert, LoadingSkeleton } from '@nimiplatf
 import { LoaderCircle } from 'lucide-react';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
+import { invalidateDesktopLoadoutQueries } from './runtime-config-select-loadout.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { useCapabilityInventory } from './runtime-capability-inventory.js';
 import { modelDisplayTitle, setupPlanNeedsPreparation } from './runtime-capability-presentation.js';
@@ -9,8 +11,10 @@ import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability
 import { RuntimeSetupTaskCloudPanel } from './runtime-config-setup-task-cloud.js';
 import { RuntimeConfigSetupTaskView, SetupTaskPlanReview } from './runtime-config-setup-task-view.js';
 import {
+  getRuntimeProfileRateLimitWait,
   isRuntimeProfileRunning,
   runRuntimeProfileTasks,
+  stopRuntimeProfileRun,
   subscribeRuntimeProfileRuns,
 } from './runtime-profile-task-runner.js';
 import {
@@ -37,6 +41,7 @@ export function RuntimeProfileTaskView(props: {
   readonly onReturn: () => void;
 }) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const sdk = useDesktopRendererSdk();
   const inventory = useCapabilityInventory({ enabled: props.inventoryEnabled, includePreparation: false });
   const ownerLabel = (appId?: string) =>
@@ -52,6 +57,22 @@ export function RuntimeProfileTaskView(props: {
     () => isRuntimeProfileRunning(props.useId),
     () => false,
   );
+  const rateLimitWait = useSyncExternalStore(
+    subscribeRuntimeProfileRuns,
+    () => getRuntimeProfileRateLimitWait(props.useId),
+    () => undefined,
+  );
+  const [countdownSeconds, setCountdownSeconds] = useState(0);
+  useEffect(() => {
+    if (!rateLimitWait) {
+      setCountdownSeconds(0);
+      return;
+    }
+    const update = () => setCountdownSeconds(Math.max(0, Math.ceil((rateLimitWait.resumeAtMs - Date.now()) / 1000)));
+    update();
+    const timer = setInterval(update, 1000);
+    return () => clearInterval(timer);
+  }, [rateLimitWait]);
   const [error, setError] = useState('');
   const detail = props.detailTaskId;
   const active = running || tasks.some((task) => task.status === 'preparing' || task.status === 'committing');
@@ -128,7 +149,8 @@ export function RuntimeProfileTaskView(props: {
       plans,
       choices,
       mode,
-    }).catch((caught) => setError(caught instanceof Error ? caught.message : String(caught)));
+    }).then(() => invalidateDesktopLoadoutQueries(queryClient))
+      .catch((caught) => setError(caught instanceof Error ? caught.message : String(caught)));
   };
   if (detail && !tasks.some((task) => task.taskId === detail)) return (
     <InlineAlert tone="warning">
@@ -144,6 +166,7 @@ export function RuntimeProfileTaskView(props: {
           taskId={detail}
           store={props.store}
           ports={props.ports}
+          disabled={running}
           onClose={props.onCloseDetail}
           onReturnToSource={props.onReturn}
         />
@@ -167,6 +190,15 @@ export function RuntimeProfileTaskView(props: {
         </Button>
       </header>
       {checking ? <LoadingSkeleton className="h-20" /> : null}
+      {rateLimitWait ? (
+        <InlineAlert tone="warning" data-testid="ai-profile-rate-limit-wait">
+          {t('runtimeConfig.profileRun.rateLimitWaiting', {
+            seconds: countdownSeconds,
+            attempt: rateLimitWait.attempt,
+            maxAttempts: rateLimitWait.maxAttempts,
+          })}
+        </InlineAlert>
+      ) : null}
       {error ? <InlineAlert tone="warning">{error}</InlineAlert> : null}
       {tasks.map((task) => {
         const CapabilityIcon = capabilityIcon(task.capabilityContract);
@@ -229,7 +261,12 @@ export function RuntimeProfileTaskView(props: {
               ).preview}
             />
           ) : null}
-          <Button tone="ghost" size="sm" disabled={active} onClick={() => props.onOpenDetail(task.taskId)}>
+          <Button
+            tone="ghost"
+            size="sm"
+            disabled={running && !terminal && task.status !== 'preparing' && task.status !== 'committing'}
+            onClick={() => props.onOpenDetail(task.taskId)}
+          >
             {t('runtimeConfig.profileRun.inspect')}
           </Button>
         </section>
@@ -293,7 +330,10 @@ export function RuntimeProfileTaskView(props: {
                 <Button
                   tone="ghost"
                   size="sm"
-                  onClick={() => tasks.forEach((task) => props.store.stopTask(task.taskId))}
+                  onClick={() => {
+                    stopRuntimeProfileRun(props.useId);
+                    tasks.forEach((task) => props.store.stopTask(task.taskId));
+                  }}
                   data-testid="ai-profile-stop"
                 >
                   {t('runtimeConfig.profileRun.stop')}

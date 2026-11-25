@@ -1,7 +1,7 @@
 /**
  * @generated
  * Source: runtime/catalog/providers/local.yaml
- *   sha256: c8754d58a672c4433ad174b8e295dbe16607e5e60d032a7345dfe7053faaeef5
+ *   sha256: fbf9079ab442ec1148e107d55eb18e8019a98db8538b51f518de1861a9606492
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.
@@ -125,7 +125,7 @@ export const LOCAL_MODEL_CATALOG: Readonly<Record<string, readonly LocalCapabili
     {"id":"embeddinggemma-2-text-local","label":"EmbeddingGemma 2"},
   ],
   "text.generate": [
-    {"id":"gemma-4-e2b-it-local","label":"llama.cpp GGUF"},
+    {"id":"gemma-4-e2b-it-local","label":"Gemma 4 E2B IT"},
     {"id":"gemma-4-12b-unified-local","label":"Gemma 4 12B Unified"},
   ],
   "video.face_swap": [

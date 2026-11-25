@@ -15,6 +15,7 @@ export * from './components/textarea.js';
 export * from './components/select.js';
 export * from './components/switch.js';
 export * from './components/avatar.js';
+export * from './lib/avatar-mesh.js';
 export * from './components/badge.js';
 export * from './components/sidebar.js';
 export * from './components/confirm-dialog.js';

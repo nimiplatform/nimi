@@ -439,17 +439,17 @@ test('the conversation quick start explains a missing model file instead of show
   const task = taskOn(makeStore(), { capabilityContract: 'text.generate', status: 'failed', failure: MISSING_MODEL_FILES });
   const markup = renderView(
     <RuntimeProfileQuickStart
-      capabilities={[]}
+      pending={false}
+      capabilities={[{
+        id: 'text.generate',
+        model: 'Gemma 4',
+        state: { state: 'attention', task, replacement: false },
+      }]}
+      onRetry={() => {}}
       onOpenCapability={() => {}}
+      onOpenTask={() => {}}
       disabled={false}
       onUse={() => {}}
-      conversation={{
-        pending: false,
-        preparation: { state: 'attention', task, replacement: false },
-        onOpenDetail: () => {},
-        onOpenTask: () => {},
-        onRetry: () => {},
-      }}
     />,
   );
   assert.match(markup, /data-quick-start-state="attention"/);
@@ -557,7 +557,7 @@ const GEMMA_RECIPE = {
 } as unknown as NimiLoadoutRecipe;
 const GEMMA_LOADOUT = {
   loadoutId: 'loadout-gemma', recipeId: 'recipe-gemma', capabilityContract: 'text.generate',
-  displayName: 'Gemma 4 text generation', modelAxes: [], validationState: 'configured',
+  displayName: 'Gemma 4 text generation', modelAxes: [], configuredFeatures: ['input.image'], validationState: 'configured',
 } as unknown as NimiMachineLoadout;
 const environmentWith = (...states: string[]) => ({
   state: 'ready',
@@ -571,7 +571,8 @@ function assertReadyCurrentModel(html: string): void {
   assert.match(html, /Gemma 4 text generation/);
   assert.match(html, /capability-state-badge[^>]*>[\s\S]*?runtimeConfig\.capabilities\.state\.ready</);
   assert.match(html, /runtimeConfig\.product\.currentOnDevice/);
-  assert.match(html, /data-testid="capability-model-settings:recipe-gemma"/);
+  assert.match(html, /data-testid="capability-config-settings:loadout-gemma"/);
+  assert.doesNotMatch(html, /data-testid="capability-model-settings:recipe-gemma"/);
   assert.doesNotMatch(html, /role="tablist"|capability-change-model/);
   assert.doesNotMatch(html, /runtimeConfig\.overview\.openChat/);
   assert.doesNotMatch(html, /runtimeConfig\.setupTask\.(?:repairSetup|checkPreparation)/);

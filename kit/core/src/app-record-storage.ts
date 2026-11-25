@@ -3,6 +3,12 @@ import type { NimiLocalAppAssetsClient } from './sdk-contract.js';
 type Assets = Pick<NimiLocalAppAssetsClient, 'list' | 'read' | 'write' | 'remove'>;
 const MAX_RECORD_BYTES = 16 * 1024 * 1024;
 
+function isMissingStorageEntry(error: unknown): boolean {
+  const detail = error as { reasonCode?: string; code?: string } | null;
+  const code = detail?.reasonCode ?? detail?.code;
+  return code === 'APP_STORAGE_ENTRY_NOT_FOUND' || code === 'not-found';
+}
+
 /** Independent App-owned documents. Runtime owns atomic publication and the
  * account/registered-subject partition; the caller owns schema and retention.
  * There is no shared index or collection-wide cleanup of unpublished records. */
@@ -29,10 +35,8 @@ export function createNimiAppRecordStore<T extends { readonly id: string }>(
       if (path(record.id) !== relativePath) throw new Error('Stored record identity does not match its path.');
       return { record, sha256: source.asset.sha256 };
     } catch (error) {
-      const code = (error as { reasonCode?: string; code?: string } | null)?.reasonCode
-        ?? (error as { code?: string } | null)?.code;
       // A record can be explicitly removed after a non-snapshot listing.
-      if (code === 'APP_STORAGE_ENTRY_NOT_FOUND' || code === 'not-found') return null;
+      if (isMissingStorageEntry(error)) return null;
       throw error;
     }
   }
@@ -40,7 +44,13 @@ export function createNimiAppRecordStore<T extends { readonly id: string }>(
     const records: { record: T; sha256: string }[] = [];
     let cursor = '';
     do {
-      const page = await assets.list({ prefix: `${prefix}/`, ...(cursor ? { cursor } : {}) });
+      let page;
+      try {
+        page = await assets.list({ prefix: `${prefix}/`, ...(cursor ? { cursor } : {}) });
+      } catch (error) {
+        if (!cursor && isMissingStorageEntry(error)) return records;
+        throw error;
+      }
       for (const asset of page.assets) {
         const record = await readPath(asset.relativePath);
         if (record) records.push(record);

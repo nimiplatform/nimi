@@ -13,7 +13,7 @@
 .story-site a, .story-site button { -webkit-tap-highlight-color: transparent; }
 .story-site button { cursor: pointer; }
 .story-site button:disabled { cursor: default; opacity: .45; }
-.story-site :is(a,button,input,textarea,summary):focus-visible { outline: 2px solid #0ea5e9; outline-offset: 4px; }
+.story-site :is(a,button,input,textarea,summary):not(:where([data-demo-interactive="true"] *, [data-canonical-composer-root="true"] *)):focus-visible { outline: 2px solid #0ea5e9; outline-offset: 4px; }
 .story-container { width: min(1280px, calc(100% - 96px)); margin-inline: auto; position: relative; }
 .story-nav { position: sticky; top: var(--story-nav-top); z-index: 45; width: min(1080px,calc(100% - 64px)); margin: 0 auto; min-height: 56px; padding: 8px 12px 8px 18px; display: flex; gap: 16px; align-items: center; border: 1px solid rgba(214, 228, 240, .92); border-radius: 28px; background: rgba(255, 255, 255, .92); box-shadow: 0 10px 26px -16px rgba(24, 48, 76, .3), 0 1px 2px rgba(40, 74, 102, .06), inset 0 1px 0 rgba(255, 255, 255, .82); transition: opacity .18s ease; }
 .story-site > .story-nav {
@@ -36,7 +36,9 @@ body:has(.demo-window-dialog, [data-testid="demo-app-preview"]) .story-nav {
 .story-nav-actions > div > button { height: 36px; padding-inline: 10px; font-size: 13px; }
 .story-download { display: inline-flex; align-items: center; gap: 8px; background: #111827; color: white; border-radius: 28px; padding: 8px 16px; font-size: 13px; font-weight: 600; white-space: nowrap; box-shadow: 0 2px 5px rgba(15,23,42,.16); transition: background-color .18s ease; }
 .story-download:hover, .story-download.is-active { background: #0b82d8; color: white; }
-.story-account { display: inline-flex; padding: 8px; color: #475569; }
+.story-account { display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px; border-radius: 999px; color: #334155; font-size: 13px; font-weight: 500; white-space: nowrap; transition: background-color .18s ease, color .18s ease; }
+.story-account:hover { background: rgba(15, 23, 42, .06); color: #0f172a; }
+@media (max-width: 1120px) { .story-account span { display: none; } .story-account { padding: 8px; } }
 .story-mobile-account-link { display: none; }
 .story-menu-toggle { display: none; padding: 8px; }
 .story-button, .story-link { display: inline-flex; justify-content: center; align-items: center; gap: 10px; font-weight: 550; }
@@ -1050,7 +1052,7 @@ body:has(.demo-window-dialog, [data-testid="demo-app-preview"]) .story-nav {
   background: #ffffff;
   color: #0d0d0d;
 }
-.story-site :is(a, button, input, textarea, summary):focus-visible {
+.story-site :is(a, button, input, textarea, summary):not(:where([data-demo-interactive="true"] *, [data-canonical-composer-root="true"] *)):focus-visible {
   outline: 2px solid #0d0d0d;
   outline-offset: 3px;
 }

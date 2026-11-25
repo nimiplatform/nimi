@@ -92,7 +92,6 @@ test('a fully matched local capability yields an exact candidate input', () => {
     options: { steps: 30 },
     axes: [{ slotId: 'main.diffusion', modelAssetId: 'asset-1', expectedContentId: CONTENT }],
     pendingAxes: [],
-    displayName: 'Shared setup · Image recipe',
     provenance: { source_profile_id: 'profile.shared-1' },
   });
 });
@@ -212,4 +211,48 @@ test('cloud Profile use retains the portable model recommendation without a conn
     implementation: intent.implementation, providerModelTarget: intent.providerModelTarget,
   });
   assert.equal('connectorRef' in result[0]!.cloudRecommendation!, false);
+});
+
+test('Profile use preserves requiredFeatures and defaults into the local candidate plan', () => {
+  const withRequirements = parseNimiPortableAIProfile({
+    profileId: 'profile.vision-required',
+    title: 'Vision chat',
+    capabilities: {
+      'image.generate': {
+        route: 'local',
+        requiredFeatures: ['input.image'],
+        defaults: { temperature: 0.2 },
+        implementation: { implementationId: 'local.image', driverId: 'driver.image', driverDialect: 'image/v1', supportedFeatures: ['input.image'] },
+        loadout: {
+          recipeId: 'image.recipe',
+          axes: [{ slotId: 'main.diffusion', contentId: CONTENT, expectedHash: HASH }],
+          options: { steps: 20 },
+        },
+      },
+    },
+  });
+  const plan: RuntimeConfigAIProfileTransferPlan = {
+    profile: withRequirements,
+    capabilities: [
+      transferCapability({
+        recipe: { recipeId: 'image.recipe', title: 'Image recipe' } as RuntimeConfigAIProfileTransferCapability['recipe'],
+        axes: [{
+          capabilityContract: 'image.generate',
+          slotId: 'main.diffusion',
+          contentId: CONTENT,
+          expectedHash: HASH,
+          displayLabel: 'Main model',
+          sizeBytes: 1024,
+          state: 'matched',
+          modelAssetId: 'asset-1',
+        }],
+      }),
+    ],
+    downloads: [],
+    totalDownloadBytes: 0,
+    networkStarted: false,
+  };
+  const result = planRuntimeSetupProfileUse({ profile: withRequirements, subset: ['image.generate'], transferPlan: plan });
+  assert.deepEqual(result[0]?.requiredFeatures, ['input.image']);
+  assert.deepEqual(result[0]?.defaults, { temperature: 0.2 });
 });

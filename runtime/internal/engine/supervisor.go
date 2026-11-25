@@ -20,6 +20,7 @@ type StateChangeFunc func(kind EngineKind, status EngineStatus, detail string)
 
 // Supervisor manages the lifecycle of a single engine process.
 type Supervisor struct {
+	stopMu  sync.Mutex
 	cfg     EngineConfig
 	logger  *slog.Logger
 	onState StateChangeFunc
@@ -119,6 +120,8 @@ func (s *Supervisor) Start(ctx context.Context) error {
 
 // Stop gracefully shuts down the engine process.
 func (s *Supervisor) Stop() error {
+	s.stopMu.Lock()
+	defer s.stopMu.Unlock()
 	s.mu.Lock()
 	cancel := s.cancel
 	cmd := s.cmd
