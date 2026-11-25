@@ -1,16 +1,36 @@
-# nimiapp-harness
+# Nimi Harness
 
-Nimi Harness runs a Pi durable conversation in the Desktop-supervised Electron Host. The model comes from the App AIConfig in Nimi Home. Durable owns the transcript, tasks, and parked tool decisions. The renderer sends fixed App commands to the Host.
+Nimi Harness runs a Pi durable conversation in a Desktop-supervised Electron host. Runtime supplies the partner’s configured model. Harness owns the local transcript, tasks and tool approvals.
 
-## Development
+## Workspace development
 
-This repository builds cleanly from public npm dependencies and a committed pnpm patch:
+Run the following from the Nimi repository root with Node 24, the pnpm version pinned in `package.json`, and the Rust toolchain and native linker for your host. Harness uses the SDK, Kit and App Tools from this workspace.
 
-- **Nimi platform baseline**: `@nimiplatform/app-tools@^0.16.0-rc.12`, `@nimiplatform/sdk@^0.24.0-rc.10`, `@nimiplatform/kit@^0.24.0-rc.16`, and `@nimiplatform/nimi-coding@0.7.0`.
-- **Pi durable runtime & request-budget patch**: `@earendil-works/chord`, `@earendil-works/pi-ai`, `@earendil-works/pi-durable`, and `@earendil-works/pi-schema` pinned to `1.6.0`, with `patches/@earendil-works__pi-durable@1.6.0.patch` wired through `pnpm-workspace.yaml` `patchedDependencies` (mirroring the upstream source patch in `patches/pi-durable-request-budget.patch`). This preserves `beforeRequest` durable compaction at 96 messages or 256 KiB of context before the native request envelope while counting images via owned Artifact references.
-- **Note on unpublished SDK 0.24.0-rc.11 features**: `audio.transcribe` scenario jobs currently use the App's default `audio.transcribe` configuration under published `sdk@0.24.0-rc.10` (per-session `configRef` on `createNimiLocalAppRuntimeScenarioJobClient` and Runtime `textBehaviors` cloud-target filtering are ready for when `sdk@0.24.0-rc.11` / matching `kit` publish).
+```sh
+pnpm install --frozen-lockfile
+pnpm --filter @nimiplatform/harness test
+```
 
-Use Node 24 and run `pnpm install --frozen-lockfile`, `pnpm exec nimi-app check --production`, `pnpm test`, and `pnpm dev` with a matching Nimi Home and Runtime running. To resume a development registration, read the current selector with `pnpm dev -- --list-registrations` and pass it to `pnpm dev -- --resume <selector>`. Use **Apps → Nimi Harness → AI models** in Nimi Home to select an admitted text route. Run `pnpm run build:web:release` (with `NIMI_WEB_VERSION` and `NIMI_WEB_ARCHIVE`) to produce the hosted Web release bundle.
+The test command builds the workspace SDK and Kit. On macOS and Windows it also compiles the native Kit module used by the file preview test. The test build goes into Cargo’s debug directory.
+
+To run Harness, start Nimi Home with a matching Runtime, sign in and enable Developer Mode. Use `pnpm dev:harness` for first launch. To return to existing App data, run `pnpm dev:harness --list-registrations` and pass the current selector to `pnpm dev:harness --resume <selector>`. Choose the partner’s text model in Nimi Home.
+
+## Native packaging
+
+Build on the target host. Prepare the matching Kit native package for the intended host trust profile. The production builders are `node kit/shell/protected-local-node/scripts/build-darwin-arm64-package.mjs` on Apple Silicon and `node kit/shell/protected-local-node/scripts/build-windows-x64-package.mjs` on Windows x64. The macOS production builder requires the release team’s `NIMI_MACOS_TEAM_ID`.
+
+With the native package prepared, run these commands from the repository root on Apple Silicon. On Windows x64, use `windows-x86_64` for both target arguments.
+
+```sh
+pnpm --filter @nimiplatform/harness exec nimi-app build --target macos-aarch64 --production
+pnpm --filter @nimiplatform/harness exec nimi-app pack --target macos-aarch64 --production
+```
+
+The build uses the workspace production builder declared in the Harness build profile. The pack step writes the local `.nimiapp` archive and its target metadata to `apps/harness/dist/nimi-app/`.
+
+## Public release preflight
+
+Run `pnpm exec nimi-app check --production` from the standalone publisher project with compatible published SDK, Kit and App Tools versions, its frozen lockfile, managed project files and a build command that works in that checkout. The workspace manifest here uses `workspace:*`, which the public dependency check rejects. Follow the publisher workflow for release and Registry submission. [Native release guide](../../app-tools/skills/nimi-app-lifecycle/references/release.md#native-desktop)
 
 ## Desktop tasks
 
@@ -54,13 +74,17 @@ Use `pnpm dev:web` with the publisher’s reviewed HTTPS origin, same-origin cal
 
 App Tools built and packed `ai.nimi.harness@0.1.0` for macOS arm64. Its first install uses Home’s local package import and a separate storage namespace. The archive weighs 558 MiB. The supervised development journeys above were run with the original development registration. Home installed the candidate and started it under a fresh namespace. A pending file write survived stopping and relaunching the installed App. After approval, the read tool and the on-disk file both returned HARNESS-INSTALL-1811. Opening the new Activity from Home returned to that same installed conversation.
 
-## Local Web to PC development
+## Historical Web and Android development
+
+The following commands and source identities belong to the earlier multi-platform project. The current workspace manifest declares the Electron desktop entry.
+
+### Local Web to PC development
 
 Use the two App Tools entry points with the local Realm. In the Harness directory run `pnpm dev` for the supervised PC app and, in a second terminal, `pnpm dev:web -- --realm local`. Set `NIMI_WEB_TLS_KEY` and `NIMI_WEB_TLS_CERT` in the untracked `.env.local` to a development certificate/key valid for 127.0.0.1 and trusted by the test browser. The Web entry is `https://127.0.0.1:4509/`, the local API is `http://127.0.0.1:3002`, and the sign-in UI is `http://localhost:3000`.
 
 The local Realm needs the reviewed test client `ai.nimi.harness.web.dev` for App `ai.nimi.harness`, origin `https://127.0.0.1:4509`, callback `https://127.0.0.1:4509/`, role `app`, and App Access `integration.consume`. A non-production Realm can read its local admission document via `RUNTIME_CLIENT_REGISTRY_PATH`. In Home enable Developer Mode for the PC development registration, select the development provider, and confirm the browser source and the session operations being tested. The PC owns model configuration and file execution. Keep external data connectors ungranted for the attachment test.
 
-## PC sessions from Web and Android
+### PC sessions from Web and Android
 
 The shared remote view uses the public Kit session for each source. The PC remains the owner of the conversation, tools and files. Home grants each operation independently. A client can create a PC session without switching the desktop view, list sessions, send an input, check or stop it by receipt, read its final answer, or review and resolve a pending tool decision. A reply longer than 16,384 characters is shown as a preview. Tool arguments larger than 32 KiB must be reviewed on the PC.
 
