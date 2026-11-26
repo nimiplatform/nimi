@@ -48,14 +48,14 @@ export function WorldDetailActivePanel() {
             onClick={() => {
               void detail.refetch();
             }}
-            className="rounded-[10px] bg-[var(--nimi-action-primary-bg)] px-4 py-2 text-sm font-medium text-[var(--nimi-action-primary-text)] hover:bg-[var(--nimi-action-primary-bg-hover)]"
+            className="rounded-[10px] bg-[var(--nimi-action-primary-bg)] px-4 py-2 text-sm font-medium text-[var(--nimi-action-primary-text)] transition-[background-color,transform] hover:bg-[var(--nimi-action-primary-bg-hover)] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1"
           >
             {t('NotificationPanel.refresh', { defaultValue: 'Refresh' })}
           </button>
           <button
             type="button"
             onClick={navigation.back}
-            className="rounded-[10px] bg-[var(--nimi-surface-panel)] px-4 py-2 text-sm font-medium text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-active)]"
+            className="rounded-[10px] bg-[var(--nimi-surface-panel)] px-4 py-2 text-sm font-medium text-[var(--nimi-text-secondary)] transition-[background-color,transform] hover:bg-[var(--nimi-surface-active)] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1"
           >
             {t('WorldDetail.backToList', { defaultValue: 'Back to List' })}
           </button>
@@ -73,7 +73,7 @@ export function WorldDetailActivePanel() {
         <button
           type="button"
           onClick={navigation.back}
-          className="rounded-[10px] bg-[var(--nimi-surface-panel)] px-4 py-2 text-sm font-medium text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-active)]"
+          className="rounded-[10px] bg-[var(--nimi-surface-panel)] px-4 py-2 text-sm font-medium text-[var(--nimi-text-secondary)] transition-[background-color,transform] hover:bg-[var(--nimi-surface-active)] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1"
         >
           {t('WorldDetail.backToList', { defaultValue: 'Back to List' })}
         </button>

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DialogDescription, DialogTitle, OverlayShell } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
@@ -61,21 +61,28 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
     retry: (count, error) => !isPrivateProfileAccessError(error) && count < 1,
   });
   const profile = query.data ?? null;
-  const actions = useHumanProfileActions(profile, props.onClose);
-  if (!props.open) return null;
-  const name = profile?.displayName || props.profileSeed?.displayName || t('Relationship.profileDetailDialogTitleFallback');
+  const lastProfileRef = useRef<typeof profile>(null);
+  const lastSeedRef = useRef<HumanProfileDetailSeed | null>(null);
+  if (props.open) {
+    lastProfileRef.current = profile;
+    lastSeedRef.current = props.profileSeed;
+  }
+  const renderedProfile = props.open ? profile : lastProfileRef.current;
+  const renderedSeed = props.open ? props.profileSeed : lastSeedRef.current;
+  const actions = useHumanProfileActions(renderedProfile, props.onClose);
+  const name = renderedProfile?.displayName || renderedSeed?.displayName || t('Relationship.profileDetailDialogTitleFallback');
   return <>
-    <OverlayShell open kind="dialog" onClose={props.onClose} dataTestId={E2E_IDS.profileDetailModal}
+    <OverlayShell open={props.open} kind="dialog" onClose={props.onClose} dataTestId={E2E_IDS.profileDetailModal}
       panelClassName="max-w-none overflow-hidden rounded-[var(--nimi-radius-xl)] bg-[var(--nimi-surface-canvas)]"
       panelStyle={{ width: 'min(1000px, calc(100cqw - 48px))', height: 'min(900px, calc(100cqh - 64px))' }}
       contentClassName="relative flex h-full min-h-0 flex-col p-0">
       <DialogTitle className="sr-only">{t('Relationship.profileDetailDialogTitle', { name })}</DialogTitle>
       <DialogDescription className="sr-only">{t('Relationship.profileDetailDialogDescription')}</DialogDescription>
       <button type="button" data-testid={E2E_IDS.profileDetailModalClose} onClick={props.onClose} aria-label={t('Common.close')}
-        className="absolute right-4 top-4 z-30 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)]">
+        className="absolute right-4 top-4 z-30 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)] transition-[background-color,transform] hover:bg-[var(--nimi-surface-hover)] active:scale-[0.95] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
       </button>
-      {profile ? <ProfileDetailView profile={profile} loading={false} error={false} hideBackButton onClose={props.onClose} {...actions.props} />
+      {renderedProfile ? <ProfileDetailView profile={renderedProfile} loading={false} error={false} hideBackButton onClose={props.onClose} {...actions.props} />
         : query.isError ? <ProfileDetailErrorState backLabel={t('Common.back')} label={t('ProfileView.error')} onClose={props.onClose} retryLabel={t('Common.retry')} onRetry={() => { void query.refetch(); }} />
           : <ProfileDetailLoadingState label={t('ProfileView.loading')} />}
     </OverlayShell>

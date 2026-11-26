@@ -48,6 +48,8 @@ export function RemoteSessions({
   const sequence = useRef(0);
   const connection = useRef<AbortController | null>(null);
   const creating = useRef(false);
+  const chatTabRef = useRef<HTMLButtonElement>(null);
+  const filesTabRef = useRef<HTMLButtonElement>(null);
 
   const target = targets.find(item => item.targetRef === selected);
   const hasOp = (op: string) => target?.permittedOperations.includes(op) === true;
@@ -320,11 +322,34 @@ export function RemoteSessions({
                 </Button>
                 <h2 title={session.title}>{session.title}</h2>
               </div>
-              <div className="harness-inspector__tabs" role="tablist">
+              <div
+                className="harness-inspector__tabs"
+                role="tablist"
+                aria-label={t('remote.tabsLabel')}
+                onKeyDown={event => {
+                  const availableTabs: Array<'chat' | 'files'> = (mayListFiles || mayDownload) ? ['chat', 'files'] : ['chat'];
+                  if (availableTabs.length < 2) return;
+                  const idx = availableTabs.indexOf(activeTab);
+                  let next: 'chat' | 'files' | undefined;
+                  if (event.key === 'ArrowRight') next = availableTabs[(idx + 1) % availableTabs.length];
+                  else if (event.key === 'ArrowLeft') next = availableTabs[(idx - 1 + availableTabs.length) % availableTabs.length];
+                  else if (event.key === 'Home') next = availableTabs[0];
+                  else if (event.key === 'End') next = availableTabs[availableTabs.length - 1];
+                  if (next) {
+                    event.preventDefault();
+                    setActiveTab(next);
+                    (next === 'chat' ? chatTabRef : filesTabRef).current?.focus();
+                  }
+                }}
+              >
                 <button
+                  ref={chatTabRef}
+                  id="harness-remote-tab-chat"
                   type="button"
                   role="tab"
+                  tabIndex={activeTab === 'chat' ? 0 : -1}
                   aria-selected={activeTab === 'chat'}
+                  aria-controls="harness-remote-tabpanel"
                   className={`harness-tab-btn ${activeTab === 'chat' ? 'harness-tab-btn--active' : ''}`}
                   onClick={() => setActiveTab('chat')}
                 >
@@ -333,9 +358,13 @@ export function RemoteSessions({
                 </button>
                 {(mayListFiles || mayDownload) && (
                   <button
+                    ref={filesTabRef}
+                    id="harness-remote-tab-files"
                     type="button"
                     role="tab"
+                    tabIndex={activeTab === 'files' ? 0 : -1}
                     aria-selected={activeTab === 'files'}
+                    aria-controls="harness-remote-tabpanel"
                     className={`harness-tab-btn ${activeTab === 'files' ? 'harness-tab-btn--active' : ''}`}
                     onClick={() => setActiveTab('files')}
                   >
@@ -346,30 +375,37 @@ export function RemoteSessions({
               </div>
             </header>
 
-            {activeTab === 'chat' ? (
-              <RemoteSessionInput
-                key={JSON.stringify([selected, session.id])}
-                scope={scope}
-                target={selected}
-                session={session}
-                mayHistory={mayHistory}
-                mayObserve={mayObserve}
-                maySend={maySend}
-                mayStop={mayStop}
-                mayReview={mayReview}
-                mayResolve={mayResolve}
-                mayUpload={mayUpload}
-              />
-            ) : (
-              <RemoteSessionFiles
-                key={JSON.stringify(['files', selected, session.id])}
-                scope={scope}
-                target={selected}
-                sessionId={session.id}
-                mayListFiles={mayListFiles}
-                mayDownload={mayDownload}
-              />
-            )}
+            <div
+              id="harness-remote-tabpanel"
+              role="tabpanel"
+              aria-labelledby={`harness-remote-tab-${activeTab}`}
+              className="harness-remote-tabpanel"
+            >
+              {activeTab === 'chat' ? (
+                <RemoteSessionInput
+                  key={JSON.stringify([selected, session.id])}
+                  scope={scope}
+                  target={selected}
+                  session={session}
+                  mayHistory={mayHistory}
+                  mayObserve={mayObserve}
+                  maySend={maySend}
+                  mayStop={mayStop}
+                  mayReview={mayReview}
+                  mayResolve={mayResolve}
+                  mayUpload={mayUpload}
+                />
+              ) : (
+                <RemoteSessionFiles
+                  key={JSON.stringify(['files', selected, session.id])}
+                  scope={scope}
+                  target={selected}
+                  sessionId={session.id}
+                  mayListFiles={mayListFiles}
+                  mayDownload={mayDownload}
+                />
+              )}
+            </div>
           </>
         )}
       </main>

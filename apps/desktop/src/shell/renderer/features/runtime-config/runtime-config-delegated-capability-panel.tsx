@@ -48,7 +48,8 @@ export function DelegatedCapabilityControlPanel() {
   const [conversationAnchorId, setConversationAnchorId] = useState('');
   const [snapshot, setSnapshot] = useState<DelegatedControlSurfaceSnapshot | undefined>();
   const [replayTrace, setReplayTrace] = useState<DelegatedReplayTrace | undefined>();
-  const [busy, setBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState<string | null>(null);
+  const busy = busyAction !== null;
   const [errorMessage, setErrorMessage] = useState('');
 
   const service = useMemo(() => createDesktopDelegatedControlService({
@@ -70,22 +71,26 @@ export function DelegatedCapabilityControlPanel() {
   );
   const pendingApprovals = (snapshot?.approvalRequests || []).filter((approval) => isPendingApproval(approval.state));
 
+  const loadSnapshotInternal = async () => {
+    const loaded = await service.loadSnapshot({ ...identityInput, conversationAnchorId });
+    setSnapshot(loaded);
+    setReplayTrace(undefined);
+  };
+
   const refreshSnapshot = async () => {
-    setBusy(true);
+    setBusyAction('refresh');
     setErrorMessage('');
     try {
-      const loaded = await service.loadSnapshot({ ...identityInput, conversationAnchorId });
-      setSnapshot(loaded);
-      setReplayTrace(undefined);
+      await loadSnapshotInternal();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : String(error || 'DELEGATED_CAPABILITY_REFRESH_FAILED'));
     } finally {
-      setBusy(false);
+      setBusyAction(null);
     }
   };
 
   const submitApproval = async (approvalRequestId: string, decision: 'approve' | 'reject') => {
-    setBusy(true);
+    setBusyAction(`${decision}:${approvalRequestId}`);
     setErrorMessage('');
     try {
       await service.submitApprovalDecision({
@@ -94,16 +99,16 @@ export function DelegatedCapabilityControlPanel() {
         decision,
         decisionReason: 'desktop control surface',
       });
-      await refreshSnapshot();
+      await loadSnapshotInternal();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : String(error || 'DELEGATED_APPROVAL_DECISION_FAILED'));
     } finally {
-      setBusy(false);
+      setBusyAction(null);
     }
   };
 
   const loadReplayTrace = async (diagnostic: DelegatedDiagnostic) => {
-    setBusy(true);
+    setBusyAction(`replay:${diagnostic.diagnosticId}`);
     setErrorMessage('');
     try {
       const loaded = await service.loadReplayTrace({
@@ -116,9 +121,17 @@ export function DelegatedCapabilityControlPanel() {
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : String(error || 'DELEGATED_REPLAY_LOAD_FAILED'));
     } finally {
-      setBusy(false);
+      setBusyAction(null);
     }
   };
+
+  const capabilitySummaries = [
+    t('runtimeConfig.delegation.agentChat', { defaultValue: 'Agent chat' }),
+    t('runtimeConfig.delegation.avatarConfig', { defaultValue: 'Avatar config' }),
+    t('runtimeConfig.delegation.connectorConfig', { defaultValue: 'Connector config' }),
+    t('runtimeConfig.delegation.debugWorkbench', { defaultValue: 'Debug workbench' }),
+    t('runtimeConfig.delegation.approvalUx', { defaultValue: 'Approval' }),
+  ];
 
   return (
     <section className="mt-6">
@@ -128,18 +141,28 @@ export function DelegatedCapabilityControlPanel() {
             <h3 className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>
               {t('runtimeConfig.delegation.title', { defaultValue: 'Delegated capability control' })}
             </h3>
-            <div className={cn('mt-2 flex flex-wrap gap-2 text-xs', TOKEN_TEXT_MUTED)}>
-              <span>{t('runtimeConfig.delegation.agentChat', { defaultValue: 'Agent chat' })}</span>
-              <span>{t('runtimeConfig.delegation.avatarConfig', { defaultValue: 'Avatar config' })}</span>
-              <span>{t('runtimeConfig.delegation.connectorConfig', { defaultValue: 'Connector config' })}</span>
-              <span>{t('runtimeConfig.delegation.debugWorkbench', { defaultValue: 'Debug workbench' })}</span>
-              <span>{t('runtimeConfig.delegation.approvalUx', { defaultValue: 'Approval' })}</span>
-            </div>
+            <ul className="mt-2 flex flex-wrap gap-1.5">
+              {capabilitySummaries.map((label) => (
+                <li
+                  key={label}
+                  className={cn(
+                    'rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-2 py-0.5 text-[length:var(--nimi-type-caption-size)]',
+                    TOKEN_TEXT_MUTED,
+                  )}
+                >
+                  {label}
+                </li>
+              ))}
+            </ul>
           </div>
-          <Button variant="secondary" size="sm" onClick={() => void refreshSnapshot()} disabled={!canCall || busy}>
-            {busy
-              ? t('runtimeConfig.delegation.refreshing', { defaultValue: 'Refreshing' })
-              : t('runtimeConfig.delegation.refresh', { defaultValue: 'Refresh' })}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => void refreshSnapshot()}
+            loading={busyAction === 'refresh'}
+            disabled={!canCall || (busy && busyAction !== 'refresh')}
+          >
+            {t('runtimeConfig.delegation.refresh', { defaultValue: 'Refresh' })}
           </Button>
         </div>
 
@@ -154,7 +177,7 @@ export function DelegatedCapabilityControlPanel() {
         </div>
 
         {errorMessage ? (
-          <div className="mt-4 rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] px-3 py-2 text-xs text-[var(--nimi-status-danger)]">
+          <div role="alert" className="mt-4 rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] px-3 py-2 text-xs text-[var(--nimi-status-danger)]">
             {errorMessage}
           </div>
         ) : null}
@@ -181,10 +204,22 @@ export function DelegatedCapabilityControlPanel() {
                     </div>
                     {isPendingApproval(approval.state) ? (
                       <div className="flex gap-2">
-                        <Button variant="secondary" size="sm" onClick={() => void submitApproval(approval.approvalRequestId, 'reject')} disabled={busy}>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => void submitApproval(approval.approvalRequestId, 'reject')}
+                          loading={busyAction === `reject:${approval.approvalRequestId}`}
+                          disabled={busy && busyAction !== `reject:${approval.approvalRequestId}`}
+                        >
                           {t('runtimeConfig.delegation.reject', { defaultValue: 'Reject' })}
                         </Button>
-                        <Button variant="primary" size="sm" onClick={() => void submitApproval(approval.approvalRequestId, 'approve')} disabled={busy}>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => void submitApproval(approval.approvalRequestId, 'approve')}
+                          loading={busyAction === `approve:${approval.approvalRequestId}`}
+                          disabled={busy && busyAction !== `approve:${approval.approvalRequestId}`}
+                        >
                           {t('runtimeConfig.delegation.approve', { defaultValue: 'Approve' })}
                         </Button>
                       </div>
@@ -210,7 +245,13 @@ export function DelegatedCapabilityControlPanel() {
                           ])}
                         </span>
                       </span>
-                      <Button variant="secondary" size="sm" onClick={() => void loadReplayTrace(item)} disabled={busy}>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => void loadReplayTrace(item)}
+                        loading={busyAction === `replay:${item.diagnosticId}`}
+                        disabled={busy && busyAction !== `replay:${item.diagnosticId}`}
+                      >
                         {t('runtimeConfig.delegation.replay', { defaultValue: 'Replay' })}
                       </Button>
                     </div>

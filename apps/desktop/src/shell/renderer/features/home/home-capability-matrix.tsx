@@ -114,7 +114,7 @@ export function HomeCapabilityMatrixView({
 
   return (
     <AppCardSurface
-      kind="promoted-glass"
+      kind="operational-solid"
       className="flex h-full min-w-0 flex-col justify-between gap-4 rounded-3xl border-transparent! bg-[var(--nimi-home-porcelain-card)]! p-6 shadow-[var(--nimi-home-porcelain-shadow)]!"
       data-testid="home-capability-matrix"
     >

@@ -419,7 +419,7 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                 })}
               </p>
             ) : null}
-            <p className="mt-3 font-mono text-[11px] text-[var(--nimi-text-muted)]">ID: {selectedConnector.id}</p>
+            <p className="mt-3 font-mono text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">ID: {selectedConnector.id}</p>
           </details>
 
           <div className="mt-5 flex flex-wrap items-center gap-2 empty:hidden">

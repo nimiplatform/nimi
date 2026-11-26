@@ -45,11 +45,12 @@ function ImageLayerField(props: { parameters: StudioImageGenerationParameters; f
     } catch (failure) { setError(failure instanceof Error ? failure.message : String(failure)); }
     finally { setBusy(false); finishPreparation?.(); }
   }
-  return <StudioParameterField label={props.label}>
+  return <fieldset className="studio-parameters__field">
+    <legend className="studio-parameters__label">{props.label}</legend>
     <input ref={input} aria-label={props.label} className="studio-parameters__file-input" type="file" accept="image/png" disabled={props.disabled || busy} onChange={event=>void choose(event)} />
     <div className="studio-parameters__file-row"><Button type="button" tone="ghost" size="sm" disabled={props.disabled || busy} onClick={()=>input.current?.click()}>{host.translate(busy?'Studio.parameters.uploadingImage':'Studio.parameters.chooseImageFile')}</Button>{uploaded && uploaded.artifactId===props.parameters[props.field]?<span>{uploaded.name}</span>:null}{props.parameters[props.field]?<Button type="button" tone="ghost" size="sm" disabled={props.disabled || busy} onClick={()=>{const next={...props.parameters};delete next[props.field];props.onChange(next);setUploaded(null);setError('');}}>{host.translate('Studio.parameters.clearLayer')}</Button>:null}</div>
-    {error?<small>{error}</small>:null}<small>{props.hint}</small>
-  </StudioParameterField>;
+    {error?<small role="alert">{error}</small>:null}<small>{props.hint}</small>
+  </fieldset>;
 }
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.openai-image26
@@ -162,7 +163,8 @@ function ImageFields(props: StudioParameterPanelProps) {
       field: 'referenceImageArtifactId',
       label: t('Studio.parameters.fields.referenceImageFile'),
       render: (routeDisabled) => (
-        <StudioParameterField label={t('Studio.parameters.fields.referenceImageFile')}>
+        <fieldset className="studio-parameters__field">
+          <legend className="studio-parameters__label">{t('Studio.parameters.fields.referenceImageFile')}</legend>
           <input ref={inputRef} aria-label={t('Studio.parameters.fields.referenceImageFile')} className="studio-parameters__file-input" type="file" accept={imageMimes.join(',')} disabled={props.disabled || routeDisabled || uploading} onChange={(event) => void selectReferenceImage(event)} />
           <div className="studio-parameters__file-row">
             <Button type="button" tone="ghost" size="sm" disabled={props.disabled || routeDisabled || uploading} leadingIcon={<Upload size={14} aria-hidden="true" />} onClick={() => inputRef.current?.click()}>
@@ -175,9 +177,9 @@ function ImageFields(props: StudioParameterPanelProps) {
               </Button>
             ) : null}
           </div>
-          {uploadError ? <small>{uploadError}</small> : null}
+          {uploadError ? <small role="alert">{uploadError}</small> : null}
           <small>{t(props.source === 'cloud' ? 'Studio.parameters.cloudImageReferenceHint' : 'Studio.parameters.imageReferenceHint')}</small>
-        </StudioParameterField>
+        </fieldset>
       ),
     },
     textField('mask', t('Studio.parameters.fields.mask'), 'https://…'),
@@ -253,7 +255,8 @@ function ControlImageField(props: {
       finish?.();
     }
   }
-  return <StudioParameterField label={host.translate('Studio.parameters.fields.controlImage')}>
+  return <fieldset className="studio-parameters__field">
+    <legend className="studio-parameters__label">{host.translate('Studio.parameters.fields.controlImage')}</legend>
     <input ref={input} type="file" aria-label={host.translate('Studio.parameters.fields.controlImage')} accept="image/png,image/jpeg" className="studio-parameters__file-input" disabled={props.disabled || busy} onChange={event => void upload(event)} />
     <div className="studio-parameters__file-row">
       <Button type="button" tone="ghost" size="sm" disabled={props.disabled || busy} onClick={() => input.current?.click()}>{host.translate(busy ? 'Studio.parameters.uploadingImage' : 'Studio.parameters.chooseImageFile')}</Button>
@@ -269,9 +272,9 @@ function ControlImageField(props: {
         }}>{host.translate('Studio.parameters.clearLayer')}</Button>
       </> : null}
     </div>
-    {error ? <small>{error}</small> : null}
+    {error ? <small role="alert">{error}</small> : null}
     <small>{host.translate('Studio.parameters.controlImageHint')}</small>
-  </StudioParameterField>;
+  </fieldset>;
 }
 
 type VideoArtifactField = 'firstFrameArtifactId' | 'lastFrameArtifactId' | 'referenceArtifactId' | 'referenceAudioArtifactIds' | 'referenceVideoArtifactIds';
@@ -364,7 +367,8 @@ function VideoParameterPanel(props: StudioParameterPanelProps) {
         if (field === 'lastFrameArtifactId') delete next.lastFrameImageUrl;
         update(next);
       }} disabled={props.disabled || routeDisabled || uploading} />
-      <StudioParameterField label={t('Studio.parameters.fields.referenceImageFile')}>
+      <fieldset className="studio-parameters__field">
+        <legend className="studio-parameters__label">{t('Studio.parameters.fields.referenceImageFile')}</legend>
         <input ref={(element) => { inputs.current[field] = element; }} aria-label={label} className="studio-parameters__file-input" type="file" multiple={field === 'referenceArtifactId'} accept="image/png,image/jpeg,image/webp,image/gif" disabled={props.disabled || routeDisabled || uploading} onChange={(event) => void selectMedia(event, field)} />
         <div className="studio-parameters__file-row">
           <Button type="button" tone="ghost" size="sm" disabled={props.disabled || routeDisabled || uploading} leadingIcon={<Upload size={14} aria-hidden="true" />} onClick={() => inputs.current[field]?.click()}>{uploading ? t('Studio.parameters.uploadingImage') : t('Studio.parameters.chooseImageFile')}</Button>
@@ -377,15 +381,16 @@ function VideoParameterPanel(props: StudioParameterPanelProps) {
             update(next); setUploadedNames((previous) => ({ ...previous, [field]: undefined }));
           }}>{t('Studio.parameters.clearReferenceImage')}</Button> : null}
         </div>
-        {uploadError?.field === field ? <small>{uploadError.message}</small> : null}
-      </StudioParameterField>
+        {uploadError?.field === field ? <small role="alert">{uploadError.message}</small> : null}
+      </fieldset>
     </div>,
   });
   const mediaReferences = (field: 'referenceAudioArtifactIds' | 'referenceVideoArtifactIds'): StudioParameterFieldDefinition => {
     const audio = field === 'referenceAudioArtifactIds';
     const label = t(audio ? 'Studio.parameters.fields.referenceAudioArtifactIds' : 'Studio.parameters.fields.referenceVideoArtifactIds');
     return { field, label,
-      render: (routeDisabled) => <StudioParameterField label={label}>
+      render: (routeDisabled) => <fieldset className="studio-parameters__field">
+        <legend className="studio-parameters__label">{label}</legend>
         <TextareaField aria-label={label} value={(parameters[field] ?? []).join('\n')} rows={2} disabled={props.disabled || routeDisabled || uploading}
           onChange={(event) => update({ ...parameters, [field]: event.currentTarget.value.split('\n').map(value => value.trim()).filter(Boolean) })} />
         <input ref={element => { inputs.current[field] = element; }} aria-label={t(audio ? 'Studio.parameters.audioReferenceFiles' : 'Studio.parameters.videoReferenceFiles')} className="studio-parameters__file-input" type="file" multiple accept={audio ? 'audio/wav,audio/mpeg' : 'video/mp4'}
@@ -395,9 +400,9 @@ function VideoParameterPanel(props: StudioParameterPanelProps) {
           {uploadedNames[field]?.ids.length === parameters[field]?.length && uploadedNames[field]?.ids.every((id,index)=>id === parameters[field]?.[index]) ? <span>{uploadedNames[field]?.names}</span> : null}
           {parameters[field]?.length ? <Button type="button" tone="ghost" size="sm" disabled={props.disabled || routeDisabled || uploading} leadingIcon={<Trash2 size={14} aria-hidden="true" />} onClick={() => { const next={...parameters}; delete next[field]; update(next); setUploadedNames(previous=>({...previous,[field]:undefined})); }}>{t(audio ? 'Studio.parameters.clearAudioReference' : 'Studio.parameters.clearVideoReference')}</Button> : null}
         </div>
-        {uploadError?.field === field ? <small>{uploadError.message}</small> : null}
+        {uploadError?.field === field ? <small role="alert">{uploadError.message}</small> : null}
         <small>{t(audio ? 'Studio.parameters.audioReferenceOrderHint' : 'Studio.parameters.videoReferenceOrderHint')}</small>
-      </StudioParameterField>,
+      </fieldset>,
     };
   };
   const firstFrame = parameters.mode === 'i2v-first-frame' || parameters.mode === 'i2v-first-last';

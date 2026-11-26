@@ -38,11 +38,12 @@ export function PhaseStorage(props: PhaseStorageProps): ReactElement {
   if (props.transient) {
     return (
       <div
+        role="status"
         data-testid="first-run-phase-storage"
         data-phase-transient="true"
         className="flex flex-col items-center gap-4 py-6 text-center"
       >
-        <span className="nimi-first-run-pulse h-9 w-9 rounded-full border-2 border-[var(--nimi-action-primary-bg)] border-t-transparent" />
+        <span aria-hidden="true" className="nimi-first-run-spin h-9 w-9 rounded-full border-2 border-[var(--nimi-action-primary-bg)] border-t-transparent" />
         <p className="text-sm text-[var(--nimi-text-secondary)]">
           {t('FirstRun.storage.preparing', {
             defaultValue: 'Preparing Nimi on this device…',
@@ -82,7 +83,7 @@ export function PhaseStorage(props: PhaseStorageProps): ReactElement {
       <div className="flex items-stretch gap-3">
         <span
           aria-hidden
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,white)]"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)]"
         >
           <FolderIcon className="h-6 w-6 text-[var(--nimi-action-primary-bg)]" />
         </span>

@@ -69,7 +69,7 @@ export type RuntimeConfigPanelControllerModel = {
   filteredConnectorModels: string[];
   registeredRuntimePackageIds: string[];
   runtimeDaemonStatus: RuntimeBridgeDaemonStatus | null;
-  runtimeDaemonBusyAction: 'start' | 'restart' | 'stop' | null;
+  runtimeDaemonBusyAction: 'refresh' | 'start' | 'restart' | 'stop' | null;
   runtimeDaemonError: string;
   runtimeDaemonUpdatedAt: string | null;
   loadoutNavigationContext: RuntimeConfigLoadoutNavigationContext | null;
@@ -98,7 +98,7 @@ export type RuntimeConfigPanelControllerModel = {
   installResolvedModelPlan: (plan: NimiRuntimeLocalInstallPlanDescriptor) => Promise<RuntimeConfigInstallResult>;
   installConfirmation: RuntimeConfigInstallConfirmationRequest | null;
   resolveInstallConfirmation: (confirmed: boolean) => void;
-  refreshRuntimeDaemonStatus: () => Promise<void>;
+  refreshRuntimeDaemonStatus: (options?: { silent?: boolean }) => Promise<void>;
   startRuntimeDaemon: () => Promise<void>;
   restartRuntimeDaemon: () => Promise<void>;
   onVaultChanged: () => void;

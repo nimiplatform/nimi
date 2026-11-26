@@ -1,5 +1,6 @@
 import { createElement, type ComponentPropsWithoutRef, type CSSProperties, type ElementType, type ReactNode } from 'react';
 import { cn, type AmbientVariant } from '../design-tokens.js';
+import { useNimiReducedMotion } from '../motion/index.js';
 
 /**
  * AmbientBackground — governed primitive for the first-class ambient surface
@@ -88,6 +89,8 @@ export function AmbientBackground<T extends ElementType = 'div'>(
 ) {
   const { as, variant = 'none', children, className, style: userStyle, ...rest } = props;
   const Component = (as || 'div') as ElementType;
+  const reducedMotion = useNimiReducedMotion();
+  const haloAnimClass = reducedMotion ? 'nimi-ambient-halo' : 'nimi-ambient-halo animate-pulse motion-reduce:animate-none';
 
   // Primitive contract (P-DESIGN-023): root slot `nimi-ambient-root` and one
   // variant marker class are applied for every variant, including `none`.
@@ -100,7 +103,10 @@ export function AmbientBackground<T extends ElementType = 'div'>(
   let layers: ReactNode = null;
   if (variant === 'mesh') {
     layers = (
-      <>
+      <div
+        aria-hidden="true"
+        style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}
+      >
         <div
           aria-hidden="true"
           className="nimi-ambient-mesh"
@@ -109,7 +115,7 @@ export function AmbientBackground<T extends ElementType = 'div'>(
         />
         <div
           aria-hidden="true"
-          className="nimi-ambient-halo animate-pulse motion-reduce:animate-none"
+          className={haloAnimClass}
           data-nimi-ambient-layer="halo"
           style={{
             ...HALO_BASE_STYLE,
@@ -124,7 +130,7 @@ export function AmbientBackground<T extends ElementType = 'div'>(
         />
         <div
           aria-hidden="true"
-          className="nimi-ambient-halo animate-pulse motion-reduce:animate-none"
+          className={haloAnimClass}
           data-nimi-ambient-layer="halo"
           style={{
             ...HALO_BASE_STYLE,
@@ -138,7 +144,7 @@ export function AmbientBackground<T extends ElementType = 'div'>(
         />
         <div
           aria-hidden="true"
-          className="nimi-ambient-halo animate-pulse motion-reduce:animate-none"
+          className={haloAnimClass}
           data-nimi-ambient-layer="halo"
           style={{
             ...HALO_BASE_STYLE,
@@ -150,7 +156,7 @@ export function AmbientBackground<T extends ElementType = 'div'>(
             animationDelay: '-10s',
           }}
         />
-      </>
+      </div>
     );
   } else if (variant === 'minimal') {
     layers = (

@@ -143,6 +143,8 @@
     "visibility": "可见性"
   },
   "removePhoto": "移除头像",
+  "removePhotoConfirmTitle": "移除头像？",
+  "removePhotoConfirmMessage": "将从草稿中清除当前头像，保存资料后会对外生效。",
   "photoUploaded": "头像已上传。",
   "defaultAvatarPresets": "默认配色头像",
   "applyAvatarPreset": "使用{{color}}默认头像",
@@ -168,6 +170,8 @@
   "previewDraftTag": "含未保存草稿",
   "viewFullProfile": "查看完整主页",
   "discardChanges": "放弃更改",
+  "discardChangesConfirmTitle": "放弃未保存的更改？",
+  "discardChangesConfirmMessage": "未保存的编辑将被撤销，恢复为上次保存的个人资料。",
   "unsavedChangesSummary": "有 {{count}} 项未保存的修改（{{fields}}）",
   "cityPlaceholder": "例如：上海、Columbus",
   "countrySearchPlaceholder": "搜索国家、地区或代码（如 CN / 美国）…",

@@ -17,15 +17,21 @@ export type RuntimeEnvironmentActions = {
   error?: string;
   reasonCode?: string;
   onRefresh: () => void;
-  onCancel: (jobId: string) => void;
+  onCancel: (jobId: string) => void | Promise<void>;
 };
 
 export function RuntimeEnvironmentCheck(props: { actions?: RuntimeEnvironmentActions }) {
   const { t } = useTranslation();
   return props.actions ? (
     <div className="space-y-2">
-      <Button data-testid="configuration-environment-refresh" tone="ghost" size="sm" disabled={props.actions.checking || props.actions.busy} onClick={props.actions.onRefresh}>
-        {props.actions.checking ? <LoaderCircle size={12} className="animate-spin" aria-hidden="true" /> : null}
+      <Button
+        data-testid="configuration-environment-refresh"
+        tone="ghost"
+        size="sm"
+        loading={props.actions.checking}
+        disabled={props.actions.busy}
+        onClick={props.actions.onRefresh}
+      >
         {t('runtimeConfig.environment.localCapabilityRefresh')}
       </Button>
       {props.actions.error ? (
@@ -50,6 +56,18 @@ export function RuntimeEnvironmentDependencies(props: {
 }) {
   const { t } = useTranslation();
   const [cancelId, setCancelId] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const cancelBusy = Boolean(props.actions?.busy) || cancelling;
+  const confirmCancel = async () => {
+    if (!cancelId || cancelBusy) return;
+    setCancelling(true);
+    try {
+      await props.actions?.onCancel(cancelId);
+    } finally {
+      setCancelling(false);
+      setCancelId(null);
+    }
+  };
   return (
     <div className={props.className}>
       <ul className="divide-y divide-[var(--nimi-border-subtle)] text-xs">
@@ -63,8 +81,8 @@ export function RuntimeEnvironmentDependencies(props: {
             <li key={`${item.environmentKey}:${item.consumerScope}:${item.dependencyFamily}:${item.dependencyId}`} className="py-2 first:pt-0 last:pb-0">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="min-w-0 break-words font-medium text-[var(--nimi-text-primary)]">{shown.name}</span>
-                <span className={`inline-flex items-center gap-1.5 ${ready ? 'text-[var(--nimi-status-success)]' : 'text-[var(--nimi-text-secondary)]'}`}>
-                  {active ? <LoaderCircle size={12} className="animate-spin" aria-hidden="true" /> : null}
+                <span className={`inline-flex items-center gap-1.5 tabular-nums ${ready ? 'text-[var(--nimi-status-success)]' : 'text-[var(--nimi-text-secondary)]'}`}>
+                  {active ? <LoaderCircle size={12} className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> : null}
                   {shown.state}{active && job.bytesTotal > 0 ? ` · ${Math.round(job.percent)}%` : ''}
                   {!item.required ? ` · ${t('runtimeConfig.local.optional')}` : ''}
                 </span>
@@ -96,9 +114,9 @@ export function RuntimeEnvironmentDependencies(props: {
         message={t('runtimeConfig.environment.cancelComponentMessage')}
         confirmLabel={t('runtimeConfig.environment.cancelComponent')}
         cancelLabel={t('Common.cancel')}
-        pending={props.actions?.busy ?? false}
-        onConfirm={() => { if (cancelId) props.actions?.onCancel(cancelId); setCancelId(null); }}
-        onClose={() => setCancelId(null)}
+        loading={cancelBusy}
+        onConfirm={() => { void confirmCancel(); }}
+        onClose={() => { if (!cancelBusy) setCancelId(null); }}
       />
     </div>
   );

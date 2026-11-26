@@ -186,7 +186,7 @@ export function RemoveModelAssetDialogBody({ asset, impact }: RemoveModelAssetDi
                           {displayRuntimeConfigCapabilityLabel(group.capabilityContract, t)}
                         </span>
                         {group.active ? (
-                          <span className="rounded-full bg-[var(--nimi-status-danger)] px-1.5 py-px text-[length:var(--nimi-type-caption-size)] font-semibold text-white">
+                          <span className="rounded-full bg-[var(--nimi-status-danger)] px-1.5 py-px text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-action-primary-text)]">
                             {t('runtimeConfig.localModelCenter.removeModelActiveBadge', { defaultValue: 'In use' })}
                           </span>
                         ) : null}

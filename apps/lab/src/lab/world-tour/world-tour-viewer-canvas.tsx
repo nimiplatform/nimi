@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, InlineAlert, Surface } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, Surface, TextField } from '@nimiplatform/kit/ui';
 import { useTranslation } from '../../shell/i18n/index.js';
 import type { ResolvedWorldTourFixture } from './world-tour-shared.js';
 import { useLabRendererHost } from '../../renderer/context.js';
@@ -102,8 +102,8 @@ export function WorldTourViewerCanvas({ fixture }: WorldTourViewerCanvasProps) {
         <Button tone={navigation.mode === 'fly' ? 'primary' : 'secondary'} disabled={!ready || navigation.pending} onClick={() => chooseMode('fly')}>{t('WorldTour.flyMode')}</Button>
         <span aria-live="polite">{t(navigation.calibrationState === 'uncalibrated' ? 'WorldTour.uncalibratedFlyActive' : navigation.mode === 'walk' ? 'WorldTour.walkActive' : navigation.mode === 'fly' ? 'WorldTour.flyActive' : 'WorldTour.chooseMode')}</span>
         {navigation.calibrationState !== 'uncalibrated' ? <>
-        <label>{t('WorldTour.bodyHeight')} <input type="number" aria-label={t('WorldTour.bodyHeight')} min="0.5" max="2.4" step="0.1" value={bodyHeight} disabled={!ready || navigation.pending} onChange={event => setBodyHeight(event.target.value)} /></label>
-        <label>{t('WorldTour.bodyRadius')} <input type="number" aria-label={t('WorldTour.bodyRadius')} min="0.1" max="0.4" step="0.01" value={radius} disabled={!ready || navigation.pending} onChange={event => setRadius(event.target.value)} /></label>
+        <label className="world-tour-navigation-field">{t('WorldTour.bodyHeight')} <TextField type="number" aria-label={t('WorldTour.bodyHeight')} min="0.5" max="2.4" step="0.1" value={bodyHeight} disabled={!ready || navigation.pending} onChange={event => setBodyHeight(event.target.value)} /></label>
+        <label className="world-tour-navigation-field">{t('WorldTour.bodyRadius')} <TextField type="number" aria-label={t('WorldTour.bodyRadius')} min="0.1" max="0.4" step="0.01" value={radius} disabled={!ready || navigation.pending} onChange={event => setRadius(event.target.value)} /></label>
         <Button tone="secondary" disabled={!ready || navigation.pending || navigation.issue === 'missing' || navigation.issue === 'invalid'} onClick={() => void applySize()}>{t('WorldTour.applyBodySize')}</Button>
         </> : null}
       </div>

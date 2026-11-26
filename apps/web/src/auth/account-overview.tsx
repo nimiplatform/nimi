@@ -26,6 +26,7 @@ import { AccountAvatar, AccountFeedback } from './account-center-layout.js';
 import { accountCenterCopy, type AccountCopyKey } from './account-center-copy.js';
 import { accountHandle } from './account-center-model.js';
 import { withLocaleQuery } from '../landing/config/landing-links.js';
+import { useCopyFeedback } from '../landing/components/use-copy-command.js';
 import {
   detectVisitorPlatform,
   NIMI_MACOS_DOWNLOAD_URL,
@@ -169,18 +170,15 @@ export function InstallNimiPanel({
   showAllPlatformsLink?: boolean;
 }) {
   const c = copyForLocale(locale);
-  const [copiedLink, setCopiedLink] = useState(false);
+  const { copyText: copyDesktopLinkText, status: desktopCopyStatus } = useCopyFeedback(2000);
+  const copiedLink = desktopCopyStatus === 'copied';
+  const copyLinkFailed = desktopCopyStatus === 'error';
   const scopeId = useId();
   const warningId = useId();
   const downloadHref = '/account/download';
 
   async function copyDesktopLink() {
-    try {
-      await navigator.clipboard.writeText('https://nimi.ai/download');
-      setCopiedLink(true);
-    } catch {
-      setCopiedLink(false);
-    }
+    await copyDesktopLinkText('https://nimi.ai/download');
   }
 
   const scopeText = platform === 'macos'
@@ -248,6 +246,10 @@ export function InstallNimiPanel({
                 <span>{c('overviewAllPlatforms')}</span>
               </Link>
             ) : null}
+            <span className="sr-only" role="status" aria-live="polite">
+              {copiedLink ? c('overviewCopiedDesktopLink') : copyLinkFailed ? c('copyLinkFailed') : ''}
+            </span>
+            {copyLinkFailed ? <p className="ac-feedback ac-feedback--error" role="alert">{c('copyLinkFailed')}</p> : null}
           </>
         ) : (
           showAllPlatformsLink ? (
@@ -285,7 +287,9 @@ export function AccountOverviewView({
   nowMs?: number;
 }) {
   const c = copyForLocale(locale);
-  const [copiedHandle, setCopiedHandle] = useState(false);
+  const { copyText: copyHandleText, status: handleCopyStatus } = useCopyFeedback(2000);
+  const copiedHandle = handleCopyStatus === 'copied';
+  const copyHandleFailed = handleCopyStatus === 'error';
   const [selectedCategory, setSelectedCategory] = useState<'all' | HostedWebAppCategory>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [failedIcons, setFailedIcons] = useState<Record<string, boolean>>({});
@@ -331,13 +335,7 @@ export function AccountOverviewView({
 
   async function copyUsername() {
     if (!handle) return;
-    try {
-      await navigator.clipboard.writeText(`@${handle}`);
-      setCopiedHandle(true);
-      window.setTimeout(() => setCopiedHandle(false), 1800);
-    } catch {
-      setCopiedHandle(false);
-    }
+    await copyHandleText(`@${handle}`);
   }
 
   if (runtimeStatus.kind === 'loading') {
@@ -701,16 +699,22 @@ export function AccountOverviewView({
                 {c('edit')}
               </Link>
               {handle ? (
-                <button
-                  type="button"
-                  className="ac-text-button"
-                  onClick={() => void copyUsername()}
-                >
-                  {copiedHandle ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
-                  <span>{c(copiedHandle ? 'copied' : 'copy')}</span>
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className="ac-text-button"
+                    onClick={() => void copyUsername()}
+                  >
+                    {copiedHandle ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+                    <span>{c(copiedHandle ? 'copied' : 'copy')}</span>
+                  </button>
+                  <span className="sr-only" role="status" aria-live="polite">
+                    {copiedHandle ? c('copied') : copyHandleFailed ? c('copyFailed') : ''}
+                  </span>
+                </>
               ) : null}
             </div>
+            {copyHandleFailed ? <p className="ac-feedback ac-feedback--error" role="alert">{c('copyFailed')}</p> : null}
           </article>
 
           <article className="ac-section ac-overview-card">

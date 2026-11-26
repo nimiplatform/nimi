@@ -182,7 +182,7 @@ export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkFor
               type="button"
               aria-pressed={filter === 'all'}
               onClick={() => setFilter('all')}
-              className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${
+              className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-[transform,background-color,color] duration-150 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${
                 filter === 'all'
                   ? 'bg-[var(--nimi-text-primary)] text-[var(--nimi-surface-card)]'
                   : 'bg-[var(--nimi-home-soft-well)] text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-home-soft-well-hover)] hover:text-[var(--nimi-text-primary)]'
@@ -194,7 +194,7 @@ export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkFor
               type="button"
               aria-pressed={filter === 'pending'}
               onClick={() => setFilter(filter === 'pending' ? 'all' : 'pending')}
-              className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${
+              className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-[transform,background-color,color] duration-150 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${
                 filter === 'pending'
                   ? 'bg-[var(--nimi-text-primary)] text-[var(--nimi-surface-card)]'
                   : pending.count > 0
@@ -211,7 +211,7 @@ export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkFor
               type="button"
               aria-pressed={filter === 'unread'}
               onClick={() => setFilter(filter === 'unread' ? 'all' : 'unread')}
-              className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${
+              className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-[transform,background-color,color] duration-150 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${
                 filter === 'unread'
                   ? 'bg-[var(--nimi-text-primary)] text-[var(--nimi-surface-card)]'
                   : 'bg-[var(--nimi-home-soft-well)] text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-home-soft-well-hover)] hover:text-[var(--nimi-text-primary)]'
@@ -229,7 +229,7 @@ export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkFor
             type="button"
             aria-pressed={filter === 'pending'}
             onClick={() => setFilter(filter === 'pending' ? 'all' : 'pending')}
-            className={`rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${filter === 'pending'
+            className={`rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap transition-[transform,background-color,color] duration-150 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${filter === 'pending'
               ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
               : pending.count > 0 ? 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]' : 'bg-[var(--nimi-home-soft-well)] text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-home-soft-well-hover)]'}`}
             data-testid="home-messages-pending"

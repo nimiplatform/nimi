@@ -111,6 +111,15 @@ const en = {
     requestNewRecoveryCode: 'Request a new email code',
     emailPlaceholder: 'Email',
     pleaseWait: 'Please wait…',
+    cryptoRandomUnavailable: 'Secure random generation is unavailable in this browser.',
+    pkceUnavailable: 'This browser does not support secure PKCE S256.',
+    tiktokNotConfigured: 'TikTok sign-in is not currently configured.',
+    oauthStateMissing: 'The OAuth link session is missing or has already been used.',
+    oauthStateInvalid: 'The OAuth link session is invalid.',
+    oauthStateExpired: 'The OAuth link session has expired. Please try again.',
+    oauthAuthFailedPrefix: 'TikTok authorization failed: {{error}}',
+    oauthStateMismatch: 'OAuth state mismatch. Please start again.',
+    oauthCodeMissing: 'TikTok did not return an authorization code.',
   },
 };
 
@@ -221,6 +230,15 @@ const zh = {
     requestNewRecoveryCode: '重新获取邮箱验证码',
     emailPlaceholder: '邮箱',
     pleaseWait: '请稍候…',
+    cryptoRandomUnavailable: '当前浏览器不支持安全随机数生成。',
+    pkceUnavailable: '当前浏览器不支持安全的 PKCE S256。',
+    tiktokNotConfigured: 'TikTok 登录当前未配置。',
+    oauthStateMissing: 'OAuth 绑定事务不存在或已消费。',
+    oauthStateInvalid: 'OAuth 绑定事务无效。',
+    oauthStateExpired: 'OAuth 绑定事务已失效，请重新发起。',
+    oauthAuthFailedPrefix: 'TikTok 授权失败：{{error}}',
+    oauthStateMismatch: 'OAuth state 不匹配，请重新发起。',
+    oauthCodeMissing: 'TikTok 未返回授权 code。',
   },
 };
 

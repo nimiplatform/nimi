@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent, type ReactNode } from 'react';
-import { Button, EmptyState, Surface, TextareaField, cn } from '@nimiplatform/kit/ui';
+import { Button, ConfirmDialog, EmptyState, Surface, TextareaField, cn } from '@nimiplatform/kit/ui';
 import type {
   AppAiChatSessionMessage,
   UseAppAiChatSessionResult,
@@ -19,6 +19,12 @@ export type AppAiChatPanelProps = {
   streamingLabel?: string;
   cancelLabel?: string;
   resetLabel?: string;
+  /** Confirm before clearing non-empty conversation history. Defaults to `true`. */
+  confirmReset?: boolean;
+  resetConfirmTitle?: string;
+  resetConfirmDescription?: string;
+  resetConfirmLabel?: string;
+  resetCancelLabel?: string;
   emptyState?: ReactNode;
   /** Title used by the default empty state when `emptyState` is not provided. */
   emptyStateLabel?: string;
@@ -60,6 +66,11 @@ export function AppAiChatPanel({
   streamingLabel = 'Streaming...',
   cancelLabel = 'Cancel',
   resetLabel = 'Reset',
+  confirmReset = true,
+  resetConfirmTitle = 'Reset conversation?',
+  resetConfirmDescription = 'This clears the current conversation messages.',
+  resetConfirmLabel = 'Reset',
+  resetCancelLabel = 'Cancel',
   emptyState,
   emptyStateLabel = 'No messages yet',
   actions,
@@ -77,8 +88,15 @@ export function AppAiChatPanel({
   renderMessage,
 }: AppAiChatPanelProps) {
   const [input, setInput] = useState('');
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const { messages, isStreaming, canCancel, sendPrompt, cancelCurrent, resetMessages } = session;
   const resolvedMessagesClassName = messagesClassName ?? 'h-80';
+
+  function executeReset() {
+    setResetConfirmOpen(false);
+    resetMessages([]);
+    onReset?.();
+  }
 
   async function handleSend() {
     const prompt = input.trim();
@@ -106,9 +124,13 @@ export function AppAiChatPanel({
         <Button
           tone="ghost"
           size="sm"
+          disabled={messages.length === 0 && !isStreaming}
           onClick={() => {
-            resetMessages([]);
-            onReset?.();
+            if (confirmReset && messages.length > 0) {
+              setResetConfirmOpen(true);
+              return;
+            }
+            executeReset();
           }}
         >
           {resetLabel}
@@ -198,6 +220,16 @@ export function AppAiChatPanel({
           </Button>
         </div>
       </div>
+      <ConfirmDialog
+        open={resetConfirmOpen}
+        title={resetConfirmTitle}
+        message={resetConfirmDescription}
+        confirmLabel={resetConfirmLabel}
+        cancelLabel={resetCancelLabel}
+        confirmTone="danger"
+        onConfirm={executeReset}
+        onClose={() => setResetConfirmOpen(false)}
+      />
     </Surface>
   );
 }

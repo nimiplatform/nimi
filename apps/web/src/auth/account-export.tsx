@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createWebBrowserRealm } from './browser-realm.js';
 import { loadWebCurrentAccount } from './web-account-adapter.js';
+import { AccountFeedback } from './account-center-layout.js';
 import {
   accountExportMarkdown,
   accountExportSectionLabel,
@@ -115,8 +116,7 @@ export function AccountExport({ expectedAccountId }: { expectedAccountId: string
       <button type="button" disabled={working} onClick={() => void download('md')}>
         {labels.markdown}
       </button>
-      {working ? <p role="status">{labels.preparing}</p> : null}
-      {error ? <p role="alert">{error}</p> : null}
+      <AccountFeedback error={error} message={working ? labels.preparing : null} />
       {result ? (
         <div role="status">
           <p>{labels.delivered}</p>

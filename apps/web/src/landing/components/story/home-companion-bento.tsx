@@ -217,6 +217,7 @@ export function HomeCompanionBento({ locale }: { locale: LandingLocale }) {
                   </div>
                   <button
                     type="button"
+                    aria-pressed={isPlaying}
                     className={`story-voice-play-btn${isPlaying ? ' is-playing' : ''}`}
                     onClick={() => voice.toggle(voiceClipUrl)}
                   >
@@ -224,6 +225,11 @@ export function HomeCompanionBento({ locale }: { locale: LandingLocale }) {
                     <span>{isPlaying ? (isZh ? '暂停' : 'Pause') : (isZh ? '听听声音' : 'Listen')}</span>
                   </button>
                 </div>
+                {voice.failedUrl === voiceClipUrl ? (
+                  <p className="story-voice-error" role="alert">
+                    {isZh ? '语音片段暂时无法播放，请重试。' : 'Voice sample could not be played. Please try again.'}
+                  </p>
+                ) : null}
               </div>
 
               <div className="home-bento-split-pane">
@@ -239,8 +245,8 @@ export function HomeCompanionBento({ locale }: { locale: LandingLocale }) {
                   </ul>
                 </div>
 
-                <div className="home-bento-lock-pill" aria-hidden="true">
-                  <Lock size={13} />
+                <div className="home-bento-lock-pill">
+                  <Lock size={13} aria-hidden="true" />
                   <span>{isZh ? '私聊严格隔离' : 'Private chats isolated'}</span>
                 </div>
 

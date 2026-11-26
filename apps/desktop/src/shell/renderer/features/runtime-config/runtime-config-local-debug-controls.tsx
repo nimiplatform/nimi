@@ -59,6 +59,7 @@ export function ChevronIcon({ expanded, size = 14 }: { expanded: boolean; size?:
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
+      aria-hidden="true"
       className={cn('transition-transform duration-200', expanded ? 'rotate-180' : 'rotate-0')}
     >
       <polyline points="6 9 12 15 18 9" />
@@ -72,29 +73,23 @@ export function EventTypePill({
   active,
   onClick,
   className,
-  dark,
 }: {
   label: string;
   count: number;
   active: boolean;
   onClick: () => void;
   className?: string;
-  dark?: boolean;
 }) {
   return (
     <button
       type="button"
+      aria-pressed={active}
       onClick={onClick}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[length:var(--nimi-type-caption-size)] font-medium transition-all',
+        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[length:var(--nimi-type-caption-size)] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]',
         active
-          ? dark
-            ? 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
-            : 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
-          : cn(
-            'hover:-translate-y-[0.5px]',
-            className || 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)]',
-          ),
+          ? 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
+          : (className || 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-panel)]'),
       )}
     >
       <span className="font-mono">{label}</span>
@@ -124,9 +119,10 @@ export function FacetPill({
   return (
     <button
       type="button"
+      aria-pressed={active}
       onClick={onClick}
       className={cn(
-        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium transition-colors',
+        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]',
         active
           ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
           : 'text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-primary)]',
@@ -179,8 +175,9 @@ export function AuditTableRow({ event }: { event: RuntimeConfigAuditEvent }) {
     <div>
       <button
         type="button"
+        aria-expanded={expanded}
         onClick={() => setExpanded((prev) => !prev)}
-        className="grid w-full grid-cols-[72px_minmax(220px,1.6fr)_minmax(130px,0.9fr)_minmax(170px,1.3fr)_minmax(140px,1.2fr)_24px] items-center gap-x-3 gap-y-0 rounded-lg px-3 py-3 text-left transition-colors hover:bg-[var(--nimi-surface-panel)]/40"
+        className="grid w-full grid-cols-[72px_minmax(220px,1.6fr)_minmax(130px,0.9fr)_minmax(170px,1.3fr)_minmax(140px,1.2fr)_24px] items-center gap-x-3 gap-y-0 rounded-lg px-3 py-3 text-left transition-colors hover:bg-[var(--nimi-surface-panel)]/40 active:bg-[var(--nimi-surface-panel)]/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--nimi-focus-ring-color)]"
       >
         <Tooltip content={event.occurredAt} placement="top">
           <span

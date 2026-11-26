@@ -29,9 +29,9 @@ export function ConversationAnimationStyles() {
 }
 
 @keyframes voice-bar {
-  0%, 100% { height: 4px; opacity: 0.55; }
-  35% { height: 15px; opacity: 1; }
-  70% { height: 8px; opacity: 0.72; }
+  0%, 100% { transform: scaleY(0.27); opacity: 0.55; }
+  35% { transform: scaleY(1); opacity: 1; }
+  70% { transform: scaleY(0.53); opacity: 0.72; }
 }
 
 @keyframes typing-dot-bounce {
@@ -79,6 +79,11 @@ export function ConversationAnimationStyles() {
 }
 
 
+.conversation-root .chat-voice-bar {
+  height: 15px;
+  transform-origin: bottom;
+}
+
 /* ── reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
   .conversation-root .conv-animate-fade-in,
@@ -87,6 +92,13 @@ export function ConversationAnimationStyles() {
   .conversation-root .lc-typing-dot {
     animation: none !important;
   }
+}
+
+[data-nimi-reduced-motion="true"] .conversation-root .conv-animate-fade-in,
+[data-nimi-reduced-motion="true"] .conversation-root .chat-msg-entry,
+[data-nimi-reduced-motion="true"] .conversation-root .chat-voice-bar,
+[data-nimi-reduced-motion="true"] .conversation-root .lc-typing-dot {
+  animation: none !important;
 }
 `,
       }}

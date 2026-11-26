@@ -127,7 +127,7 @@ function describeRemoteSegment(
 }
 
 const ITEM_BUTTON_CLASS =
-  'inline-flex min-w-0 items-center gap-1.5 rounded-lg px-1.5 py-1 text-xs text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-home-soft-well)] hover:text-[var(--nimi-text-primary)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]';
+  'inline-flex min-w-0 items-center gap-1.5 rounded-lg px-1.5 py-1 text-xs text-[var(--nimi-text-secondary)] transition-[transform,background-color,color] duration-150 hover:bg-[var(--nimi-home-soft-well)] hover:text-[var(--nimi-text-primary)] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]';
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r015
 // @nimi-authority: rule.nimi.desktop.product-surfaces.home-system-activity

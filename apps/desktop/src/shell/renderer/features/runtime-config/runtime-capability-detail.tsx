@@ -131,7 +131,7 @@ export function PendingSetupBanner(props: {
       : 'attention';
   const Icon = kind === 'preparing' ? LoaderCircle : kind === 'prepared' ? CheckCircle2 : CircleAlert;
   const iconClass = kind === 'preparing'
-    ? 'animate-spin text-[var(--nimi-status-info)]'
+    ? 'animate-spin motion-reduce:animate-none text-[var(--nimi-status-info)]'
     : kind === 'prepared'
       ? 'text-[var(--nimi-status-success)]'
       : 'text-[var(--nimi-status-warning)]';
@@ -142,7 +142,7 @@ export function PendingSetupBanner(props: {
       data-testid="capability-pending-setup"
     >
       <span className="flex min-w-0 items-center gap-2">
-        <Icon size={15} className={`shrink-0 ${iconClass}`} />
+        <Icon size={15} className={`shrink-0 ${iconClass}`} aria-hidden="true" />
         <span className="min-w-0">
           {props.model
             ? t(`runtimeConfig.product.pendingSetup.${kind}`, { model: props.model })
@@ -151,7 +151,7 @@ export function PendingSetupBanner(props: {
       </span>
       <Button tone="secondary" size="sm" onClick={props.onOpen}>
         {t(`runtimeConfig.product.pendingSetup.${action}`)}
-        <ArrowRight size={14} />
+        <ArrowRight size={14} aria-hidden="true" />
       </Button>
     </div>
   );
@@ -208,7 +208,7 @@ export function RuntimeCapabilityDetail(props: Props) {
   return (
     <div className="desktop-module-stack" data-testid={`ai-capability-detail:${props.capability}`}>
       <header className="flex items-start gap-3">
-        <span className="desktop-module-header-icon flex items-center justify-center bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]"><Icon size={24} strokeWidth={1.6} /></span>
+        <span className="desktop-module-header-icon flex items-center justify-center bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]" aria-hidden="true"><Icon size={24} strokeWidth={1.6} aria-hidden="true" /></span>
         <div className="min-w-0"><h1 className="desktop-module-title">{label}</h1>
           <p className="mt-1 text-sm text-[var(--nimi-text-secondary)]">{displayRuntimeConfigCapabilityUsage(props.capability, t)}</p></div>
       </header>
@@ -221,9 +221,9 @@ export function RuntimeCapabilityDetail(props: Props) {
             <div className="flex flex-wrap items-center gap-2">
               {showSearch ? <SearchField aria-label={t('runtimeConfig.product.searchModels')} placeholder={t('runtimeConfig.product.searchModels')} value={query}
                 onChange={event => setQuery(event.currentTarget.value)} onClear={() => setQuery('')} clearLabel={t('Common.clear')} /> : null}
-              {props.onCreate ? <Button tone="secondary" size="sm" disabled={props.busy || props.disabled} onClick={props.onCreate} data-testid="capability-new-configuration"><Plus size={14} />{t('runtimeConfig.product.newConfiguration')}</Button> : null}
-              <Button tone="secondary" size="sm" onClick={() => props.onModelMarket({ kind: 'browse', capabilityContract: props.capability })}><Store size={14} />{t('runtimeConfig.product.modelPicker.browse')}</Button>
-              {props.onImportModelFiles || props.onModelFiles ? <Button tone="secondary" size="sm" onClick={props.onImportModelFiles ?? props.onModelFiles} data-testid="capability-models-import"><FolderOpen size={14} />{t('runtimeConfig.product.importModel')}</Button> : null}
+              {props.onCreate ? <Button tone="secondary" size="sm" disabled={props.busy || props.disabled} onClick={props.onCreate} data-testid="capability-new-configuration"><Plus size={14} aria-hidden="true" />{t('runtimeConfig.product.newConfiguration')}</Button> : null}
+              <Button tone="secondary" size="sm" onClick={() => props.onModelMarket({ kind: 'browse', capabilityContract: props.capability })}><Store size={14} aria-hidden="true" />{t('runtimeConfig.product.modelPicker.browse')}</Button>
+              {props.onImportModelFiles || props.onModelFiles ? <Button tone="secondary" size="sm" onClick={props.onImportModelFiles ?? props.onModelFiles} data-testid="capability-models-import"><FolderOpen size={14} aria-hidden="true" />{t('runtimeConfig.product.importModel')}</Button> : null}
             </div>
           </div>
           {props.modelsError || props.libraryError ? <InlineAlert tone="warning">{t('runtimeConfig.product.preparationUnknown')}<Button tone="ghost" size="sm" onClick={props.onRetryCustomization}>{t('Common.retry')}</Button></InlineAlert> : null}
@@ -335,7 +335,7 @@ export function RuntimeCapabilityDetail(props: Props) {
           {orderedRecipes.length || orderedLoadouts.length ? <p className="text-xs leading-relaxed text-[var(--nimi-text-secondary)]">{t('runtimeConfig.product.modelPicker.switchNote')}</p> : null}
           {props.hasAnyLoadouts || loadouts.length > 0 ? (
             <Button tone="ghost" size="sm" onClick={() => props.onSection('saved')} data-testid="capability-manage-saved">
-              <Bookmark size={14} />
+              <Bookmark size={14} aria-hidden="true" />
               {t('runtimeConfig.product.manageSaved')}
             </Button>
           ) : null}
@@ -513,7 +513,7 @@ function SavedLoadoutCard(props: {
         <IdentityTile seed={props.identity.seed || modelFamilySeed(title)} label={title} size="lg" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <h4 className="text-[15px] font-semibold leading-snug text-[var(--nimi-text-primary)]">{title}</h4>
+            <h4 className="text-sm font-semibold leading-snug text-[var(--nimi-text-primary)]">{title}</h4>
             {props.current ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-[var(--nimi-action-primary-bg)] px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-action-primary-text)]">
                 <Check size={12} strokeWidth={2.5} aria-hidden="true" />
@@ -562,7 +562,7 @@ function SavedLoadoutCard(props: {
               data-testid={`capability-config-settings:${props.loadout.loadoutId}`}
               onClick={props.onCustomize}
             >
-              <SlidersHorizontal size={14} />
+              <SlidersHorizontal size={14} aria-hidden="true" />
               {t('runtimeConfig.product.settings.open')}
             </Button>
           ) : null}
@@ -575,7 +575,7 @@ function SavedLoadoutCard(props: {
               onClick={props.onSelect}
             >
               {t('runtimeConfig.product.selectModel')}
-              <ArrowRight size={14} />
+              <ArrowRight size={14} aria-hidden="true" />
             </Button>
           ) : null}
         </div>
@@ -624,7 +624,7 @@ function RecipePlanCard(props: {
       <div className="flex items-start gap-3">
         <IdentityTile seed={modelFamilySeed(props.recipe.title)} label={props.title} size="lg" />
         <div className="min-w-0 flex-1">
-          <h4 className="text-[15px] font-semibold leading-snug text-[var(--nimi-text-primary)]">{props.title}</h4>
+          <h4 className="text-sm font-semibold leading-snug text-[var(--nimi-text-primary)]">{props.title}</h4>
           {props.description ? <p className={`mt-1 text-sm leading-relaxed ${unsupported ? 'text-[var(--nimi-text-muted)]' : 'text-[var(--nimi-text-secondary)]'}`}>
             {props.description}
           </p> : null}
@@ -646,28 +646,28 @@ function RecipePlanCard(props: {
       </ul>
       <div className="mt-auto flex flex-wrap items-center justify-end gap-2 border-t border-[var(--nimi-border-subtle)] pt-3">
         <Button tone="ghost" size="sm" disabled={props.busy || unsupported} data-testid={`capability-model-settings:${props.recipe.recipeId}`} onClick={props.onCustomize}>
-          <SlidersHorizontal size={14} />
+          <SlidersHorizontal size={14} aria-hidden="true" />
           {t('runtimeConfig.product.settings.open')}
         </Button>
         {props.enableable ? (
           <Button tone="primary" size="sm" disabled={props.busy} onClick={props.onEnable} data-testid="capability-enable-downloaded">
             {t('runtimeConfig.product.enableModel')}
-            <ArrowRight size={14} />
+            <ArrowRight size={14} aria-hidden="true" />
           </Button>
         ) : props.noDirectDownload === 'choose-imported' ? (
           <Button tone="secondary" size="sm" disabled={props.busy || unsupported} onClick={props.onChooseImported}>
             {t('runtimeConfig.product.chooseImportedFiles')}
-            <ArrowRight size={14} />
+            <ArrowRight size={14} aria-hidden="true" />
           </Button>
         ) : props.noDirectDownload === 'import' ? (
           <Button tone="secondary" size="sm" disabled={props.busy || !props.onImport} onClick={props.onImport}>
-            <FolderOpen size={14} />
+            <FolderOpen size={14} aria-hidden="true" />
             {t('runtimeConfig.product.importModel')}
           </Button>
         ) : (
           <Button tone="secondary" size="sm" disabled={props.busy || unsupported} onClick={props.onSelect}>
             {t('runtimeConfig.product.selectModel')}
-            <ArrowRight size={14} />
+            <ArrowRight size={14} aria-hidden="true" />
           </Button>
         )}
       </div>

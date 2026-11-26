@@ -319,7 +319,7 @@ export function ExternalAgentAccessPanel() {
           <div className="flex shrink-0 items-center gap-1">
             <IconButton
               size="md"
-              icon={<RefreshIcon className={refreshing ? 'animate-spin' : ''} />}
+              icon={<RefreshIcon className={refreshing ? 'animate-spin motion-reduce:animate-none' : ''} />}
               title={t('runtimeConfig.runtime.refresh', { defaultValue: 'Refresh' })}
               disabled={refreshing}
               onClick={() => { void refreshGateway(); }}
@@ -336,7 +336,7 @@ export function ExternalAgentAccessPanel() {
               <p className={cn('text-[length:var(--nimi-type-caption-size)] font-semibold uppercase tracking-[var(--nimi-type-overline-letter-spacing)]', TOKEN_TEXT_MUTED)}>
                 {entry.label}
               </p>
-              <p className={cn('mt-1 truncate font-mono text-sm', TOKEN_TEXT_PRIMARY)} title={entry.value}>
+              <p className={cn('mt-1 truncate font-mono text-sm', entry.copyable && 'pr-7', TOKEN_TEXT_PRIMARY)} title={entry.value}>
                 {entry.value}
               </p>
               {entry.copyable ? (
@@ -346,7 +346,7 @@ export function ExternalAgentAccessPanel() {
                   aria-label={copiedBindAddress
                     ? t('runtimeConfig.runtime.copied', { defaultValue: 'Copied' })
                     : t('runtimeConfig.runtime.copy', { defaultValue: 'Copy' })}
-                  className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-md text-[var(--nimi-text-muted)] opacity-0 transition-opacity hover:bg-[var(--nimi-surface-card)] hover:text-[var(--nimi-text-primary)] group-hover:opacity-100"
+                  className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-md text-[var(--nimi-text-muted)] opacity-70 transition-opacity hover:bg-[var(--nimi-surface-card)] hover:text-[var(--nimi-text-primary)] hover:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]"
                 >
                   {copiedBindAddress ? <CheckIcon /> : <CopyIcon />}
                 </button>
@@ -446,7 +446,7 @@ export function ExternalAgentAccessPanel() {
         confirmLabel={t('runtimeConfig.eaa.revoke', { defaultValue: 'Revoke' })}
         cancelLabel={t('runtimeConfig.eaa.cancel', { defaultValue: 'Cancel' })}
         confirmTone="danger"
-        pending={busy}
+        loading={busy}
         onConfirm={confirmRevokeToken}
         onClose={() => setPendingRevokeTokenId('')}
       />

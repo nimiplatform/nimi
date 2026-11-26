@@ -65,21 +65,22 @@ export function MusicFields(props: StudioParameterPanelProps) {
       ? t('Music.fixedClipDuration', { seconds: profile.defaultDurationSeconds }) : t('Music.durationHint')}</p>
     {profile?.supportsSeed ? <StudioNumberParameter current={parameters} field="seed" label={t('Music.seed')} onChange={update} disabled={disabled} /> : null}
     {profile?.supportsInstrumental ? <StudioBooleanParameter current={parameters} field="instrumental" label={t('Music.instrumental')} onChange={(next) => update({ ...next, ...(next.instrumental ? { lyrics: '' } : {}) })} disabled={disabled} /> : null}
-    {scoreProfile ? <StudioParameterField label={t('Music.score')}>
+    {scoreProfile ? <fieldset className="studio-parameters__field">
+      <legend className="studio-parameters__label">{t('Music.score')}</legend>
       <input ref={input} type="file" accept=".abc,text/vnd.abc" hidden onChange={(event) => {
         const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; if (file) void importScore(file);
       }} />
       <div className="flex flex-wrap items-center gap-2">
-        <Button disabled={props.disabled || importing} onClick={() => input.current?.click()}>{t(importing ? 'Music.importing' : 'Music.importScore')}</Button>
-        {parameters.scoreRelativePath ? <><span>{parameters.scoreName || t('Music.importedScore')}</span><Button disabled={props.disabled} onClick={() => {
+        <Button size="sm" tone="secondary" disabled={props.disabled || importing} onClick={() => input.current?.click()}>{t(importing ? 'Music.importing' : 'Music.importScore')}</Button>
+        {parameters.scoreRelativePath ? <><span>{parameters.scoreName || t('Music.importedScore')}</span><Button size="sm" tone="ghost" disabled={props.disabled} onClick={() => {
           const { scoreRelativePath, scoreName, scoreConditioning, ...rest } = parameters; update(rest);
         }}>{t('Music.clearScore')}</Button></> : null}
       </div>
       {parameters.scoreRelativePath ? <SelectField value={parameters.scoreConditioning ?? 'melody-and-harmony'} disabled={disabled}
         onChange={(event) => update({ ...parameters, scoreConditioning: event.currentTarget.value as 'melody-only' | 'melody-and-harmony' })}
         options={scoreProfile.scoreConditioning.map((value) => ({ value, label: t(value === 'melody-only' ? 'Music.melodyOnly' : 'Music.melodyHarmony') }))} /> : null}
-      <p className="text-sm opacity-70">{t('Music.scoreHint')}</p>
-    </StudioParameterField> : null}
+      <p className="text-sm text-[var(--nimi-text-muted)]">{t('Music.scoreHint')}</p>
+    </fieldset> : null}
     {profile?.supportsGeneratedScore ? <StudioBooleanParameter current={parameters} field="returnGeneratedScore" label={t('Music.returnScore')} onChange={update} disabled={disabled} /> : null}
     {error ? <p role="alert">{error}</p> : null}
   </div>;

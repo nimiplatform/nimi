@@ -108,7 +108,7 @@ export function MainLayoutPanelStack({
           activeTab === 'world-detail' ? <WorldDetailRouteLoading /> : <div className="flex min-h-0 flex-1" />
         }
       >
-        <AnimatePresence mode="wait" initial={false}>
+        <AnimatePresence initial={false}>
           {activeTab === 'downloads' ? (
             <MotionPanelFrame panelId="downloads">
               <GlobalDownloadsView />

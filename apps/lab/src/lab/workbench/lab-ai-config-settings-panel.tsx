@@ -204,12 +204,12 @@ export function LabAiConfigSettingsPanel({
             </div>
           )}
           footer={remote ? null : (
-            <p className="m-0 border-t border-[var(--nimi-border-subtle)] pt-4 text-xs leading-5 text-[var(--nimi-text-muted)]">
-              {t('ModelConfig.footerNote')}
-              <Button onClick={() => { void openDesktopIntent({ intent: { kind: 'open-apps', appId, section: 'ai-models' } }); }}>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--nimi-border-subtle)] pt-4 text-xs leading-5 text-[var(--nimi-text-muted)]">
+              <span>{t('ModelConfig.footerNote')}</span>
+              <Button size="sm" tone="secondary" onClick={() => { void openDesktopIntent({ intent: { kind: 'open-apps', appId, section: 'ai-models' } }); }}>
                 {t('ModelConfig.openOwnerConfigurationLabel')}
               </Button>
-            </p>
+            </div>
           )}
         />
       </div>

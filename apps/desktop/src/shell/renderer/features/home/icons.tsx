@@ -12,8 +12,8 @@ export function HeartIcon({ size = 18, filled = false }: { size?: number; filled
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill={filled ? '#EF4444' : 'none'}
-      stroke={filled ? '#EF4444' : 'currentColor'}
+      fill={filled ? 'var(--nimi-status-danger)' : 'none'}
+      stroke={filled ? 'var(--nimi-status-danger)' : 'currentColor'}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"

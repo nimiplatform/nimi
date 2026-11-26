@@ -2,12 +2,17 @@ import React, { forwardRef, type ReactNode } from 'react';
 import * as SelectPrimitive from '@radix-ui/react-select';
 import { cn, type FieldTone } from '../design-tokens.js';
 import {
-  AnimatePresence,
-  NIMI_SPRING_DEFAULT,
   motion,
   nimiOverlayPanelMotion,
   useNimiReducedMotion,
+  type NimiPopoverSide,
 } from '../motion/index.js';
+import {
+  OverlayExitCapture,
+  OverlayExitGhost,
+  captureOverlayExitSnapshot,
+  type OverlayExitSnapshot,
+} from './overlay-exit-ghost.js';
 
 export type SelectFieldOption = {
   value: string;
@@ -69,6 +74,9 @@ function fieldToneClassName(tone: FieldTone) {
   if (tone === 'quiet') {
     return 'border-transparent bg-transparent shadow-none';
   }
+  if (tone === 'danger') {
+    return 'nimi-field--danger border-[var(--nimi-status-danger)] enabled:hover:border-[var(--nimi-status-danger)] focus-visible:border-[var(--nimi-status-danger)] focus-visible:ring-[var(--nimi-status-danger)]';
+  }
   return '';
 }
 
@@ -120,25 +128,57 @@ export const SelectField = forwardRef<HTMLButtonElement, SelectFieldProps>(funct
   const [internalOpen, setInternalOpen] = React.useState(false);
   const requestedOpen = open ?? internalOpen;
   const requestedOpenRef = React.useRef(requestedOpen);
-  const [contentMounted, setContentMounted] = React.useState(requestedOpen);
+  const [resolvedSide, setResolvedSide] = React.useState<NimiPopoverSide>('bottom');
+  const [contentEl, setContentEl] = React.useState<HTMLDivElement | null>(null);
+  const contentElRef = React.useRef<HTMLDivElement | null>(null);
+  const [exitSnapshot, setExitSnapshot] = React.useState<OverlayExitSnapshot | null>(null);
+  const capturedExitRef = React.useRef(false);
+  const contentRef = React.useCallback((node: HTMLDivElement | null) => {
+    if (node) contentElRef.current = node;
+    setContentEl(node);
+  }, []);
   const reducedMotion = useNimiReducedMotion();
-  const panelMotion = nimiOverlayPanelMotion({ kind: 'popover', side: 'bottom', reducedMotion });
+  React.useEffect(() => {
+    if (!contentEl) return;
+    const syncSide = () => {
+      const attr = contentEl.getAttribute('data-side');
+      if (attr === 'top' || attr === 'right' || attr === 'bottom' || attr === 'left') {
+        setResolvedSide(attr);
+      }
+    };
+    syncSide();
+    if (typeof MutationObserver === 'undefined') return;
+    const observer = new MutationObserver(syncSide);
+    observer.observe(contentEl, { attributes: true, attributeFilter: ['data-side'] });
+    return () => observer.disconnect();
+  }, [contentEl]);
+  const panelMotion = nimiOverlayPanelMotion({ kind: 'popover', side: resolvedSide, reducedMotion });
+  const ghostMotion = nimiOverlayPanelMotion({
+    kind: 'popover',
+    side: exitSnapshot?.side ?? resolvedSide,
+    reducedMotion,
+  });
 
   requestedOpenRef.current = requestedOpen;
 
+  const captureExitSnapshot = React.useCallback(() => {
+    if (capturedExitRef.current) return;
+    const snapshot = captureOverlayExitSnapshot(contentElRef.current, resolvedSide);
+    if (!snapshot) return;
+    capturedExitRef.current = true;
+    setExitSnapshot(snapshot);
+  }, [resolvedSide]);
+
   React.useEffect(() => {
     if (requestedOpen) {
-      setContentMounted(true);
+      capturedExitRef.current = false;
+      setExitSnapshot(null);
     }
   }, [requestedOpen]);
-  React.useEffect(() => {
-    if (requestedOpen || !contentMounted) return;
-    // Motion completion can be deferred by a background Electron renderer.
-    // Release Radix's modal focus after the visual exit has settled anyway.
-    const delayMs = reducedMotion ? 250 : NIMI_SPRING_DEFAULT.responseSeconds * 1000 + 200;
-    const timer = window.setTimeout(() => setContentMounted(false), delayMs);
-    return () => window.clearTimeout(timer);
-  }, [requestedOpen, contentMounted, reducedMotion]);
+
+  const clearExitSnapshot = React.useCallback((id: number) => {
+    setExitSnapshot((current) => (current?.id === id ? null : current));
+  }, []);
 
   const handleValueChange = (nextValue: string) => {
     onValueChange?.(nextValue);
@@ -146,108 +186,115 @@ export const SelectField = forwardRef<HTMLButtonElement, SelectFieldProps>(funct
   };
 
   const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      captureExitSnapshot();
+    } else {
+      capturedExitRef.current = false;
+      setExitSnapshot(null);
+    }
     if (open === undefined) {
       setInternalOpen(nextOpen);
-    }
-    if (nextOpen) {
-      setContentMounted(true);
     }
     onOpenChange?.(nextOpen);
   };
 
-  const finishExit = () => {
-    if (!requestedOpenRef.current) {
-      setContentMounted(false);
-    }
-  };
-
   return (
-    <SelectPrimitive.Root
-      value={value}
-      defaultValue={defaultValue}
-      disabled={disabled}
-      required={required}
-      name={name}
-      open={requestedOpen || contentMounted}
-      onOpenChange={handleOpenChange}
-      onValueChange={handleValueChange}
-    >
-      <SelectPrimitive.Trigger
-        ref={ref}
-        id={id}
-        aria-label={ariaLabel}
-        aria-labelledby={ariaLabelledBy}
-        data-testid={dataTestId}
-        className={cn(
-          'flex min-h-[var(--nimi-sizing-field-md-height)] w-full items-center justify-between gap-2 rounded-[var(--nimi-radius-field)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-3 text-left text-[var(--nimi-field-text)] transition-[background-color,border-color,color,box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)] outline-none enabled:hover:border-[var(--nimi-field-focus)] focus-visible:border-[var(--nimi-field-focus)] focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)] disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
-          fieldToneClassName(tone),
-          className,
-          selectClassName,
-        )}
+    <>
+      <SelectPrimitive.Root
+        value={value}
+        defaultValue={defaultValue}
+        disabled={disabled}
+        required={required}
+        name={name}
+        open={requestedOpen}
+        onOpenChange={handleOpenChange}
+        onValueChange={handleValueChange}
       >
-        {/* Radix Value ignores className and style, so Kit's own span keeps a
-            long value inside the trigger. Type size stays inherited from the
-            trigger, where callers set it through selectClassName. */}
-        <span className="min-w-0 flex-1 truncate">
-          <SelectPrimitive.Value placeholder={placeholder}>
-            {controlledValueLabel ?? null}
-          </SelectPrimitive.Value>
-        </span>
-        <SelectPrimitive.Icon asChild>
-          <span className="shrink-0 text-[var(--nimi-text-muted)]">{CHEVRON_ICON}</span>
-        </SelectPrimitive.Icon>
-      </SelectPrimitive.Trigger>
-      <SelectPrimitive.Portal>
-        {/* Radix Select Content has no forceMount. The root therefore stays
-            mounted until AnimatePresence completes the symmetric exit;
-            outer Content owns popper positioning while the inner element
-            owns visual chrome and motion (P-DESIGN-027). */}
-        <SelectPrimitive.Content
-          position="popper"
-          sideOffset={6}
-          data-nimi-select-layer={contentLayer}
-          className={contentLayer === 'dialog'
-            ? 'z-[calc(var(--nimi-z-dialog)+1)]'
-            : 'z-[var(--nimi-z-popover)]'}
+        <SelectPrimitive.Trigger
+          ref={ref}
+          id={id}
+          aria-label={ariaLabel}
+          aria-labelledby={ariaLabelledBy}
+          aria-invalid={tone === 'danger' ? true : undefined}
+          data-testid={dataTestId}
+          className={cn(
+            'flex min-h-[var(--nimi-sizing-field-md-height)] w-full items-center justify-between gap-2 rounded-[var(--nimi-radius-field)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-3 text-left text-[var(--nimi-field-text)] transition-[background-color,border-color,color,box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)] outline-none enabled:hover:border-[var(--nimi-field-focus)] focus-visible:border-[var(--nimi-field-focus)] focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)] disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
+            fieldToneClassName(tone),
+            className,
+            selectClassName,
+          )}
         >
-          <AnimatePresence
-            onExitComplete={finishExit}
+          {/* Radix Value ignores className and style, so Kit's own span keeps a
+              long value inside the trigger. Type size stays inherited from the
+              trigger, where callers set it through selectClassName. */}
+          <span className="min-w-0 flex-1 truncate">
+            <SelectPrimitive.Value placeholder={placeholder}>
+              {controlledValueLabel ?? null}
+            </SelectPrimitive.Value>
+          </span>
+          <SelectPrimitive.Icon asChild>
+            <span className="shrink-0 text-[var(--nimi-text-muted)]">{CHEVRON_ICON}</span>
+          </SelectPrimitive.Icon>
+        </SelectPrimitive.Trigger>
+        <SelectPrimitive.Portal>
+          {/* Unmount Radix Select synchronously on close so DismissableLayer,
+              RemoveScroll, FocusScope, and hideOthers release immediately;
+              OverlayExitGhost runs the symmetric spring exit without locking
+              pointer or keyboard input (P-DESIGN-027). */}
+          <SelectPrimitive.Content
+            ref={contentRef}
+            position="popper"
+            sideOffset={6}
+            data-nimi-select-layer={contentLayer}
+            className={cn(
+              contentLayer === 'dialog'
+                ? 'z-[calc(var(--nimi-z-dialog)+1)]'
+                : 'z-[var(--nimi-z-popover)]',
+            )}
           >
-            {requestedOpen ? (
-              <motion.div
-                className={cn(
-                  'nimi-overlay-panel nimi-overlay-panel--popover min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-floating)]',
-                  contentClassName,
-                )}
-                {...panelMotion}
-                onAnimationComplete={finishExit}
-                style={panelMotion.style}
-              >
-                <SelectPrimitive.Viewport className="max-h-[min(var(--radix-select-content-available-height),24rem)] overflow-y-auto overscroll-contain p-1">
-                  {safeOptions.map((option) => (
-                    <SelectPrimitive.Item
-                      key={option.value}
-                      value={option.value}
-                      disabled={option.disabled}
-                      className={cn(
-                        'relative flex min-h-9 cursor-pointer select-none items-center rounded-[var(--nimi-radius-sm)] py-2 pr-8 pl-3 text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-primary)] outline-none',
-                        'data-[highlighted]:bg-[var(--nimi-action-ghost-hover)] data-[highlighted]:text-[var(--nimi-text-primary)]',
-                        'data-[state=checked]:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]',
-                        'data-[disabled]:pointer-events-none data-[disabled]:opacity-[var(--nimi-opacity-disabled)]',
-                      )}
-                    >
-                      <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
-                      <SelectPrimitive.ItemIndicator className="absolute right-3 inline-flex items-center justify-center text-[var(--nimi-action-primary-bg)]">
-                        {CHECK_ICON}
-                      </SelectPrimitive.ItemIndicator>
-                    </SelectPrimitive.Item>
-                  ))}
-                </SelectPrimitive.Viewport>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
-        </SelectPrimitive.Content>
-      </SelectPrimitive.Portal>
-    </SelectPrimitive.Root>
+            <OverlayExitCapture onBeforeUnmount={() => {
+              if (!requestedOpenRef.current) captureExitSnapshot();
+            }} />
+            <motion.div
+              className={cn(
+                'nimi-overlay-panel nimi-overlay-panel--popover min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-floating)]',
+                contentClassName,
+              )}
+              initial={panelMotion.initial}
+              animate={panelMotion.animate}
+              transition={panelMotion.transition}
+              style={panelMotion.style}
+            >
+              <SelectPrimitive.Viewport className="max-h-[min(var(--radix-select-content-available-height),24rem)] overflow-y-auto overscroll-contain p-1">
+                {safeOptions.map((option) => (
+                  <SelectPrimitive.Item
+                    key={option.value}
+                    value={option.value}
+                    disabled={option.disabled}
+                    className={cn(
+                      'relative flex min-h-9 cursor-pointer select-none items-center rounded-[var(--nimi-radius-sm)] py-2 pr-8 pl-3 text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-primary)] outline-none',
+                      'data-[highlighted]:bg-[var(--nimi-action-ghost-hover)] data-[highlighted]:text-[var(--nimi-text-primary)]',
+                      'data-[state=checked]:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]',
+                      'data-[disabled]:pointer-events-none data-[disabled]:opacity-[var(--nimi-opacity-disabled)]',
+                    )}
+                  >
+                    <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
+                    <SelectPrimitive.ItemIndicator className="absolute right-3 inline-flex items-center justify-center text-[var(--nimi-action-primary-bg)]">
+                      {CHECK_ICON}
+                    </SelectPrimitive.ItemIndicator>
+                  </SelectPrimitive.Item>
+                ))}
+              </SelectPrimitive.Viewport>
+            </motion.div>
+          </SelectPrimitive.Content>
+        </SelectPrimitive.Portal>
+      </SelectPrimitive.Root>
+      <OverlayExitGhost
+        snapshot={exitSnapshot}
+        panelMotion={ghostMotion}
+        reducedMotion={reducedMotion}
+        onComplete={clearExitSnapshot}
+      />
+    </>
   );
 });

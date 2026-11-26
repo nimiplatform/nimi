@@ -23,7 +23,7 @@ export function IntegrationConsumerDetails({ consumerRef, targetRef, operations 
 
   return (
     <details className="mt-2 text-xs text-[var(--nimi-text-muted)]">
-      <summary className="cursor-pointer">{t('Integrations.technicalDetails')}</summary>
+      <summary className="cursor-pointer rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1">{t('Integrations.technicalDetails')}</summary>
       <div className="mt-2 max-w-72 space-y-2">
         <p>{t('Integrations.consumerIdentifier')}</p>
         <div className="flex items-start gap-1">

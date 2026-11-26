@@ -100,7 +100,7 @@ export function AppsDiscoveryGrid({
               data-testid="apps-discover-origin-filter"
               value={originFilter}
               onChange={(e) => setOriginFilter(e.target.value)}
-              className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-2.5 py-1 text-xs text-[color:var(--nimi-text-primary)]"
+              className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-2.5 py-1 text-xs text-[color:var(--nimi-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1"
             >
               <option value="all">{t('Apps.storefront.filter.allOrigins')}</option>
               {availableOrigins.map((origin) => (
@@ -115,7 +115,7 @@ export function AppsDiscoveryGrid({
               data-testid="apps-discover-capability-filter"
               value={capabilityFilter}
               onChange={(e) => setCapabilityFilter(e.target.value)}
-              className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-2.5 py-1 text-xs text-[color:var(--nimi-text-primary)]"
+              className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-2.5 py-1 text-xs text-[color:var(--nimi-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1"
             >
               <option value="all">{t('Apps.storefront.filter.allCapabilities')}</option>
               {availableCapabilities.map((cap) => (
@@ -132,9 +132,9 @@ export function AppsDiscoveryGrid({
             type="button"
             data-testid="apps-discover-category-all"
             onClick={() => setCategoryFilter('all')}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+            className={`rounded-full px-3 py-1 text-xs font-medium transition-[colors,transform] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1 ${
               categoryFilter === 'all'
-                ? 'bg-[var(--nimi-action-primary-bg)] text-white'
+                ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
                 : 'border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] text-[color:var(--nimi-text-secondary)] hover:text-[color:var(--nimi-text-primary)]'
             }`}
           >
@@ -146,9 +146,9 @@ export function AppsDiscoveryGrid({
               type="button"
               data-testid={`apps-discover-category-${cat}`}
               onClick={() => setCategoryFilter(cat)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-[colors,transform] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1 ${
                 categoryFilter === cat
-                  ? 'bg-[var(--nimi-action-primary-bg)] text-white'
+                  ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
                   : 'border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] text-[color:var(--nimi-text-secondary)] hover:text-[color:var(--nimi-text-primary)]'
               }`}
             >
@@ -217,14 +217,21 @@ function DiscoveryAppCard({
   return (
     <article
       data-testid={`apps-discover-card-${card.group.appId}`}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_86%,transparent)] transition-colors hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_45%,var(--nimi-border-subtle))]"
+      className="group relative flex flex-col overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_86%,transparent)] transition-[border-color,transform] duration-150 hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_45%,var(--nimi-border-subtle))] has-[>[data-card-trigger]:active]:scale-[0.985] motion-reduce:transform-none motion-reduce:transition-none"
     >
-      <div className="relative aspect-video w-full overflow-hidden bg-[linear-gradient(135deg,color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,var(--nimi-surface-active)),color-mix(in_srgb,var(--nimi-surface-card)_92%,transparent))]">
+      <button
+        type="button"
+        data-card-trigger=""
+        aria-label={card.sf.displayName}
+        onClick={onOpen}
+        className="absolute inset-0 z-0 cursor-pointer rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--nimi-focus-ring-color)]"
+      />
+      <div className="pointer-events-none relative z-10 aspect-video w-full overflow-hidden bg-[linear-gradient(135deg,color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,var(--nimi-surface-active)),color-mix(in_srgb,var(--nimi-surface-card)_92%,transparent))]">
         {coverUrl ? (
           coverFailed ? (
             <div
               data-testid={`apps-discover-cover-error-${card.group.appId}`}
-              className="flex h-full w-full flex-col items-center justify-center gap-2 px-4 text-center"
+              className="pointer-events-auto relative z-20 flex h-full w-full flex-col items-center justify-center gap-2 px-4 text-center"
             >
               <ImageOff className="h-6 w-6 text-[color:var(--nimi-text-muted)]" aria-hidden="true" />
               <span className="text-xs text-[color:var(--nimi-text-secondary)]">
@@ -243,22 +250,18 @@ function DiscoveryAppCard({
               </Button>
             </div>
           ) : (
-            <button type="button" onClick={onOpen} className="block h-full w-full text-left">
-              <img
-                key={`${coverUrl}:${retry}`}
-                src={retry > 0 ? `${coverUrl}?retry=${retry}` : coverUrl}
-                alt={card.sf.displayName}
-                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                onError={() => setFailedAtAttempt(retry)}
-              />
-            </button>
+            <img
+              key={`${coverUrl}:${retry}`}
+              src={retry > 0 ? `${coverUrl}?retry=${retry}` : coverUrl}
+              alt={card.sf.displayName}
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02] motion-reduce:transform-none motion-reduce:transition-none"
+              onError={() => setFailedAtAttempt(retry)}
+            />
           )
         ) : (
           /* Intentional branded icon card when an unmigrated app has no storefront cover (NOT a load error). */
-          <button
-            type="button"
+          <div
             data-testid={`apps-discover-icon-cover-${card.group.appId}`}
-            onClick={onOpen}
             className="flex h-full w-full items-center justify-center"
           >
             <AppArtworkIcon
@@ -268,17 +271,20 @@ function DiscoveryAppCard({
               size="detail"
               className="shadow-md"
             />
-          </button>
+          </div>
         )}
 
         {card.origin ? (
-          <span className="pointer-events-none absolute left-2.5 top-2.5 rounded-full bg-black/60 px-2.5 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
+          <span
+            data-nimi-material="glass-thin"
+            className="nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)] pointer-events-none absolute left-2.5 top-2.5 rounded-full bg-black/72 px-2.5 py-0.5 text-[11px] font-medium text-white"
+          >
             {t(`Apps.storefront.origin.${card.origin}`)}
           </span>
         ) : null}
       </div>
 
-      <button type="button" onClick={onOpen} className="flex flex-1 flex-col gap-2 p-3.5 text-left">
+      <div className="pointer-events-none relative z-10 flex flex-1 flex-col gap-2 p-3.5 text-left">
         <div className="flex items-start gap-2.5">
           {coverUrl ? (
             <AppArtworkIcon
@@ -314,7 +320,7 @@ function DiscoveryAppCard({
             {sourceLabel}
           </span>
         </div>
-      </button>
+      </div>
     </article>
   );
 }

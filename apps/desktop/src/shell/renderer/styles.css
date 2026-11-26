@@ -38,8 +38,8 @@
   --desktop-sidebar-inset: 12px;
   --desktop-sidebar-row-gap: 4px;
   --desktop-sidebar-group-gap: 16px;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
 }
 
 .desktop-sidebar.nimi-sidebar-shell {
@@ -99,17 +99,17 @@
 .desktop-module-title {
   overflow-wrap: anywhere;
   color: var(--nimi-text-primary);
-  font-size: 24px;
+  font-size: 1.5rem;
   font-weight: 600;
-  line-height: 32px;
+  line-height: 2rem;
   letter-spacing: -0.02em;
 }
 
 .desktop-module-section-title {
   color: var(--nimi-text-primary);
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
-  line-height: 24px;
+  line-height: 1.5rem;
 }
 
 .desktop-module-header-icon {
@@ -186,8 +186,8 @@
 }
 
 .desktop-sidebar__title {
-  font-size: 18px;
-  line-height: 24px;
+  font-size: 1.125rem;
+  line-height: 1.5rem;
 }
 
 .desktop-sidebar__search {
@@ -197,13 +197,13 @@
 }
 
 .desktop-sidebar__search > label {
-  min-height: 40px;
+  min-height: 2.5rem;
   border-radius: var(--nimi-radius-sm);
 }
 
 .desktop-sidebar__search input {
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
 }
 
 .desktop-sidebar__body {
@@ -235,8 +235,8 @@
 .desktop-sidebar .nimi-sidebar-section-label {
   margin: 0;
   padding: 4px 12px;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 0.75rem;
+  line-height: 1rem;
 }
 
 .desktop-sidebar__footer {
@@ -250,27 +250,27 @@
 .desktop-sidebar__row,
 .desktop-sidebar .nimi-sidebar-item {
   height: auto;
-  min-height: 40px;
+  min-height: 2.5rem;
   gap: 8px;
   padding: 8px 12px;
   border-radius: var(--nimi-radius-sm);
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
   white-space: normal;
   overflow-wrap: anywhere;
 }
 
 .desktop-sidebar__label,
 .desktop-sidebar .nimi-sidebar-item__title {
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
   white-space: normal;
   overflow-wrap: anywhere;
 }
 
 .desktop-sidebar__caption {
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 0.75rem;
+  line-height: 1rem;
 }
 
 .desktop-sidebar__row > svg,
@@ -289,8 +289,8 @@
   width: 20px;
   height: 20px;
   border-radius: 3px;
-  font-size: 12px;
-  line-height: 20px;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
 }
 
 .desktop-sidebar__icon > :is(img, svg) {
@@ -310,10 +310,10 @@
 }
 
 .desktop-sidebar .desktop-source-mode-switch button {
-  min-height: 40px;
+  min-height: 2.5rem;
   gap: 8px;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
 }
 
 /* Align titles, section labels and leading row icons at the same inset. */
@@ -328,8 +328,7 @@
 }
 
 .desktop-module-sidebar .desktop-sidebar__search > label {
-  min-height: 32px;
-  height: 32px;
+  min-height: 2rem;
   border-radius: var(--nimi-radius-sm);
   background: var(--nimi-field-bg);
   border: 1px solid var(--nimi-field-border);
@@ -339,15 +338,15 @@
   margin-bottom: 8px;
   padding: 0 8px;
   color: var(--nimi-text-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 400;
-  line-height: 18px;
+  line-height: 1.125rem;
   letter-spacing: normal;
   text-transform: none;
 }
 
 .desktop-module-sidebar :is(.desktop-sidebar__row, .nimi-sidebar-item) {
-  min-height: 32px;
+  min-height: 2rem;
   gap: 10px;
   padding: 6px 8px;
 }
@@ -362,8 +361,8 @@
   width: 18px;
   height: 18px;
   border-radius: 4px;
-  font-size: 11px;
-  line-height: 18px;
+  font-size: 0.6875rem;
+  line-height: 1.125rem;
 }
 
 .desktop-module-sidebar .desktop-sidebar__icon-action {
@@ -373,10 +372,10 @@
 }
 
 .desktop-module-sidebar .desktop-source-mode-switch button {
-  min-height: 32px;
+  min-height: 2rem;
   gap: 6px;
-  font-size: 13px;
-  line-height: 18px;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
 }
 
 @container nimi-ui-module-desktop-surface (min-width: 640px) {
@@ -400,7 +399,7 @@
 /* Kicker + ghost pill utilities lifted from the handoff design system. */
 .desktop-kicker-tiny {
   font-family: var(--nimi-font-mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   font-weight: 600;
@@ -411,7 +410,7 @@
 }
 .desktop-ghost-pill {
   font-family: var(--nimi-font-sans);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
   padding: 7px 12px;
   border-radius: 999px;
@@ -419,7 +418,7 @@
   background: color-mix(in srgb, var(--nimi-surface-card) 60%, transparent);
   color: var(--nimi-fg-2);
   cursor: pointer;
-  transition: border-color 160ms, color 160ms, background-color 160ms;
+  transition: transform 150ms, border-color 160ms, color 160ms, background-color 160ms;
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -427,6 +426,24 @@
 .desktop-ghost-pill:hover {
   border-color: var(--nimi-border-strong);
   color: var(--nimi-fg-1);
+}
+.desktop-ghost-pill:active {
+  transform: scale(0.97);
+}
+.desktop-ghost-pill:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 var(--nimi-focus-ring-width, 2px) var(--nimi-focus-ring-color);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .desktop-ghost-pill {
+    background: var(--nimi-surface-card);
+  }
+}
+@media (prefers-contrast: more) {
+  .desktop-ghost-pill {
+    background: var(--nimi-surface-card);
+    border-color: var(--nimi-border-strong);
+  }
 }
 
 /* ---- Agent chat four-layer stack (D-LLM-065) ----
@@ -496,11 +513,11 @@
   background: transparent;
 }
 [data-canonical-transcript-root="true"]::-webkit-scrollbar-thumb {
-  background-color: rgba(15, 23, 42, 0.16) !important;
+  background-color: var(--nimi-scrollbar-thumb) !important;
   border-radius: 8px;
 }
 [data-canonical-transcript-root="true"]::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(15, 23, 42, 0.30) !important;
+  background-color: var(--nimi-scrollbar-thumb-hover) !important;
 }
 [data-canonical-transcript-root="true"]::-webkit-scrollbar-button,
 [data-canonical-transcript-root="true"]::-webkit-scrollbar-button:single-button,
@@ -528,40 +545,68 @@
 @scope (.nimi-ui-module--desktop) {
 /* ---- World list pulse dot ---- */
 .desktop-world-pulse-dot {
+  position: relative;
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: var(--nimi-action-primary-bg);
-  box-shadow: 0 0 0 0 color-mix(in srgb, var(--nimi-action-primary-bg) 45%, transparent);
-  animation: nimi-ui-module-desktop-world-pulse-ring 2.4s ease-out infinite;
   flex-shrink: 0;
+}
+.desktop-world-pulse-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--nimi-action-primary-bg);
+  pointer-events: none;
+  animation: nimi-ui-module-desktop-world-pulse-ring 2.4s ease-out infinite;
 }
 }
 @keyframes nimi-ui-module-desktop-world-pulse-ring {
-  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--nimi-action-primary-bg) 45%, transparent); }
-  80% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--nimi-action-primary-bg) 0%, transparent); }
-  100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--nimi-action-primary-bg) 0%, transparent); }
+  0% {
+    transform: scale(1);
+    opacity: 0.45;
+  }
+  80% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+:root[data-nimi-reduced-motion='true'] .nimi-ui-module--desktop .desktop-world-pulse-dot::after {
+  animation: none;
+  opacity: 0;
 }
 @media (prefers-reduced-motion: reduce) {
-  .nimi-ui-module--desktop .desktop-world-pulse-dot { animation: none; }
+  .nimi-ui-module--desktop .desktop-world-pulse-dot::after {
+    animation: none;
+    opacity: 0;
+  }
 }
 
 /* ---- Reduced motion ----
    Stop CSS loops outright rather than compressing infinite animations into an
    extremely short cycle. Motion overlays still receive the preference through
-   MotionConfig and resolve to their reduced cross-fade variants. */
-:root[data-nimi-reduced-motion='true'] .nimi-ui-module--desktop *,
-:root[data-nimi-reduced-motion='true'] .nimi-ui-module--desktop *::before,
-:root[data-nimi-reduced-motion='true'] .nimi-ui-module--desktop *::after {
+   MotionConfig and resolve to their reduced cross-fade variants. Include
+   document.body Radix portals/overlays so dialogs, drawers, and popovers
+   outside .nimi-ui-module--desktop honor the same guard. */
+:root[data-nimi-reduced-motion='true'] :is(.nimi-ui-module--desktop, [data-radix-portal], [data-radix-popper-content-wrapper], .nimi-overlay-panel, .nimi-overlay-backdrop),
+:root[data-nimi-reduced-motion='true'] :is(.nimi-ui-module--desktop, [data-radix-portal], [data-radix-popper-content-wrapper], .nimi-overlay-panel, .nimi-overlay-backdrop) *,
+:root[data-nimi-reduced-motion='true'] :is(.nimi-ui-module--desktop, [data-radix-portal], [data-radix-popper-content-wrapper], .nimi-overlay-panel, .nimi-overlay-backdrop) *::before,
+:root[data-nimi-reduced-motion='true'] :is(.nimi-ui-module--desktop, [data-radix-portal], [data-radix-popper-content-wrapper], .nimi-overlay-panel, .nimi-overlay-backdrop) *::after {
   transition-duration: 0.01ms !important;
   transition-delay: 0s !important;
   animation: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nimi-ui-module--desktop *,
-  .nimi-ui-module--desktop *::before,
-  .nimi-ui-module--desktop *::after {
+  :is(.nimi-ui-module--desktop, [data-radix-portal], [data-radix-popper-content-wrapper], .nimi-overlay-panel, .nimi-overlay-backdrop),
+  :is(.nimi-ui-module--desktop, [data-radix-portal], [data-radix-popper-content-wrapper], .nimi-overlay-panel, .nimi-overlay-backdrop) *,
+  :is(.nimi-ui-module--desktop, [data-radix-portal], [data-radix-popper-content-wrapper], .nimi-overlay-panel, .nimi-overlay-backdrop) *::before,
+  :is(.nimi-ui-module--desktop, [data-radix-portal], [data-radix-popper-content-wrapper], .nimi-overlay-panel, .nimi-overlay-backdrop) *::after {
     transition-duration: 0.01ms !important;
     transition-delay: 0s !important;
     animation: none !important;

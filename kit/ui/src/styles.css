@@ -46,8 +46,14 @@ html,
 body,
 #root {
   font-family: var(--nimi-font-sans);
+  font-optical-sizing: auto;
   background: var(--nimi-app-background);
   color: var(--nimi-text-primary);
+}
+
+:root:not([data-nimi-scheme]),
+[data-nimi-scheme="light"] {
+  color-scheme: light;
 }
 
 .dark,
@@ -132,6 +138,26 @@ button:not(:disabled),
  */
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root,
+  [data-nimi-scheme="light"],
+  [data-nimi-scheme="dark"],
+  .dark {
+    --nimi-material-glass-thin-bg: var(--nimi-surface-panel);
+    --nimi-material-glass-thin-border: var(--nimi-border-subtle);
+    --nimi-material-glass-regular-bg: var(--nimi-surface-card);
+    --nimi-material-glass-regular-border: var(--nimi-border-subtle);
+    --nimi-material-glass-thick-bg: var(--nimi-surface-overlay);
+    --nimi-material-glass-thick-border: var(--nimi-border-strong);
+    --nimi-material-glass-chrome-bg: var(--nimi-surface-overlay);
+    --nimi-material-glass-chrome-border: var(--nimi-border-strong);
+    --nimi-surface-card-promoted-glass-elevated: var(--nimi-surface-card);
+    --nimi-backdrop-blur-thin: 0px;
+    --nimi-backdrop-blur-regular: 0px;
+    --nimi-backdrop-blur-strong: 0px;
+    --nimi-backdrop-blur-chrome: 0px;
+    --nimi-backdrop-saturate: 100%;
+  }
+
   [data-nimi-material="glass-thin"],
   [data-nimi-material="glass-regular"],
   [data-nimi-material="glass-thick"],
@@ -182,6 +208,26 @@ button:not(:disabled),
 }
 
 @media (prefers-reduced-transparency: reduce) {
+  :root,
+  [data-nimi-scheme="light"],
+  [data-nimi-scheme="dark"],
+  .dark {
+    --nimi-material-glass-thin-bg: var(--nimi-surface-panel);
+    --nimi-material-glass-thin-border: var(--nimi-border-subtle);
+    --nimi-material-glass-regular-bg: var(--nimi-surface-card);
+    --nimi-material-glass-regular-border: var(--nimi-border-subtle);
+    --nimi-material-glass-thick-bg: var(--nimi-surface-overlay);
+    --nimi-material-glass-thick-border: var(--nimi-border-strong);
+    --nimi-material-glass-chrome-bg: var(--nimi-surface-overlay);
+    --nimi-material-glass-chrome-border: var(--nimi-border-strong);
+    --nimi-surface-card-promoted-glass-elevated: var(--nimi-surface-card);
+    --nimi-backdrop-blur-thin: 0px;
+    --nimi-backdrop-blur-regular: 0px;
+    --nimi-backdrop-blur-strong: 0px;
+    --nimi-backdrop-blur-chrome: 0px;
+    --nimi-backdrop-saturate: 100%;
+  }
+
   [data-nimi-material="glass-thin"],
   [data-nimi-material="glass-regular"],
   [data-nimi-material="glass-thick"],
@@ -236,6 +282,109 @@ button:not(:disabled),
 
   [data-nimi-ambient-variant="mesh"] [data-nimi-ambient-layer="mesh"] {
     background: linear-gradient(135deg, var(--nimi-ambient-mesh-base-start) 0%, var(--nimi-ambient-mesh-base-end) 100%) !important;
+  }
+}
+
+/* High-contrast OS accessibility signal (Apple Design §14): near-solid
+ * surfaces, crisp contrasting borders, darker/brighter muted ink, and a
+ * stronger keyboard focus ring across light and dark schemes. */
+@media (prefers-contrast: more) {
+  :root,
+  [data-nimi-scheme="light"] {
+    --nimi-border-subtle: rgba(15, 23, 42, 0.34);
+    --nimi-border-strong: rgba(15, 23, 42, 0.62);
+    --nimi-field-border: rgba(15, 23, 42, 0.48);
+    --nimi-sidebar-border: rgba(15, 23, 42, 0.36);
+    --nimi-action-secondary-border: rgba(15, 23, 42, 0.48);
+    --nimi-text-secondary: #1f2937;
+    --nimi-text-muted: #374151;
+    --nimi-sidebar-section-label: #374151;
+    --nimi-focus-ring-width: 3px;
+    --nimi-material-glass-thin-bg: var(--nimi-surface-panel);
+    --nimi-material-glass-regular-bg: var(--nimi-surface-card);
+    --nimi-material-glass-thick-bg: var(--nimi-surface-overlay);
+    --nimi-material-glass-chrome-bg: var(--nimi-surface-overlay);
+    --nimi-surface-card-promoted-glass-elevated: var(--nimi-surface-card);
+    --nimi-material-glass-thin-border: var(--nimi-border-strong);
+    --nimi-material-glass-regular-border: var(--nimi-border-strong);
+    --nimi-material-glass-thick-border: var(--nimi-border-strong);
+    --nimi-material-glass-chrome-border: var(--nimi-border-strong);
+    --nimi-backdrop-blur-thin: 0px;
+    --nimi-backdrop-blur-regular: 0px;
+    --nimi-backdrop-blur-strong: 0px;
+    --nimi-backdrop-blur-chrome: 0px;
+    --nimi-backdrop-saturate: 100%;
+  }
+
+  .dark,
+  [data-nimi-scheme="dark"] {
+    --nimi-border-subtle: rgba(226, 232, 240, 0.38);
+    --nimi-border-strong: rgba(248, 250, 252, 0.68);
+    --nimi-field-border: rgba(226, 232, 240, 0.52);
+    --nimi-sidebar-border: rgba(226, 232, 240, 0.38);
+    --nimi-action-secondary-border: rgba(226, 232, 240, 0.52);
+    --nimi-text-secondary: #e2e8f0;
+    --nimi-text-muted: #cbd5e1;
+    --nimi-sidebar-section-label: #cbd5e1;
+    --nimi-focus-ring-width: 3px;
+    --nimi-material-glass-thin-bg: var(--nimi-surface-panel);
+    --nimi-material-glass-regular-bg: var(--nimi-surface-card);
+    --nimi-material-glass-thick-bg: var(--nimi-surface-overlay);
+    --nimi-material-glass-chrome-bg: var(--nimi-surface-overlay);
+    --nimi-surface-card-promoted-glass-elevated: var(--nimi-surface-card);
+    --nimi-material-glass-thin-border: var(--nimi-border-strong);
+    --nimi-material-glass-regular-border: var(--nimi-border-strong);
+    --nimi-material-glass-thick-border: var(--nimi-border-strong);
+    --nimi-material-glass-chrome-border: var(--nimi-border-strong);
+    --nimi-backdrop-blur-thin: 0px;
+    --nimi-backdrop-blur-regular: 0px;
+    --nimi-backdrop-blur-strong: 0px;
+    --nimi-backdrop-blur-chrome: 0px;
+    --nimi-backdrop-saturate: 100%;
+  }
+
+  [data-nimi-material="glass-thin"],
+  [data-nimi-material="glass-regular"],
+  [data-nimi-material="glass-thick"],
+  [data-nimi-material="glass-chrome"] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-color: var(--nimi-border-strong) !important;
+  }
+
+  [data-nimi-material="glass-thin"][data-nimi-tone="canvas"],
+  [data-nimi-material="glass-regular"][data-nimi-tone="canvas"],
+  [data-nimi-material="glass-thick"][data-nimi-tone="canvas"],
+  [data-nimi-material="glass-chrome"][data-nimi-tone="canvas"] {
+    background: var(--nimi-surface-canvas) !important;
+  }
+
+  [data-nimi-material="glass-thin"][data-nimi-tone="panel"],
+  [data-nimi-material="glass-regular"][data-nimi-tone="panel"],
+  [data-nimi-material="glass-thick"][data-nimi-tone="panel"],
+  [data-nimi-material="glass-chrome"][data-nimi-tone="panel"] {
+    background: var(--nimi-surface-panel) !important;
+  }
+
+  [data-nimi-material="glass-thin"][data-nimi-tone="card"],
+  [data-nimi-material="glass-regular"][data-nimi-tone="card"],
+  [data-nimi-material="glass-thick"][data-nimi-tone="card"],
+  [data-nimi-material="glass-chrome"][data-nimi-tone="card"] {
+    background: var(--nimi-surface-card) !important;
+  }
+
+  [data-nimi-material="glass-thin"][data-nimi-tone="overlay"],
+  [data-nimi-material="glass-regular"][data-nimi-tone="overlay"],
+  [data-nimi-material="glass-thick"][data-nimi-tone="overlay"],
+  [data-nimi-material="glass-chrome"][data-nimi-tone="overlay"] {
+    background: var(--nimi-surface-overlay) !important;
+  }
+
+  [data-nimi-material="glass-thin"][data-nimi-tone="hero"],
+  [data-nimi-material="glass-regular"][data-nimi-tone="hero"],
+  [data-nimi-material="glass-thick"][data-nimi-tone="hero"],
+  [data-nimi-material="glass-chrome"][data-nimi-tone="hero"] {
+    background: var(--nimi-surface-hero) !important;
   }
 }
 
@@ -394,5 +543,13 @@ button:not(:disabled),
       radial-gradient(circle at 78% 18%, rgba(51, 65, 85, 0.46) 0%, transparent 56%);
     color: #E2E8F0;
     box-shadow: inset 0 0 0 1px rgba(203, 213, 225, 0.16);
+  }
+
+  .nimi-checkbox__indicator {
+    opacity: 0;
+  }
+
+  .nimi-checkbox input:checked ~ .nimi-checkbox__box .nimi-checkbox__indicator {
+    opacity: 1;
   }
 }

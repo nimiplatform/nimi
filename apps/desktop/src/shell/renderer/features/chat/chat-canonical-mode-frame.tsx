@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { CanonicalConversationShell } from '@nimiplatform/kit/features/chat/components/canonical-conversation-shell';
 import type { ChatCopy } from '@nimiplatform/kit/features/chat/ui';
 import { cn } from '@nimiplatform/kit/ui';
+import { AnimatePresence } from '@nimiplatform/kit/ui/motion';
 import type {
   ConversationSetupAction,
   ConversationTargetSummary,
@@ -173,34 +174,38 @@ export function ChatCanonicalModeFrame(props: ChatCanonicalModeFrameProps) {
         auxiliaryOverlayContent={props.host.auxiliaryOverlayContent}
       />
       {props.afterShell}
-      {shouldRenderSettings ? (
-        props.settingsSheetBare ? (
-          <aside
-            className={cn(railReserved ? CHAT_SIDE_SHEET_RAIL_RESERVE_CLASS : undefined, 'flex min-h-0 w-[min(500px,calc(100cqw-96px))] shrink-0')}
-            data-chat-shared-side-sheet="settings"
-          >
-            {settingsContent}
-          </aside>
-        ) : (
-          <ChatSideSheet
-            sheetKey="settings"
-            className={railReserved ? undefined : 'mr-0'}
-            eyebrow={props.settingsSheetEyebrow}
-            title={props.settingsSheetTitle ?? props.host.settingsDrawerTitle ?? props.selectedTarget?.title ?? 'Settings'}
-            subtitle={props.settingsSheetSubtitle ?? props.host.settingsDrawerSubtitle ?? props.host.characterData?.name ?? null}
-            world={props.settingsSheetWorld ?? props.host.settingsDrawerWorld ?? null}
-            avatarUrl={props.settingsSheetAvatarUrl}
-            avatarFallback={props.settingsSheetAvatarFallback}
-            avatarAlt={props.settingsSheetAvatarAlt}
-            hideHeader={props.settingsSheetHideHeader}
-            onClose={props.onCloseSettings}
-          >
-            <div className={props.settingsSheetBodyClassName || 'px-3 py-3'}>
+      <AnimatePresence>
+        {shouldRenderSettings ? (
+          props.settingsSheetBare ? (
+            <aside
+              key="settings-bare"
+              className={cn(railReserved ? CHAT_SIDE_SHEET_RAIL_RESERVE_CLASS : undefined, 'flex min-h-0 w-[min(500px,calc(100cqw-96px))] shrink-0')}
+              data-chat-shared-side-sheet="settings"
+            >
               {settingsContent}
-            </div>
-          </ChatSideSheet>
-        )
-      ) : null}
+            </aside>
+          ) : (
+            <ChatSideSheet
+              key="settings-sheet"
+              sheetKey="settings"
+              className={railReserved ? undefined : 'mr-0'}
+              eyebrow={props.settingsSheetEyebrow}
+              title={props.settingsSheetTitle ?? props.host.settingsDrawerTitle ?? props.selectedTarget?.title ?? 'Settings'}
+              subtitle={props.settingsSheetSubtitle ?? props.host.settingsDrawerSubtitle ?? props.host.characterData?.name ?? null}
+              world={props.settingsSheetWorld ?? props.host.settingsDrawerWorld ?? null}
+              avatarUrl={props.settingsSheetAvatarUrl}
+              avatarFallback={props.settingsSheetAvatarFallback}
+              avatarAlt={props.settingsSheetAvatarAlt}
+              hideHeader={props.settingsSheetHideHeader}
+              onClose={props.onCloseSettings}
+            >
+              <div className={props.settingsSheetBodyClassName || 'px-3 py-3'}>
+                {settingsContent}
+              </div>
+            </ChatSideSheet>
+          )
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

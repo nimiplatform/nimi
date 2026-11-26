@@ -1,4 +1,5 @@
-import { Tooltip } from '@nimiplatform/kit/ui';
+import { Tooltip, cn } from '@nimiplatform/kit/ui';
+import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
 
 export type CanonicalTypingBubbleProps = {
   agentAvatarUrl?: string | null;
@@ -34,7 +35,10 @@ export function CanonicalTypingBubble({
                 <button
                   type="button"
                   onClick={onStop}
-                  className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)] shadow-sm transition-[background-color,border-color,color,box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:border-[var(--nimi-status-danger-soft-border)] hover:bg-[var(--nimi-status-danger-soft-bg)] hover:text-[var(--nimi-status-danger)] hover:shadow-md active:scale-[var(--nimi-motion-pressed-scale)]"
+                  className={cn(
+                    'ml-1 inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)] shadow-sm transition-[background-color,border-color,color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:border-[var(--nimi-status-danger-soft-border)] hover:bg-[var(--nimi-status-danger-soft-bg)] hover:text-[var(--nimi-status-danger)] active:scale-[var(--nimi-motion-pressed-scale)]',
+                    FOCUS_RING_CLASS_NAME,
+                  )}
                   aria-label={stopLabel}
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

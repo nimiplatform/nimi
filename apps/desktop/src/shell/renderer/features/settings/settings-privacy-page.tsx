@@ -327,7 +327,7 @@ function AccountPrivacyPage({ accountId, realmBaseUrl }: { accountId: string; re
         description={t('PrivacySettings.pageDescription')}
       >
         <InlineAlert tone="danger">{t('PrivacySettings.loadError')}</InlineAlert>
-        <button type="button" onClick={() => { void settingsQuery.refetch(); }} className="text-sm text-[var(--nimi-action-primary-bg)]">{t('Common.retry')}</button>
+        <button type="button" onClick={() => { void settingsQuery.refetch(); }} className="self-start rounded-md px-1.5 py-0.5 text-sm text-[var(--nimi-action-primary-bg)] transition-[transform,color] duration-150 hover:underline active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]">{t('Common.retry')}</button>
       </PageShell>
     );
   }

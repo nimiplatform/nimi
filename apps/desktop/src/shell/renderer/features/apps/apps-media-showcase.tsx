@@ -1,11 +1,10 @@
 // 16:9 static screenshot gallery + lightbox with explicit visible image-load error fallback.
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-042c
 
-import { useEffect, useState, type ReactElement } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Expand, ImageOff, Images, RotateCw, X } from 'lucide-react';
-import { Button, IconButton } from '@nimiplatform/kit/ui';
+import { Button, DialogDescription, DialogTitle, IconButton, OverlayShell } from '@nimiplatform/kit/ui';
 import type { ResolvedStorefrontGallerySlide } from './apps-storefront.js';
 
 export interface AppsMediaShowcaseProps {
@@ -43,13 +42,13 @@ export function AppsMediaShowcase({
   }, [activeIndex, slides.length]);
 
   useEffect(() => {
-    if (!lightboxOpen) return;
+    if (!lightboxOpen || slides.length <= 1) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setLightboxOpen(false);
-      } else if (event.key === 'ArrowRight' && slides.length > 1) {
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
         setActiveIndex((idx) => (idx + 1) % slides.length);
-      } else if (event.key === 'ArrowLeft' && slides.length > 1) {
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
         setActiveIndex((idx) => (idx - 1 + slides.length) % slides.length);
       }
     };
@@ -57,11 +56,24 @@ export function AppsMediaShowcase({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [lightboxOpen, slides.length]);
 
+  const lastLightboxSlideRef = useRef<{
+    slide: ResolvedStorefrontGallerySlide;
+    attempt: number;
+    index: number;
+  } | null>(null);
+
   if (slides.length === 0) return null;
 
   const activeSlide = slides[Math.min(activeIndex, slides.length - 1)]!;
   const attempt = retryCount[activeSlide.url] ?? 0;
   const activeFailed = failedKeys[activeSlide.url] === attempt;
+  const isLightboxOpen = lightboxOpen && !activeFailed;
+  if (isLightboxOpen) {
+    lastLightboxSlideRef.current = { slide: activeSlide, attempt, index: Math.min(activeIndex, slides.length - 1) };
+  }
+  const renderedLightbox = isLightboxOpen
+    ? { slide: activeSlide, attempt, index: Math.min(activeIndex, slides.length - 1) }
+    : lastLightboxSlideRef.current;
   const srcWithRetry = (url: string, count: number): string => (
     count > 0 ? `${url}${url.includes('?') ? '&' : '?'}retry=${count}` : url
   );
@@ -129,7 +141,7 @@ export function AppsMediaShowcase({
               data-testid="apps-media-zoom"
               aria-label={t('Apps.storefront.galleryZoom')}
               onClick={() => setLightboxOpen(true)}
-              className="block h-full w-full cursor-zoom-in focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--nimi-action-primary-bg)]"
+              className="block h-full w-full cursor-zoom-in transition-transform duration-150 active:scale-[0.995] motion-reduce:transform-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--nimi-focus-ring-color)]"
             >
               <img
                 key={`${activeSlide.url}:${attempt}`}
@@ -190,7 +202,7 @@ export function AppsMediaShowcase({
                 aria-selected={isSelected}
                 data-testid={`apps-media-thumb-${slide.id}`}
                 onClick={() => setActiveIndex(index)}
-                className={`relative aspect-video w-28 shrink-0 overflow-hidden rounded-lg border-2 transition-all ${
+                className={`relative aspect-video w-28 shrink-0 overflow-hidden rounded-lg border-2 transition-[border-color,opacity,transform] duration-150 active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1 ${
                   isSelected
                     ? 'border-[var(--nimi-action-primary-bg)] ring-1 ring-[var(--nimi-action-primary-bg)]'
                     : 'border-[var(--nimi-border-subtle)] opacity-75 hover:opacity-100'
@@ -214,41 +226,82 @@ export function AppsMediaShowcase({
         </div>
       ) : null}
 
-      {lightboxOpen && !activeFailed ? (() => {
-        const lightbox = (
-          <div
-            data-testid="apps-media-lightbox"
-            role="dialog"
-            aria-modal="true"
-            aria-label={activeSlide.caption || appName}
-            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/85 p-8 backdrop-blur-sm"
-            onClick={() => setLightboxOpen(false)}
-          >
-            <IconButton
-              data-testid="apps-media-lightbox-close"
-              icon={<X className="h-5 w-5" aria-hidden="true" />}
-              tone="secondary"
-              aria-label={t('Apps.storefront.galleryClose')}
-              className="fixed right-6 top-6 z-10"
-              onClick={(e) => {
-                e.stopPropagation();
-                setLightboxOpen(false);
-              }}
-            />
-            <div className="relative flex max-h-[86vh] max-w-[88vw] flex-col items-center gap-3" onClick={(e) => e.stopPropagation()}>
-              <img
-                src={srcWithRetry(activeSlide.url, attempt)}
-                alt={activeSlide.caption || appName}
-                className="max-h-[78vh] max-w-[86vw] rounded-xl object-contain shadow-2xl"
+      <OverlayShell
+        open={isLightboxOpen}
+        kind="dialog"
+        size="full"
+        onClose={() => setLightboxOpen(false)}
+        data-testid="apps-media-lightbox"
+        className="bg-black/88"
+        panelClassName="w-max max-w-[calc(100vw-3rem)] border-0 bg-transparent shadow-none"
+        contentClassName="p-0"
+      >
+        {renderedLightbox ? (
+          <div className="flex max-h-[90vh] flex-col items-center gap-3">
+            <div className="flex w-full items-center justify-between gap-4 text-white">
+              <div className="flex items-baseline gap-2.5">
+                <DialogTitle className="text-sm font-semibold text-white">
+                  {appName}
+                </DialogTitle>
+                {slides.length > 1 ? (
+                  <DialogDescription className="text-xs text-white/70 tabular-nums">
+                    {renderedLightbox.index + 1} / {slides.length}
+                  </DialogDescription>
+                ) : (
+                  <DialogDescription className="sr-only">
+                    {renderedLightbox.slide.caption || appName}
+                  </DialogDescription>
+                )}
+              </div>
+              <IconButton
+                data-testid="apps-media-lightbox-close"
+                icon={<X className="h-4 w-4" aria-hidden="true" />}
+                tone="secondary"
+                size="sm"
+                aria-label={t('Apps.storefront.galleryClose')}
+                className="rounded-full border-0 bg-white/15 text-white hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                onClick={() => setLightboxOpen(false)}
               />
-              {activeSlide.caption ? (
-                <p className="max-w-2xl text-center text-sm text-white/90">{activeSlide.caption}</p>
+            </div>
+
+            <div className="relative flex items-center justify-center">
+              {slides.length > 1 ? (
+                <IconButton
+                  data-testid="apps-media-lightbox-prev"
+                  icon={<ChevronLeft className="h-5 w-5" aria-hidden="true" />}
+                  tone="secondary"
+                  size="sm"
+                  aria-label={t('Apps.storefront.galleryPrev')}
+                  className="mr-3 shrink-0 rounded-full border-0 bg-white/15 text-white hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  onClick={() => setActiveIndex((idx) => (idx - 1 + slides.length) % slides.length)}
+                />
+              ) : null}
+
+              <img
+                src={srcWithRetry(renderedLightbox.slide.url, renderedLightbox.attempt)}
+                alt={renderedLightbox.slide.caption || appName}
+                className="max-h-[78vh] max-w-[82vw] rounded-xl object-contain shadow-2xl"
+              />
+
+              {slides.length > 1 ? (
+                <IconButton
+                  data-testid="apps-media-lightbox-next"
+                  icon={<ChevronRight className="h-5 w-5" aria-hidden="true" />}
+                  tone="secondary"
+                  size="sm"
+                  aria-label={t('Apps.storefront.galleryNext')}
+                  className="ml-3 shrink-0 rounded-full border-0 bg-white/15 text-white hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  onClick={() => setActiveIndex((idx) => (idx + 1) % slides.length)}
+                />
               ) : null}
             </div>
+
+            {renderedLightbox.slide.caption ? (
+              <p className="max-w-2xl text-center text-sm text-white/90">{renderedLightbox.slide.caption}</p>
+            ) : null}
           </div>
-        );
-        return typeof document !== 'undefined' ? createPortal(lightbox, document.body) : lightbox;
-      })() : null}
+        ) : null}
+      </OverlayShell>
     </section>
   );
 }

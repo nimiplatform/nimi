@@ -106,7 +106,7 @@ export function GlobalDownloadsNavigation({ onOpen, selected = false }: { readon
           </div>
         ) : null}
         {active && downloads && downloads.activeCount > 1 ? (
-          <span className="pointer-events-none absolute -right-1 -top-1 rounded-full bg-[var(--nimi-action-primary-bg)] px-1 text-[10px] leading-4 text-[var(--nimi-action-primary-text)]">
+          <span className="pointer-events-none absolute -right-1 -top-1 rounded-full bg-[var(--nimi-action-primary-bg)] px-1 text-[length:var(--nimi-type-caption-size)] leading-4 text-[var(--nimi-action-primary-text)]">
             {downloads.activeCount}
           </span>
         ) : null}
@@ -368,7 +368,7 @@ export function GlobalDownloadsView() {
     <section key={id} className="rounded-2xl bg-[var(--nimi-surface-card)] px-5 py-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--nimi-text-muted)]">
+          <p className="text-[length:var(--nimi-type-caption-size)] font-medium uppercase tracking-wide text-[var(--nimi-text-muted)]">
             {t('runtimeConfig.downloads.setupGroup')}
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
@@ -462,19 +462,14 @@ export function GlobalDownloadsView() {
           tone="panel"
           material="glass-regular"
           padding="none"
-          className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2rem] border-white/60 shadow-[0_22px_52px_rgba(15,23,42,0.08)]"
+          className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2rem] border-[var(--nimi-border-subtle)] shadow-[var(--nimi-elevation-raised)]"
         >
-          <header className="flex shrink-0 items-center justify-between gap-4 px-6 pb-4 pt-5">
-            <div className="flex min-w-0 items-center gap-3.5">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]">
-                <Download size={20} />
-              </span>
-              <div className="min-w-0">
-                <h1 className="nimi-type-page-title truncate text-[color:var(--nimi-text-primary)]">
-                  {t('runtimeConfig.downloads.title')}
-                </h1>
-                {loading ? <p role="status" className="mt-0.5 text-xs text-[var(--nimi-text-muted)]">{t('Common.loading')}</p> : null}
-              </div>
+          <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--nimi-border-subtle)] px-6 py-4">
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-semibold tracking-tight text-[color:var(--nimi-text-primary)]">
+                {t('runtimeConfig.downloads.title')}
+              </h1>
+              {loading ? <p role="status" className="mt-0.5 text-xs text-[var(--nimi-text-muted)]">{t('Common.loading')}</p> : null}
             </div>
             <Button
               tone="ghost"
@@ -490,7 +485,7 @@ export function GlobalDownloadsView() {
             </Button>
           </header>
           {!appDetails ? (
-            <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 px-6">
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 px-6 pt-3">
               <NimiTabs
                 ariaLabel={t('runtimeConfig.downloads.title')}
                 className="border-b-0"
@@ -515,7 +510,7 @@ export function GlobalDownloadsView() {
           {history.readFailed ? <InlineAlert tone="warning" className="mx-6 mt-4">{t('runtimeConfig.downloads.historyReadFailed')}</InlineAlert> : null}
           {appDetails ? (
             <div className="flex min-h-0 flex-1 flex-col">
-              <Button tone="ghost" onClick={() => setAppDetails(false)}>
+              <Button tone="ghost" className="self-start" onClick={() => setAppDetails(false)}>
                 {t('runtimeConfig.downloads.back')}
               </Button>
               <Suspense fallback={<LoadingSkeleton className="h-32" />}>
@@ -525,26 +520,20 @@ export function GlobalDownloadsView() {
           ) : empty ? (
             <div className="flex min-h-0 flex-1 flex-col">
               {error ? <InlineAlert tone="danger" className="mx-6 mt-4">{error}</InlineAlert> : null}
-              <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-5 px-6 py-20 text-center">
-                <div className="relative flex items-center justify-center">
-                  <div
-                    aria-hidden="true"
-                    className="absolute h-36 w-36 rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)_0%,transparent_70%)]"
-                  />
-                  <div className="relative flex h-20 w-20 items-center justify-center rounded-[1.75rem] border border-white/60 bg-[var(--nimi-surface-card)] text-[var(--nimi-action-primary-bg)] shadow-[0_18px_40px_rgba(15,23,42,0.10)]">
-                    <Download size={34} strokeWidth={1.6} />
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <h2 className="text-base font-semibold text-[var(--nimi-text-primary)]">
+              <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 py-10 text-center">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)]">
+                  <Download size={18} strokeWidth={1.75} aria-hidden="true" />
+                </span>
+                <div className="space-y-1">
+                  <h2 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
                     {t(`runtimeConfig.product.downloadEmpty.${lane}`)}
                   </h2>
-                  {lane !== 'history' ? <p className="mx-auto max-w-sm text-sm leading-relaxed text-[var(--nimi-text-muted)]">
+                  {lane !== 'history' ? <p className="mx-auto max-w-sm text-xs leading-relaxed text-[var(--nimi-text-muted)]">
                     {t('runtimeConfig.product.downloadEmptyHelp')}
                   </p> : null}
                 </div>
                 {lane === 'active' && counts.attention ? (
-                  <Button tone="secondary" onClick={() => setLane('attention')}>
+                  <Button size="sm" tone="secondary" onClick={() => setLane('attention')}>
                     {t('runtimeConfig.product.viewInterrupted', { count: counts.attention })}
                   </Button>
                 ) : null}

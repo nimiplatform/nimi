@@ -4,6 +4,7 @@ import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
 import { createWebBrowserRealm, webRealmOrigin } from './browser-realm.js';
 import { loadWebCurrentAccount } from './web-account-adapter.js';
+import { AccountFeedback } from './account-center-layout.js';
 import {
   clearAccountTerminationIntent,
   getAccountTerminationIntent,
@@ -36,12 +37,17 @@ export function AccountSecurityControls({
   const [uncertain, setUncertain] = useState(false);
   const alive = useRef(true);
   const loadSequence = useRef(0);
+  const revokeConfirmationRef = useRef<HTMLDivElement>(null);
+  const revokeTriggerRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     alive.current = true;
     return () => {
       alive.current = false;
     };
   }, []);
+  useEffect(() => {
+    if (revoke) revokeConfirmationRef.current?.focus({ preventScroll: true });
+  }, [revoke]);
 
   const load = async (cursor?: string) => {
     const sequence = ++loadSequence.current;
@@ -188,7 +194,10 @@ export function AccountSecurityControls({
                   <button
                     type="button"
                     disabled={busy}
-                    onClick={() => setRevoke({ id: session.id })}
+                    onClick={(event) => {
+                      revokeTriggerRef.current = event.currentTarget;
+                      setRevoke({ id: session.id });
+                    }}
                   >
                     {t('AccountSecurity.revoke')}
                   </button>
@@ -212,14 +221,23 @@ export function AccountSecurityControls({
             </button>
           ) : null}
           {page ? (
-            <button type="button" disabled={busy} onClick={() => setRevoke('others')}>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={(event) => {
+                revokeTriggerRef.current = event.currentTarget;
+                setRevoke('others');
+              }}
+            >
               {t('AccountSecurity.revokeOthers')}
             </button>
           ) : null}
           {revoke ? (
             <div
+              ref={revokeConfirmationRef}
               className="web-account-confirmation"
               role="group"
+              tabIndex={-1}
               aria-label={t('AccountSecurity.confirm')}
             >
               <p>
@@ -229,12 +247,27 @@ export function AccountSecurityControls({
                     : 'AccountSecurity.revokeConfirm',
                 )}
               </p>
-              <button type="button" disabled={busy} onClick={() => void revokeSelected()}>
-                {t('AccountSecurity.confirm')}
-              </button>{' '}
-              <button type="button" disabled={busy} onClick={() => setRevoke(null)}>
-                {t('AccountSecurity.cancel')}
-              </button>
+              <div className="ac-actions">
+                <button
+                  type="button"
+                  className="ac-button ac-button--danger ac-button--small"
+                  disabled={busy}
+                  onClick={() => void revokeSelected()}
+                >
+                  {t('AccountSecurity.confirm')}
+                </button>
+                <button
+                  type="button"
+                  className="ac-button ac-button--secondary ac-button--small"
+                  disabled={busy}
+                  onClick={() => {
+                    setRevoke(null);
+                    revokeTriggerRef.current?.focus({ preventScroll: true });
+                  }}
+                >
+                  {t('AccountSecurity.cancel')}
+                </button>
+              </div>
             </div>
           ) : null}
         </section>
@@ -296,8 +329,7 @@ export function AccountSecurityControls({
           )}
         </section>
       ) : null}
-      {error ? <p role="alert">{error}</p> : null}
-      {feedback ? <p role="status">{feedback}</p> : null}
+      <AccountFeedback error={error} message={feedback} />
     </>
   );
 }

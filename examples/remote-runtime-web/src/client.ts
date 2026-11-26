@@ -22,8 +22,9 @@ const changes = new BroadcastChannel('website-account');
 const performing = new Map<HTMLButtonElement, () => boolean>();
 let refreshSequence = 0;
 
-function notice(error: unknown): void { text('notice', error instanceof Error ? error.message : String(error)); show('notice', true); }
+function notice(error: unknown): void { text('notice-text', error instanceof Error ? error.message : String(error)); show('notice', true); }
 function clearNotice(): void { show('notice', false); }
+element('notice-dismiss').addEventListener('click', clearNotice);
 function resetConnectionView(status: string): void {
   connection = undefined; snapshot = undefined; cancelGeneration = undefined;
   show('configuration', false); show('disconnect', false); show('cancel', false);
@@ -329,5 +330,5 @@ action('cancel-job', async () => {
 changes.onmessage = () => { closeConnection(); void refresh().catch(notice); };
 window.addEventListener('pagehide', closeConnection);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) void refresh().catch(notice); });
-setInterval(() => { void refresh().catch(error => { closeConnection(); notice(error); }); }, 5000);
+setInterval(() => { if (document.hidden) return; void refresh().catch(error => { closeConnection(); notice(error); }); }, 5000);
 void refresh().catch(notice);

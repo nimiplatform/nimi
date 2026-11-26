@@ -129,6 +129,16 @@ export function SystemEntryApp() {
     // isolated overview receives only that display value, never its store.
     document.documentElement.style.colorScheme = snapshot?.colorScheme ?? 'light dark';
   }, [snapshot?.colorScheme]);
+  useEffect(() => {
+    if (!bridge) return;
+    const onWindowKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      void bridge.close().catch(() => setError('unavailable'));
+    };
+    window.addEventListener('keydown', onWindowKeyDown);
+    return () => window.removeEventListener('keydown', onWindowKeyDown);
+  }, [bridge]);
 
   const act = useCallback((action: SystemEntryAction) => {
     if (!bridge || busy) return;

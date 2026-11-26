@@ -13,9 +13,11 @@ import {
 } from '@nimiplatform/kit/shell/renderer/host';
 import { installNimiShellRuntimeBridge } from '@nimiplatform/kit/shell/renderer/bridge';
 import { NimiThemeProvider, TooltipProvider } from '@nimiplatform/kit/ui';
+import { NimiMotionProvider } from '@nimiplatform/kit/ui/motion';
 import './styles.css';
 import './renderer/styles.css';
 import { ZhiyuNavigationOwner } from './shell/app/navigation.js';
+import { resolveSystemScheme, useSystemScheme } from './production/system-scheme.js';
 
 installNimiShellRuntimeBridge();
 const appSession = createDesktopNimiAppSession();
@@ -31,17 +33,19 @@ overlayRoot.id = 'zhiyu-production-overlays';
 overlayRoot.classList.add('nimi-ui-module--zhiyu');
 document.body.append(overlayRoot);
 
+const themeController = createNimiRendererThemeController({
+  scheme: resolveSystemScheme(),
+  accentPack: 'nimi-accent',
+  density: 'regular',
+});
+
 const rendererHost = createNimiRendererHostBinding<NimiRendererHostMethodMap>({
   opaqueScopePrefix: 'zhiyu-production',
   declaredMethods: [],
   capabilities: [],
   localization: { locale: 'zh-CN', language: 'zh', direction: 'ltr' },
   targets: { renderer: root, overlay: overlayRoot },
-  theme: createNimiRendererThemeController({
-    scheme: 'light',
-    accentPack: 'nimi-accent',
-    density: 'regular',
-  }),
+  theme: themeController,
   operations: {
     invoke: async () => ({ ok: false, error: { disposition: 'unsupported' } }),
   },
@@ -66,21 +70,30 @@ function DesktopZhiyuFrame({ client }: { client: NimiAppRuntimeClient }) {
   return <ZhiyuFrame host={rendererHost.facade} client={client} commands={commands} />;
 }
 
-createRoot(root).render(
-  <React.StrictMode>
+function DesktopZhiyuRoot() {
+  const scheme = useSystemScheme(themeController);
+  return (
     <NimiRendererHostProvider binding={rendererHost}>
-      <NimiThemeProvider accentPack="nimi-accent" defaultScheme="light">
-        <TooltipProvider>
-          <NimiAppSessionProvider session={appSession}>
-            <NimiAppAccessGate title="织羽">{scope => (
-              <ZhiyuNavigationOwner>
-                <DesktopZhiyuFrame client={scope.client} />
-              </ZhiyuNavigationOwner>
-            )}</NimiAppAccessGate>
-          </NimiAppSessionProvider>
-        </TooltipProvider>
+      <NimiThemeProvider accentPack="nimi-accent" scheme={scheme}>
+        <NimiMotionProvider>
+          <TooltipProvider>
+            <NimiAppSessionProvider session={appSession}>
+              <NimiAppAccessGate title="织羽">{scope => (
+                <ZhiyuNavigationOwner>
+                  <DesktopZhiyuFrame client={scope.client} />
+                </ZhiyuNavigationOwner>
+              )}</NimiAppAccessGate>
+            </NimiAppSessionProvider>
+          </TooltipProvider>
+        </NimiMotionProvider>
       </NimiThemeProvider>
     </NimiRendererHostProvider>
+  );
+}
+
+createRoot(root).render(
+  <React.StrictMode>
+    <DesktopZhiyuRoot />
   </React.StrictMode>,
 );
 

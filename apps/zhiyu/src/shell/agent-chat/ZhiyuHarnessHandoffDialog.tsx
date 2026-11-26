@@ -1,6 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Briefcase, CheckCircle2, Clock, ShieldCheck, X } from 'lucide-react';
 import {
+  Button,
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@nimiplatform/kit/ui';
+import {
   buildEditableHandoffBriefDraft,
   composeHandoffBriefPayload,
   submitZhiyuHarnessHandoff,
@@ -65,8 +75,6 @@ export function ZhiyuHarnessHandoffDialog({
     stableRequestIdRef.current = undefined;
   }, [open, partnerName, currentDraft, recentTopicHints]);
 
-  if (!open) return null;
-
   const togglePoint = (id: string) => {
     stableRequestIdRef.current = undefined;
     setPoints((prev) => prev.map((pt) => (pt.id === id ? { ...pt, selected: !pt.selected } : pt)));
@@ -112,157 +120,177 @@ export function ZhiyuHarnessHandoffDialog({
     }
   };
 
+  const focusRingClassName = 'focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] focus-visible:outline-offset-2';
+
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="转交电脑工作台（可编辑简报）"
-      data-testid="zhiyu-harness-handoff-dialog"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4"
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose();
+      }}
     >
-      <div className="flex w-full max-w-lg flex-col gap-4 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 text-[var(--nimi-text-primary)] shadow-xl">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Briefcase size={17} aria-hidden="true" className="text-[var(--nimi-action-primary-bg)]" />
-            <h2 className="text-base font-semibold">转交电脑工作台（可编辑简报）</h2>
+      <DialogContent
+        onClose={onClose}
+        data-testid="zhiyu-harness-handoff-dialog"
+        className="max-h-[85dvh] max-w-[min(32rem,calc(100vw-2rem))] overflow-hidden text-[var(--nimi-text-primary)]"
+      >
+        <DialogHeader className="flex items-center justify-between gap-2 px-5 pt-5 pb-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <Briefcase size={17} aria-hidden="true" className="shrink-0 text-[var(--nimi-action-primary-bg)]" />
+            <DialogTitle className="text-base font-semibold tracking-[-0.015em] text-[var(--nimi-text-primary)]">
+              转交电脑工作台（可编辑简报）
+            </DialogTitle>
           </div>
+          <DialogDescription className="sr-only">
+            编辑并确认要转交给电脑工作台的简报内容，未勾选的对话内容会继续留在织羽。
+          </DialogDescription>
           <button
             type="button"
             aria-label="关闭交接简报"
             onClick={onClose}
-            className="rounded-lg p-1 text-[var(--nimi-text-secondary)] hover:bg-black/5"
+            className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--nimi-text-secondary)] transition-[background-color,color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] active:scale-[var(--nimi-motion-pressed-scale)] ${focusRingClassName}`}
           >
             <X size={16} aria-hidden="true" />
           </button>
-        </div>
+        </DialogHeader>
 
-        {/* Zone 1: What WILL be sent to Harness (editable & opt-in) */}
-        <fieldset disabled={submitting || Boolean(receipt)} className="flex flex-col gap-3 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-subtle)] p-3.5 text-xs">
-          <p className="font-semibold text-[var(--nimi-text-primary)]">
-            交给电脑工作台的简报（仅发送你确认和编辑后的内容）
-          </p>
+        <DialogBody className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-2">
+          {/* Zone 1: What WILL be sent to Harness (editable & opt-in) */}
+          <fieldset
+            disabled={submitting || Boolean(receipt)}
+            className="flex flex-col gap-3 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3.5 text-xs"
+          >
+            <p className="font-semibold text-[var(--nimi-text-primary)]">
+              交给电脑工作台的简报（仅发送你确认和编辑后的内容）
+            </p>
 
-          <label className="flex flex-col gap-1">
-            <span className="text-[var(--nimi-text-secondary)]">任务目标</span>
-            <input
-              type="text"
-              data-testid="zhiyu-handoff-goal-input"
-              value={goal}
-              onChange={(e) => {
-                stableRequestIdRef.current = undefined;
-                setGoal(e.target.value);
-              }}
-              placeholder="例如：把刚才聊的五一出行计划整理成桌面 Markdown 文档"
-              className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-sm text-[var(--nimi-text-primary)]"
-            />
-          </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[var(--nimi-text-secondary)]">任务目标</span>
+              <input
+                type="text"
+                data-testid="zhiyu-handoff-goal-input"
+                value={goal}
+                onChange={(e) => {
+                  stableRequestIdRef.current = undefined;
+                  setGoal(e.target.value);
+                }}
+                placeholder="例如：把刚才聊的五一出行计划整理成桌面 Markdown 文档"
+                className={`rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-sm text-[var(--nimi-text-primary)] ${focusRingClassName}`}
+              />
+            </label>
 
-          {points.length > 0 ? (
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[var(--nimi-text-secondary)]">勾选要随简报发送的聊天要点</span>
-              {points.map((pt) => (
-                <div key={pt.id} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={pt.selected}
-                    onChange={() => togglePoint(pt.id)}
-                    aria-label={`勾选要点 ${pt.text}`}
-                  />
-                  <input
-                    type="text"
-                    value={pt.text}
-                    onChange={(e) => updatePointText(pt.id, e.target.value)}
-                    className="flex-1 rounded-md border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2 py-1 text-xs"
-                  />
-                </div>
-              ))}
+            {points.length > 0 ? (
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[var(--nimi-text-secondary)]">勾选要随简报发送的聊天要点</span>
+                {points.map((pt) => (
+                  <div key={pt.id} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={pt.selected}
+                      onChange={() => togglePoint(pt.id)}
+                      aria-label={`勾选要点 ${pt.text}`}
+                      className={`h-4 w-4 shrink-0 rounded ${focusRingClassName}`}
+                    />
+                    <input
+                      type="text"
+                      value={pt.text}
+                      onChange={(e) => updatePointText(pt.id, e.target.value)}
+                      className={`flex-1 rounded-md border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2 py-1 text-xs text-[var(--nimi-text-primary)] ${focusRingClassName}`}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            <label className="flex flex-col gap-1">
+              <span className="text-[var(--nimi-text-secondary)]">补充要求（可选）</span>
+              <textarea
+                rows={2}
+                data-testid="zhiyu-handoff-notes-input"
+                value={extraNotes}
+                onChange={(e) => {
+                  stableRequestIdRef.current = undefined;
+                  setExtraNotes(e.target.value);
+                }}
+                placeholder="例如：输出路径、预算范围、期望格式…"
+                className={`rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-xs text-[var(--nimi-text-primary)] ${focusRingClassName}`}
+              />
+            </label>
+          </fieldset>
+
+          {/* Zone 2: What stays strictly inside Zhiyu */}
+          <div
+            data-testid="zhiyu-handoff-privacy-boundary"
+            className="flex items-start gap-2 rounded-xl bg-[var(--nimi-status-info-soft-bg)] px-3 py-2.5 text-xs text-[var(--nimi-text-secondary)]"
+          >
+            <ShieldCheck size={15} aria-hidden="true" className="mt-0.5 shrink-0 text-[var(--nimi-action-primary-bg)]" />
+            <div>
+              <p className="font-medium text-[var(--nimi-text-primary)]">留在织羽的内容</p>
+              <p>{stayedNotice}</p>
+            </div>
+          </div>
+
+          {error ? (
+            <div
+              role="alert"
+              data-testid="zhiyu-handoff-error"
+              className="flex items-center gap-2 rounded-xl bg-[var(--nimi-status-danger-soft-bg)] px-3 py-2 text-xs text-[var(--nimi-status-danger-soft-text)]"
+            >
+              <AlertTriangle size={14} aria-hidden="true" className="shrink-0" />
+              <span>{error}</span>
             </div>
           ) : null}
 
-          <label className="flex flex-col gap-1">
-            <span className="text-[var(--nimi-text-secondary)]">补充要求（可选）</span>
-            <textarea
-              rows={2}
-              data-testid="zhiyu-handoff-notes-input"
-              value={extraNotes}
-              onChange={(e) => {
-                stableRequestIdRef.current = undefined;
-                setExtraNotes(e.target.value);
-              }}
-              placeholder="例如：输出路径、预算范围、期望格式…"
-              className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-xs text-[var(--nimi-text-primary)]"
-            />
-          </label>
-        </fieldset>
+          {receipt ? (
+            <div
+              role="status"
+              data-testid="zhiyu-handoff-receipt"
+              data-outcome={receipt.outcome}
+              className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs ${
+                receipt.outcome === 'DEFERRED_BODY_OFFLINE'
+                  ? 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]'
+                  : 'bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success-soft-text)]'
+              }`}
+            >
+              {receipt.outcome === 'DEFERRED_BODY_OFFLINE' ? (
+                <Clock size={14} aria-hidden="true" className="shrink-0" />
+              ) : (
+                <CheckCircle2 size={14} aria-hidden="true" className="shrink-0" />
+              )}
+              <span>
+                {receipt.outcome === 'DEFERRED_BODY_OFFLINE'
+                  ? `已排队等待 PC 执行体上线（会话编号：${receipt.resolvedWorkSessionRef}）。打开已安装的本机执行 App 后将自动继续。`
+                  : `已交给本机执行 App 启动任务（会话编号：${receipt.resolvedWorkSessionRef}）。`}
+              </span>
+            </div>
+          ) : null}
+        </DialogBody>
 
-        {/* Zone 2: What stays strictly inside Zhiyu */}
-        <div
-          data-testid="zhiyu-handoff-privacy-boundary"
-          className="flex items-start gap-2 rounded-xl bg-[var(--nimi-status-info-soft-bg)] px-3 py-2.5 text-xs text-[var(--nimi-text-secondary)]"
-        >
-          <ShieldCheck size={15} aria-hidden="true" className="mt-0.5 shrink-0 text-[var(--nimi-action-primary-bg)]" />
-          <div>
-            <p className="font-medium text-[var(--nimi-text-primary)]">留在织羽的内容</p>
-            <p>{stayedNotice}</p>
-          </div>
-        </div>
-
-        {error ? (
-          <div
-            role="alert"
-            data-testid="zhiyu-handoff-error"
-            className="flex items-center gap-2 rounded-xl bg-[var(--nimi-status-danger-soft-bg)] px-3 py-2 text-xs text-[var(--nimi-status-danger-soft-text)]"
-          >
-            <AlertTriangle size={14} aria-hidden="true" className="shrink-0" />
-            <span>{error}</span>
-          </div>
-        ) : null}
-
-        {receipt ? (
-          <div
-            role="status"
-            data-testid="zhiyu-handoff-receipt"
-            data-outcome={receipt.outcome}
-            className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs ${
-              receipt.outcome === 'DEFERRED_BODY_OFFLINE'
-                ? 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]'
-                : 'bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success-soft-text)]'
-            }`}
-          >
-            {receipt.outcome === 'DEFERRED_BODY_OFFLINE' ? (
-              <Clock size={14} aria-hidden="true" className="shrink-0" />
-            ) : (
-              <CheckCircle2 size={14} aria-hidden="true" className="shrink-0" />
-            )}
-            <span>
-              {receipt.outcome === 'DEFERRED_BODY_OFFLINE'
-                ? `已排队等待 PC 执行体上线（会话编号：${receipt.resolvedWorkSessionRef}）。打开已安装的本机执行 App 后将自动继续。`
-                : `已交给本机执行 App 启动任务（会话编号：${receipt.resolvedWorkSessionRef}）。`}
-            </span>
-          </div>
-        ) : null}
-
-        <div className="flex items-center justify-end gap-2">
-          <button
+        <DialogFooter className="flex items-center justify-end gap-2 px-5 pt-3 pb-5">
+          <Button
             type="button"
+            tone="ghost"
+            size="sm"
             onClick={onClose}
-            className="rounded-xl px-3.5 py-2 text-xs text-[var(--nimi-text-secondary)] hover:bg-black/5"
+            className="hover:bg-[var(--nimi-action-ghost-hover)]"
           >
             {receipt ? '完成' : '取消'}
-          </button>
+          </Button>
           {!receipt ? (
-            <button
+            <Button
               type="button"
+              tone="primary"
+              size="sm"
               disabled={submitting || !agentHandle}
+              loading={submitting}
               data-testid="zhiyu-handoff-submit"
               onClick={() => void handleSubmit()}
-              className="rounded-xl bg-[var(--nimi-action-primary-bg)] px-4 py-2 text-xs font-semibold text-[var(--nimi-action-primary-text)] hover:opacity-90 disabled:opacity-50"
             >
               {submitting ? '正在转交…' : '确认转交'}
-            </button>
+            </Button>
           ) : null}
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

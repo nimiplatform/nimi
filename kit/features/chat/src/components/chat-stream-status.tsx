@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { cn } from '@nimiplatform/kit/ui';
+import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
 import { resolveChatCopy, type ChatCopy } from '../copy.js';
 import {
   CHAT_BUBBLE_MAX_WIDTH_CLASSNAME,
@@ -26,10 +27,10 @@ export type ChatStreamStatusProps = {
 
 function DefaultLoadingIndicator() {
   return (
-    <span className="inline-flex items-center gap-1 text-[var(--nimi-text-muted)]">
-      <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--nimi-text-muted)]" style={{ animationDelay: '0ms' }} />
-      <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--nimi-text-muted)]" style={{ animationDelay: '150ms' }} />
-      <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--nimi-text-muted)]" style={{ animationDelay: '300ms' }} />
+    <span role="status" aria-label="Loading" className="inline-flex items-center gap-1 text-[var(--nimi-text-muted)]">
+      <span aria-hidden="true" className="inline-block h-1.5 w-1.5 animate-bounce motion-reduce:animate-none rounded-full bg-[var(--nimi-text-muted)]" style={{ animationDelay: '0ms' }} />
+      <span aria-hidden="true" className="inline-block h-1.5 w-1.5 animate-bounce motion-reduce:animate-none rounded-full bg-[var(--nimi-text-muted)]" style={{ animationDelay: '150ms' }} />
+      <span aria-hidden="true" className="inline-block h-1.5 w-1.5 animate-bounce motion-reduce:animate-none rounded-full bg-[var(--nimi-text-muted)]" style={{ animationDelay: '300ms' }} />
     </span>
   );
 }
@@ -68,8 +69,8 @@ export function ChatStreamStatus({
           style={chatBubbleShapeStyle('agent')}
         >
           {reasoningText ? (
-            <details className="mb-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_80%,white)] px-3 py-2">
-              <summary className="cursor-pointer text-xs font-medium text-[var(--nimi-text-muted)]">
+            <details className="mb-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-2">
+              <summary className={cn('cursor-pointer rounded-sm text-xs font-medium text-[var(--nimi-text-muted)]', FOCUS_RING_CLASS_NAME)}>
                 {reasoningLabel}
               </summary>
               <pre className="mt-2 whitespace-pre-wrap font-sans text-sm leading-6 text-[var(--nimi-text-secondary)]">

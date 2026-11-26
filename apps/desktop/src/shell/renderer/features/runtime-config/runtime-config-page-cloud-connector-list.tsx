@@ -191,7 +191,7 @@ function CloudConnectorRow(props: {
             <CloudConnectorScopeBadge connector={connector} t={t} />
           </span>
           {subtitle ? <span className="mt-0.5 block truncate text-xs text-[var(--nimi-text-muted)]">{subtitle}</span> : null}
-          {props.duplicateLabel ? <span className="mt-1 block break-all font-mono text-[11px] text-[var(--nimi-text-muted)]">{connector.id}</span> : null}
+          {props.duplicateLabel ? <span className="mt-1 block break-all font-mono text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{connector.id}</span> : null}
           <span className="mt-1 block"><CloudConnectorStatus connector={connector} checking={props.checking} compact t={t} /></span>
         </span>
       </button>

@@ -67,7 +67,7 @@ export function InlineFeedback(props: {
           type="button"
           onClick={onDismiss}
           aria-label={t('Feedback.dismiss', { defaultValue: 'Dismiss feedback' })}
-          className="text-[var(--nimi-text-muted)] transition-colors hover:text-[var(--nimi-text-primary)]"
+          className="-m-1.5 inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--nimi-text-muted)] transition-[transform,color,background-color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
         >
           <X className="h-4 w-4" aria-hidden />
         </button>

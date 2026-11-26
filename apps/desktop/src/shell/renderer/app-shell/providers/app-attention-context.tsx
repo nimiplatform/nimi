@@ -12,24 +12,26 @@ import {
 import type { AppAttentionSource } from './app-attention-source.js';
 
 const IDLE_ATTENTION = createIdleAppAttentionState();
-const AppAttentionContext = createContext<AppAttentionState>(IDLE_ATTENTION);
+const NOOP_SUBSCRIBE = () => () => {};
+const GET_IDLE_ATTENTION = () => IDLE_ATTENTION;
+const AppAttentionSourceContext = createContext<AppAttentionSource | null>(null);
 
 export function AppAttentionProvider({
   children,
   source,
 }: PropsWithChildren<{ readonly source: AppAttentionSource }>) {
-  const attention = useSyncExternalStore(
-    source.subscribe,
-    source.getSnapshot,
-    () => IDLE_ATTENTION,
-  );
   return (
-    <AppAttentionContext.Provider value={attention}>
+    <AppAttentionSourceContext.Provider value={source}>
       {children}
-    </AppAttentionContext.Provider>
+    </AppAttentionSourceContext.Provider>
   );
 }
 
 export function useAppAttention(): AppAttentionState {
-  return useContext(AppAttentionContext);
+  const source = useContext(AppAttentionSourceContext);
+  return useSyncExternalStore(
+    source ? source.subscribe : NOOP_SUBSCRIBE,
+    source ? source.getSnapshot : GET_IDLE_ATTENTION,
+    GET_IDLE_ATTENTION,
+  );
 }

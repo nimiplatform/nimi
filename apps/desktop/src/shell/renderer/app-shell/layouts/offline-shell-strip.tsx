@@ -11,6 +11,7 @@ export function OfflineShellStrip() {
   const isRuntimeReadOnly = offlineTier === 'L2';
   return (
     <div
+      role={isRuntimeReadOnly ? 'alert' : 'status'}
       data-testid={E2E_IDS.offlineStrip}
       className={`border-b px-4 py-2 text-sm ${
         isRuntimeReadOnly

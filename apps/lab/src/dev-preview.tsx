@@ -7,10 +7,11 @@
 
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { AmbientBackground, NimiThemeProvider, TooltipProvider } from '@nimiplatform/kit/ui';
+import { AmbientBackground, NimiMotionProvider, TooltipProvider } from '@nimiplatform/kit/ui';
 import './styles.css';
 import { i18n } from './shell/i18n/index.js';
 import { installDocumentLangSync } from './shell/i18n/document-lang.js';
+import { LabThemeProvider } from './shell/theme.js';
 import { LabWorkbench } from './lab/lab-workbench.js';
 
 installDocumentLangSync();
@@ -80,10 +81,12 @@ function DevPreview() {
 
 createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
-    <NimiThemeProvider accentPack="nimi-accent">
-      <TooltipProvider>
-        <DevPreview />
-      </TooltipProvider>
-    </NimiThemeProvider>
+    <LabThemeProvider>
+      <NimiMotionProvider>
+        <TooltipProvider>
+          <DevPreview />
+        </TooltipProvider>
+      </NimiMotionProvider>
+    </LabThemeProvider>
   </React.StrictMode>,
 );

@@ -1,12 +1,13 @@
 /// <reference types="vite/client" />
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { NimiThemeProvider, TooltipProvider } from '@nimiplatform/kit/ui';
+import { NimiMotionProvider, TooltipProvider } from '@nimiplatform/kit/ui';
 import { createNimiRendererHostBinding, createNimiRendererThemeController, type NimiRendererHostMethodMap } from '@nimiplatform/kit/shell/renderer/host';
 import '../styles.css';
 import './styles.css';
 import { getCurrentLocale } from '../shell/i18n/index.js';
 import { installDocumentLangSync } from '../shell/i18n/document-lang.js';
+import { LabThemeProvider, resolveLabInitialThemeSnapshot } from '../shell/theme.js';
 import { setLabRemoteRuntime } from '../shell/local-app-runtime-platform.js';
 import { clearRuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
 import { createWebNimiAppSession } from '@nimiplatform/kit/auth/app/web';
@@ -29,10 +30,11 @@ const disposeLanguage = installDocumentLangSync();
 const root = document.getElementById('root')!;
 root.classList.add('nimi-workbench-host', 'nimi-ui-module--lab'); document.body.classList.add('nimi-ui-module--lab');
 const overlays = document.createElement('div'); overlays.classList.add('nimi-ui-module--lab'); document.body.append(overlays);
+const themeController = createNimiRendererThemeController(resolveLabInitialThemeSnapshot());
 const rendererHost = createNimiRendererHostBinding<NimiRendererHostMethodMap>({
   opaqueScopePrefix: 'lab-web-renderer', declaredMethods: [], capabilities: [],
   localization: getCurrentLocale() === 'zh' ? { locale: 'zh-CN', language: 'zh', direction: 'ltr' } : { locale: 'en-US', language: 'en', direction: 'ltr' },
-  targets: { renderer: root, overlay: overlays }, theme: createNimiRendererThemeController({ scheme: 'light', accentPack: 'nimi-accent', density: 'regular' }),
+  targets: { renderer: root, overlay: overlays }, theme: themeController,
   operations: { invoke: async () => ({ ok: false, error: { disposition: 'unsupported' } }) },
   overlays: { target: overlays, acquire: async () => ({ ok: false, error: { disposition: 'unsupported' } }) },
   surfaceLifecycle: { reportReadyCandidate: () => undefined },
@@ -42,9 +44,17 @@ const unsubscribe = connection.subscribe(() => { const state = connection.getSna
   setLabRemoteRuntime(state.runtime.status === 'connected' && state.identity.status === 'signed-in' ? { ...state.runtime.scope, user: state.identity.user } : null);
   clearRuntimePlatformProjection(); });
 const reactRoot = createRoot(root);
-reactRoot.render(<React.StrictMode><NimiThemeProvider accentPack="nimi-accent" defaultScheme="light"><TooltipProvider>
-  <LabWebApp connection={connection} rendererHost={rendererHost} configurationErrors={errors} />
-</TooltipProvider></NimiThemeProvider></React.StrictMode>);
+reactRoot.render(
+  <React.StrictMode>
+    <LabThemeProvider onThemeSnapshotChange={themeController.setSnapshot}>
+      <NimiMotionProvider>
+        <TooltipProvider>
+          <LabWebApp connection={connection} rendererHost={rendererHost} configurationErrors={errors} />
+        </TooltipProvider>
+      </NimiMotionProvider>
+    </LabThemeProvider>
+  </React.StrictMode>,
+);
 if (!errors.length) void connection.start();
 const dispose = () => { connection.dispose(); unsubscribe(); setLabRemoteRuntime(null); };
 if (import.meta.hot) import.meta.hot.dispose(() => { dispose(); reactRoot.unmount(); overlays.remove(); disposeLanguage(); });

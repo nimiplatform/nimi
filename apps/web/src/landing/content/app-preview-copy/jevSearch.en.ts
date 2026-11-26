@@ -36,6 +36,7 @@ export const jevSearchMessagesEn = {
   'jevSearch.workspace.hackerNews': 'Hacker News',
   'jevSearch.workspace.arXiv': 'arXiv',
   'jevSearch.workspace.source': 'Source',
+  'jevSearch.workspace.allSources': 'All sources',
   'jevSearch.workspace.timeRange': 'Time range',
   'jevSearch.workspace.anyTime': 'Any time',
   'jevSearch.workspace.pastYear': 'Past year',

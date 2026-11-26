@@ -219,6 +219,7 @@ export function AppsFoundationStage({
                   className={`public-apps-stage-tile${isSelected ? ' is-selected' : ''}`}
                   onClick={() => setSelectedId(app.id)}
                   onMouseEnter={() => setSelectedId(app.id)}
+                  onFocus={() => setSelectedId(app.id)}
                 >
                   {app.iconSrc ? (
                     <img src={app.iconSrc} alt="" width={34} height={34} loading="eager" decoding="async" />

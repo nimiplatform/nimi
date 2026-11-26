@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNimiAppSession } from '@nimiplatform/kit/auth/app';
-import { Button, Popover, PopoverContent, PopoverTrigger } from '@nimiplatform/kit/ui';
+import { AnimatePresence, Button, Popover, PopoverContent, PopoverTrigger } from '@nimiplatform/kit/ui';
 import {
   AlertTriangle,
   ChevronDown,
@@ -54,6 +54,8 @@ export function Conversations({
   const [focusToken, setFocusToken] = useState(0);
   const [error, setError] = useState('');
   const [connectionError, setConnectionError] = useState('');
+  const mattersTabRef = useRef<HTMLButtonElement>(null);
+  const workspaceTabRef = useRef<HTMLButtonElement>(null);
   const { snapshot: access } = useNimiAppSession();
   const modelScope = access.runtime.status === 'connected' ? access.runtime.scope : undefined;
   const bridge = window.nimiHarness;
@@ -161,6 +163,20 @@ export function Conversations({
     setSelectedFile(ref);
     setInspectorTab('files');
     setInspectorOpen(true);
+    setViewMode('workspace');
+  }
+
+  function selectViewMode(nextMode: 'matters' | 'workspace', moveFocus = false) {
+    setViewMode(nextMode);
+    if (nextMode === 'workspace') {
+      setInspectorTab('files');
+      setInspectorOpen(true);
+    } else {
+      setInspectorOpen(false);
+    }
+    if (moveFocus) {
+      (nextMode === 'matters' ? mattersTabRef : workspaceTabRef).current?.focus();
+    }
   }
 
   function applyStarterPrompt(prompt: string) {
@@ -262,32 +278,47 @@ export function Conversations({
               </div>
 
               <div className="harness-topbar__controls">
-                {/* Dual Fixed Views Switch: 事项与交付 (default) <-> 项目工作区 */}
-                <div className="harness-view-switch" role="tablist" aria-label="视图切换" data-testid="harness-view-switch">
+                {/* Parallel Workspace Mode Controls: Transcript stays visible while Project Workspace opens as a complementary drawer */}
+                <div
+                  className="harness-view-switch"
+                  role="group"
+                  aria-label={t('workspace.viewSwitch')}
+                  data-testid="harness-view-switch"
+                  onKeyDown={event => {
+                    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+                      event.preventDefault();
+                      selectViewMode(viewMode === 'matters' ? 'workspace' : 'matters', true);
+                    } else if (event.key === 'Home') {
+                      event.preventDefault();
+                      selectViewMode('matters', true);
+                    } else if (event.key === 'End') {
+                      event.preventDefault();
+                      selectViewMode('workspace', true);
+                    }
+                  }}
+                >
                   <button
+                    ref={mattersTabRef}
+                    id="harness-view-tab-matters"
                     type="button"
-                    role="tab"
-                    aria-selected={viewMode === 'matters'}
+                    aria-pressed={viewMode === 'matters'}
+                    aria-controls="harness-view-panel-matters"
                     className={`harness-chip-btn ${viewMode === 'matters' ? 'harness-chip-btn--active' : ''}`}
-                    onClick={() => {
-                      setViewMode('matters');
-                      setInspectorOpen(false);
-                    }}
+                    onClick={() => selectViewMode('matters')}
                   >
-                    事项与交付
+                    {t('workspace.viewMatters')}
                   </button>
                   <button
+                    ref={workspaceTabRef}
+                    id="harness-view-tab-workspace"
                     type="button"
-                    role="tab"
-                    aria-selected={viewMode === 'workspace'}
-                    className={`harness-chip-btn ${viewMode === 'workspace' ? 'harness-chip-btn--active' : ''}`}
-                    onClick={() => {
-                      setViewMode('workspace');
-                      setInspectorTab('files');
-                      setInspectorOpen(true);
-                    }}
+                    aria-expanded={inspectorOpen}
+                    aria-pressed={inspectorOpen}
+                    aria-controls="harness-inspector-drawer"
+                    className={`harness-chip-btn ${inspectorOpen ? 'harness-chip-btn--active' : ''}`}
+                    onClick={() => selectViewMode(inspectorOpen ? 'matters' : 'workspace')}
                   >
-                    项目工作区
+                    {t('workspace.viewWorkspace')}
                   </button>
                 </div>
 
@@ -372,6 +403,7 @@ export function Conversations({
                     onClick={() => {
                       setInspectorTab('session');
                       setInspectorOpen(true);
+                      setViewMode('workspace');
                     }}
                   >
                     <Gauge size={13} aria-hidden="true" />
@@ -388,9 +420,16 @@ export function Conversations({
                   type="button"
                   className={`harness-chip-btn ${inspectorOpen ? 'harness-chip-btn--active' : ''}`}
                   aria-expanded={inspectorOpen}
+                  aria-controls="harness-inspector-drawer"
                   aria-label={t('workspace.inspectorToggle')}
                   title={t('workspace.inspectorToggle')}
-                  onClick={() => setInspectorOpen(v => !v)}
+                  onClick={() => {
+                    setInspectorOpen(prev => {
+                      const next = !prev;
+                      setViewMode(next ? 'workspace' : 'matters');
+                      return next;
+                    });
+                  }}
                 >
                   <PanelRight size={14} aria-hidden="true" />
                   <span>{t('workspace.inspectorToggle')}</span>
@@ -404,19 +443,25 @@ export function Conversations({
 
             {/* Main Streaming Transcript */}
             {view && (
-              <TranscriptThread
-                key={view.sessionId}
-                view={view}
-                openFile={ref => openFileInInspector(ref)}
-                onBindWorkspace={() => void bindWorkspaceFolder()}
-                onUseStarterPrompt={modelScope ? applyStarterPrompt : undefined}
-              />
+              <div
+                id="harness-view-panel-matters"
+                aria-label={t('workspace.viewMatters')}
+                className="harness-thread-panel"
+              >
+                <TranscriptThread
+                  key={view.sessionId}
+                  view={view}
+                  openFile={ref => openFileInInspector(ref)}
+                  onBindWorkspace={() => void bindWorkspaceFolder()}
+                  onUseStarterPrompt={modelScope ? applyStarterPrompt : undefined}
+                />
+              </div>
             )}
 
             {/* Pre-Write File Recovery Bar (Matters & Deliverables view — typed file edits only) */}
             {view && viewMode === 'matters' && (view.snapshots?.length ?? 0) > 0 && (
-              <div className="harness-snapshots-strip" role="region" aria-label="类型化文件写前备份">
-                <span className="harness-muted harness-muted--xs">近期文件写入备份（仅限类型化文件改动）：</span>
+              <div className="harness-snapshots-strip" role="region" aria-label={t('workspace.snapshotsRegion')}>
+                <span className="harness-muted harness-muted--xs">{t('workspace.snapshotsLabel')}</span>
                 {(view.snapshots ?? []).slice(-3).reverse().map(snap => (
                   <button
                     key={snap.snapshotId}
@@ -430,7 +475,11 @@ export function Conversations({
                     })}
                   >
                     <RotateCcw size={12} aria-hidden="true" />
-                    <span>{snap.restoredAt ? `已恢复 ${snap.relativePath}` : `恢复此次改动前的文件 (${snap.relativePath})`}</span>
+                    <span>
+                      {snap.restoredAt
+                        ? t('workspace.snapshotRestored', { path: snap.relativePath })
+                        : t('workspace.snapshotRestore', { path: snap.relativePath })}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -525,19 +574,26 @@ export function Conversations({
       </div>
 
       {/* Collapsible Right Inspector Drawer (never replaces transcript) */}
-      {activeDestination === 'conversations' && inspectorOpen && view && (
-        <InspectorDrawer
-          tab={inspectorTab}
-          onTabChange={setInspectorTab}
-          onClose={() => setInspectorOpen(false)}
-          view={view}
-          selectedFile={selectedFile}
-          onSelectFile={setSelectedFile}
-          scope={modelScope}
-          drafts={modelScope && draftsForScope(modelScope)}
-          report={setError}
-        />
-      )}
+      <AnimatePresence initial={false}>
+        {activeDestination === 'conversations' && inspectorOpen && view && (
+          <InspectorDrawer
+            key="harness-inspector-drawer"
+            id="harness-inspector-drawer"
+            tab={inspectorTab}
+            onTabChange={setInspectorTab}
+            onClose={() => {
+              setInspectorOpen(false);
+              setViewMode('matters');
+            }}
+            view={view}
+            selectedFile={selectedFile}
+            onSelectFile={setSelectedFile}
+            scope={modelScope}
+            drafts={modelScope && draftsForScope(modelScope)}
+            report={setError}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

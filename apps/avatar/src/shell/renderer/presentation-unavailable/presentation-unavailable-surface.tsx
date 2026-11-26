@@ -22,10 +22,7 @@ export function PresentationUnavailableSurface({
       tone="overlay"
       elevation="modal"
       padding="none"
-      className={cn(
-        'avatar-degraded-surface avatar-degraded-surface--error',
-        'nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]',
-      )}
+      className={cn('avatar-degraded-surface avatar-degraded-surface--error')}
       data-testid="avatar-presentation-unavailable"
       data-avatar-interactive-region="true"
       role="alert"

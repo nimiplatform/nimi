@@ -33,7 +33,7 @@ packs:
       sidebar.border: rgba(226,232,240,0.92)
       sidebar.header_height: 56px
       sidebar.item_default: "#4b5563"
-      sidebar.section_label: "#9ca3af"
+      sidebar.section_label: "#6b7280"
       sidebar.search: rgba(255,255,255,0.98)
       sidebar.resize_handle: rgba(148,163,184,0.22)
       field.bg: "#ffffff"

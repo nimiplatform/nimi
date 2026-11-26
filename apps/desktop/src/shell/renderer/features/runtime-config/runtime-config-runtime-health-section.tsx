@@ -16,7 +16,7 @@ function VitalCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/60 p-3">
       <p className={cn('text-[length:var(--nimi-type-caption-size)] font-medium', TOKEN_TEXT_MUTED)}>{label}</p>
-      <p className={cn('mt-1 font-mono text-sm', TOKEN_TEXT_PRIMARY)}>{value}</p>
+      <p className={cn('mt-1 font-mono text-sm tabular-nums', TOKEN_TEXT_PRIMARY)}>{value}</p>
     </div>
   );
 }
@@ -71,7 +71,7 @@ export function RuntimeHealthSection({
         <div className="flex items-center gap-2">
           <LiveBadge connected={streamConnected} stale={stale} hasHealth={Boolean(health)} />
           <IconButton
-            icon={<RefreshIcon className={loading ? 'animate-spin' : ''} />}
+            icon={<RefreshIcon className={loading ? 'animate-spin motion-reduce:animate-none' : ''} />}
             title={t('runtimeConfig.runtime.refresh', { defaultValue: 'Refresh' })}
             disabled={loading}
             onClick={onRefresh}
@@ -80,11 +80,11 @@ export function RuntimeHealthSection({
       </div>
 
       {error ? (
-        <p className="mt-2 text-xs text-[var(--nimi-status-danger)]">{error}</p>
+        <p role="alert" className="mt-2 text-xs text-[var(--nimi-status-danger)]">{error}</p>
       ) : null}
 
       {streamError ? (
-        <p className="mt-2 text-xs text-[var(--nimi-status-warning)]">
+        <p role="alert" className="mt-2 text-xs text-[var(--nimi-status-warning)]">
           {t('runtimeConfig.runtime.streamError', { defaultValue: 'Stream error' })}: {streamError}
         </p>
       ) : null}
@@ -122,7 +122,7 @@ export function RuntimeHealthSection({
           <span>
             {t('runtimeConfig.runtime.jobs', { defaultValue: 'Jobs' })}
             {': '}
-            <span className={cn('font-mono', TOKEN_TEXT_PRIMARY)}>{health.activeInferenceJobs}</span>
+            <span className={cn('font-mono tabular-nums', TOKEN_TEXT_PRIMARY)}>{health.activeInferenceJobs}</span>
           </span>
           {health.sampledAt ? (
             <span>

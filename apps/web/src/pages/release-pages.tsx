@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { ArrowDownToLine, ArrowUpRight, Check, Clipboard, Code2, Laptop, Monitor, ShieldCheck, Terminal, TriangleAlert } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { withLocaleQuery } from '../landing/config/landing-links.js';
+import { useCopyFeedback } from '../landing/components/use-copy-command.js';
 import type { LandingLocale } from '../landing/i18n/locale.js';
 import {
   PublicSiteFooter,
@@ -9,6 +10,7 @@ import {
   useResolvedPublicLinks,
 } from './public-site-shell.js';
 import { usePublicPageLocale } from './use-page-locale.js';
+import { preventDecorativeDragStart } from '../prevent-decorative-drag.js';
 import {
   detectVisitorPlatform,
   NIMI_MACOS_ASSET,
@@ -585,9 +587,7 @@ function PageShell(props: {
     <div
       className={props.downloadHeader ? 'story-site release-page-shell download-page-shell' : 'story-site release-page-shell'}
       lang={props.locale === 'zh' ? 'zh-CN' : 'en'}
-      // See landing App.tsx: suppress native drag of selected text, which
-      // hangs software-rendered environments. Selection and copy are intact.
-      onDragStart={(event) => event.preventDefault()}
+      onDragStart={preventDecorativeDragStart}
     >
       <a href="#release-main" className="skip-link">{copy.skipToContent}</a>
       <PublicSiteHeader
@@ -699,7 +699,9 @@ export function DownloadPageContent({
   const shared = PUBLIC_PAGE_CONTENT[locale].shared;
   const onboarding = DOWNLOAD_ONBOARDING_STEPS[locale];
   const [detectedPlatform, setDetectedPlatform] = useState<DetectedPlatform>(initialPlatform ?? null);
-  const [copiedLink, setCopiedLink] = useState(false);
+  const { copyText: copyDownloadLinkText, status: downloadCopyStatus } = useCopyFeedback(2000);
+  const copiedLink = downloadCopyStatus === 'copied';
+  const copyLinkFailed = downloadCopyStatus === 'error';
 
   useEffect(() => {
     if (initialPlatform === undefined) {
@@ -707,13 +709,8 @@ export function DownloadPageContent({
     }
   }, [initialPlatform]);
 
-  const copyDownloadUrl = async () => {
-    try {
-      await navigator.clipboard.writeText('https://nimi.ai/download');
-      setCopiedLink(true);
-    } catch {
-      setCopiedLink(false);
-    }
+  const copyDownloadUrl = () => {
+    void copyDownloadLinkText('https://nimi.ai/download');
   };
 
   const windowsAssetHref = `${PUBLIC_BETA_ASSET_URL}/Nimi-${PUBLIC_BETA_VERSION}-windows-amd64.exe`;
@@ -770,6 +767,18 @@ export function DownloadPageContent({
                 {copiedLink ? <Check size={15} aria-hidden="true" /> : <Clipboard size={15} aria-hidden="true" />}
                 <span>{copiedLink ? onboarding.copiedLinkLabel : onboarding.copyLinkLabel}</span>
               </button>
+              <span className="sr-only" role="status" aria-live="polite">
+                {copiedLink
+                  ? onboarding.copiedLinkLabel
+                  : copyLinkFailed
+                    ? (locale === 'zh' ? '复制链接失败，请手动复制。' : 'Could not copy link. Please copy it manually.')
+                    : ''}
+              </span>
+              {copyLinkFailed ? (
+                <p role="alert">
+                  {locale === 'zh' ? '复制链接失败，请手动复制。' : 'Could not copy link. Please copy it manually.'}
+                </p>
+              ) : null}
             </div>
           ) : null}
         </div>

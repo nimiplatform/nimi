@@ -2,15 +2,85 @@
 @import "../shell/auth/runtime-auth.css";
 
 .nimi-ui-module--zhiyu {
+  font-optical-sizing: auto;
   --nimi-action-primary-bg: #0580ca;
   --nimi-action-primary-bg-hover: #0471b2;
-  --nimi-action-primary-text: #fff;
+  --nimi-action-primary-text: #ffffff;
+  --zhiyu-accent-text: #0471b2;
   --nimi-surface-active: rgba(5, 128, 202, 0.12);
   --nimi-action-ghost-hover: rgba(5, 128, 202, 0.08);
   --nimi-sidebar-item-active: rgba(5, 128, 202, 0.12);
   --nimi-sidebar-item-hover: rgba(5, 128, 202, 0.08);
   --nimi-field-focus: #0580ca;
   --nimi-focus-ring-color: #0580ca;
+  --zhiyu-canvas-bg:
+    radial-gradient(circle at 26% 42%, rgba(214, 235, 249, 0.55), transparent 34%),
+    radial-gradient(circle at 79% 68%, rgba(211, 235, 249, 0.42), transparent 32%),
+    radial-gradient(circle at 18% 88%, rgba(216, 248, 234, 0.5), transparent 34%),
+    linear-gradient(135deg, rgba(232, 243, 252, 0.82), rgba(252, 252, 255, 0.98) 45%, rgba(230, 242, 251, 0.72));
+  --zhiyu-composer-wash: linear-gradient(
+    180deg,
+    rgba(247, 250, 255, 0) 0%,
+    rgba(247, 250, 255, 0.08) 22%,
+    rgba(249, 251, 255, 0.68) 62%,
+    rgba(250, 251, 255, 0.98) 100%
+  );
+  --zhiyu-drawer-backdrop: rgba(15, 23, 42, 0.14);
+  --zhiyu-panel-border: rgba(255, 255, 255, 0.84);
+  --zhiyu-panel-bg:
+    radial-gradient(circle at 100% 0%, rgba(211, 235, 249, 0.62), transparent 32%),
+    rgba(255, 255, 255, 0.94);
+  --zhiyu-panel-unavailable-bg:
+    radial-gradient(circle at 50% 42%, rgba(211, 235, 249, 0.66), transparent 34%),
+    rgba(255, 255, 255, 0.94);
+  --zhiyu-panel-card-bg: rgba(255, 255, 255, 0.78);
+  --zhiyu-nav-track-bg: rgba(235, 241, 248, 0.78);
+  --zhiyu-chip-bg: rgba(255, 255, 255, 0.78);
+  --zhiyu-mood-chip-bg: rgba(124, 58, 237, 0.12);
+  --zhiyu-mood-chip-text: #5b21b6;
+  --zhiyu-activity-chip-bg: rgba(2, 132, 199, 0.12);
+  --zhiyu-activity-chip-text: #0369a1;
+}
+
+:is(.dark, [data-nimi-scheme="dark"]) .nimi-ui-module--zhiyu,
+.nimi-ui-module--zhiyu:is(.dark, [data-nimi-scheme="dark"]) {
+  --nimi-action-primary-bg: #1476d4;
+  --nimi-action-primary-bg-hover: #0e63b6;
+  --nimi-action-primary-text: #ffffff;
+  --zhiyu-accent-text: #38bdf8;
+  --nimi-surface-active: rgba(56, 189, 248, 0.16);
+  --nimi-action-ghost-hover: rgba(56, 189, 248, 0.12);
+  --nimi-sidebar-item-active: rgba(56, 189, 248, 0.16);
+  --nimi-sidebar-item-hover: rgba(56, 189, 248, 0.10);
+  --nimi-field-focus: #38bdf8;
+  --nimi-focus-ring-color: #38bdf8;
+  --zhiyu-canvas-bg:
+    radial-gradient(circle at 26% 42%, rgba(30, 64, 124, 0.28), transparent 36%),
+    radial-gradient(circle at 79% 68%, rgba(14, 116, 144, 0.22), transparent 34%),
+    radial-gradient(circle at 18% 88%, rgba(15, 118, 110, 0.2), transparent 34%),
+    linear-gradient(135deg, #0b1220, #081019 48%, #0d1626);
+  --zhiyu-composer-wash: linear-gradient(
+    180deg,
+    rgba(8, 16, 25, 0) 0%,
+    rgba(8, 16, 25, 0.14) 22%,
+    rgba(8, 16, 25, 0.76) 62%,
+    rgba(8, 16, 25, 0.98) 100%
+  );
+  --zhiyu-drawer-backdrop: rgba(2, 6, 23, 0.48);
+  --zhiyu-panel-border: var(--nimi-border-strong);
+  --zhiyu-panel-bg:
+    radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.14), transparent 36%),
+    var(--nimi-surface-panel);
+  --zhiyu-panel-unavailable-bg:
+    radial-gradient(circle at 50% 42%, rgba(56, 189, 248, 0.14), transparent 36%),
+    var(--nimi-surface-panel);
+  --zhiyu-panel-card-bg: color-mix(in srgb, var(--nimi-surface-card) 90%, transparent);
+  --zhiyu-nav-track-bg: rgba(8, 16, 25, 0.72);
+  --zhiyu-chip-bg: color-mix(in srgb, var(--nimi-surface-card) 90%, transparent);
+  --zhiyu-mood-chip-bg: rgba(167, 139, 250, 0.18);
+  --zhiyu-mood-chip-text: #ddd6fe;
+  --zhiyu-activity-chip-bg: rgba(56, 189, 248, 0.18);
+  --zhiyu-activity-chip-text: #bae6fd;
 }
 
 .nimi-ui-module--zhiyu[data-nimi-semantic-id="zhiyu-main-root"] {
@@ -21,4 +91,40 @@
   min-height: 100%;
   overflow: clip;
   container: nimi-ui-module-zhiyu-surface / size;
+}
+
+.zhiyu-remote-gate-header {
+  min-height: var(--nimi-space-9);
+}
+
+.zhiyu-top-chrome {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: var(--nimi-space-9);
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--nimi-border-subtle);
+  background: var(--nimi-surface-panel);
+}
+
+.zhiyu-top-chrome > .nimi-app-chrome {
+  grid-column: 1;
+  grid-row: 1;
+  border-bottom: 0;
+  background: transparent;
+}
+
+.zhiyu-top-chrome__trailing {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--nimi-space-2);
+  padding-right: var(--nimi-space-3);
+  color: var(--nimi-text-primary);
+}
+
+.zhiyu-top-chrome > :not(.nimi-app-chrome):not(.zhiyu-top-chrome__trailing) {
+  grid-column: 1 / -1;
 }

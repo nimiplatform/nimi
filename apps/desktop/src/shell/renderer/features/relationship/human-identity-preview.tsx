@@ -17,7 +17,7 @@ export function HumanIdentityPreview({ id, displayName, handle, avatarUrl, avata
   const name = disabled ? t('Relationship.contacts.deletedUser') : displayName || handle || t('Common.unknown');
   return <Popover open={open} onOpenChange={setOpen}>
     <PopoverTrigger asChild>
-      <button type="button" disabled={disabled} data-testid={triggerTestId} className="flex min-w-0 max-w-full items-center gap-3 rounded-lg text-left disabled:cursor-default" aria-label={t('Relationship.contacts.previewPerson', { name })}>
+      <button type="button" disabled={disabled} data-testid={triggerTestId} className="flex min-w-0 max-w-full items-center gap-3 rounded-lg text-left transition-transform active:scale-[0.985] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1 disabled:cursor-default" aria-label={t('Relationship.contacts.previewPerson', { name })}>
         <EntityAvatar name={name} seed={id || handle || name} imageUrl={disabled ? null : avatarUrl} media={disabled ? null : avatarMedia} kind="human" sizeClassName="h-10 w-10 shrink-0" fallbackClassName={avatarFallbackClassName} />
         <span className="min-w-0"><span className="block truncate text-sm font-semibold text-[var(--nimi-text-primary)]">{name}</span>
           {!disabled && handle ? <span className="block truncate text-xs text-[var(--nimi-text-secondary)]">@{handle.replace(/^@+/, '')}</span> : null}</span>

@@ -3,7 +3,7 @@
 // pointer interaction wiring. App-local prerequisite composition permits this
 // surface only in its `ready` branch.
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@nimiplatform/kit/ui';
 import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
 import {
@@ -16,6 +16,7 @@ import {
 import {
   AVATAR_DRAG_THRESHOLD_PX,
   AvatarInteractionController,
+  type AvatarLongPressFeedbackState,
 } from '../interaction/avatar-interaction-controller.js';
 import {
   beginManualDragWindow,
@@ -243,6 +244,9 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
   }, [interactive]);
 
   const bodyRef = useRef<HTMLDivElement | null>(null);
+  const [longPressFeedback, setLongPressFeedback] = useState<AvatarLongPressFeedbackState>({
+    active: false,
+  });
   // Wave 4 manual drag fallback state. macOS NSWindow with transparent +
   // always_on_top + decorations(false) doesn't honor `start_dragging()`,
   // so we track screen-coord deltas during pointermove. The origin is read
@@ -469,6 +473,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
         nowMs: () => performance.now(),
         hasHostRuntime: hasAvatarHostRuntime,
         isClickThroughLocked: () => dragRef.current?.mode === 'manual',
+        onLongPressFeedbackChange: setLongPressFeedback,
       }),
     [
       interactive,
@@ -844,6 +849,32 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
           </div>
         ) : null}
       <div className="avatar-embodiment-stage__body" data-testid="avatar-body-hit-region" ref={bodyRef} />
+      {interactive && longPressFeedback.active ? (() => {
+        const rect = stageRef.current?.getBoundingClientRect();
+        const x = rect && rect.width > 0 ? longPressFeedback.clientX - rect.left : longPressFeedback.clientX;
+        const y = rect && rect.height > 0 ? longPressFeedback.clientY - rect.top : longPressFeedback.clientY;
+        return (
+          <div
+            className={cn(
+              'avatar-hold-feedback',
+              reducedMotion && 'avatar-hold-feedback--reduced-motion',
+            )}
+            data-testid="avatar-long-press-indicator"
+            data-reduced-motion={reducedMotion ? 'true' : 'false'}
+            aria-hidden="true"
+            style={{
+              left: `${Math.round(x)}px`,
+              top: `${Math.round(y)}px`,
+              ['--avatar-hold-duration' as string]: `${longPressFeedback.durationMs}ms`,
+            }}
+          >
+            <svg className="avatar-hold-feedback__ring" viewBox="0 0 36 36" width="36" height="36">
+              <circle className="avatar-hold-feedback__track" cx="18" cy="18" r="14" />
+              <circle className="avatar-hold-feedback__progress" cx="18" cy="18" r="14" />
+            </svg>
+          </div>
+        );
+      })() : null}
     </section>
   );
 }

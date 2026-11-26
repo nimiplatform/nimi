@@ -105,5 +105,5 @@ export function useHumanProfileActions(profile: (ActionTarget & Pick<HumanProfil
     : confirmation?.action === 'block'
       ? <BlockUserConfirmDialog contact={confirmation.target} pending={busy} onConfirm={confirm} onCancel={close} />
       : null;
-  return { props, dialog: <>{dialog}{reportTarget ? <ReportUserDialog target={reportTarget} onClose={() => setReportTarget(null)} /> : null}</> };
+  return { props, dialog: <>{dialog}<ReportUserDialog open={reportTarget !== null} target={reportTarget} onClose={() => setReportTarget(null)} /></> };
 }

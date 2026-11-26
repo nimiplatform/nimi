@@ -3,11 +3,15 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { MediaImage } from '@nimiplatform/kit/features/media';
 import { Button, EmptyState, InlineAlert, LoadingSkeleton, NimiText, ScrollArea, SearchField } from '@nimiplatform/kit/ui';
-import { Compass, Grid2X2, UsersRound } from 'lucide-react';
+import { Compass, Grid2X2 } from 'lucide-react';
 import { useAppStore, useHomeDestination, useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useHomeListPosition } from '../../app-shell/providers/use-home-list-position.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
-import { ExploreSectionNav, type ExploreSectionId } from './explore-section-nav.js';
+import {
+  ExploreSectionNav,
+  type ExploreDiscoveryViewId,
+  type ExploreSectionId,
+} from './explore-section-nav.js';
 import { useExploreCatalogQuery } from './explore-catalog-query.js';
 import { characterSourceRefKey } from '../realm-source/realm-source-identity.js';
 import { interleaveCharactersByWorld, readCharacterCatalog } from './character-catalog-data.js';
@@ -25,41 +29,36 @@ export function ExplorePanel(props: {
   activeSection: ExploreSectionId; searchText: string;
   onSectionChange(section: ExploreSectionId): void; onSearchTextChange(value: string): void;
 }) {
-  const { t } = useTranslation();
   const destination = useHomeDestination();
   const navigation = useHomeNavigation();
   const characters = destination.exploreSearchKind === 'characters';
-  const handleSectionSelect = (section: ExploreSectionId) => {
+  const activeView: ExploreDiscoveryViewId = characters ? 'characters' : 'worlds';
+  const handleViewSelect = (view: ExploreDiscoveryViewId) => {
+    if (view === 'characters') {
+      if (!characters) {
+        void navigation.push({
+          ...destination,
+          exploreSection: 'worlds',
+          exploreSearchKind: 'characters',
+          exploreWorldId: undefined,
+          exploreTopicId: undefined,
+        });
+      }
+      return;
+    }
     if (characters) {
       void navigation.push({
         ...destination,
-        exploreSection: section,
+        exploreSection: 'worlds',
         exploreSearchKind: undefined,
         exploreWorldId: undefined,
         exploreTopicId: undefined,
       });
       return;
     }
-    props.onSectionChange(section);
+    props.onSectionChange('worlds');
   };
-  const sectionNav = <ExploreSectionNav active={props.activeSection} onSelect={handleSectionSelect} />;
-  const partnerAction = <Button
-    tone={characters ? 'secondary' : 'ghost'}
-    size="sm"
-    className="shrink-0"
-    aria-pressed={characters}
-    onClick={() => {
-      void navigation.push({ ...destination, exploreSearchKind: characters ? undefined : 'characters', exploreWorldId: undefined, exploreTopicId: undefined });
-    }}
-  >
-    <UsersRound size={17} />{t('runtimeConfig.partners.discoverPartners')}
-  </Button>;
-  const headerNav = (
-    <div className="flex items-center gap-7">
-      {sectionNav}
-      {partnerAction}
-    </div>
-  );
+  const headerNav = <ExploreSectionNav active={activeView} onSelect={handleViewSelect} />;
   return <div data-testid="panel:explore" className="flex min-h-0 flex-1 flex-col gap-3 px-3 pb-3 pt-2">
     {props.activeSection === 'worlds' && !characters ? null : <header className="mx-auto flex w-full max-w-[1480px] flex-wrap items-center justify-between gap-3 px-5 pt-1">
       {headerNav}
@@ -209,7 +208,7 @@ function CharacterDiscovery() {
   return <ScrollArea viewportRef={viewport} className="min-h-0 flex-1" contentClassName="mx-auto max-w-[1480px] space-y-5 px-5 pb-8 pt-2">
     <header className="flex flex-wrap items-center justify-between gap-4">
       <div className="flex items-baseline gap-3">
-        <h1 className="text-2xl font-semibold">{t('runtimeConfig.partners.discoverPartners')}</h1>
+        <h1 className="text-2xl font-semibold tracking-[-0.02em]">{t('runtimeConfig.partners.discoverPartners')}</h1>
         {!catalog.initialLoading && !catalog.initialUnavailable && !tooLong ? (
           <NimiText role="caption" data-testid="explore-character-count">{t('WorldDetail.discovery.peopleCount', { count: totalCount })}</NimiText>
         ) : null}
@@ -264,7 +263,7 @@ function CharacterDiscovery() {
           type="button"
           aria-pressed={!selectedTopicId}
           onClick={() => handleTopicChange('')}
-          className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${
+          className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-semibold transition-[colors,transform] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${
             !selectedTopicId
               ? 'bg-[var(--nimi-text-primary)] text-[var(--nimi-surface-canvas)] shadow-sm'
               : 'bg-[color-mix(in_srgb,var(--nimi-surface-panel)_88%,var(--nimi-action-primary-bg)_12%)] text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]'
@@ -282,7 +281,7 @@ function CharacterDiscovery() {
               data-topic-id={topic.id}
               aria-pressed={active}
               onClick={() => handleTopicChange(topic.id)}
-              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${
+              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-semibold transition-[colors,transform] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${
                 active
                   ? 'bg-[var(--nimi-text-primary)] text-[var(--nimi-surface-canvas)] shadow-sm'
                   : 'bg-[color-mix(in_srgb,var(--nimi-surface-panel)_88%,var(--nimi-action-primary-bg)_12%)] text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]'
@@ -313,11 +312,11 @@ function CharacterDiscovery() {
                     key={characterSourceRefKey(item.sourceRef)}
                     data-view-key={characterSourceRefKey(item.sourceRef)}
                     data-visual-slot={hasPortrait ? 'portrait' : 'avatar'}
-                    className="group relative flex flex-col overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                    className="group relative flex flex-col overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none"
                   >
                     <button
                       type="button"
-                      className="flex flex-1 flex-col text-left focus-visible:rounded-2xl focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+                      className="flex flex-1 flex-col text-left transition-transform duration-150 active:scale-[0.985] motion-reduce:transform-none focus-visible:rounded-2xl focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
                       onClick={() => { stopCharacterVoicePreview(); void navigation.push({ id: 'source-detail', sourceRef: item.sourceRef }); }}
                     >
                       <span className="relative block aspect-[3/4] w-full overflow-hidden bg-[color-mix(in_srgb,var(--nimi-surface-panel)_88%,var(--nimi-action-primary-bg)_12%)]">
@@ -327,7 +326,7 @@ function CharacterDiscovery() {
                           purpose={imagePurpose}
                           sizes="(min-width: 1280px) 280px, (min-width: 768px) 240px, 50vw"
                           alt={item.name}
-                          className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] ${hasPortrait ? 'object-top' : 'object-[center_20%]'}`}
+                          className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transform-none motion-reduce:transition-none ${hasPortrait ? 'object-top' : 'object-[center_20%]'}`}
                           fallback={item.name.slice(0, 1)}
                         />
                       </span>

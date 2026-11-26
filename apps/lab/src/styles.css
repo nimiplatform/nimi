@@ -10,17 +10,53 @@
    sources are scanned through the @source rules in Kit's own styles.css. */
 @source "./**/*.{ts,tsx}";
 
-:root {
+:root,
+:root[data-nimi-scheme="light"] {
   color-scheme: light;
+}
+
+:root.dark,
+:root[data-nimi-scheme="dark"] {
+  color-scheme: dark;
 }
 
 html,
 body {
   margin: 0;
   min-width: 320px;
+  font-optical-sizing: auto;
 }
 
 body {
   background: var(--nimi-surface-canvas);
   color: var(--nimi-text-primary);
+}
+
+.nimi-ui-module--lab summary:focus-visible {
+  outline: var(--nimi-focus-ring-width) solid var(--nimi-focus-ring-color);
+  outline-offset: var(--nimi-focus-ring-offset);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .nimi-ui-module--lab .kit-doc__copy-action {
+    background: var(--nimi-surface-card);
+    border-color: var(--nimi-border-subtle);
+  }
+}
+
+@media (prefers-contrast: more) {
+  .nimi-ui-module--lab {
+    --nimi-border-subtle: var(--nimi-border-strong);
+  }
+
+  .nimi-ui-module--lab .kit-doc__copy-action,
+  .nimi-ui-module--lab .kit-recipe-preview,
+  .nimi-ui-module--lab .kit-tax__symbol,
+  .nimi-ui-module--lab .kit-tax__count {
+    border-color: var(--nimi-border-strong);
+  }
+
+  .nimi-ui-module--lab .kit-doc__copy-action {
+    background: var(--nimi-surface-card);
+  }
 }

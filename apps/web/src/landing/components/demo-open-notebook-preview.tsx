@@ -78,7 +78,7 @@ export function DemoOpenNotebookPreview({ content }: { content: RemainingPreview
             if (id === 'search') setPane('Chat');
           }}
         />
-        <main className="rp-main nb-main">
+        <div role="region" aria-label={content.name} className="rp-main nb-main">
           <PreviewHeading
             title={
               view === 'podcasts'
@@ -162,7 +162,11 @@ export function DemoOpenNotebookPreview({ content }: { content: RemainingPreview
                           );
                         }}
                       />
-                      <button type="button" onClick={() => setSelected(selected === i ? null : i)}>
+                      <button
+                        type="button"
+                        aria-expanded={selected === i}
+                        onClick={() => setSelected(selected === i ? null : i)}
+                      >
                         <strong>{source.name}</strong>
                         <small>{source.type}</small>
                       </button>
@@ -299,7 +303,7 @@ export function DemoOpenNotebookPreview({ content }: { content: RemainingPreview
               </div>
             </>
           )}
-        </main>
+        </div>
       </div>
     </RemainingPreview>
   );

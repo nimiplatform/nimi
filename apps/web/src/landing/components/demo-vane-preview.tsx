@@ -60,7 +60,7 @@ export function DemoVanePreview({ content }: { content: RemainingPreviewMeta }) 
             setSource(null);
           }}
         />
-        <main className="rp-main vane-main">
+        <div role="region" aria-label={content.name} className="rp-main vane-main">
           {view === 'settings' ? (
             <section className="rp-page">
               <h1>{t('vane.page.settings')}</h1>
@@ -145,7 +145,7 @@ export function DemoVanePreview({ content }: { content: RemainingPreviewMeta }) 
                   <h1>{t('vane.main.walkingFriendlyCities')}</h1>
                   <div className="vane-answer-tabs">
                     <span>{t('vane.main.savedResearchExample')}</span>
-                    <PreviewButton onClick={() => setSaved(!saved)}>
+                    <PreviewButton aria-pressed={saved} onClick={() => setSaved(!saved)}>
                       <BookOpen size={15} />
                       {saved ? t('vane.main.savedToLibrary') : t('vane.main.saveExample')}
                     </PreviewButton>
@@ -159,6 +159,7 @@ export function DemoVanePreview({ content }: { content: RemainingPreviewMeta }) 
                       <button
                         type="button"
                         key={s.title}
+                        aria-expanded={source === i}
                         onClick={() => setSource(source === i ? null : i)}
                       >
                         <span>
@@ -248,7 +249,7 @@ export function DemoVanePreview({ content }: { content: RemainingPreviewMeta }) 
               )}
             </div>
           )}
-        </main>
+        </div>
       </div>
     </RemainingPreview>
   );

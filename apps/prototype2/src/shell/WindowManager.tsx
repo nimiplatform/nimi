@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type PointerEvent as ReactPointerEvent } from 'react';
+import {
+  AnimatePresence,
+  motion,
+  nimiReducedFade,
+  nimiSpring,
+  useNimiReducedMotion,
+} from '@nimiplatform/kit/ui';
 import { SPAWN_SIZE, useSim, type SimWindow } from '../engine/SimContext';
 import { MODULES } from '../scenario/meta';
 import { FlickTracker, startFlick } from './flick';
@@ -15,37 +22,22 @@ const SURFACES: Record<SimWindow['moduleId'], (win: SimWindow) => ReactNode> = {
 
 function WindowFrame({ win }: { win: SimWindow }) {
   const { state, focusWindow, minimizeWindow, closeWindow, moveWindow } = useSim();
+  const reducedMotion = useNimiReducedMotion();
   const drag = useRef<{ dx: number; dy: number } | null>(null);
   const tracker = useRef(new FlickTracker());
   const cancelFlick = useRef<(() => void) | null>(null);
-  const minimizeTimer = useRef<number | null>(null);
   const [dragging, setDragging] = useState(false);
   const meta = MODULES[win.moduleId];
   const size = SPAWN_SIZE[win.moduleId];
-  // Fly-in origin: the app's rail icon, captured once on mount so both open
-  // and restore animate the window out of the left app rail.
-  const [enterFrom] = useState(() => {
-    const c = railIconCenter(win.moduleId);
-    return c ? { dx: c.x - (win.x + size.w / 2), dy: c.y - (win.y + size.h / 2) } : null;
-  });
-  const [entered, setEntered] = useState(false);
-  const [exitTo, setExitTo] = useState<{ dx: number; dy: number } | null>(null);
-
-  useEffect(() => () => {
-    cancelFlick.current?.();
-    if (minimizeTimer.current !== null) window.clearTimeout(minimizeTimer.current);
-  }, []);
-  useEffect(() => {
-    let raf2 = 0;
-    const raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => setEntered(true));
-    });
-    return () => {
-      cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
-    };
-  }, []);
   const topZ = Math.max(0, ...state.windows.map((w) => w.z));
+
+  // Compute the app rail anchor dynamically for symmetric fly-in & interruptible fly-back.
+  const railAnchor = (() => {
+    const c = railIconCenter(win.moduleId);
+    return c ? { x: c.x - size.w / 2, y: c.y - size.h / 2 } : null;
+  })();
+
+  useEffect(() => () => cancelFlick.current?.(), []);
 
   const clamp = (nx: number, ny: number) => ({
     x: Math.min(Math.max(nx, 8), window.innerWidth - 240),
@@ -94,42 +86,30 @@ function WindowFrame({ win }: { win: SimWindow }) {
     setDragging(false);
   };
 
-  // Minimize: fly the window back into its left-rail icon, then commit the
-  // minimized state once the transition has played out.
+  // Interruptible minimize: commit immediately so AnimatePresence handles the
+  // symmetric fly-back to the rail icon and reverses cleanly if reopened mid-flight.
   const onMinimize = () => {
     cancelFlick.current?.();
-    const c = railIconCenter(win.moduleId);
-    if (!c) {
-      minimizeWindow(win.instanceId);
-      return;
-    }
-    setExitTo({ dx: c.x - (win.x + size.w / 2), dy: c.y - (win.y + size.h / 2) });
-    minimizeTimer.current = window.setTimeout(() => minimizeWindow(win.instanceId), 420);
+    minimizeWindow(win.instanceId);
   };
 
-  const animStyle: CSSProperties = exitTo
-    ? {
-        transform: `translate(${exitTo.dx}px, ${exitTo.dy}px) scale(0.06)`,
-        opacity: 0,
-        pointerEvents: 'none',
-      }
-    : !entered && enterFrom
-      ? {
-          transform: `translate(${enterFrom.dx}px, ${enterFrom.dy}px) scale(0.06)`,
-          opacity: 0,
-        }
-      : {};
+  const collapsedTarget = !reducedMotion && railAnchor
+    ? { x: railAnchor.x, y: railAnchor.y, scale: 0.06, opacity: 0 }
+    : { x: win.x, y: win.y, scale: 1, opacity: 0 };
 
   return (
-    <section
+    <motion.section
       className="window-frame nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] backdrop-saturate-[var(--nimi-backdrop-saturate)]"
       data-nimi-material="glass-regular"
       data-nimi-tone="panel"
       data-instance-module={win.moduleId}
       data-top={win.z === topZ || undefined}
       data-dragging={dragging || undefined}
-      data-minimizing={exitTo !== null || undefined}
-      style={{ left: win.x, top: win.y, width: size.w, height: size.h, zIndex: win.z, ...animStyle }}
+      initial={collapsedTarget}
+      animate={{ x: win.x, y: win.y, scale: 1, opacity: 1 }}
+      exit={collapsedTarget}
+      transition={dragging ? { duration: 0 } : reducedMotion ? nimiReducedFade() : nimiSpring('default')}
+      style={{ left: 0, top: 0, width: size.w, height: size.h, zIndex: win.z }}
       onPointerDown={() => focusWindow(win.instanceId)}
       aria-label={meta.name}
     >
@@ -165,19 +145,19 @@ function WindowFrame({ win }: { win: SimWindow }) {
         </div>
       ) : null}
       <div className={`window-body nimi-ui-module--${win.moduleId}`}>{SURFACES[win.moduleId](win)}</div>
-    </section>
+    </motion.section>
   );
 }
 
 export function WindowManager() {
   const { state } = useSim();
   return (
-    <>
+    <AnimatePresence>
       {state.windows
         .filter((w) => !w.minimized)
         .map((w) => (
           <WindowFrame key={w.instanceId} win={w} />
         ))}
-    </>
+    </AnimatePresence>
   );
 }

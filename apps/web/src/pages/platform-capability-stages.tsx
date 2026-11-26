@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useNimiReducedMotion } from '@nimiplatform/kit/ui';
 import {
   Check,
   Code2,
@@ -66,6 +67,7 @@ function BeforeAfterSlider({
   const [internalPosition, setInternalPosition] = useState(initialPosition);
   const [isDragging, setIsDragging] = useState(false);
   const frameRef = useRef<HTMLDivElement>(null);
+  const grabOffsetPxRef = useRef(0);
 
   const split = controlledPosition ?? internalPosition;
   const updateSplit = (next: number) => {
@@ -74,10 +76,10 @@ function BeforeAfterSlider({
     else setInternalPosition(clamped);
   };
 
-  const updateFromClientX = (clientX: number) => {
+  const updateFromClientX = (clientX: number, offsetPx = 0) => {
     const rect = frameRef.current?.getBoundingClientRect();
     if (!rect || rect.width <= 0) return;
-    const pct = ((clientX - rect.left) / rect.width) * 100;
+    const pct = ((clientX - offsetPx - rect.left) / rect.width) * 100;
     updateSplit(pct);
   };
 
@@ -86,21 +88,40 @@ function BeforeAfterSlider({
       ref={frameRef}
       className={`platform-compare-stage${isDragging ? ' is-dragging' : ''}${className ? ` ${className}` : ''}`}
       onPointerDown={(e) => {
-        if ((e.target as HTMLElement).closest('button, input')) return;
+        if ((e.target as HTMLElement).closest('button')) return;
+        const rect = frameRef.current?.getBoundingClientRect();
+        if (rect && rect.width > 0) {
+          const handleCenterX = rect.left + (split / 100) * rect.width;
+          const delta = e.clientX - handleCenterX;
+          if (Math.abs(delta) <= 22) {
+            grabOffsetPxRef.current = delta;
+          } else {
+            grabOffsetPxRef.current = 0;
+            updateFromClientX(e.clientX, 0);
+          }
+        }
         e.currentTarget.setPointerCapture(e.pointerId);
         setIsDragging(true);
-        updateFromClientX(e.clientX);
       }}
       onPointerMove={(e) => {
         if (!isDragging) return;
-        updateFromClientX(e.clientX);
+        updateFromClientX(e.clientX, grabOffsetPxRef.current);
       }}
       onPointerUp={(e) => {
         if (!isDragging) return;
-        e.currentTarget.releasePointerCapture(e.pointerId);
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+        grabOffsetPxRef.current = 0;
         setIsDragging(false);
       }}
-      onPointerCancel={() => setIsDragging(false)}
+      onPointerCancel={(e) => {
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+        grabOffsetPxRef.current = 0;
+        setIsDragging(false);
+      }}
     >
       {/* After (Right / Enhanced) Base Layer */}
       <img src={afterSrc} alt={afterAlt} className="platform-compare-img" draggable={false} />
@@ -114,14 +135,20 @@ function BeforeAfterSlider({
         draggable={false}
       />
 
-      {/* Divider Line & Handle */}
-      <div className="platform-compare-divider" style={{ left: `${split}%` }} aria-hidden="true">
-        <span className="platform-compare-handle">
-          <MoveHorizontal size={14} />
-        </span>
+      {/* Divider Line & Handle (compositor translate3d track) */}
+      <div
+        className="platform-compare-divider-track"
+        style={{ transform: `translate3d(${split}%, 0, 0)` }}
+        aria-hidden="true"
+      >
+        <div className="platform-compare-divider">
+          <span className="platform-compare-handle">
+            <MoveHorizontal size={14} />
+          </span>
+        </div>
       </div>
 
-      {/* Accessible Range Control */}
+      {/* Accessible Range Control (keyboard-focusable, pointer-events: none so pointer capture runs) */}
       <input
         type="range"
         min={6}
@@ -148,7 +175,23 @@ function BeforeAfterSlider({
    ========================================================================== */
 function TextGenerateStage({ locale }: { locale: LandingLocale }) {
   const [tab, setTab] = useState<'reply' | 'json' | 'tool'>('reply');
+  const tabOrder = ['reply', 'json', 'tool'] as const;
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const isZh = locale === 'zh';
+
+  const handleTabKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const idx = tabOrder.indexOf(tab);
+    let nextIdx = -1;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') nextIdx = (idx + 1) % tabOrder.length;
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') nextIdx = (idx - 1 + tabOrder.length) % tabOrder.length;
+    else if (e.key === 'Home') nextIdx = 0;
+    else if (e.key === 'End') nextIdx = tabOrder.length - 1;
+    if (nextIdx >= 0) {
+      e.preventDefault();
+      setTab(tabOrder[nextIdx]!);
+      tabRefs.current[nextIdx]?.focus();
+    }
+  };
 
   return (
     <div className="platform-rich-stage platform-stage-vision-text">
@@ -167,10 +210,17 @@ function TextGenerateStage({ locale }: { locale: LandingLocale }) {
 
       <div className="platform-vision-output-card">
         <div className="platform-vision-output-bar">
-          <div className="platform-vision-mode-tabs" role="tablist" aria-label={isZh ? '切换输出形态' : 'Switch output format'}>
+          <div
+            className="platform-vision-mode-tabs"
+            role="tablist"
+            aria-label={isZh ? '切换输出形态' : 'Switch output format'}
+            onKeyDown={handleTabKeyDown}
+          >
             <button
+              ref={(el) => { tabRefs.current[0] = el; }}
               type="button"
               role="tab"
+              tabIndex={tab === 'reply' ? 0 : -1}
               aria-selected={tab === 'reply'}
               className={tab === 'reply' ? 'is-active' : undefined}
               onClick={() => setTab('reply')}
@@ -179,8 +229,10 @@ function TextGenerateStage({ locale }: { locale: LandingLocale }) {
               {isZh ? '自然回答' : 'Stream'}
             </button>
             <button
+              ref={(el) => { tabRefs.current[1] = el; }}
               type="button"
               role="tab"
+              tabIndex={tab === 'json' ? 0 : -1}
               aria-selected={tab === 'json'}
               className={tab === 'json' ? 'is-active' : undefined}
               onClick={() => setTab('json')}
@@ -189,8 +241,10 @@ function TextGenerateStage({ locale }: { locale: LandingLocale }) {
               {isZh ? '严格 JSON' : 'Strict JSON'}
             </button>
             <button
+              ref={(el) => { tabRefs.current[2] = el; }}
               type="button"
               role="tab"
+              tabIndex={tab === 'tool' ? 0 : -1}
               aria-selected={tab === 'tool'}
               className={tab === 'tool' ? 'is-active' : undefined}
               onClick={() => setTab('tool')}
@@ -424,7 +478,7 @@ function TextEmbedStage({ locale }: { locale: LandingLocale }) {
             <div className="platform-embed-note-score">
               <code>{note.score}</code>
               <div className="platform-embed-mini-track" aria-hidden="true">
-                <i style={{ width: note.width }} />
+                <i style={{ transform: `scaleX(${Math.max(0, Math.min(1, parseFloat(note.width) / 100 || 0))})` }} />
               </div>
             </div>
           </div>
@@ -538,7 +592,7 @@ function TextDecideStage({ locale }: { locale: LandingLocale }) {
             <div className="platform-decide-meter">
               <code className="platform-decide-prob">{opt.prob}</code>
               <div className="platform-decide-track" aria-hidden="true">
-                <i style={{ width: `${opt.pct}%` }} />
+                <i style={{ transform: `scaleX(${opt.pct / 100})` }} />
               </div>
             </div>
           </div>
@@ -586,6 +640,7 @@ function TextAnnotateStage({ locale }: { locale: LandingLocale }) {
           <div className="platform-annotate-toggle" role="group" aria-label={isZh ? '对比字幕断句方式' : 'Compare subtitle split'}>
             <button
               type="button"
+              aria-pressed={mode === 'semantic'}
               className={mode === 'semantic' ? 'is-active' : undefined}
               onClick={() => setMode('semantic')}
             >
@@ -593,6 +648,7 @@ function TextAnnotateStage({ locale }: { locale: LandingLocale }) {
             </button>
             <button
               type="button"
+              aria-pressed={mode === 'naive'}
               className={mode === 'naive' ? 'is-active is-warn' : undefined}
               onClick={() => setMode('naive')}
             >
@@ -650,14 +706,14 @@ function ImageGenerateStage({ locale }: { locale: LandingLocale }) {
         position={split}
         onPositionChange={setSplit}
         overlayBottom={(
-          <div className="platform-compare-quickbar">
-            <button type="button" className={split >= 88 ? 'is-active' : undefined} onClick={() => setSplit(92)}>
+          <div className="platform-compare-quickbar" role="group" aria-label={isZh ? '快速对比视角' : 'Quick compare presets'}>
+            <button type="button" aria-pressed={split >= 88} className={split >= 88 ? 'is-active' : undefined} onClick={() => setSplit(92)}>
               {isZh ? '看蓝色原图' : 'Blue Original'}
             </button>
-            <button type="button" className={split > 15 && split < 88 ? 'is-active' : undefined} onClick={() => setSplit(53)}>
+            <button type="button" aria-pressed={split > 15 && split < 88} className={split > 15 && split < 88 ? 'is-active' : undefined} onClick={() => setSplit(53)}>
               {isZh ? '分屏对比' : 'Split View'}
             </button>
-            <button type="button" className={split <= 15 ? 'is-active' : undefined} onClick={() => setSplit(8)}>
+            <button type="button" aria-pressed={split <= 15} className={split <= 15 ? 'is-active' : undefined} onClick={() => setSplit(8)}>
               {isZh ? '看暖橙成图' : 'Orange Edit'}
             </button>
           </div>
@@ -733,11 +789,11 @@ function ImageFaceSwapStage({ locale }: { locale: LandingLocale }) {
           <Lock size={11} aria-hidden="true" />
           {isZh ? '100% 本机融合 · 照片不出电脑' : '100% On-Device · Zero Upload'}
         </span>
-        <div className="platform-compare-quickbar">
-          <button type="button" className={view === 'target' ? 'is-active' : undefined} onClick={() => setView('target')}>
+        <div className="platform-compare-quickbar" role="group" aria-label={isZh ? '切换融合前后视图' : 'Switch original vs blended frame'}>
+          <button type="button" aria-pressed={view === 'target'} className={view === 'target' ? 'is-active' : undefined} onClick={() => setView('target')}>
             {isZh ? '原始分镜' : 'Original Scene'}
           </button>
-          <button type="button" className={view === 'fused' ? 'is-active' : undefined} onClick={() => setView('fused')}>
+          <button type="button" aria-pressed={view === 'fused'} className={view === 'fused' ? 'is-active' : undefined} onClick={() => setView('fused')}>
             {isZh ? '本机融合结果' : 'Local Blended PNG'}
           </button>
         </div>
@@ -797,6 +853,7 @@ function VisionLocateStage({ locale }: { locale: LandingLocale }) {
             <button
               key={item.id}
               type="button"
+              aria-pressed={item.id === targetId}
               className={item.id === targetId ? 'is-active' : undefined}
               onClick={() => setTargetId(item.id)}
             >
@@ -844,15 +901,35 @@ function VisionLocateStage({ locale }: { locale: LandingLocale }) {
   );
 }
 
+function formatVideoSeconds(sec: number): string {
+  const safe = Number.isFinite(sec) && sec > 0 ? sec : 0;
+  const mins = Math.floor(safe / 60);
+  const rem = safe - mins * 60;
+  return `${String(mins).padStart(2, '0')}:${rem < 10 ? '0' : ''}${rem.toFixed(1)}`;
+}
+
 /* ==========================================================================
    9. video.generate — Real 4-Second Looping Cinema Clip + Controls
    ========================================================================== */
 function VideoGenerateStage({ locale }: { locale: LandingLocale }) {
-  const [isPlaying, setIsPlaying] = useState(true);
+  const reducedMotion = useNimiReducedMotion();
+  const [isPlaying, setIsPlaying] = useState(!reducedMotion);
   const [progress, setProgress] = useState(0);
   const [currentSec, setCurrentSec] = useState(0);
+  const [durationSec, setDurationSec] = useState(5.0);
+  const [scrubbing, setScrubbing] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
   const isZh = locale === 'zh';
+
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    if (reducedMotion) {
+      el.pause();
+      setIsPlaying(false);
+    }
+  }, [reducedMotion]);
 
   const togglePlay = () => {
     const el = videoRef.current;
@@ -866,6 +943,26 @@ function VideoGenerateStage({ locale }: { locale: LandingLocale }) {
     }
   };
 
+  const seekToSeconds = (targetSec: number) => {
+    const el = videoRef.current;
+    const total = el && Number.isFinite(el.duration) && el.duration > 0 ? el.duration : durationSec;
+    const clamped = Math.max(0, Math.min(total, targetSec));
+    if (el && Number.isFinite(el.duration) && el.duration > 0) {
+      el.currentTime = clamped;
+    }
+    setCurrentSec(clamped);
+    setProgress(total > 0 ? Math.min(1, clamped / total) : 0);
+  };
+
+  const seekFromClientX = (clientX: number) => {
+    const rect = timelineRef.current?.getBoundingClientRect();
+    if (!rect || rect.width <= 0) return;
+    const frac = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const el = videoRef.current;
+    const total = el && Number.isFinite(el.duration) && el.duration > 0 ? el.duration : durationSec;
+    seekToSeconds(frac * total);
+  };
+
   return (
     <div className="platform-rich-stage platform-stage-video-gen">
       <video
@@ -873,14 +970,23 @@ function VideoGenerateStage({ locale }: { locale: LandingLocale }) {
         src="/platform/capabilities/video-generate-boat.mp4"
         poster="/platform/capabilities/video-generate-boat.webp"
         className="platform-video-player"
-        autoPlay
+        autoPlay={!reducedMotion}
         loop
         muted
         playsInline
         preload="metadata"
+        onLoadedMetadata={(e) => {
+          const d = e.currentTarget.duration;
+          if (Number.isFinite(d) && d > 0) setDurationSec(d);
+        }}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
         onTimeUpdate={(e) => {
           const el = e.currentTarget;
-          const d = Number.isFinite(el.duration) && el.duration > 0 ? el.duration : 5.0;
+          const d = Number.isFinite(el.duration) && el.duration > 0 ? el.duration : durationSec;
+          if (Number.isFinite(el.duration) && el.duration > 0 && el.duration !== durationSec) {
+            setDurationSec(el.duration);
+          }
           setCurrentSec(el.currentTime);
           setProgress(Math.min(1, el.currentTime / d));
         }}
@@ -902,24 +1008,63 @@ function VideoGenerateStage({ locale }: { locale: LandingLocale }) {
           {isPlaying ? <Pause size={13} aria-hidden="true" /> : <Play size={13} aria-hidden="true" />}
         </button>
         <div
+          ref={timelineRef}
           className="platform-video-timeline"
-          onClick={(e) => {
-            const el = videoRef.current;
-            if (!el || !Number.isFinite(el.duration) || el.duration <= 0) return;
-            const rect = e.currentTarget.getBoundingClientRect();
-            const frac = Math.max(0, Math.min(0.99, (e.clientX - rect.left) / rect.width));
-            el.currentTime = frac * el.duration;
-            setCurrentSec(el.currentTime);
-            setProgress(frac);
+          role="slider"
+          tabIndex={0}
+          aria-label={isZh ? '视频播放进度' : 'Video playback timeline'}
+          aria-valuemin={0}
+          aria-valuemax={Math.round(durationSec * 10) / 10}
+          aria-valuenow={Math.round(currentSec * 10) / 10}
+          aria-valuetext={`${formatVideoSeconds(currentSec)} / ${formatVideoSeconds(durationSec)}`}
+          onPointerDown={(e) => {
+            e.currentTarget.setPointerCapture(e.pointerId);
+            setScrubbing(true);
+            seekFromClientX(e.clientX);
+          }}
+          onPointerMove={(e) => {
+            if (!scrubbing) return;
+            seekFromClientX(e.clientX);
+          }}
+          onPointerUp={(e) => {
+            if (!scrubbing) return;
+            if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+              e.currentTarget.releasePointerCapture(e.pointerId);
+            }
+            setScrubbing(false);
+          }}
+          onPointerCancel={(e) => {
+            if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+              e.currentTarget.releasePointerCapture(e.pointerId);
+            }
+            setScrubbing(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+              e.preventDefault();
+              seekToSeconds(currentSec + 0.5);
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+              e.preventDefault();
+              seekToSeconds(currentSec - 0.5);
+            } else if (e.key === 'Home') {
+              e.preventDefault();
+              seekToSeconds(0);
+            } else if (e.key === 'End') {
+              e.preventDefault();
+              seekToSeconds(durationSec);
+            } else if (e.key === ' ') {
+              e.preventDefault();
+              togglePlay();
+            }
           }}
         >
           <span
             className="platform-video-progress-live"
-            style={{ width: `${Math.max(2, progress * 100)}%` }}
+            style={{ transform: `scaleX(${Math.max(0.02, progress)})` }}
           />
         </div>
         <code className="platform-video-tc">
-          00:0{currentSec.toFixed(1)} / 00:05.0
+          {formatVideoSeconds(currentSec)} / {formatVideoSeconds(durationSec)}
         </code>
       </div>
     </div>

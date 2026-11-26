@@ -27,7 +27,7 @@ export function LegalDocumentView(props: { documentKey: 'terms' | 'privacy'; hid
       contentClassName="mx-auto max-w-3xl px-6 py-10"
     >
         <div className="mb-8">
-          {!props.hideTitle ? <h1 className="text-3xl font-bold text-[var(--nimi-text-primary)]">{content.title}</h1> : null}
+          {!props.hideTitle ? <h1 className="text-3xl font-bold leading-tight tracking-[-0.02em] text-[var(--nimi-text-primary)]">{content.title}</h1> : null}
           <p className="mt-2 text-sm text-[var(--nimi-text-muted)]">{content.lastUpdatedLabel}: {content.lastUpdated}</p>
           <p className="mt-4 text-sm leading-relaxed text-[var(--nimi-text-secondary)]">{content.description}</p>
         </div>

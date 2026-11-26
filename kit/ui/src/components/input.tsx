@@ -5,7 +5,7 @@ import { IconButton } from './button.js';
 import { Tooltip } from './tooltip.js';
 
 const fieldVariants = cva(
-  'flex items-center gap-2 rounded-[var(--nimi-radius-field)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] text-[var(--nimi-field-text)] min-h-[var(--nimi-sizing-field-md-height)] transition-colors duration-[var(--nimi-motion-fast)] focus-within:border-[var(--nimi-field-focus)] focus-within:ring-[length:var(--nimi-focus-ring-width)] focus-within:ring-[var(--nimi-focus-ring-color)]',
+  'flex items-center gap-2 rounded-[var(--nimi-radius-field)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] text-[var(--nimi-field-text)] min-h-[var(--nimi-sizing-field-md-height)] transition-colors duration-[var(--nimi-motion-fast)] focus-within:border-[var(--nimi-field-focus)] focus-within:ring-[length:var(--nimi-focus-ring-width)] focus-within:ring-[var(--nimi-focus-ring-color)] has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-[var(--nimi-opacity-disabled)]',
   {
     variants: {
       tone: {

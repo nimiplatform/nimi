@@ -75,7 +75,7 @@ export function DemoDrawioPreview({ content }: { content: RemainingPreviewMeta }
           >
             <Redo2 size={16} />
           </PreviewButton>
-          <PreviewButton onClick={() => setShowHistory(!showHistory)}>
+          <PreviewButton aria-expanded={showHistory} onClick={() => setShowHistory(!showHistory)}>
             <History size={15} />
             {t('drawio.header.history')}
           </PreviewButton>
@@ -176,6 +176,7 @@ export function DemoDrawioPreview({ content }: { content: RemainingPreviewMeta }
                     <g
                       role="button"
                       tabIndex={0}
+                      aria-pressed={selected === index}
                       aria-label={t('drawio.editor.select', { nodeLabel: node.label })}
                       onClick={() => select(index)}
                       onKeyDown={(e) => {

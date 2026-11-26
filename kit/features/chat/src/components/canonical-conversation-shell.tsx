@@ -382,6 +382,7 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
       <button
         type="button"
         aria-label={copy.shellDismissOverlayLabel}
+        aria-hidden={!overlayVisible}
         className={cn(
           'absolute inset-0 z-20 bg-[var(--nimi-overlay-backdrop)] transition-opacity duration-[var(--nimi-motion-base)]',
           overlayVisible ? 'opacity-100' : 'pointer-events-none opacity-0',

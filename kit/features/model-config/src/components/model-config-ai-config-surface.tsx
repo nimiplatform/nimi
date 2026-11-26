@@ -1184,7 +1184,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
               <InlineAlert tone="warning">{committedCloudBlockedMessage}</InlineAlert>
               {committedCloudReasons.length > 0 ? (
                 <details className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] p-2 text-xs text-[var(--nimi-text-secondary)]">
-                  <summary className="cursor-pointer font-semibold">{props.copy.technicalDetailsLabel}</summary>
+                  <summary className={cn('cursor-pointer rounded-sm font-semibold', FOCUS_RING_CLASS_NAME)}>{props.copy.technicalDetailsLabel}</summary>
                   <pre className="mt-2 whitespace-pre-wrap break-words font-mono text-[length:var(--nimi-type-overline-size)]">{committedCloudReasons.join('\n')}</pre>
                 </details>
               ) : null}
@@ -1233,7 +1233,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
           ) : null}
           {saveFailure.technicalDetail ? (
             <details className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] p-2 text-xs text-[var(--nimi-text-secondary)]">
-              <summary className="cursor-pointer font-semibold">{props.copy.technicalDetailsLabel}</summary>
+              <summary className={cn('cursor-pointer rounded-sm font-semibold', FOCUS_RING_CLASS_NAME)}>{props.copy.technicalDetailsLabel}</summary>
               <pre className="mt-2 whitespace-pre-wrap break-words font-mono text-[length:var(--nimi-type-overline-size)]">{saveFailure.technicalDetail}</pre>
             </details>
           ) : null}
@@ -1312,7 +1312,7 @@ function LocalSelectionSummary(props: {
             {secondaryMismatchMessage}
           </p>
         ) : null}
-        {selection?.state === 'blocked' && selection.reasons.length > 0 ? <details className="text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-text-muted)]"><summary>{props.copy.technicalDetailsLabel}</summary><code>{selection.reasons.join(', ')}</code></details> : null}
+        {selection?.state === 'blocked' && selection.reasons.length > 0 ? <details className="text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-text-muted)]"><summary className={cn('cursor-pointer rounded-sm', FOCUS_RING_CLASS_NAME)}>{props.copy.technicalDetailsLabel}</summary><code>{selection.reasons.join(', ')}</code></details> : null}
       </div>
       {props.onOpenMachineLoadout ? (
         <button type="button" onClick={props.onOpenMachineLoadout} className={cn('shrink-0 text-[length:var(--nimi-type-overline-size)] font-medium text-[var(--nimi-action-primary-bg)] hover:underline', FOCUS_RING_CLASS_NAME)}>

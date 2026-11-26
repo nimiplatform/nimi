@@ -486,7 +486,12 @@ export function HeroDemoView({ expanded, windowTitle, windowActions, windowClose
     heroGuideStep === 'done' ? (
       <div
         ref={guideCardRef}
-        className={cn('story-stage-guide is-done', guideLayout && 'has-anchor-pos')}
+        className={cn(
+          'story-stage-guide is-done nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]',
+          guideLayout && 'has-anchor-pos',
+        )}
+        data-nimi-material="glass-regular"
+        data-nimi-tone="overlay"
         role="status"
         aria-live="polite"
         data-testid="hero-stage-guide"
@@ -495,8 +500,7 @@ export function HeroDemoView({ expanded, windowTitle, windowActions, windowClose
         style={
           guideLayout
             ? ({
-                left: `${guideLayout.left}px`,
-                top: `${guideLayout.top}px`,
+                transform: `translate3d(${guideLayout.left}px, ${guideLayout.top}px, 0)`,
               } as CSSProperties)
             : undefined
         }
@@ -517,7 +521,12 @@ export function HeroDemoView({ expanded, windowTitle, windowActions, windowClose
     ) : (
       <div
         ref={guideCardRef}
-        className={cn('story-stage-guide', guideLayout && 'has-anchor-pos')}
+        className={cn(
+          'story-stage-guide nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]',
+          guideLayout && 'has-anchor-pos',
+        )}
+        data-nimi-material="glass-regular"
+        data-nimi-tone="overlay"
         role="region"
         aria-live="polite"
         aria-label={heroGuide.formatStepLabel(currentGuideStepNumber)}
@@ -527,8 +536,7 @@ export function HeroDemoView({ expanded, windowTitle, windowActions, windowClose
         style={
           guideLayout
             ? ({
-                left: `${guideLayout.left}px`,
-                top: `${guideLayout.top}px`,
+                transform: `translate3d(${guideLayout.left}px, ${guideLayout.top}px, 0)`,
                 '--guide-caret-x': `${guideLayout.caretX}px`,
               } as CSSProperties)
             : undefined

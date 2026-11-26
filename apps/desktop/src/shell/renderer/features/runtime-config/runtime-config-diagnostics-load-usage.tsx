@@ -62,8 +62,8 @@ function ResourceLoadingSkeleton() {
     <div className="flex flex-wrap items-start justify-between gap-4">
       {Array.from({ length: 3 }).map((_, index) => (
         <div key={`resource-skeleton-${index}`} className="flex flex-col items-center gap-2">
-          <div className="h-24 w-24 animate-pulse rounded-full bg-[var(--nimi-surface-panel)]" />
-          <div className="h-3 w-14 animate-pulse rounded bg-[var(--nimi-surface-panel)]" />
+          <div className="h-24 w-24 animate-pulse motion-reduce:animate-none rounded-full bg-[var(--nimi-surface-panel)]" />
+          <div className="h-3 w-14 animate-pulse motion-reduce:animate-none rounded bg-[var(--nimi-surface-panel)]" />
         </div>
       ))}
     </div>
@@ -129,30 +129,31 @@ function TokenSplitBar({ inputTokens, outputTokens, inputLabel, outputLabel }: {
   if (!Number.isFinite(total) || total <= 0) return null;
   const inputPercent = Math.max(0, Math.min(100, (inputTokens / total) * 100));
   const outputPercent = 100 - inputPercent;
+  const inputRatio = inputPercent / 100;
   const transition = { duration: reduced ? 0 : 0.6, ease: [0.05, 0.7, 0.1, 1] as const };
   return (
     <div className="col-span-2 pt-1">
-      <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-[var(--nimi-surface-panel)]">
+      <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-[var(--nimi-surface-panel)]">
         <motion.div
-          className="h-full bg-[var(--nimi-status-info)]"
-          initial={reduced ? false : { width: 0 }}
-          animate={{ width: `${inputPercent}%` }}
+          className="absolute inset-0 origin-left bg-[var(--nimi-action-primary-bg)]"
+          initial={reduced ? false : { scaleX: 0 }}
+          animate={{ scaleX: 1 }}
           transition={transition}
         />
         <motion.div
-          className="h-full bg-[var(--nimi-action-primary-bg)]"
-          initial={reduced ? false : { width: 0 }}
-          animate={{ width: `${outputPercent}%` }}
+          className="absolute inset-0 origin-left bg-[var(--nimi-status-info)]"
+          initial={reduced ? false : { scaleX: 0 }}
+          animate={{ scaleX: inputRatio }}
           transition={transition}
         />
       </div>
       <div className={cn('mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>
         <span className="flex items-center gap-1">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--nimi-status-info)]" />
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--nimi-status-info)]" aria-hidden="true" />
           {inputLabel} {inputPercent.toFixed(0)}%
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--nimi-action-primary-bg)]" />
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--nimi-action-primary-bg)]" aria-hidden="true" />
           {outputLabel} {outputPercent.toFixed(0)}%
         </span>
       </div>
@@ -265,9 +266,6 @@ export function UsageEstimateSection() {
       </SectionTitle>
       <div className="mt-2">
         <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'flex flex-col p-4')}>
-          <div className="mb-3">
-            <p className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>{t('runtimeConfig.overview.usageEstimate', { defaultValue: 'Usage Estimate' })}</p>
-          </div>
           <div className="grid flex-1 grid-cols-2 content-start gap-2">
             <UsageMetric
               icon={<ActivityIcon />}
@@ -314,7 +312,7 @@ export function UsageEstimateSection() {
             />
           </div>
           {usageEstimate.error ? (
-            <p className="mt-3 text-xs text-[var(--nimi-status-danger)]">{usageEstimate.error}</p>
+            <p role="alert" className="mt-3 text-xs text-[var(--nimi-status-danger)]">{usageEstimate.error}</p>
           ) : null}
         </Surface>
       </div>

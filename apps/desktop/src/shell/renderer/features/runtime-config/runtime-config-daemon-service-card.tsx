@@ -65,15 +65,33 @@ export function RuntimeDaemonServiceCard(props: {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button data-testid="runtime-service-refresh" variant="secondary" size="sm" disabled={daemonBusy} onClick={() => void model.refreshRuntimeDaemonStatus()}>
-            {daemonBusy
-              ? t('runtimeConfig.overview.working', { defaultValue: 'Working...' })
-              : t('runtimeConfig.overview.refresh', { defaultValue: 'Refresh' })}
+          <Button
+            data-testid="runtime-service-refresh"
+            variant="secondary"
+            size="sm"
+            loading={model.runtimeDaemonBusyAction === 'refresh'}
+            disabled={daemonBusy && model.runtimeDaemonBusyAction !== 'refresh'}
+            onClick={() => void model.refreshRuntimeDaemonStatus()}
+          >
+            {t('runtimeConfig.overview.refresh', { defaultValue: 'Refresh' })}
           </Button>
-          <Button variant="secondary" size="sm" disabled={daemonBusy || daemonRunning} onClick={() => void model.startRuntimeDaemon()}>
+          <Button
+            variant="secondary"
+            size="sm"
+            loading={model.runtimeDaemonBusyAction === 'start'}
+            disabled={(daemonBusy && model.runtimeDaemonBusyAction !== 'start') || daemonRunning}
+            onClick={() => void model.startRuntimeDaemon()}
+          >
             {t('runtimeConfig.overview.start', { defaultValue: 'Start' })}
           </Button>
-          <Button data-testid="runtime-service-restart" variant="secondary" size="sm" disabled={daemonBusy || !daemonRunning} onClick={() => void model.restartRuntimeDaemon()}>
+          <Button
+            data-testid="runtime-service-restart"
+            variant="secondary"
+            size="sm"
+            loading={model.runtimeDaemonBusyAction === 'restart'}
+            disabled={(daemonBusy && model.runtimeDaemonBusyAction !== 'restart') || !daemonRunning}
+            onClick={() => void model.restartRuntimeDaemon()}
+          >
             {t('runtimeConfig.overview.restart', { defaultValue: 'Restart' })}
           </Button>
         </div>

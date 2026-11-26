@@ -22,7 +22,7 @@ export function SettingsPanelBody() {
   const container = useRef<HTMLDivElement>(null);
   const sidebar = useRef<HTMLDivElement>(null);
   const detail = useRef<HTMLDivElement>(null);
-  const resizePointer = useRef<number | null>(null);
+  const resizeSession = useRef<{ pointerId: number; startX: number; startWidth: number } | null>(null);
   const requestedFocus = useRef<'list' | 'detail' | null>('detail');
   const [width, setWidth] = useState(232);
   const [compact, setCompact] = useState(false);
@@ -65,14 +65,19 @@ export function SettingsPanelBody() {
     return !query.trim() || query.trim().toLocaleLowerCase().split(/\s+/).every(word => terms.includes(word));
   }) })).filter(group => group.items.length);
   const select = (id: string) => { void openHomeSettings(navigation, id); };
-  const beginResize = (event: PointerEvent<HTMLDivElement>) => { event.preventDefault(); resizePointer.current = event.pointerId; event.currentTarget.setPointerCapture(event.pointerId); };
+  const beginResize = (event: PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    resizeSession.current = { pointerId: event.pointerId, startX: event.clientX, startWidth: width };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
   const resize = (event: PointerEvent<HTMLDivElement>) => {
-    if (resizePointer.current !== event.pointerId || !container.current) return;
-    setWidth(Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, Math.round(event.clientX - container.current.getBoundingClientRect().left))));
+    const session = resizeSession.current;
+    if (!session || session.pointerId !== event.pointerId) return;
+    setWidth(Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, Math.round(session.startWidth + (event.clientX - session.startX)))));
   };
   const endResize = (event: PointerEvent<HTMLDivElement>) => {
-    if (resizePointer.current !== event.pointerId) return;
-    resizePointer.current = null;
+    if (resizeSession.current?.pointerId !== event.pointerId) return;
+    resizeSession.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   };
   return <div ref={container} className="flex min-h-0 min-w-0 flex-1 gap-3 pb-4 pr-4 pt-3" data-testid="panel:settings-body">

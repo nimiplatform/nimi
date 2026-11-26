@@ -6,12 +6,16 @@ import {
   installNimiShellRuntimeBridge,
 } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
+  AnimatePresence,
   Button,
   EmptyState,
   InlineAlert,
+  NimiMotionProvider,
   NimiThemeProvider,
   NimiToaster,
   TooltipProvider,
+  motion,
+  nimiOverlayPanelMotion,
   useNimiReducedMotion,
 } from '@nimiplatform/kit/ui';
 import { NimiAppChrome } from '@nimiplatform/kit/ui/app-chrome';
@@ -690,93 +694,100 @@ function UtopiaApp() {
               }}
             />
 
-            {drawerVisible && activeDrawerTab && (
-              <aside className="utopia-floating-drawer" aria-label="洞天手记卷轴">
-                <div className="utopia-drawer-top-strip">
-                  <nav className="utopia-tab-strip" role="tablist" aria-label="手记卷轴标签页">
+            <AnimatePresence initial={false}>
+              {drawerVisible && activeDrawerTab && (
+                <motion.aside
+                  key="utopia-floating-drawer"
+                  className="utopia-floating-drawer"
+                  aria-label="洞天手记卷轴"
+                  {...nimiOverlayPanelMotion({ kind: 'drawer', side: 'right', reducedMotion })}
+                >
+                  <div className="utopia-drawer-top-strip">
+                    <nav className="utopia-tab-strip" role="tablist" aria-label="手记卷轴标签页">
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={activeDrawerTab === 'journal'}
+                        className={`utopia-tab-btn ${activeDrawerTab === 'journal' ? 'is-active' : ''}`}
+                        onClick={() => openDrawerTab('journal')}
+                      >
+                        住地手记
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={activeDrawerTab === 'residents'}
+                        className={`utopia-tab-btn ${activeDrawerTab === 'residents' ? 'is-active' : ''}`}
+                        onClick={() => openDrawerTab('residents')}
+                      >
+                        伙伴 ({snapshot.residents.length})
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={activeDrawerTab === 'tuner'}
+                        className={`utopia-tab-btn ${activeDrawerTab === 'tuner' ? 'is-active' : ''}`}
+                        onClick={() => openDrawerTab('tuner')}
+                      >
+                        营造调音
+                      </button>
+                    </nav>
+
                     <button
                       type="button"
-                      role="tab"
-                      aria-selected={activeDrawerTab === 'journal'}
-                      className={`utopia-tab-btn ${activeDrawerTab === 'journal' ? 'is-active' : ''}`}
-                      onClick={() => openDrawerTab('journal')}
+                      className="utopia-drawer-close-btn"
+                      aria-label="收起手记卷轴回到全幅画卷"
+                      title="收起手记卷轴 (Esc)"
+                      onClick={() => setActiveDrawerTab(null)}
                     >
-                      住地手记
+                      ×
                     </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={activeDrawerTab === 'residents'}
-                      className={`utopia-tab-btn ${activeDrawerTab === 'residents' ? 'is-active' : ''}`}
-                      onClick={() => openDrawerTab('residents')}
-                    >
-                      伙伴 ({snapshot.residents.length})
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={activeDrawerTab === 'tuner'}
-                      className={`utopia-tab-btn ${activeDrawerTab === 'tuner' ? 'is-active' : ''}`}
-                      onClick={() => openDrawerTab('tuner')}
-                    >
-                      营造调音
-                    </button>
-                  </nav>
+                  </div>
 
-                  <button
-                    type="button"
-                    className="utopia-drawer-close-btn"
-                    aria-label="收起手记卷轴回到全幅画卷"
-                    title="收起手记卷轴 (Esc)"
-                    onClick={() => setActiveDrawerTab(null)}
-                  >
-                    ×
-                  </button>
-                </div>
+                  <div className="utopia-rail-scroll">
+                    {activeDrawerTab === 'journal' && (
+                      <JournalAndSharedTab
+                        snapshot={snapshot}
+                        highlights={journalHighlights}
+                        avatarsByHandle={avatarsByHandle}
+                        onOpenDraft={handleOpenDraftForResident}
+                      />
+                    )}
 
-                <div className="utopia-rail-scroll">
-                  {activeDrawerTab === 'journal' && (
-                    <JournalAndSharedTab
-                      snapshot={snapshot}
-                      highlights={journalHighlights}
-                      avatarsByHandle={avatarsByHandle}
-                      onOpenDraft={handleOpenDraftForResident}
-                    />
-                  )}
-
-                  {activeDrawerTab === 'residents' && (
-                    <ResidentDetailAndDraft
-                      client={client}
-                      snapshot={snapshot}
-                      busy={busy}
-                      draftState={draftState}
-                      avatarsByHandle={avatarsByHandle}
-                      bindingsByHandle={bindingsByHandle}
-                      chibiWardrobe={chibiWardrobe}
-                      wardrobeReady={wardrobeReady}
-                      onUpdateChibiAppearance={handleUpdateChibiAppearance}
-                      onDraftStateChange={setDraftState}
-                      onApplyIntent={async (intent) => { await applyIntent(intent); }}
-                      onOpenHomePartners={handleOpenHomePartners}
-                      onOpenHomePartnerManagement={handleOpenHomePartnerManagement}
-                      onOpenPartnerInZhiyu={handleOpenPartnerInZhiyu}
-                    />
-                  )}
-
-                  {activeDrawerTab === 'tuner' && (
-                    <React.Suspense fallback={<p className="utopia-empty-hint">正在展开营造调音台…</p>}>
-                      <LazyDeterministicTunerPanel
+                    {activeDrawerTab === 'residents' && (
+                      <ResidentDetailAndDraft
                         client={client}
                         snapshot={snapshot}
-                        nowMs={nowMs}
                         busy={busy}
-                        onApplyIntent={applyIntent}
+                        draftState={draftState}
+                        avatarsByHandle={avatarsByHandle}
+                        bindingsByHandle={bindingsByHandle}
+                        chibiWardrobe={chibiWardrobe}
+                        wardrobeReady={wardrobeReady}
+                        onUpdateChibiAppearance={handleUpdateChibiAppearance}
+                        onDraftStateChange={setDraftState}
+                        onApplyIntent={async (intent) => { await applyIntent(intent); }}
+                        onOpenHomePartners={handleOpenHomePartners}
+                        onOpenHomePartnerManagement={handleOpenHomePartnerManagement}
+                        onOpenPartnerInZhiyu={handleOpenPartnerInZhiyu}
                       />
-                    </React.Suspense>
-                  )}
-                </div>
-              </aside>
-            )}
+                    )}
+
+                    {activeDrawerTab === 'tuner' && (
+                      <React.Suspense fallback={<p className="utopia-empty-hint">正在展开营造调音台…</p>}>
+                        <LazyDeterministicTunerPanel
+                          client={client}
+                          snapshot={snapshot}
+                          nowMs={nowMs}
+                          busy={busy}
+                          onApplyIntent={applyIntent}
+                        />
+                      </React.Suspense>
+                    )}
+                  </div>
+                </motion.aside>
+              )}
+            </AnimatePresence>
           </main>
         )}
       </div>
@@ -810,9 +821,11 @@ if (rootElement) {
   createRoot(rootElement).render(
     <React.StrictMode>
       <NimiThemeProvider accentPack="nimi-accent">
-        <TooltipProvider>
-          <UtopiaApp />
-        </TooltipProvider>
+        <NimiMotionProvider>
+          <TooltipProvider>
+            <UtopiaApp />
+          </TooltipProvider>
+        </NimiMotionProvider>
       </NimiThemeProvider>
     </React.StrictMode>,
   );

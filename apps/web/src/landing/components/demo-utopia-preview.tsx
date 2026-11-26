@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from 'react';
+import { type RefObject, useContext, useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
   BookOpen,
@@ -62,10 +62,55 @@ export function useUtopiaWalkers(
   isTuned: boolean,
   solitude = false,
   paused = false,
+  options?: {
+    stageRef?: RefObject<HTMLElement | null>;
+    actorRefs?: RefObject<Map<string, HTMLElement>>;
+    zBase?: number;
+    zScale?: number;
+  },
 ): Readonly<Record<string, UtopiaWalkerFrame>> {
   const walkersRef = useRef<Map<string, InternalWalkerState>>(new Map());
   const lastHabitatRef = useRef<UtopiaHabitatId>(habitatId);
+  const stageSizeRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
   const [, setTick] = useState(0);
+  const [reducedMotion, setReducedMotion] = useState(() =>
+    typeof window !== 'undefined'
+      ? Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
+      : false,
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const onChange = () => setReducedMotion(mq.matches);
+    setReducedMotion(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  const stageRef = options?.stageRef;
+  const actorRefs = options?.actorRefs;
+  const zBase = options?.zBase ?? 4;
+  const zScale = options?.zScale ?? 0.1;
+
+  useEffect(() => {
+    const stageEl = stageRef?.current;
+    if (!stageEl || typeof window === 'undefined') return;
+    const updateSize = () => {
+      stageSizeRef.current = {
+        width: stageEl.clientWidth,
+        height: stageEl.clientHeight,
+      };
+    };
+    updateSize();
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(updateSize);
+      ro.observe(stageEl);
+      return () => ro.disconnect();
+    }
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, [stageRef, habitatId]);
 
   if (lastHabitatRef.current !== habitatId) {
     lastHabitatRef.current = habitatId;
@@ -73,9 +118,27 @@ export function useUtopiaWalkers(
   }
 
   useEffect(() => {
-    if (paused || typeof window === 'undefined') return;
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const resetDomActors = () => {
+      const actors = actorRefs?.current;
+      if (!actors) return;
+      for (const el of actors.values()) {
+        el.style.setProperty('--walker-dx', '0px');
+        el.style.setProperty('--walker-dy', '0px');
+        el.classList.remove('is-walking');
+        const chibi = el.querySelector<HTMLElement>('.utopia-mini-chibi');
+        if (chibi) {
+          chibi.classList.remove('is-walking');
+          chibi.classList.add('is-idle');
+        }
+      }
+    };
 
+    if (paused || reducedMotion || typeof window === 'undefined') {
+      resetDomActors();
+      return;
+    }
+
+    const useDomDrivers = Boolean(stageRef && actorRefs);
     let rafId = 0;
     let lastTs = performance.now();
     let uiAccum = 0;
@@ -87,6 +150,8 @@ export function useUtopiaWalkers(
 
       const modeKey = `${isTuned ? 'tuned' : 'normal'}:${solitude ? 'solo' : 'social'}`;
       const map = walkersRef.current;
+      const actors = actorRefs?.current;
+      const { width: stageW, height: stageH } = stageSizeRef.current;
 
       residents.forEach((resident, idx) => {
         const placement = resolvePlacement(resident, isTuned, solitude);
@@ -108,7 +173,6 @@ export function useUtopiaWalkers(
           };
           map.set(resident.id, st);
         } else if (st.modeKey !== modeKey) {
-          // Weather or solitude changed on the same map: walk smoothly from current (x,y) to new courtyard!
           st.modeKey = modeKey;
           st.wpIndex = 0;
           st.pauseSec = 0;
@@ -129,40 +193,54 @@ export function useUtopiaWalkers(
             st.y = placement.y;
             st.walking = false;
           }
-          return;
-        }
-
-        if (st.pauseSec > 0) {
+        } else if (st.pauseSec > 0) {
           st.pauseSec -= dt;
           st.walking = false;
-          return;
+        } else {
+          const target = trail[st.wpIndex % trail.length]!;
+          const dx = target.x - st.x;
+          const dy = target.y - st.y;
+          const dist = Math.hypot(dx, dy);
+          const speed = 4.6 + idx * 0.35;
+
+          if (dist <= 0.28) {
+            st.x = target.x;
+            st.y = target.y;
+            const atHome = st.wpIndex % trail.length === 0;
+            st.wpIndex = (st.wpIndex + 1) % trail.length;
+            st.pauseSec = atHome ? 1.55 + idx * 0.35 : 0.65 + (st.wpIndex % 2) * 0.3;
+            st.walking = false;
+          } else {
+            const move = Math.min(dist, speed * dt);
+            st.x += (dx / dist) * move;
+            st.y += (dy / dist) * move;
+            if (Math.abs(dx) > 0.04) {
+              st.facing = dx < 0 ? 'left' : 'right';
+            }
+            st.walking = true;
+          }
         }
 
-        const target = trail[st.wpIndex % trail.length]!;
-        const dx = target.x - st.x;
-        const dy = target.y - st.y;
-        const dist = Math.hypot(dx, dy);
-        const speed = 4.6 + idx * 0.35;
-
-        if (dist <= 0.28) {
-          st.x = target.x;
-          st.y = target.y;
-          const atHome = st.wpIndex % trail.length === 0;
-          st.wpIndex = (st.wpIndex + 1) % trail.length;
-          st.pauseSec = atHome ? 1.55 + idx * 0.35 : 0.65 + (st.wpIndex % 2) * 0.3;
-          st.walking = false;
-        } else {
-          const move = Math.min(dist, speed * dt);
-          st.x += (dx / dist) * move;
-          st.y += (dy / dist) * move;
-          if (Math.abs(dx) > 0.04) {
-            st.facing = dx < 0 ? 'left' : 'right';
+        if (useDomDrivers && actors) {
+          const el = actors.get(resident.id);
+          if (el) {
+            const dxPx = stageW > 0 ? ((st.x - placement.x) / 100) * stageW : 0;
+            const dyPx = stageH > 0 ? ((st.y - placement.y) / 100) * stageH : 0;
+            el.style.setProperty('--walker-dx', `${dxPx.toFixed(2)}px`);
+            el.style.setProperty('--walker-dy', `${dyPx.toFixed(2)}px`);
+            el.style.zIndex = String(zBase + Math.round(st.y * zScale));
+            el.classList.toggle('is-walking', st.walking);
+            const chibi = el.querySelector<HTMLElement>('.utopia-mini-chibi');
+            if (chibi) {
+              chibi.classList.toggle('is-walking', st.walking);
+              chibi.classList.toggle('is-idle', !st.walking);
+              chibi.classList.toggle('is-facing-left', st.facing === 'left');
+            }
           }
-          st.walking = true;
         }
       });
 
-      if (uiAccum >= 0.032) {
+      if (!useDomDrivers && uiAccum >= 0.032) {
         uiAccum = 0;
         setTick((n) => (n + 1) & 0xffff);
       }
@@ -170,14 +248,17 @@ export function useUtopiaWalkers(
     };
 
     rafId = window.requestAnimationFrame(step);
-    return () => window.cancelAnimationFrame(rafId);
-  }, [habitatId, residents, isTuned, solitude, paused]);
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      resetDomActors();
+    };
+  }, [habitatId, residents, isTuned, solitude, paused, reducedMotion, stageRef, actorRefs, zBase, zScale]);
 
   const result: Record<string, UtopiaWalkerFrame> = {};
   for (const [idx, resident] of residents.entries()) {
     const placement = resolvePlacement(resident, isTuned, solitude);
     const st = walkersRef.current.get(resident.id);
-    result[resident.id] = st
+    result[resident.id] = st && !reducedMotion
       ? { x: st.x, y: st.y, walking: st.walking, facing: st.facing }
       : {
           x: placement.x,
@@ -342,19 +423,20 @@ export function DemoUtopiaPreview({
   const [wishAppliedId, setWishAppliedId] = useState<string | null>(null);
   const [sampleValidated, setSampleValidated] = useState(false);
 
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const actorRefs = useRef<Map<string, HTMLElement>>(new Map());
   const habitat = content.habitats.find((item) => item.id === habitatId) ?? content.habitats[0]!;
   const isTuned = Boolean(tunedByHabitat[habitat.id]);
-  const walkerFrames = useUtopiaWalkers(habitat.id, habitat.residents, isTuned, solitudeAll);
+  useUtopiaWalkers(habitat.id, habitat.residents, isTuned, solitudeAll, false, {
+    stageRef,
+    actorRefs,
+    zBase: 4,
+    zScale: 0.1,
+  });
 
   const selectedResident =
     habitat.residents.find((item) => item.id === selectedResidentId) ?? habitat.residents[0]!;
   const selectedPlacement = resolvePlacement(selectedResident, isTuned, solitudeAll);
-  const selectedFrame = walkerFrames[selectedResident.id] ?? {
-    x: selectedPlacement.x,
-    y: selectedPlacement.y,
-    walking: false,
-    facing: 'right' as const,
-  };
   const selectedWish = habitat.wishes[selectedWishIndex] ?? habitat.wishes[0]!;
 
   const currentOutfit = {
@@ -412,6 +494,7 @@ export function DemoUtopiaPreview({
           <button
             type="button"
             className={`demo-utopia-pill is-interactive${isTuned ? ' is-tuned' : ''}`}
+            aria-pressed={isTuned}
             title={content.horizonHint}
             onClick={toggleEnvironment}
           >
@@ -448,12 +531,12 @@ export function DemoUtopiaPreview({
         <div className="demo-utopia-stage-col">
           <div className={`demo-utopia-canvas${zoomed ? ' is-zoomed' : ''}`}>
             <div
+              ref={stageRef}
               className="demo-utopia-canvas-inner"
               style={
                 zoomed
                   ? {
-                      transformOrigin: `${selectedFrame.x.toFixed(1)}% ${selectedFrame.y.toFixed(1)}%`,
-                      transform: 'scale(1.28)',
+                      transform: `translate3d(${(-0.28 * selectedPlacement.x).toFixed(2)}%, ${(-0.28 * selectedPlacement.y).toFixed(2)}%, 0) scale(1.28)`,
                     }
                   : undefined
               }
@@ -495,14 +578,8 @@ export function DemoUtopiaPreview({
               })()}
 
               {/* Living Walking Chibi Companion Pins */}
-              {habitat.residents.map((resident) => {
+              {habitat.residents.map((resident, idx) => {
                 const placement = resolvePlacement(resident, isTuned, solitudeAll);
-                const frame = walkerFrames[resident.id] ?? {
-                  x: placement.x,
-                  y: placement.y,
-                  walking: false,
-                  facing: 'right' as const,
-                };
                 const outfit = {
                   cloak: wardrobeOverrides[resident.id]?.cloak ?? resident.defaultCloak,
                   headwear: wardrobeOverrides[resident.id]?.headwear ?? resident.defaultHeadwear,
@@ -511,12 +588,17 @@ export function DemoUtopiaPreview({
                 return (
                   <button
                     key={resident.id}
+                    ref={(node) => {
+                      if (node) actorRefs.current.set(resident.id, node);
+                      else actorRefs.current.delete(resident.id);
+                    }}
                     type="button"
+                    aria-pressed={isSelected}
                     className={`demo-utopia-actor${isSelected ? ' is-selected' : ''}`}
                     style={{
-                      left: `${frame.x.toFixed(2)}%`,
-                      top: `${frame.y.toFixed(2)}%`,
-                      zIndex: 4 + Math.round(frame.y * 0.1),
+                      left: `${placement.x.toFixed(2)}%`,
+                      top: `${placement.y.toFixed(2)}%`,
+                      zIndex: 4 + Math.round(placement.y * 0.1),
                     }}
                     onClick={() => {
                       setSelectedResidentId(resident.id);
@@ -527,8 +609,8 @@ export function DemoUtopiaPreview({
                       cloakColor={outfit.cloak}
                       headwear={outfit.headwear}
                       size={44}
-                      walking={frame.walking}
-                      facing={frame.facing}
+                      walking={false}
+                      facing={idx % 2 === 0 ? 'right' : 'left'}
                     />
                     <span className="demo-utopia-actor-label">
                       <strong>{resident.name}</strong>
@@ -639,6 +721,7 @@ export function DemoUtopiaPreview({
                             key={swatch.hex}
                             type="button"
                             aria-label={swatch.label}
+                            aria-pressed={currentOutfit.cloak === swatch.hex}
                             title={swatch.label}
                             className={`demo-utopia-swatch${currentOutfit.cloak === swatch.hex ? ' is-active' : ''}`}
                             style={{ backgroundColor: swatch.hex }}
@@ -659,6 +742,7 @@ export function DemoUtopiaPreview({
                           <button
                             key={hw.id}
                             type="button"
+                            aria-pressed={currentOutfit.headwear === hw.id}
                             className={`demo-utopia-mini-btn${currentOutfit.headwear === hw.id ? ' is-active' : ''}`}
                             onClick={() =>
                               setWardrobeOverrides((prev) => ({
@@ -698,6 +782,7 @@ export function DemoUtopiaPreview({
                     rows={2}
                     value={draftText}
                     onChange={(event) => setDraftText(event.target.value)}
+                    aria-label={content.doorstepPlaceholder}
                     placeholder={content.doorstepPlaceholder}
                     className="demo-utopia-textarea"
                   />

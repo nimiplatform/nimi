@@ -46,8 +46,8 @@ export function RuntimeReasoningMessageContent(props: {
 
   return (
     <div className="space-y-3">
-      <details className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_80%,white)] px-3 py-2">
-        <summary className="cursor-pointer text-xs font-medium text-[var(--nimi-text-muted)]">
+      <details className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_86%,var(--nimi-surface-panel))] px-3 py-2">
+        <summary className="cursor-pointer rounded-sm text-xs font-medium text-[var(--nimi-text-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1">
           {props.reasoningLabel}
         </summary>
         <pre className="mt-2 whitespace-pre-wrap font-sans text-sm leading-6 text-[var(--nimi-text-secondary)]">
@@ -93,7 +93,7 @@ export function RuntimeImageMessageContent(props: {
           </p>
           {failureReasonCode || operationId ? (
             <details className="text-xs text-[var(--nimi-text-muted)]">
-              <summary className="cursor-pointer">{props.technicalDetailsLabel || 'Technical details'}</summary>
+              <summary className="cursor-pointer rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1">{props.technicalDetailsLabel || 'Technical details'}</summary>
               <p className="break-all font-mono text-[10px]">
                 {[failureReasonCode, operationId].filter(Boolean).join(' · ')}
               </p>
@@ -103,7 +103,7 @@ export function RuntimeImageMessageContent(props: {
             <button
               type="button"
               onClick={props.onRetry}
-              className="inline-flex min-h-9 items-center rounded-xl border border-[var(--nimi-border-subtle)] px-3 text-xs font-medium text-[var(--nimi-text-primary)] transition hover:bg-[var(--nimi-surface-active)]"
+              className="inline-flex min-h-9 items-center rounded-xl border border-[var(--nimi-border-subtle)] px-3 text-xs font-medium text-[var(--nimi-text-primary)] transition-[background-color,transform] hover:bg-[var(--nimi-surface-active)] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1"
             >
               {props.retryLabel || 'Retry'}
             </button>
@@ -128,7 +128,7 @@ export function RuntimeImageMessageContent(props: {
                 <button
                   type="button"
                   onClick={toggleCaption}
-                  className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white/80 transition hover:bg-black/70"
+                  className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white/80 transition-[background-color,transform] hover:bg-black/70 active:scale-[0.95] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-1"
                   aria-label={captionVisible ? props.hideCaptionLabel : props.showCaptionLabel}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

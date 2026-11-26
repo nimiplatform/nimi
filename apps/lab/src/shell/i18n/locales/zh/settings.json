@@ -1,6 +1,15 @@
 {
   "Settings": {
     "title": "设置",
+    "appearance": "外观",
+    "appearanceHint": "跟随系统外观，或将 Lab 固定为浅色或深色模式。",
+    "appearanceSystem": "跟随系统",
+    "appearanceLight": "浅色",
+    "appearanceDark": "深色",
+    "density": "界面密度",
+    "densityHint": "紧凑模式可展示更多控件；标准模式提供更舒展的间距。",
+    "densityCompact": "紧凑",
+    "densityRegular": "标准",
     "localDrafts": "保存提示词草稿",
     "draftPersistenceHint": "启用后，当前 Lab 可在下次打开时恢复此账号的提示词草稿。",
     "draftPreferenceError": "无法保存草稿设置，请重试。",

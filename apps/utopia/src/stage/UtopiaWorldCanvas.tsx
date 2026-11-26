@@ -1130,21 +1130,46 @@ export function UtopiaWorldCanvas(props: {
     drawFrame(1.8, 0);
   }, [animate, camera, daypart, habitatId, visibleLayers, drawFrame]);
 
-  // Smooth 60fps Retina canvas render loop when active
+  // Smooth 60fps Retina canvas render loop when active (pauses when tab is hidden)
   useEffect(() => {
     if (!animate) return;
     let rafId = 0;
+    let running = true;
     let lastTs = performance.now();
 
     const tick = (now: number) => {
+      if (!running) return;
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        rafId = 0;
+        return;
+      }
       const dtMs = Math.min(48, Math.max(4, now - lastTs));
       lastTs = now;
       drawFrame(now / 1000, dtMs / 16.667);
       rafId = window.requestAnimationFrame(tick);
     };
 
-    rafId = window.requestAnimationFrame(tick);
-    return () => window.cancelAnimationFrame(rafId);
+    const handleVisibility = () => {
+      if (!running) return;
+      if (document.visibilityState === 'visible' && rafId === 0) {
+        lastTs = performance.now();
+        rafId = window.requestAnimationFrame(tick);
+      } else if (document.visibilityState === 'hidden' && rafId !== 0) {
+        window.cancelAnimationFrame(rafId);
+        rafId = 0;
+      }
+    };
+
+    if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+      rafId = window.requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      running = false;
+      if (rafId !== 0) window.cancelAnimationFrame(rafId);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [animate, drawFrame]);
 
   return (

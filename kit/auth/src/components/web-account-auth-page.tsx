@@ -7,7 +7,9 @@ import {
   type ReactNode,
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { WebAccountAuthPageProps } from '../types/auth-types.js';
+import { Surface } from '@nimiplatform/kit/ui';
+import { motion, nimiOverlayPanelMotion, nimiSpring, useNimiReducedMotion } from '@nimiplatform/kit/ui/motion';
+import { buttonBase, type WebAccountAuthPageProps } from '../types/auth-types.js';
 import { useAuthFlow } from '../hooks/use-auth-flow.js';
 import { AnimateIn } from './primitives.js';
 import { AuthViewMain } from './auth-view-main.js';
@@ -65,6 +67,8 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
   const consentInputRef = useRef<HTMLInputElement | null>(null);
   const consentId = useId();
   const consentLabelId = `${consentId}-label`;
+  const reducedMotion = useNimiReducedMotion();
+  const confirmPanelMotion = nimiOverlayPanelMotion({ kind: 'popover', side: 'bottom', reducedMotion });
 
   const flow = useAuthFlow({
     adapter,
@@ -162,29 +166,33 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
                     onMouseEnter={() => setIsLogoHovered(true)}
                     onMouseLeave={() => setIsLogoHovered(false)}
                     disabled={flow.pending}
-                    className="group relative cursor-pointer rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-[var(--nimi-focus-ring-color)] transition-all duration-500 ease-out"
+                    className="group relative cursor-pointer rounded-2xl transition-transform duration-[var(--nimi-motion-fast,120ms)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale,0.97)] focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-[var(--nimi-focus-ring-color)]"
                   >
-                    {renderLogo(
-                      branding.logo,
-                      logoAltText,
-                      `rounded-full object-cover select-none pointer-events-none transition-all duration-500 ease-out ${
-                        isLogoStage
-                          ? 'h-32 w-32 group-hover:scale-105'
-                          : 'h-16 w-16'
-                      }`,
-                    )}
+                    <motion.div
+                      animate={{ scale: isLogoStage ? 1 : 0.5 }}
+                      transition={reducedMotion ? { duration: 0 } : nimiSpring('default')}
+                      className={isLogoStage ? 'h-32 w-32' : 'h-16 w-16 flex items-center justify-center'}
+                    >
+                      {renderLogo(
+                        branding.logo,
+                        logoAltText,
+                        `h-32 w-32 shrink-0 rounded-full object-cover select-none pointer-events-none transition-transform duration-[var(--nimi-motion-base,200ms)] ease-[var(--nimi-motion-ease-standard)] ${
+                          isLogoStage ? 'group-hover:scale-105' : ''
+                        }`,
+                      )}
+                    </motion.div>
                   </button>
                 ) : (
                   <div
                     data-testid={testIds?.logoTrigger}
                     onMouseEnter={() => setIsLogoHovered(true)}
                     onMouseLeave={() => setIsLogoHovered(false)}
-                    className="relative rounded-2xl transition-all duration-500 ease-out"
+                    className="relative rounded-2xl"
                   >
                     {renderLogo(
                       branding.logo,
                       logoAltText,
-                      'h-16 w-16 rounded-full object-cover select-none pointer-events-none transition-all duration-500 ease-out',
+                      'h-16 w-16 rounded-full object-cover select-none pointer-events-none',
                     )}
                   </div>
                 )}
@@ -283,42 +291,44 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
                 </AnimateIn>
               ) : null}
 
-              {flow.view === 'main' && flow.embeddedStage === 'email' ? (
-                <div hidden={!flow.showRegisterConfirm} className={`w-full origin-top transition-all duration-200 ease-out ${
-                  flow.showRegisterConfirm
-                    ? 'scale-100 opacity-100'
-                    : 'pointer-events-none h-0 scale-95 opacity-0'
-                }`}>
-                  <div className="nimi-shell-auth-inline-card rounded-2xl p-5">
-                    <p className="nimi-shell-auth-inline-label mb-1 text-center text-sm font-medium">
-                      {t('Auth.emailNotRegistered')}
-                    </p>
-                    <p className="nimi-shell-auth-inline-help mb-4 text-center text-xs">
-                      {t('Auth.registerConfirmHint')}
-                    </p>
-                    <div className="flex items-center justify-center gap-3">
-                      <button
-                        type="button"
-                        onClick={flow.handleCancelRegister}
-                        className="rounded-full border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-5 py-2 text-sm font-medium text-[var(--nimi-text-muted)] transition hover:border-[var(--nimi-border-subtle)]"
-                      >
-                        {t('Auth.cancel')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!ensureConsent()) return;
-                          flow.handleConfirmRegister();
-                        }}
-                        disabled={flow.pending}
-                        className="rounded-full bg-[var(--nimi-action-primary-bg)] px-5 py-2 text-sm font-medium text-[var(--nimi-action-primary-text)] transition hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:opacity-50"
-                      >
-                        {t('Auth.confirmRegister')}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
+              {flow.view === 'main' && flow.embeddedStage === 'email' && flow.showRegisterConfirm ? (
+                <motion.div
+                  className="w-full"
+                  initial={confirmPanelMotion.initial}
+                  animate={confirmPanelMotion.animate}
+                  transition={confirmPanelMotion.transition}
+                  style={confirmPanelMotion.style}
+                >
+                    <Surface material="glass-regular" tone="overlay" elevation="floating" padding="none" className="rounded-2xl p-5">
+                      <p className="nimi-shell-auth-inline-label mb-1 text-center text-sm font-medium">
+                        {t('Auth.emailNotRegistered')}
+                      </p>
+                      <p className="nimi-shell-auth-inline-help mb-4 text-center text-xs">
+                        {t('Auth.registerConfirmHint')}
+                      </p>
+                      <div className="flex items-center justify-center gap-3">
+                        <button
+                          type="button"
+                          onClick={flow.handleCancelRegister}
+                          className={`${buttonBase} rounded-full border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-5 py-2 text-[var(--nimi-text-muted)] hover:border-[var(--nimi-border-strong)] hover:text-[var(--nimi-text-primary)]`}
+                        >
+                          {t('Auth.cancel')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!ensureConsent()) return;
+                            flow.handleConfirmRegister();
+                          }}
+                          disabled={flow.pending}
+                          className={`${buttonBase} rounded-full bg-[var(--nimi-action-primary-bg)] px-5 py-2 text-[var(--nimi-action-primary-text)] hover:bg-[var(--nimi-action-primary-bg-hover)]`}
+                        >
+                          {t('Auth.confirmRegister')}
+                        </button>
+                      </div>
+                    </Surface>
+                  </motion.div>
+                ) : null}
 
               {flow.view === 'main' && flow.embeddedStage === 'credential' && flow.supportsPasswordLogin ? (
                 <AnimateIn className="w-full">

@@ -157,9 +157,10 @@ function shouldCollapseProfileTextElement(
 // - Section headings: 14px / semibold / primary (step down from left column's 18px / 16px)
 // - Sub-labels & inline disclosure triggers: 12px / medium / muted
 // - Body copy: 13px / 1.7 / secondary
+// Note: text-[14px] is asserted by source-detail-world-character-profile-contract.test.ts.
 export const DOSSIER_SECTION_HEADING_CLASS = 'text-[14px] font-semibold tracking-[0.01em] text-[var(--nimi-text-primary)]';
 export const DOSSIER_FIELD_LABEL_CLASS = 'text-xs font-medium text-[var(--nimi-text-muted)]';
-export const DOSSIER_BODY_TEXT_CLASS = 'text-[13px] leading-[1.7] text-[var(--nimi-text-secondary)]';
+export const DOSSIER_BODY_TEXT_CLASS = 'text-[0.8125rem] leading-[1.7] text-[var(--nimi-text-secondary)]';
 
 // Clamp only the reading preview; the complete authored text remains available.
 export function CharacterProfileText({
@@ -167,7 +168,7 @@ export function CharacterProfileText({
   lines = 4,
   testId,
   className = '',
-  textClassName = 'text-[15px] leading-[1.82] text-[var(--nimi-text-secondary)]',
+  textClassName = 'text-[0.9375rem] leading-[1.82] text-[var(--nimi-text-secondary)]',
 }: {
   text: string;
   lines?: number;
@@ -284,7 +285,7 @@ export function CharacterAboutSection({ source }: { source: SourceDetailData }) 
 
   return (
     <section data-testid="world-character-about-section" className="min-w-0 max-w-[58ch]">
-      <h2 className="text-[18px] font-semibold tracking-[-0.01em] text-[var(--nimi-text-primary)]">
+      <h2 className="text-lg font-semibold tracking-[-0.01em] text-[var(--nimi-text-primary)]">
         {t('SourceDetail.worldCharacter.aboutTitle', { name: source.displayName })}
       </h2>
       <div className="mt-4 grid gap-5">
@@ -299,7 +300,7 @@ export function CharacterAboutSection({ source }: { source: SourceDetailData }) 
               text={disposition.text}
               lines={4}
               className="mt-1.5"
-              textClassName="text-[15px] leading-[1.8] text-[var(--nimi-text-primary)]"
+              textClassName="text-[0.9375rem] leading-[1.8] text-[var(--nimi-text-primary)]"
             />
           </div>
         ) : null}
@@ -317,7 +318,7 @@ export function CharacterLifeEventsSection({ lifeEvents }: {
 
   return (
     <section data-testid="character-life-events" className="min-w-0 max-w-[58ch]">
-      <h2 className="text-[18px] font-semibold tracking-[-0.01em] text-[var(--nimi-text-primary)]">
+      <h2 className="text-lg font-semibold tracking-[-0.01em] text-[var(--nimi-text-primary)]">
         {t('SourceDetail.worldCharacter.lifeEventsTitle')}
       </h2>
       <ol role="list" className="relative mt-5 space-y-6 before:absolute before:bottom-2 before:left-[3px] before:top-2.5 before:w-px before:bg-[var(--nimi-border-subtle)]">
@@ -336,14 +337,14 @@ export function CharacterLifeEventsSection({ lifeEvents }: {
                     {display(event.timeLabel)}
                   </p>
                 ) : null}
-                <p className="break-words text-[15px] font-semibold leading-snug text-[var(--nimi-text-primary)]">{title}</p>
+                <p className="break-words text-[0.9375rem] font-semibold leading-snug text-[var(--nimi-text-primary)]">{title}</p>
               </div>
               {summary && summary !== title ? (
                 <CharacterProfileText
                   text={summary}
                   lines={4}
                   className="mt-1.5"
-                  textClassName="text-[14.5px] leading-[1.78] text-[var(--nimi-text-secondary)]"
+                  textClassName="text-[0.90625rem] leading-[1.78] text-[var(--nimi-text-secondary)]"
                 />
               ) : null}
             </li>

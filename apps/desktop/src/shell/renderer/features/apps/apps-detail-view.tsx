@@ -407,7 +407,7 @@ function LocalDevelopmentAppsDetailView({
           {actionError ? <AppsActionErrorAlert error={actionError} className="mb-5" /> : null}
 
           {activeTab === 'overview' ? (
-            <div role="tabpanel" id="apps-detail-panel-overview" aria-labelledby="apps-detail-tab-overview" tabIndex={0} className="desktop-module-stack outline-none">
+            <div role="tabpanel" id="apps-detail-panel-overview" aria-labelledby="apps-detail-tab-overview" tabIndex={0} className="desktop-module-stack rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-2">
               {devStorefrontView.hasStorefront ? (
                 <InlineAlert
                   tone="info"
@@ -472,7 +472,7 @@ function LocalDevelopmentAppsDetailView({
           ) : null}
 
           {activeTab === 'access' ? (
-            <div role="tabpanel" id="apps-detail-panel-access" aria-labelledby="apps-detail-tab-access" tabIndex={0} className="desktop-module-stack outline-none">
+            <div role="tabpanel" id="apps-detail-panel-access" aria-labelledby="apps-detail-tab-access" tabIndex={0} className="desktop-module-stack rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-2">
               <AppsAccessTabSections
                 appId={registration.appId}
                 appAccess={registration.appAccess}
@@ -483,7 +483,7 @@ function LocalDevelopmentAppsDetailView({
           ) : null}
 
           {activeTab === 'ai-models' && aiModelsAvailable ? (
-            <div role="tabpanel" id="apps-detail-panel-ai-models" aria-labelledby="apps-detail-tab-ai-models" tabIndex={0} className="outline-none">
+            <div role="tabpanel" id="apps-detail-panel-ai-models" aria-labelledby="apps-detail-tab-ai-models" tabIndex={0} className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-2">
               <AppsAIConfigSection key={entry.identity.appId}
                 appId={identity.appId}
                 appDisplayName={identity.displayName}
@@ -906,7 +906,7 @@ function InstalledAppsDetailView({
         <div className="desktop-module-content">
           {actionError ? <AppsActionErrorAlert error={actionError} className="mb-5" /> : null}
           {activeTab === 'overview' ? (
-            <div role="tabpanel" id="apps-detail-panel-overview" aria-labelledby="apps-detail-tab-overview" tabIndex={0} className="desktop-module-stack outline-none">
+            <div role="tabpanel" id="apps-detail-panel-overview" aria-labelledby="apps-detail-tab-overview" tabIndex={0} className="desktop-module-stack rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-2">
               <AppsOverviewTab
                 sourceEntries={sourceEntries}
                 onRemoveSource={onRemoveSource}
@@ -932,7 +932,7 @@ function InstalledAppsDetailView({
                     data-testid="apps-detail-release-notes"
                     className="mt-6 rounded-xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_88%,transparent)] p-4"
                   >
-                    <summary className="cursor-pointer text-sm font-semibold text-[color:var(--nimi-text-primary)]">
+                    <summary className="cursor-pointer rounded-sm text-sm font-semibold text-[color:var(--nimi-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1">
                       {t('Apps.storefront.releaseNotesTitle')} · {entry.appInfo.version}
                     </summary>
                     <div className="mt-3">
@@ -971,7 +971,7 @@ function InstalledAppsDetailView({
           ) : null}
 
           {activeTab === 'access' ? (
-            <div role="tabpanel" id="apps-detail-panel-access" aria-labelledby="apps-detail-tab-access" tabIndex={0} className="desktop-module-stack outline-none">
+            <div role="tabpanel" id="apps-detail-panel-access" aria-labelledby="apps-detail-tab-access" tabIndex={0} className="desktop-module-stack rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-2">
               <AppsAccessTabSections
                 appId={entry.identity.appId}
                 appAccess={declaredAppAccess}
@@ -982,7 +982,7 @@ function InstalledAppsDetailView({
           ) : null}
 
           {activeTab === 'ai-models' && aiModelsAvailable ? (
-            <div role="tabpanel" id="apps-detail-panel-ai-models" tabIndex={0}>
+            <div role="tabpanel" id="apps-detail-panel-ai-models" aria-labelledby="apps-detail-tab-ai-models" tabIndex={0} className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-2">
               <AppsAIConfigSection key={entry.identity.appId} appId={entry.identity.appId} appDisplayName={entry.identity.displayName}
                 allowedRoutes={['local', 'cloud']}
                 declaredCapabilityRefs={entry.appInfo?.capabilityContractRefs ?? []}
@@ -1353,10 +1353,10 @@ function AppsReadmeSection({ readme }: { readonly readme: ProjectReadmeState }):
       <div>
         {readme.status === 'loading' ? (
           <div data-testid="apps-readme-loading" aria-label={t('Apps.loading')} className="space-y-3">
-            <div className="h-6 w-1/3 animate-pulse rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_64%,transparent)]" />
-            <div className="h-4 w-full animate-pulse rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_54%,transparent)]" />
-            <div className="h-4 w-5/6 animate-pulse rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_54%,transparent)]" />
-            <div className="h-4 w-2/3 animate-pulse rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_54%,transparent)]" />
+            <div className="h-6 w-1/3 animate-pulse motion-reduce:animate-none rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_64%,transparent)]" />
+            <div className="h-4 w-full animate-pulse motion-reduce:animate-none rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_54%,transparent)]" />
+            <div className="h-4 w-5/6 animate-pulse motion-reduce:animate-none rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_54%,transparent)]" />
+            <div className="h-4 w-2/3 animate-pulse motion-reduce:animate-none rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_54%,transparent)]" />
           </div>
         ) : readme.status === 'error' ? (
           <InlineAlert tone="warning" data-testid="apps-readme-error">{t('Apps.detail.readmeError')}{readme.field && <> <code>{readme.field}</code></>}</InlineAlert>

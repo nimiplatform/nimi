@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowUpRight, Check, ChevronDown, Copy, Globe2, RefreshCw, X } from 'lucide-react';
-import { Button, NimiText } from '@nimiplatform/kit/ui';
+import { Button, NimiText, Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@nimiplatform/kit/ui';
 import { PageShell } from './settings-layout-components.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { InlineFeedback } from '../../ui/feedback/inline-feedback.js';
@@ -20,7 +20,6 @@ function ConnectionsHeaderActions() {
   const [opening, setOpening] = useState(false);
   const [failed, setFailed] = useState(false);
   const [copied, setCopied] = useState(false);
-  const popoverRef = useRef<HTMLDivElement>(null);
   const copyTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -30,26 +29,6 @@ function ConnectionsHeaderActions() {
       }
     };
   }, []);
-
-  useEffect(() => {
-    if (!popoverOpen) return;
-    function onPointerDown(event: MouseEvent) {
-      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
-        setPopoverOpen(false);
-      }
-    }
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setPopoverOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [popoverOpen]);
 
   const isThisRuntime = primaryQuery.isSuccess && Boolean(primaryQuery.data?.thisRuntime);
   const otherPrimaryName =
@@ -124,74 +103,80 @@ function ConnectionsHeaderActions() {
 
   return (
     <div className="flex items-center gap-2">
-      <div ref={popoverRef} className="relative">
+      <Popover
+        open={popoverOpen}
+        onOpenChange={(nextOpen) => {
+          setPopoverOpen(nextOpen);
+          if (nextOpen) {
+            setCopied(false);
+          }
+        }}
+      >
         {entry ? (
-          <div className="inline-flex h-9 items-stretch overflow-hidden rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-            <button
-              type="button"
-              disabled={opening}
-              onClick={() => void openManager()}
-              className="inline-flex items-center gap-1.5 pl-3.5 pr-2.5 text-[13px] font-medium text-[var(--nimi-text-primary)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--nimi-focus-ring-color)] disabled:opacity-50"
-            >
-              <Globe2
-                size={14}
-                className={entry.localOnly ? 'text-[var(--nimi-status-warning)]' : 'text-[var(--nimi-action-primary-bg)]'}
-                aria-hidden="true"
-              />
-              <span>{opening ? (zh ? '正在打开…' : 'Opening…') : zh ? '网页管理端' : 'Web manager'}</span>
-              {entry.localOnly ? (
-                <span className="rounded-full bg-[var(--nimi-status-warning-soft-bg)] px-1.5 py-0.5 text-[10.5px] font-medium leading-none text-[var(--nimi-status-warning-soft-text)]">
-                  {zh ? '开发预览' : 'Dev preview'}
-                </span>
-              ) : null}
-              <ArrowUpRight size={13} className="text-[var(--nimi-text-muted)]" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              aria-expanded={popoverOpen}
-              aria-haspopup="dialog"
-              aria-label={zh ? '查看网页管理端地址与说明' : 'View web manager details and address'}
-              onClick={() => {
-                setPopoverOpen((prev) => !prev);
-                setCopied(false);
-              }}
-              className="inline-flex items-center border-l border-[var(--nimi-border-subtle)] px-2.5 text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--nimi-focus-ring-color)]"
-            >
-              <ChevronDown
-                size={13}
-                className={`transition-transform duration-150 ${popoverOpen ? 'rotate-180' : ''}`}
-                aria-hidden="true"
-              />
-            </button>
-          </div>
+          <PopoverAnchor asChild>
+            <div className="inline-flex h-9 items-stretch overflow-hidden rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-base)]">
+              <button
+                type="button"
+                disabled={opening}
+                onClick={() => void openManager()}
+                className="inline-flex items-center gap-1.5 pl-3.5 pr-2.5 text-[0.8125rem] font-medium text-[var(--nimi-text-primary)] transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--nimi-focus-ring-color)] disabled:opacity-50"
+              >
+                <Globe2
+                  size={14}
+                  className={entry.localOnly ? 'text-[var(--nimi-status-warning)]' : 'text-[var(--nimi-action-primary-bg)]'}
+                  aria-hidden="true"
+                />
+                <span>{opening ? (zh ? '正在打开…' : 'Opening…') : zh ? '网页管理端' : 'Web manager'}</span>
+                {entry.localOnly ? (
+                  <span className="rounded-full bg-[var(--nimi-status-warning-soft-bg)] px-1.5 py-0.5 text-[0.6875rem] font-medium leading-none text-[var(--nimi-status-warning-soft-text)]">
+                    {zh ? '开发预览' : 'Dev preview'}
+                  </span>
+                ) : null}
+                <ArrowUpRight size={13} className="text-[var(--nimi-text-muted)]" aria-hidden="true" />
+              </button>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={zh ? '查看网页管理端地址与说明' : 'View web manager details and address'}
+                  className="inline-flex items-center border-l border-[var(--nimi-border-subtle)] px-2.5 text-[var(--nimi-text-secondary)] transition-[transform,background-color,color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--nimi-focus-ring-color)]"
+                >
+                  <ChevronDown
+                    size={13}
+                    className={`transition-transform duration-150 ${popoverOpen ? 'rotate-180' : ''}`}
+                    aria-hidden="true"
+                  />
+                </button>
+              </PopoverTrigger>
+            </div>
+          </PopoverAnchor>
         ) : (
-          <button
-            type="button"
-            aria-expanded={popoverOpen}
-            aria-haspopup="dialog"
-            onClick={() => setPopoverOpen((prev) => !prev)}
-            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3.5 text-[13px] font-medium text-[var(--nimi-text-secondary)] shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
-          >
-            <Globe2 size={14} className="text-[var(--nimi-text-muted)]" aria-hidden="true" />
-            <span>{zh ? '网页管理端' : 'Web manager'}</span>
-          </button>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3.5 text-[0.8125rem] font-medium text-[var(--nimi-text-secondary)] shadow-[var(--nimi-elevation-base)] transition-[transform,background-color,color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+            >
+              <Globe2 size={14} className="text-[var(--nimi-text-muted)]" aria-hidden="true" />
+              <span>{zh ? '网页管理端' : 'Web manager'}</span>
+            </button>
+          </PopoverTrigger>
         )}
 
-        {popoverOpen ? (
-          <div
-            role="dialog"
-            aria-label={zh ? '网页管理端' : 'Web manager'}
-            className="absolute right-0 z-30 mt-2.5 w-[336px] space-y-3.5 rounded-[18px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[0_18px_44px_-8px_rgba(15,23,42,0.18)]"
-          >
+        <PopoverContent
+          align="end"
+          side="bottom"
+          sideOffset={10}
+          className="w-[336px] space-y-3.5 rounded-[18px] border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-4 shadow-[var(--nimi-elevation-floating)]"
+        >
+          <div role="dialog" aria-label={zh ? '网页管理端' : 'Web manager'} className="space-y-3.5">
             <div className="space-y-1">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <NimiText as="h3" role="label" className="text-[14px]">
+                  <NimiText as="h3" role="label" className="text-sm">
                     {zh ? '网页管理端' : 'Web manager'}
                   </NimiText>
                   {entry ? (
                     <span
-                      className={`inline-flex items-center gap-1.5 text-[11.5px] font-medium ${
+                      className={`inline-flex items-center gap-1.5 text-xs font-medium ${
                         entry.localOnly ? 'text-[var(--nimi-status-warning-soft-text)]' : 'text-[var(--nimi-action-primary-bg)]'
                       }`}
                     >
@@ -215,7 +200,7 @@ function ConnectionsHeaderActions() {
                   type="button"
                   onClick={() => setPopoverOpen(false)}
                   aria-label={zh ? '关闭' : 'Close'}
-                  className="rounded-full p-1 text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]"
+                  className="rounded-full p-1 text-[var(--nimi-text-muted)] transition-[transform,background-color,color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
                 >
                   <X size={13} aria-hidden="true" />
                 </button>
@@ -229,13 +214,13 @@ function ConnectionsHeaderActions() {
               <>
                 <div className="space-y-1 rounded-xl bg-[var(--nimi-surface-panel)] px-3 py-2.5">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] font-medium text-[var(--nimi-text-muted)]">
+                    <span className="text-xs font-medium text-[var(--nimi-text-muted)]">
                       {zh ? '入口地址' : 'Entry address'}
                     </span>
                     <button
                       type="button"
                       onClick={() => void copyEntryUrl()}
-                      className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11.5px] font-medium text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-surface-card)] hover:text-[var(--nimi-text-primary)]"
+                      className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-[var(--nimi-text-secondary)] transition-[transform,background-color,color] duration-150 hover:bg-[var(--nimi-surface-card)] hover:text-[var(--nimi-text-primary)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
                     >
                       {copied ? (
                         <Check size={12} className="text-[var(--nimi-status-success)]" aria-hidden="true" />
@@ -245,7 +230,7 @@ function ConnectionsHeaderActions() {
                       <span>{copied ? (zh ? '已复制' : 'Copied') : zh ? '复制' : 'Copy'}</span>
                     </button>
                   </div>
-                  <div className="font-mono text-[11.5px] leading-relaxed break-all select-all text-[var(--nimi-text-secondary)]">
+                  <div className="font-mono text-xs leading-relaxed break-all select-all text-[var(--nimi-text-secondary)]">
                     {entry.url}
                   </div>
                 </div>
@@ -253,7 +238,7 @@ function ConnectionsHeaderActions() {
                 <Button
                   tone="primary"
                   className="w-full justify-center rounded-xl"
-                  disabled={opening}
+                  loading={opening}
                   trailingIcon={<ArrowUpRight size={14} aria-hidden="true" />}
                   onClick={() => void openManager()}
                 >
@@ -284,8 +269,8 @@ function ConnectionsHeaderActions() {
               />
             ) : null}
           </div>
-        ) : null}
-      </div>
+        </PopoverContent>
+      </Popover>
 
       <button
         type="button"
@@ -293,9 +278,9 @@ function ConnectionsHeaderActions() {
         onClick={() => void refreshAll()}
         title={zh ? '刷新状态' : 'Refresh status'}
         aria-label={zh ? '刷新状态' : 'Refresh status'}
-        className="inline-flex size-9 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)] shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] disabled:opacity-50"
+        className="inline-flex size-9 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)] shadow-[var(--nimi-elevation-base)] transition-[transform,background-color,color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] disabled:opacity-50"
       >
-        <RefreshCw size={15} className={refreshing ? 'animate-spin text-[var(--nimi-action-primary-bg)]' : ''} aria-hidden="true" />
+        <RefreshCw size={15} className={refreshing ? 'animate-spin motion-reduce:animate-none text-[var(--nimi-action-primary-bg)]' : ''} aria-hidden="true" />
       </button>
     </div>
   );

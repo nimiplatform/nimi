@@ -1,6 +1,13 @@
 import type { PreviewTranslate } from '../i18n/preview-messages.js';
+import {
+  AnimatePresence,
+  motion,
+  nimiOverlayBackdropMotion,
+  nimiOverlayPanelMotion,
+  useNimiReducedMotion,
+} from '@nimiplatform/kit/ui';
 import { useAppPreviewLocale } from '../i18n/app-preview-locale.js';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   BookOpen,
   Briefcase,
@@ -108,7 +115,15 @@ function GeneratingButton({
 /* 日镜                                                                     */
 /* ------------------------------------------------------------------------ */
 
-function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
+function RiJingTab({
+  content,
+  onAskInShijing,
+  onDesktopOnly,
+}: {
+  content: HeroDemoShijingPreview['rijing'];
+  onAskInShijing: () => void;
+  onDesktopOnly: () => void;
+}) {
   const { previewLang, t } = useAppPreviewLocale();
   const [generating, setGenerating] = useState(false);
   const [refreshed, setRefreshed] = useState(false);
@@ -169,7 +184,11 @@ function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
         </div>
         <div className="shijing-mirror-header__actions">
           <div className="shijing-mirror-header__buttons">
-            <button type="button" className="shijing-import-to-consultation">
+            <button
+              type="button"
+              className="shijing-import-to-consultation"
+              onClick={onAskInShijing}
+            >
               {content.importLabel}
             </button>
             <GeneratingButton
@@ -367,7 +386,11 @@ function RiJingTab({ content }: { content: HeroDemoShijingPreview['rijing'] }) {
                 {row.name}
               </button>
             ))}
-            <button type="button" className="shijing-rijing__lens-manage" aria-haspopup="dialog">
+            <button
+              type="button"
+              className="shijing-rijing__lens-manage"
+              onClick={onDesktopOnly}
+            >
               {'✎ '}
               {content.projections.manageLabel}
             </button>
@@ -629,15 +652,15 @@ function yuejingPrimary(counts: Record<HeroDemoShijingTone, number>): HeroDemoSh
 
 function yuejingConcernStyle(name: string): { bg: string; fg: string; icon: ReactNode } {
   const iconProps = { size: 22, strokeWidth: 1.6, 'aria-hidden': true } as const;
-  if (/事业|工作|合作|创业/u.test(name))
+  if (/事业|工作|合作|创业|career|work|collaboration|startup/iu.test(name))
     return { bg: '#CFE5D5', fg: '#3F7A5C', icon: <Briefcase {...iconProps} /> };
-  if (/关系|姻缘|伴侣|感情/u.test(name))
+  if (/关系|姻缘|伴侣|感情|relationship|partner|romance|love/iu.test(name))
     return { bg: '#F8D5D5', fg: '#C76060', icon: <Heart {...iconProps} /> };
-  if (/身心|身体|健康|精力/u.test(name))
+  if (/身心|身体|健康|精力|wellbeing|health|energy|body/iu.test(name))
     return { bg: '#E0D2EC', fg: '#7E5DA8', icon: <HeartPulse {...iconProps} /> };
-  if (/财/u.test(name)) return { bg: '#F0E0AD', fg: '#9A7E2A', icon: <Coins {...iconProps} /> };
-  if (/学/u.test(name)) return { bg: '#D0DEED', fg: '#4F6E94', icon: <BookOpen {...iconProps} /> };
-  if (/家/u.test(name)) return { bg: '#F0D8B8', fg: '#9A6E3A', icon: <House {...iconProps} /> };
+  if (/财|wealth|finance|money/iu.test(name)) return { bg: '#F0E0AD', fg: '#9A7E2A', icon: <Coins {...iconProps} /> };
+  if (/学|study|learn|education/iu.test(name)) return { bg: '#D0DEED', fg: '#4F6E94', icon: <BookOpen {...iconProps} /> };
+  if (/家|home|house|family/iu.test(name)) return { bg: '#F0D8B8', fg: '#9A6E3A', icon: <House {...iconProps} /> };
   return { bg: '#E4E4E4', fg: '#8B8B8B', icon: <Compass {...iconProps} /> };
 }
 
@@ -964,46 +987,52 @@ function YueJingTab({
         </details>
       ) : null}
 
-      {selectedDate && selectedIndex >= 0 ? (
-        <YueJingDayPanel
-          content={content}
-          date={selectedDate}
-          index={selectedIndex}
-          kind={yuejingClassifyDay(selectedDate, today)}
-          cells={cellsByIndex[selectedIndex] ?? []}
-          records={records.filter((record) => record.date === selectedDate)}
-          onClose={() => setSelectedDate(null)}
-          onSave={(body) =>
-            setRecords((current) => [
-              ...current,
-              { id: `rec-${Date.now()}`, date: selectedDate, body },
-            ])
-          }
-          onEdit={(id, body) =>
-            setRecords((current) =>
-              current.map((record) => (record.id === id ? { ...record, body } : record)),
-            )
-          }
-          onDelete={(id) => setRecords((current) => current.filter((record) => record.id !== id))}
-          onAsk={() => {
-            setSelectedDate(null);
-            onAskInShijing();
-          }}
-        />
-      ) : null}
-      {monthOpen ? (
-        <YueJingMonthPanel
-          content={content}
-          days={days}
-          concerns={scoped}
-          onHighlight={setHighlighted}
-          onSelectDate={(date) => {
-            setSelectedDate(date);
-            setMonthOpen(false);
-          }}
-          onClose={() => setMonthOpen(false)}
-        />
-      ) : null}
+      <AnimatePresence>
+        {selectedDate && selectedIndex >= 0 ? (
+          <YueJingDayPanel
+            key="day-panel"
+            content={content}
+            date={selectedDate}
+            index={selectedIndex}
+            kind={yuejingClassifyDay(selectedDate, today)}
+            cells={cellsByIndex[selectedIndex] ?? []}
+            records={records.filter((record) => record.date === selectedDate)}
+            onClose={() => setSelectedDate(null)}
+            onSave={(body) =>
+              setRecords((current) => [
+                ...current,
+                { id: `rec-${Date.now()}`, date: selectedDate, body },
+              ])
+            }
+            onEdit={(id, body) =>
+              setRecords((current) =>
+                current.map((record) => (record.id === id ? { ...record, body } : record)),
+              )
+            }
+            onDelete={(id) => setRecords((current) => current.filter((record) => record.id !== id))}
+            onAsk={() => {
+              setSelectedDate(null);
+              onAskInShijing();
+            }}
+          />
+        ) : null}
+      </AnimatePresence>
+      <AnimatePresence>
+        {monthOpen ? (
+          <YueJingMonthPanel
+            key="month-panel"
+            content={content}
+            days={days}
+            concerns={scoped}
+            onHighlight={setHighlighted}
+            onSelectDate={(date) => {
+              setSelectedDate(date);
+              setMonthOpen(false);
+            }}
+            onClose={() => setMonthOpen(false)}
+          />
+        ) : null}
+      </AnimatePresence>
     </section>
   );
 }
@@ -1120,20 +1149,24 @@ function YueJingConcernEditor({
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        onClose();
+      }
     };
-    const onPointerDown = (event: MouseEvent) => {
+    const onPointerDown = (event: PointerEvent) => {
       const target = event.target as HTMLElement | null;
       if (!popoverRef.current || !target) return;
       if (popoverRef.current.contains(target)) return;
       if (target.closest?.('button[aria-expanded][aria-haspopup="dialog"]')) return;
       onClose();
     };
-    document.addEventListener('keydown', onKey);
-    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKey, { capture: true });
+    document.addEventListener('pointerdown', onPointerDown);
     return () => {
-      document.removeEventListener('keydown', onKey);
-      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKey, { capture: true });
+      document.removeEventListener('pointerdown', onPointerDown);
     };
   }, [onClose]);
 
@@ -1166,6 +1199,7 @@ function YueJingConcernEditor({
       ref={popoverRef}
       className="shijing-yuejing__editor"
       role="dialog"
+      data-demo-nested-dialog="true"
       aria-label={content.concernEditor.ariaLabel}
     >
       <header className="shijing-yuejing__editor-head">
@@ -1226,6 +1260,7 @@ function YueJingConcernEditor({
       <div className="shijing-yuejing__editor-custom">
         <input
           type="text"
+          aria-label={content.concernEditor.customPlaceholder}
           value={draft}
           onChange={(event) => {
             setDraft(event.currentTarget.value);
@@ -1297,31 +1332,71 @@ function YueJingDayPanel({
     setEditDraft('');
   }, [date]);
 
+  const panelRef = useRef<HTMLElement>(null);
+  const reducedMotion = useNimiReducedMotion();
+  const drawerMotion = nimiOverlayPanelMotion({ kind: 'drawer', side: 'right', reducedMotion });
+  const backdropMotion = nimiOverlayBackdropMotion({ reducedMotion });
+
   useEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    panelRef.current?.querySelector<HTMLElement>('button, input, textarea, [tabindex]:not([tabindex="-1"])')?.focus({ preventScroll: true });
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        if (editingId !== null) {
+          setEditingId(null);
+        } else {
+          onClose();
+        }
+        return;
+      }
+      if (event.key === 'Tab' && panelRef.current) {
+        const focusables = Array.from(
+          panelRef.current.querySelectorAll<HTMLElement>(
+            'button:not(:disabled), [href], input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])',
+          ),
+        );
+        if (focusables.length === 0) return;
+        const first = focusables[0]!;
+        const last = focusables[focusables.length - 1]!;
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
     };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
+    document.addEventListener('keydown', onKey, { capture: true });
+    return () => {
+      document.removeEventListener('keydown', onKey, { capture: true });
+      if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+    };
+  }, [editingId, onClose]);
 
   return (
     <>
-      <div
+      <motion.div
         className="shijing-yuejing__panel-backdrop"
         onClick={onClose}
         role="presentation"
         aria-hidden="true"
+        {...backdropMotion}
       />
-      <aside
+      <motion.aside
+        ref={panelRef}
         className="shijing-yuejing__panel"
         role="dialog"
         aria-modal="true"
+        data-demo-nested-dialog="true"
         aria-label={t('shijing.yueJingDayPanel.details', {
           date: yuejingShortMonthDay(date, t),
           weekday: weekday,
         })}
         data-day-kind={kind}
+        {...drawerMotion}
       >
         <button
           type="button"
@@ -1394,6 +1469,7 @@ function YueJingDayPanel({
           <h3>{copy.entryHeadings[kind]}</h3>
           <textarea
             className="shijing-yuejing__panel-entry"
+            aria-label={copy.entryHeadings[kind]}
             value={draft}
             onChange={(event) => {
               setDraft(event.currentTarget.value);
@@ -1449,6 +1525,7 @@ function YueJingDayPanel({
                           onKeyDown={(event) => {
                             if (event.key === 'Escape') {
                               event.preventDefault();
+                              event.stopPropagation();
                               setEditingId(null);
                             }
                           }}
@@ -1525,7 +1602,7 @@ function YueJingDayPanel({
             </ul>
           )}
         </section>
-      </aside>
+      </motion.aside>
     </>
   );
 }
@@ -1549,12 +1626,44 @@ function YueJingMonthPanel({
   const copy = content.monthPanel;
   const labels = content.tendencyLabels;
 
+  const panelRef = useRef<HTMLElement>(null);
+  const reducedMotion = useNimiReducedMotion();
+  const drawerMotion = nimiOverlayPanelMotion({ kind: 'drawer', side: 'right', reducedMotion });
+  const backdropMotion = nimiOverlayBackdropMotion({ reducedMotion });
+
   useEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    panelRef.current?.querySelector<HTMLElement>('button, input, textarea, [tabindex]:not([tabindex="-1"])')?.focus({ preventScroll: true });
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        onClose();
+        return;
+      }
+      if (event.key === 'Tab' && panelRef.current) {
+        const focusables = Array.from(
+          panelRef.current.querySelectorAll<HTMLElement>(
+            'button:not(:disabled), [href], input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])',
+          ),
+        );
+        if (focusables.length === 0) return;
+        const first = focusables[0]!;
+        const last = focusables[focusables.length - 1]!;
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
     };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    document.addEventListener('keydown', onKey, { capture: true });
+    return () => {
+      document.removeEventListener('keydown', onKey, { capture: true });
+      if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+    };
   }, [onClose]);
 
   const generatedDays = days.filter((day) => day.tone !== null);
@@ -1579,18 +1688,22 @@ function YueJingMonthPanel({
 
   return (
     <>
-      <div
+      <motion.div
         className="shijing-yuejing__panel-backdrop"
         onClick={onClose}
         role="presentation"
         aria-hidden="true"
+        {...backdropMotion}
       />
-      <aside
+      <motion.aside
+        ref={panelRef}
         className="shijing-yuejing__panel shijing-yuejing__month-panel"
         role="dialog"
         aria-modal="true"
+        data-demo-nested-dialog="true"
         aria-label={`${copy.rangeLabel} ${copy.title}`}
         data-panel-kind="month"
+        {...drawerMotion}
       >
         <button
           type="button"
@@ -1933,7 +2046,7 @@ function YueJingMonthPanel({
             </section>
           </>
         )}
-      </aside>
+      </motion.aside>
     </>
   );
 }
@@ -2079,7 +2192,13 @@ function NianJingTab({ content }: { content: HeroDemoShijingPreview['nianjing'] 
 // (nimiapp-shijing tabs/hejing/hejing-immersive-empty.tsx, 合镜 grade of
 // onboarding/immersive-intake-gate.css). The app shows this until the first
 // relationship person exists; the demo keeps it as the 合镜 entry screen.
-function HeJingTab({ content }: { content: HeroDemoShijingPreview['hejing'] }) {
+function HeJingTab({
+  content,
+  onDesktopOnly,
+}: {
+  content: HeroDemoShijingPreview['hejing'];
+  onDesktopOnly: () => void;
+}) {
   return (
     <section className="shijing-hejing" data-mirror-kind="hejing" aria-label={content.title}>
       <section
@@ -2100,7 +2219,11 @@ function HeJingTab({ content }: { content: HeroDemoShijingPreview['hejing'] }) {
           <span className="shijing-intake-hero__divider" aria-hidden="true" />
           <p className="shijing-intake-hero__body">{content.body}</p>
           <div className="shijing-intake-hero__actions">
-            <button type="button" className="shijing-intake-hero__action">
+            <button
+              type="button"
+              className="shijing-intake-hero__action"
+              onClick={onDesktopOnly}
+            >
               {content.primaryAction}
               <span className="shijing-intake-hero__action-arrow" aria-hidden="true">
                 {'→'}
@@ -2133,27 +2256,57 @@ export function DemoShijingPreview({
   initialTab?: HeroDemoShijingTabId;
   initialMethodProfile?: HeroDemoShijingMethodId;
 }) {
-  const { t } = useAppPreviewLocale();
+  const { previewLocale, t } = useAppPreviewLocale();
   const [activeTab, setActiveTab] = useState<HeroDemoShijingTabId>(initialTab);
   const [methodProfile, setMethodProfile] = useState<HeroDemoShijingMethodId>(
     initialMethodProfile ?? content.methodProfiles[0]?.id ?? 'bazi_ziping_v1',
   );
   const [menuOpen, setMenuOpen] = useState(false);
+  const [desktopNotice, setDesktopNotice] = useState<string | null>(null);
   const accountRef = useRef<HTMLDivElement>(null);
+  const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showDesktopOnlyNotice = useCallback(() => {
+    setDesktopNotice(
+      previewLocale === 'zh'
+        ? '该功能在桌面版中可用'
+        : 'Available in the installed desktop app',
+    );
+    if (noticeTimerRef.current !== null) {
+      clearTimeout(noticeTimerRef.current);
+    }
+    noticeTimerRef.current = setTimeout(() => {
+      noticeTimerRef.current = null;
+      setDesktopNotice(null);
+    }, 3200);
+  }, [previewLocale]);
+
+  useEffect(
+    () => () => {
+      if (noticeTimerRef.current !== null) {
+        clearTimeout(noticeTimerRef.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!menuOpen) return undefined;
-    const onPointerDown = (event: MouseEvent) => {
+    const onPointerDown = (event: PointerEvent) => {
       if (!accountRef.current?.contains(event.target as Node)) setMenuOpen(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setMenuOpen(false);
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        setMenuOpen(false);
+      }
     };
-    document.addEventListener('mousedown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown, { capture: true });
     return () => {
-      document.removeEventListener('mousedown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown, { capture: true });
     };
   }, [menuOpen]);
 
@@ -2220,6 +2373,7 @@ export function DemoShijingPreview({
               <div
                 className="shijing-account-menu"
                 role="menu"
+                data-demo-nested-dialog="true"
                 aria-label={t('shijing.shijingTopbar.settings')}
               >
                 {[
@@ -2232,7 +2386,10 @@ export function DemoShijingPreview({
                     key={label}
                     type="button"
                     role="menuitem"
-                    onClick={() => setMenuOpen(false)}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      showDesktopOnlyNotice();
+                    }}
                   >
                     {label}
                   </button>
@@ -2241,18 +2398,37 @@ export function DemoShijingPreview({
             ) : null}
           </div>
         </header>
-        <main className="shijing-shell__main" role="main">
-          {activeTab === 'rijing' ? <RiJingTab content={content.rijing} /> : null}
+        <div className="shijing-shell__main" role="region" aria-label={content.brandName}>
+          {activeTab === 'rijing' ? (
+            <RiJingTab
+              content={content.rijing}
+              onAskInShijing={() => setActiveTab('shijing')}
+              onDesktopOnly={showDesktopOnlyNotice}
+            />
+          ) : null}
           {activeTab === 'yuejing' ? (
             <YueJingTab content={content.yuejing} onAskInShijing={() => setActiveTab('shijing')} />
           ) : null}
           {activeTab === 'nianjing' ? <NianJingTab content={content.nianjing} /> : null}
           {activeTab === 'mingjing' ? (
-            <DemoShijingMingJing content={content.mingjing} methodProfile={methodProfile} />
+            <DemoShijingMingJing
+              content={content.mingjing}
+              methodProfile={methodProfile}
+              onDesktopOnly={showDesktopOnlyNotice}
+            />
           ) : null}
-          {activeTab === 'hejing' ? <HeJingTab content={content.hejing} /> : null}
-          {activeTab === 'shijing' ? <DemoShijingAsk content={content.ask} /> : null}
-        </main>
+          {activeTab === 'hejing' ? (
+            <HeJingTab content={content.hejing} onDesktopOnly={showDesktopOnlyNotice} />
+          ) : null}
+          {activeTab === 'shijing' ? (
+            <DemoShijingAsk content={content.ask} onDesktopOnly={showDesktopOnlyNotice} />
+          ) : null}
+        </div>
+        {desktopNotice ? (
+          <div className="shijing-desktop-notice" role="status" aria-live="polite">
+            {desktopNotice}
+          </div>
+        ) : null}
       </div>
     </div>
   );

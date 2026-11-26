@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, ConfirmDialog, Surface } from '@nimiplatform/kit/ui';
 import { formatBytes } from '../../components/download-format.js';
@@ -20,9 +20,18 @@ export function RuntimeSharedComponentsPanel(props: { writesDisabled: boolean })
     busy: observation.busy || applying,
     error: observation.error ?? observation.actionError ?? applyError,
     onRefresh: () => { setApplyError(undefined); void observation.refresh(); },
-    onCancel: (id: string) => { void observation.cancelJob(id); },
+    onCancel: (id: string) => observation.cancelJob(id),
   };
   const presentation = observation.data ? projectRuntimeEnvironmentState(observation.data.plan, observation.data.jobs) : null;
+  const shouldAutoOpen = presentation?.state === 'active' || presentation?.state === 'attention';
+  const [detailsOpen, setDetailsOpen] = useState(Boolean(shouldAutoOpen));
+  const prevShouldAutoOpenRef = useRef(Boolean(shouldAutoOpen));
+  useEffect(() => {
+    if (shouldAutoOpen && !prevShouldAutoOpenRef.current) {
+      setDetailsOpen(true);
+    }
+    prevShouldAutoOpenRef.current = Boolean(shouldAutoOpen);
+  }, [shouldAutoOpen]);
   const confirmation = pending ? runtimeEnvironmentConfirmation(pending) : null;
   const apply = async () => {
     if (!pending || props.writesDisabled || applying) return;
@@ -64,7 +73,11 @@ export function RuntimeSharedComponentsPanel(props: { writesDisabled: boolean })
               </Button>
             ) : null}
           </div>
-          <details className="text-xs text-[var(--nimi-text-secondary)]" open={presentation.state === 'active' || presentation.state === 'attention' ? true : undefined}>
+          <details
+            className="text-xs text-[var(--nimi-text-secondary)]"
+            open={detailsOpen}
+            onToggle={(event) => setDetailsOpen(event.currentTarget.open)}
+          >
             <summary className="cursor-pointer">{t('runtimeConfig.profiles.technicalDetails')}</summary>
             <RuntimeEnvironmentDependencies environment={observation.data.plan} jobs={observation.data.jobs} actions={actions} disabled={props.writesDisabled} className="mt-3" />
           </details>
@@ -81,7 +94,7 @@ export function RuntimeSharedComponentsPanel(props: { writesDisabled: boolean })
         }) : ''}
         confirmLabel={t('runtimeConfig.environment.localCapabilityConfirm')}
         cancelLabel={t('Common.cancel')}
-        pending={applying}
+        loading={applying}
         onConfirm={() => void apply()}
         onClose={() => { if (!applying) setPending(null); }}
       />

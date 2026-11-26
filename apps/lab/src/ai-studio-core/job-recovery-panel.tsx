@@ -97,14 +97,14 @@ export function StudioJobRecoveryPanel({ disabled, capability = 'music.generate'
     <div className="max-h-48 space-y-2 overflow-y-auto">
       {[...visibleEntries].reverse().map((entry) => <div key={entry.clientSubmissionId} className="flex flex-wrap items-center gap-2">
         <time dateTime={entry.createdAt}>{new Date(entry.createdAt).toLocaleString(host.locale)}</time>
-        <Button disabled={disabled || busy} onClick={() => void recover(entry)}>{t(entry.result ? 'Music.openSaved' : 'Music.recover')}</Button>
-        <Button disabled={disabled || busy} onClick={() => void forgetStudioJobRecovery(host.sdk.assets, entry.clientSubmissionId, capability).then(() => {
+        <Button size="sm" tone="secondary" disabled={disabled || busy} onClick={() => void recover(entry)}>{t(entry.result ? 'Music.openSaved' : 'Music.recover')}</Button>
+        <Button size="sm" tone="ghost" disabled={disabled || busy} onClick={() => void forgetStudioJobRecovery(host.sdk.assets, entry.clientSubmissionId, capability).then(() => {
           setResult(null); setError(''); return refresh();
         })
           .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : String(cause)))}>{t('Music.forgetRecord')}</Button>
       </div>)}
     </div>
-    {busy ? <div className="flex items-center gap-2"><span>{t('Music.recovering')}</span><Button onClick={() => abort.current?.abort()}>{t('Music.cancelJob')}</Button></div> : null}
+    {busy ? <div className="flex items-center gap-2"><span>{t('Music.recovering')}</span><Button size="sm" tone="secondary" onClick={() => abort.current?.abort()}>{t('Music.cancelJob')}</Button></div> : null}
     {error ? <p role="alert">{error}</p> : null}
     {result && !result.ok ? <p role="alert">{result.diagnostics?.reasonCode === 'NOT_FOUND'
       ? t('Music.recoveryJobNotFound') : result.message}</p> : null}

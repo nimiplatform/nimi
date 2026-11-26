@@ -46,7 +46,7 @@
   --fld-mono: "JetBrains Mono", "SF Mono", "Fira Code", ui-monospace, monospace;
 
   --fld-ease: cubic-bezier(0.16, 1, 0.3, 1);
-  --fld-spring: cubic-bezier(0.22, 1.2, 0.36, 1);
+  --fld-spring: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* module accents on glass */
   --mod-desktop: #eab0c2;
@@ -104,4 +104,26 @@
   --sky-speck: rgba(255, 242, 246, 0.5);
   --sky-wisp-1: rgba(234, 172, 192, 0.16);
   --sky-wisp-2: rgba(167, 143, 191, 0.14);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --nimi-material-glass-thin-bg: #1c1720;
+    --nimi-material-glass-regular-bg: #1e1922;
+    --nimi-material-glass-thick-bg: #16131c;
+    --nimi-material-glass-chrome-bg: #18141e;
+    --nimi-scrim-modal: rgba(12, 10, 16, 0.86);
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --fld-text: #ffffff;
+    --fld-text-2: rgba(255, 250, 248, 0.92);
+    --fld-text-3: rgba(255, 250, 248, 0.76);
+    --nimi-border-subtle: rgba(255, 255, 255, 0.42);
+    --nimi-border-strong: rgba(255, 255, 255, 0.72);
+    --fld-border: var(--nimi-border-subtle);
+    --fld-border-hi: var(--nimi-border-strong);
+  }
 }

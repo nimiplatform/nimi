@@ -64,7 +64,7 @@ export function DemoDeepTutorPreview({ content }: { content: RemainingPreviewMet
             </>
           }
         />
-        <main className="rp-main rp-page">
+        <div role="region" aria-label={content.name} className="rp-main rp-page">
           {view === 'home' ? (
             <>
               <header className="dt-topline">
@@ -233,23 +233,25 @@ export function DemoDeepTutorPreview({ content }: { content: RemainingPreviewMet
               <section className="dt-quiz">
                 <h2>{t('deeptutor.quiz.checkYourUnderstanding')}</h2>
                 <p>{t('deeptutor.quiz.whatDoesAFrequencySpectrumHelpYou')}</p>
-                {[
-                  'The tones present in a signal',
-                  t('deeptutor.quiz.onlyTheLengthOfARecording'),
-                  t('deeptutor.quiz.theNameOfTheSpeaker'),
-                ].map((x) => (
+                {(
+                  [
+                    ['tones', t('deeptutor.quiz.theTonesPresentInASignal')],
+                    ['length', t('deeptutor.quiz.onlyTheLengthOfARecording')],
+                    ['speaker', t('deeptutor.quiz.theNameOfTheSpeaker')],
+                  ] as const
+                ).map(([id, label]) => (
                   <button
                     type="button"
-                    aria-pressed={answer === x}
-                    key={x}
-                    onClick={() => setAnswer(x)}
+                    aria-pressed={answer === id}
+                    key={id}
+                    onClick={() => setAnswer(id)}
                   >
-                    {x}
+                    {label}
                   </button>
                 ))}
                 {answer && (
                   <p role="status">
-                    {answer === 'The tones present in a signal'
+                    {answer === 'tones'
                       ? t('deeptutor.quiz.correctItShowsFrequencyContent')
                       : t('deeptutor.quiz.tryAgainThinkAboutWhichTonesMake')}
                   </p>
@@ -301,7 +303,7 @@ export function DemoDeepTutorPreview({ content }: { content: RemainingPreviewMet
               </label>
             </>
           )}
-        </main>
+        </div>
       </div>
     </RemainingPreview>
   );

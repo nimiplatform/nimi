@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { createWebAccountAuthAdapter } from './web-account-adapter.js';
 import { createWebBrowserRealm } from './browser-realm.js';
+import './account-center.css';
 
 export function AccountRecoveryPage() {
   const { t } = useTranslation();
@@ -42,24 +43,95 @@ export function AccountRecoveryPage() {
     }
   };
 
+  const loginSearch = typeof window === 'undefined' ? '' : window.location.search;
+
   return (
-    <main className="web-static-page">
-      <Link to="/" className="web-wordmark">Nimi</Link>
-      <section className="web-account-form">
+    <main className="web-static-page ac-entry">
+      <Link to="/" className="web-wordmark ac-brand">
+        <img src="/logo.svg" alt="" width={28} height={28} />
+        <span>Nimi</span>
+      </Link>
+      <section className="web-account-form ac-section">
         <h1>{t('Account.recoverTitle')}</h1>
-        {stage === 'done' ? <><p>{t('Account.passwordUpdated')}</p><Link to={{ pathname: '/login', search: window.location.search }}>{t('Account.backToLogin')}</Link></> : (
+        {stage === 'done' ? (
+          <>
+            <p>{t('Account.passwordUpdated')}</p>
+            <Link className="ac-button" to={{ pathname: '/login', search: loginSearch }}>
+              {t('Account.backToLogin')}
+            </Link>
+          </>
+        ) : (
           <form onSubmit={submit}>
-            {stage === 'email' ? <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('Account.emailPlaceholder')} /> : null}
-            {stage === 'verify' ? <input inputMode="numeric" required value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder={t('Account.sixDigitCodePlaceholder')} /> : null}
-            {stage === 'verify' ? <>
-              <label>{t('Account.recoveryAuthenticator')}<input inputMode="numeric" pattern="[0-9]{6}" value={authenticator}
-                onChange={e => setAuthenticator(e.target.value.replace(/\D/g, '').slice(0, 6))} /></label>
-              <label>{t('Account.newPasswordPlaceholder')}<input type="password" autoComplete="new-password" required minLength={12}
-                value={password} onChange={e => setPassword(e.target.value)} /></label>
-              <button disabled={pending} type="button" onClick={() => { setStage('email'); setCode(''); setError(null); }}>{t('Account.requestNewRecoveryCode')}</button>
-            </> : null}
-            {error ? <p role="alert">{error}</p> : null}
-            <button disabled={pending} type="submit">{pending ? t('Account.pleaseWait') : stage === 'verify' ? t('Account.updatePassword') : t('Account.continue')}</button>
+            {stage === 'email' ? (
+              <label className="ac-field">
+                <span>{t('Account.emailPlaceholder')}</span>
+                <input
+                  type="email"
+                  autoComplete="email"
+                  autoFocus
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t('Account.emailPlaceholder')}
+                />
+              </label>
+            ) : null}
+            {stage === 'verify' ? (
+              <>
+                <label className="ac-field">
+                  <span>{t('Account.sixDigitCodePlaceholder')}</span>
+                  <input
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    autoFocus
+                    required
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder={t('Account.sixDigitCodePlaceholder')}
+                  />
+                </label>
+                <label className="ac-field">
+                  <span>{t('Account.recoveryAuthenticator')}</span>
+                  <input
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    pattern="[0-9]{6}"
+                    value={authenticator}
+                    onChange={(e) => setAuthenticator(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  />
+                </label>
+                <label className="ac-field">
+                  <span>{t('Account.newPasswordPlaceholder')}</span>
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    required
+                    minLength={12}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </label>
+                <button
+                  disabled={pending}
+                  type="button"
+                  className="ac-button ac-button--secondary"
+                  onClick={() => {
+                    setStage('email');
+                    setCode('');
+                    setError(null);
+                  }}
+                >
+                  {t('Account.requestNewRecoveryCode')}
+                </button>
+              </>
+            ) : null}
+            {error ? <p className="ac-feedback ac-feedback--error" role="alert">{error}</p> : null}
+            <button disabled={pending} type="submit" className="ac-button">
+              {pending ? t('Account.pleaseWait') : stage === 'verify' ? t('Account.updatePassword') : t('Account.continue')}
+            </button>
+            <Link className="ac-text-link" to={{ pathname: '/login', search: loginSearch }}>
+              {t('Account.backToLogin')}
+            </Link>
           </form>
         )}
       </section>

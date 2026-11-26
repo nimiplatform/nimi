@@ -53,7 +53,7 @@ export function CloudBedrockInvocations({ connector, disabled, onSaved, t }: {
   return <Surface tone="panel" className="space-y-3 p-4" data-testid="cloud-bedrock-invocations">
     <div className="flex flex-wrap items-center justify-between gap-2">
       <h3 className="text-sm font-semibold">{t('runtimeConfig.bedrockInvocations.title')}</h3>
-      {!editing ? <Button size="sm" tone="secondary" disabled={disabled || busy} onClick={() => void begin()}>{t('runtimeConfig.bedrockInvocations.configure')}</Button> : null}
+      {!editing ? <Button size="sm" tone="secondary" loading={busy} disabled={disabled} onClick={() => void begin()}>{t('runtimeConfig.bedrockInvocations.configure')}</Button> : null}
     </div>
     <p className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.bedrockInvocations.description')}</p>
     {!editing ? savedBindings.length ? <dl className="space-y-2 text-sm">{savedBindings.map(binding => <div key={binding.providerModelId} className="flex flex-wrap gap-x-3">
@@ -71,7 +71,7 @@ export function CloudBedrockInvocations({ connector, disabled, onSaved, t }: {
       <Button size="sm" tone="secondary" disabled={disabled || busy || rows.length >= 128} onClick={() => setRows(current => [...current, { id: crypto.randomUUID(), providerModelId: '', invocationModelId: '' }])}>{t('runtimeConfig.bedrockInvocations.add')}</Button>
       {!valid && rows.length ? <p role="status" className="text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.bedrockInvocations.complete')}</p> : null}
       <p className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.bedrockInvocations.reselect')}</p>
-      <div className="flex gap-2"><Button size="sm" disabled={disabled || busy || !valid} onClick={() => void save()}>{t('runtimeConfig.bedrockInvocations.save')}</Button><Button size="sm" tone="ghost" disabled={busy} onClick={() => setEditing(false)}>{t('runtimeConfig.bedrockInvocations.cancel')}</Button></div>
+      <div className="flex gap-2"><Button size="sm" loading={busy} disabled={disabled || !valid} onClick={() => void save()}>{t('runtimeConfig.bedrockInvocations.save')}</Button><Button size="sm" tone="ghost" disabled={busy} onClick={() => setEditing(false)}>{t('runtimeConfig.bedrockInvocations.cancel')}</Button></div>
     </div>}
     {error ? <p role="alert" className="text-xs text-[var(--nimi-status-danger)]">{error}</p> : null}
   </Surface>;

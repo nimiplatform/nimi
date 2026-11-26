@@ -30,9 +30,9 @@ export function DataList({ items, ariaLabel, empty, className }: DataListProps) 
   return (
     <ul className={cn('nimi-data-list overflow-hidden rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]', className)} aria-label={ariaLabel}>
       {items.map((item) => (
-        <li key={item.id} className="nimi-data-list__item grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b border-[var(--nimi-border-subtle)] p-3 last:border-b-0">
-          {item.leading ? <span className="nimi-data-list__leading inline-flex shrink-0 items-center justify-center">{item.leading}</span> : <span aria-hidden="true" />}
-          <span className="nimi-data-list__body grid min-w-0 gap-1">
+        <li key={item.id} className="nimi-data-list__item flex items-center gap-3 border-b border-[var(--nimi-border-subtle)] p-3 last:border-b-0">
+          {item.leading ? <span className="nimi-data-list__leading inline-flex shrink-0 items-center justify-center">{item.leading}</span> : null}
+          <span className="nimi-data-list__body grid min-w-0 flex-1 gap-1">
             <span className="nimi-data-list__title truncate text-[length:var(--nimi-type-body-size)] font-semibold text-[var(--nimi-text-primary)]">{item.title}</span>
             {item.description ? <span className="nimi-data-list__description truncate text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]">{item.description}</span> : null}
             {item.meta ? <span className="nimi-data-list__meta text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{item.meta}</span> : null}

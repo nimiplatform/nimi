@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
-
-import { Button } from '@nimiplatform/kit/ui';
+import { RotateCw } from 'lucide-react';
+import { Button, IconButton, Tooltip } from '@nimiplatform/kit/ui';
 import { formatAvatarVrmAssetLabel } from './asset-label.js';
 import type { AvatarStageRendererContext } from './types.js';
 
@@ -57,20 +57,40 @@ export function AvatarViewportFailureSurface({
       <div
         data-avatar-viewport-failure-layout={compact ? 'compact' : 'expanded'}
         className={compact
-          ? 'absolute inset-2 flex flex-col items-center justify-center gap-1 rounded-full border border-[var(--nimi-status-danger-soft-border)] bg-[var(--nimi-status-danger-soft-bg)] p-2 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-status-danger-soft-text)] shadow-[var(--nimi-elevation-raised)]'
+          ? 'absolute inset-2 flex items-center justify-center rounded-full border border-[var(--nimi-status-danger-soft-border)] bg-[var(--nimi-status-danger-soft-bg)] p-2 text-[var(--nimi-status-danger-soft-text)] shadow-[var(--nimi-elevation-raised)]'
           : 'absolute inset-x-4 bottom-4 flex flex-col items-center gap-2 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-status-danger-soft-border)] bg-[var(--nimi-status-danger-soft-bg)] p-2 text-center text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-status-danger-soft-text)] shadow-[var(--nimi-elevation-raised)]'}
       >
-        <span className={compact ? 'line-clamp-2 text-center leading-tight' : 'line-clamp-2'}>{errorLabel}</span>
-        <Button
-          type="button"
-          tone="secondary"
-          size="sm"
-          onClick={onRetry}
-          aria-label={compact ? `${retryLabel}: ${errorLabel}` : undefined}
-          className={compact ? 'w-full px-2' : undefined}
-        >
-          {retryLabel}
-        </Button>
+        {compact ? (
+          <>
+            <span className="sr-only">{errorLabel}</span>
+            <Tooltip content={errorLabel} placement="top">
+              <IconButton
+                tone="secondary"
+                size="sm"
+                onClick={onRetry}
+                aria-label={`${retryLabel}: ${errorLabel}`}
+                icon={(
+                  <>
+                    <RotateCw size={15} aria-hidden="true" />
+                    <span className="sr-only">{retryLabel}</span>
+                  </>
+                )}
+              />
+            </Tooltip>
+          </>
+        ) : (
+          <>
+            <span className="line-clamp-2">{errorLabel}</span>
+            <Button
+              type="button"
+              tone="secondary"
+              size="sm"
+              onClick={onRetry}
+            >
+              {retryLabel}
+            </Button>
+          </>
+        )}
       </div>
     </div>
   );

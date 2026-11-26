@@ -1,5 +1,6 @@
 import type { RefObject } from 'react';
 import { Avatar, Tooltip, cn } from '@nimiplatform/kit/ui';
+import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
 import {
   AvatarStage,
   createAvatarStageSnapshot,
@@ -13,8 +14,9 @@ export const CANONICAL_NO_BIO_FALLBACK = DEFAULT_CHAT_COPY.characterRailNoBioFal
 export const CANONICAL_HEADER_ICON_CLASS = cn(
   'inline-flex h-10 w-10 items-center justify-center rounded-full',
   'border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,transparent)] text-[var(--nimi-text-secondary)]',
-  'shadow-[var(--nimi-elevation-base)] transition-[background-color,border-color,color,box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)]',
+  'shadow-[var(--nimi-elevation-base)] transition-[background-color,border-color,color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)]',
   'hover:border-[var(--nimi-action-primary-bg)]/50 hover:text-[var(--nimi-action-primary-bg)] active:scale-[var(--nimi-motion-pressed-scale)]',
+  FOCUS_RING_CLASS_NAME,
 );
 
 export type CanonicalCharacterRailProps = {
@@ -218,7 +220,7 @@ export function CanonicalCharacterRail(props: CanonicalCharacterRailProps) {
           </div>
           <div className="shrink-0 space-y-4 pb-4 text-center">
             <div className="space-y-2">
-              <p className="text-[length:var(--nimi-type-hero-title-size)] font-black leading-none tracking-tight text-[var(--nimi-text-primary)]">
+              <p className="text-[length:var(--nimi-type-hero-title-size)] font-black leading-none tracking-[var(--nimi-type-hero-title-letter-spacing)] text-[var(--nimi-text-primary)]">
                 {props.characterData?.name || props.selectedTarget.title}
               </p>
               {props.characterData?.handle || props.selectedTarget.handle ? (
@@ -241,7 +243,8 @@ export function CanonicalCharacterRail(props: CanonicalCharacterRailProps) {
                 }}
               >
                 <span
-                  className={cn('inline-block h-2.5 w-2.5 rounded-full', presenceState.busy ? 'animate-pulse' : '')}
+                  aria-hidden="true"
+                  className={cn('inline-block h-2.5 w-2.5 rounded-full', presenceState.busy ? 'animate-pulse motion-reduce:animate-none' : '')}
                   style={{ background: props.selectedTarget.isOnline === false ? 'var(--nimi-status-neutral)' : presenceDot }}
                 />
                 <span>{presenceState.label}</span>
@@ -250,7 +253,7 @@ export function CanonicalCharacterRail(props: CanonicalCharacterRailProps) {
                 data-canonical-relationship-badge="true"
                 className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-[var(--nimi-elevation-raised)] ${relationshipBadgeClass(relationshipState)}`}
               >
-                <span className="inline-block h-2 w-2 rounded-full bg-current opacity-70" />
+                <span aria-hidden="true" className="inline-block h-2 w-2 rounded-full bg-current opacity-70" />
                 <span>{relationshipStateLabel(relationshipState, copy)}</span>
               </span>
               {props.characterData?.badges?.map((badge) => (
@@ -258,7 +261,7 @@ export function CanonicalCharacterRail(props: CanonicalCharacterRailProps) {
                   key={`${badge.label}-${badge.variant}`}
                   className="inline-flex items-center gap-2 rounded-full border border-[var(--nimi-status-neutral-soft-border)] bg-[var(--nimi-status-neutral-soft-bg)] px-3 py-1.5 text-xs font-semibold text-[var(--nimi-status-neutral-soft-text)] shadow-[var(--nimi-elevation-raised)]"
                 >
-                  <span className={cn('inline-block h-2 w-2 rounded-full bg-current opacity-70', badge.pulse ? 'animate-pulse' : '')} />
+                  <span aria-hidden="true" className={cn('inline-block h-2 w-2 rounded-full bg-current opacity-70', badge.pulse ? 'animate-pulse motion-reduce:animate-none' : '')} />
                   <span>{badge.label}</span>
                 </span>
               ))}

@@ -1,5 +1,4 @@
 import { type ComponentProps, type ReactNode } from 'react';
-import { motion } from 'motion/react';
 import {
   AppCardSurface,
   Button as KitButton,
@@ -11,10 +10,6 @@ import {
   cn,
 } from '@nimiplatform/kit/ui';
 import { InlineFeedback, type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
-import {
-  useDesktopCardMotion,
-  useDesktopInteractiveMotion,
-} from '../../ui/motion/desktop-motion';
 
 type AppCardSurfaceStyle = ComponentProps<typeof AppCardSurface>['style'];
 
@@ -107,17 +102,10 @@ export function Card({
   className?: string;
   style?: AppCardSurfaceStyle;
 }) {
-  const cardMotion = useDesktopCardMotion();
   return (
-    <motion.div
-      layout
-      whileHover={cardMotion.whileHover}
-      transition={cardMotion.transition}
-    >
-      <AppCardSurface kind="operational-solid" className={cn('p-4', className)} style={style}>
-        {children}
-      </AppCardSurface>
-    </motion.div>
+    <AppCardSurface kind="operational-solid" className={cn('p-4', className)} style={style}>
+      {children}
+    </AppCardSurface>
   );
 }
 
@@ -225,25 +213,17 @@ export function Button({
   disabled?: boolean;
   className?: string;
 }) {
-  const interactiveMotion = useDesktopInteractiveMotion();
   return (
-    <motion.span
-      className="inline-flex"
-      whileHover={disabled ? undefined : interactiveMotion.whileHover}
-      whileTap={disabled ? undefined : interactiveMotion.whileTap}
-      transition={interactiveMotion.transition}
+    <KitButton
+      tone={variant}
+      size={size}
+      leadingIcon={icon}
+      onClick={onClick}
+      disabled={disabled}
+      className={className}
     >
-      <KitButton
-        tone={variant}
-        size={size}
-        leadingIcon={icon}
-        onClick={onClick}
-        disabled={disabled}
-        className={className}
-      >
-        {children}
-      </KitButton>
-    </motion.span>
+      {children}
+    </KitButton>
   );
 }
 

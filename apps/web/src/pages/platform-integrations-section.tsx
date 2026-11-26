@@ -245,10 +245,14 @@ export function PlatformIntegrationsSection({
               <div
                 key={ch.id}
                 data-integration={ch.id}
+                tabIndex={0}
                 title={ch.hint}
+                aria-label={`${ch.name} — ${ch.hint}`}
                 className={`platform-shield-source-item${isHovered ? ' is-highlighted' : ''}`}
                 onMouseEnter={() => setHoveredChannel(ch.id)}
                 onMouseLeave={() => setHoveredChannel((prev) => (prev === ch.id ? null : prev))}
+                onFocus={() => setHoveredChannel(ch.id)}
+                onBlur={() => setHoveredChannel((prev) => (prev === ch.id ? null : prev))}
               >
                 <img src={ch.iconSrc} alt="" width={18} height={18} loading="lazy" />
                 <span>{ch.name}</span>

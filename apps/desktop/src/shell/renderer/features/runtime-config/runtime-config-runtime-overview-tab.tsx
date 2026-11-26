@@ -26,8 +26,8 @@ export function RuntimeOverviewTab({ model }: RuntimeOverviewTabProps) {
 
   return (
     <>
-      <div className="grid grid-cols-3 gap-4">
-        <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'col-span-2 p-5')}>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'p-5 lg:col-span-2')}>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2.5">
@@ -72,11 +72,11 @@ export function RuntimeOverviewTab({ model }: RuntimeOverviewTabProps) {
                 tone="card"
                 className={cn('mt-5 rounded-xl border px-5 py-4', toneStyle.surface)}
               >
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   {entries.map((entry) => (
                     <div key={entry.key} className="min-w-0">
                       <p className={cn('text-[length:var(--nimi-type-caption-size)] font-medium uppercase tracking-[var(--nimi-type-overline-letter-spacing)]', TOKEN_TEXT_MUTED)}>{entry.label}</p>
-                      <p className={cn('mt-1 truncate font-mono text-sm', TOKEN_TEXT_PRIMARY)}>
+                      <p className={cn('mt-1 truncate font-mono text-sm', TOKEN_TEXT_PRIMARY)} title={entry.value}>
                         {entry.value}
                       </p>
                     </div>
@@ -90,9 +90,9 @@ export function RuntimeOverviewTab({ model }: RuntimeOverviewTabProps) {
             <div className="mt-4 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-warning)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,var(--nimi-surface-card))] px-3 py-3">
               <p className="text-sm font-medium text-[var(--nimi-status-warning)]">{daemonIssue.title}</p>
               <p className="mt-1 text-xs text-[color-mix(in_srgb,var(--nimi-status-warning)_80%,var(--nimi-text-secondary))]">{daemonIssue.message}</p>
-              <p className="mt-2 text-[length:var(--nimi-type-caption-size)] text-[color-mix(in_srgb,var(--nimi-status-warning)_75%,var(--nimi-text-secondary))]">{daemonIssue.rawError}</p>
+              <p className="mt-2 break-words [overflow-wrap:anywhere] text-[length:var(--nimi-type-caption-size)] text-[color-mix(in_srgb,var(--nimi-status-warning)_75%,var(--nimi-text-secondary))]">{daemonIssue.rawError}</p>
             </div>
-          ) : model.runtimeDaemonError ? <p className="mt-4 text-xs text-[var(--nimi-status-danger)]">{model.runtimeDaemonError}</p> : null}
+          ) : model.runtimeDaemonError ? <p role="alert" className="mt-4 text-xs text-[var(--nimi-status-danger)]">{model.runtimeDaemonError}</p> : null}
         </Surface>
 
         <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'group p-5')}>

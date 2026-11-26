@@ -24,7 +24,7 @@ import type {
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
 import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
-import { Button, InlineAlert, ScrollShell, SearchField, SelectField, Surface, TextField, type SelectFieldOption } from '@nimiplatform/kit/ui';
+import { Button, ConfirmDialog, InlineAlert, ScrollShell, SearchField, SelectField, Surface, TextField, type SelectFieldOption } from '@nimiplatform/kit/ui';
 import { ArrowLeft } from 'lucide-react';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { createRuntimeAgentAIConfigAdapter } from '../../infra/runtime-agent-ai-config.js';
@@ -287,7 +287,7 @@ export function AIProfileAuthoringView(props: AIProfileAuthoringViewProps) {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <label className="inline-flex min-h-9 cursor-pointer items-center rounded-lg border border-[var(--nimi-border-subtle)] px-3 text-xs font-semibold text-[var(--nimi-text-secondary)]">
+            <label className="inline-flex min-h-9 cursor-pointer items-center rounded-lg border border-[var(--nimi-border-subtle)] px-3 text-xs font-semibold text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-action-secondary-hover)] active:scale-[var(--nimi-motion-pressed-scale)] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--nimi-focus-ring-color)]">
               {t('runtimeConfig.profiles.authoring.importAction')}
               <input
                 className="sr-only"
@@ -541,6 +541,7 @@ function CapabilityAuthoringCard(props: {
   readonly t: TFunction;
 }) {
   const { capability } = props;
+  const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
   const updateCapability = (
     update: (current: RuntimeConfigAIProfileCapabilityDraft) => RuntimeConfigAIProfileCapabilityDraft,
   ) => props.onChange({
@@ -555,6 +556,7 @@ function CapabilityAuthoringCard(props: {
   const used = new Set(props.draft.capabilities
     .filter((item) => item.draftId !== capability.draftId)
     .map((item) => item.capabilityContract));
+  const capabilityLabel = displayRuntimeConfigCapabilityLabel(capability.capabilityContract, props.t);
 
   return (
     <Surface
@@ -563,6 +565,26 @@ function CapabilityAuthoringCard(props: {
       data-testid={`ai-profile-authoring-capability:${capability.capabilityContract}`}
       data-route={capability.route}
     >
+      <ConfirmDialog
+        open={confirmRemoveOpen}
+        title={props.t('runtimeConfig.profiles.authoring.removeCapabilityConfirmTitle')}
+        message={props.t('runtimeConfig.profiles.authoring.removeCapabilityConfirmMessage', {
+          capability: capabilityLabel,
+        })}
+        confirmLabel={props.t('runtimeConfig.profiles.authoring.removeCapability')}
+        cancelLabel={props.t('Common.cancel')}
+        confirmTone="danger"
+        onClose={() => setConfirmRemoveOpen(false)}
+        onConfirm={() => {
+          setConfirmRemoveOpen(false);
+          props.onChange({
+            ...props.draft,
+            capabilities: props.draft.capabilities.filter(
+              (item) => item.draftId !== capability.draftId,
+            ),
+          });
+        }}
+      />
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-xs font-semibold uppercase tracking-[var(--nimi-type-overline-letter-spacing)] text-[var(--nimi-text-muted)]">
@@ -571,19 +593,14 @@ function CapabilityAuthoringCard(props: {
             })}
           </div>
           <div className="mt-1 font-mono text-sm font-semibold text-[var(--nimi-text-primary)]">
-            {displayRuntimeConfigCapabilityLabel(capability.capabilityContract, props.t)}
+            {capabilityLabel}
           </div>
         </div>
         <Button
           type="button"
           size="sm"
           tone="danger"
-          onClick={() => props.onChange({
-            ...props.draft,
-            capabilities: props.draft.capabilities.filter(
-              (item) => item.draftId !== capability.draftId,
-            ),
-          })}
+          onClick={() => setConfirmRemoveOpen(true)}
         >
           {props.t('runtimeConfig.profiles.authoring.removeCapability')}
         </Button>

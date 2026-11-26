@@ -28,7 +28,7 @@ export type RuntimeMaintenanceRecoveryViewProps = {
   readonly onReopen: () => void;
 };
 
-const PRIMARY_BUTTON = 'inline-flex items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] px-6 py-2.5 text-sm font-medium text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60';
+const PRIMARY_BUTTON = 'inline-flex items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] px-6 py-2.5 text-sm font-medium text-[var(--nimi-action-primary-text)] transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-action-primary-bg-hover)] active:scale-[0.97] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nimi-surface-canvas)] disabled:cursor-not-allowed disabled:opacity-60';
 
 /**
  * Maps the typed replacement outcome to the next page state. The Runtime

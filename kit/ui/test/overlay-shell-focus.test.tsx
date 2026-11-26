@@ -2,8 +2,13 @@ import React, { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, expect, test, vi } from 'vitest';
 import { OverlayShell } from '../src/components/dialog.js';
+import { Popover, PopoverContent, PopoverTrigger } from '../src/components/popover.js';
+import { SelectField } from '../src/components/select.js';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+if (typeof HTMLElement !== 'undefined' && !HTMLElement.prototype.scrollIntoView) {
+  HTMLElement.prototype.scrollIntoView = () => {};
+}
 
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
@@ -59,4 +64,135 @@ test('conditional closing preserves the next page focus even when the old trigge
   expect(trigger.isConnected).toBe(true);
   expect(document.querySelector('[data-testid="focus-overlay"]')).toBeNull();
   expect(document.activeElement).toBe(document.querySelector('[aria-label="Next page"]'));
+});
+
+test('exiting OverlayShell immediately yields pointer-events so background clicks succeed mid-exit', async () => {
+  let backgroundClicks = 0;
+  function ExitClickJourney() {
+    const [open, setOpen] = useState(true);
+    return <>
+      <button type="button" data-testid="bg-action" onClick={() => { backgroundClicks += 1; }}>Background Action</button>
+      <OverlayShell
+        open={open}
+        title="Quick settings"
+        onClose={() => setOpen(false)}
+        data-testid="exit-overlay"
+        footer={<button type="button" data-testid="done-btn" onClick={() => setOpen(false)}>Done</button>}
+      >
+        <p>Body</p>
+      </OverlayShell>
+    </>;
+  }
+
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+  await act(async () => root!.render(<ExitClickJourney />));
+
+  const backdropBefore = document.querySelector<HTMLElement>('.nimi-overlay-backdrop')!;
+  const panelBefore = document.querySelector<HTMLElement>('[data-testid="exit-overlay"]')!;
+  expect(backdropBefore.style.pointerEvents).toBe('auto');
+  expect(panelBefore.style.pointerEvents).not.toBe('none');
+
+  const doneBtn = document.querySelector<HTMLButtonElement>('[data-testid="done-btn"]')!;
+  await act(async () => doneBtn.click());
+
+  // While exit animation is still running (or immediately after closing), neither backdrop
+  // nor panel nor document.body may intercept pointer input.
+  const backdropDuringExit = document.querySelector<HTMLElement>('.nimi-overlay-backdrop');
+  const panelDuringExit = document.querySelector<HTMLElement>('[data-testid="exit-overlay"]');
+  if (backdropDuringExit) {
+    expect(backdropDuringExit.style.pointerEvents).toBe('none');
+    expect(backdropDuringExit.className).toContain('pointer-events-none');
+  }
+  if (panelDuringExit) {
+    expect(panelDuringExit.style.pointerEvents).toBe('none');
+    expect(panelDuringExit.getAttribute('aria-hidden')).toBe('true');
+  }
+  expect(document.body.style.pointerEvents).not.toBe('none');
+
+  const bgButton = container.querySelector<HTMLButtonElement>('[data-testid="bg-action"]')!;
+  await act(async () => bgButton.click());
+  expect(backgroundClicks).toBe(1);
+});
+
+test('closing SelectField immediately releases document.body pointer-events while exit ghost finishes', async () => {
+  let bgClicks = 0;
+  function SelectExitJourney() {
+    const [open, setOpen] = useState(true);
+    return <>
+      <button type="button" data-testid="select-bg-action" onClick={() => { bgClicks += 1; }}>Background</button>
+      <SelectField
+        open={open}
+        onOpenChange={setOpen}
+        value="a"
+        aria-label="Route"
+        options={[
+          { value: 'a', label: 'Alpha' },
+          { value: 'b', label: 'Beta' },
+        ]}
+      />
+      <button type="button" data-testid="close-select" onClick={() => setOpen(false)}>Close Select</button>
+    </>;
+  }
+
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+  await act(async () => root!.render(<SelectExitJourney />));
+  expect(document.querySelector('[role="listbox"]')).toBeTruthy();
+
+  const closeBtn = container.querySelector<HTMLButtonElement>('[data-testid="close-select"]')!;
+  await act(async () => closeBtn.click());
+
+  // Immediately after closing, body pointer-events must NOT stay locked to 'none',
+  // and any visual exit ghost must be inert & pointer-events: none.
+  expect(document.body.style.pointerEvents).not.toBe('none');
+  const ghost = document.querySelector<HTMLElement>('[data-nimi-overlay-exit-ghost="true"]');
+  if (ghost) {
+    expect(ghost.style.pointerEvents).toBe('none');
+    expect(ghost.getAttribute('aria-hidden')).toBe('true');
+    expect(ghost.hasAttribute('inert')).toBe(true);
+  }
+  const bgBtn = container.querySelector<HTMLButtonElement>('[data-testid="select-bg-action"]')!;
+  await act(async () => bgBtn.click());
+  expect(bgClicks).toBe(1);
+});
+
+test('closing modal Popover immediately releases document.body pointer-events while exit ghost finishes', async () => {
+  let bgClicks = 0;
+  function ModalPopoverExitJourney() {
+    const [open, setOpen] = useState(true);
+    return <>
+      <button type="button" data-testid="popover-bg-action" onClick={() => { bgClicks += 1; }}>Usage Tab</button>
+      <Popover open={open} onOpenChange={setOpen} modal>
+        <PopoverTrigger asChild>
+          <button type="button" data-testid="popover-trigger">Cloud Services</button>
+        </PopoverTrigger>
+        <PopoverContent>
+          <button type="button" data-testid="popover-close" onClick={() => setOpen(false)}>Select Provider</button>
+        </PopoverContent>
+      </Popover>
+    </>;
+  }
+
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+  await act(async () => root!.render(<ModalPopoverExitJourney />));
+  expect(document.querySelector('[data-testid="popover-close"]')).toBeTruthy();
+
+  const closeBtn = document.querySelector<HTMLButtonElement>('[data-testid="popover-close"]')!;
+  await act(async () => closeBtn.click());
+
+  expect(document.body.style.pointerEvents).not.toBe('none');
+  const ghost = document.querySelector<HTMLElement>('[data-nimi-overlay-exit-ghost="true"]');
+  if (ghost) {
+    expect(ghost.style.pointerEvents).toBe('none');
+    expect(ghost.getAttribute('aria-hidden')).toBe('true');
+    expect(ghost.hasAttribute('inert')).toBe(true);
+  }
+  const bgBtn = container.querySelector<HTMLButtonElement>('[data-testid="popover-bg-action"]')!;
+  await act(async () => bgBtn.click());
+  expect(bgClicks).toBe(1);
 });

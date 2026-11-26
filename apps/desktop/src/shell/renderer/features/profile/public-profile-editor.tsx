@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent 
 import {
   AVATAR_MESH_PALETTES,
   Button,
+  ConfirmDialog,
   FieldShell,
   OverlayShell,
   SelectField,
@@ -19,6 +20,7 @@ import type { JsonObject } from '@nimiplatform/sdk/types';
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { EntityAvatar } from '../../components/entity-avatar.js';
+import { useDesktopReducedMotion } from '../../ui/motion/desktop-motion.js';
 import { Card, FormFeedback, PageShell, Section, StatusBadge } from '../settings/settings-layout-components.js';
 import { formatCountryName, ProfileCountryField } from '../relationship/profile-country-field.js';
 import {
@@ -165,7 +167,7 @@ function ProfilePreviewCard({
                 <button
                   type="button"
                   onClick={onOpenFullProfile}
-                  className="text-xs font-medium text-[var(--nimi-action-primary-bg)] hover:underline"
+                  className="rounded-sm text-xs font-medium text-[var(--nimi-action-primary-bg)] transition-[transform,color] duration-150 hover:underline active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
                 >
                   {t('Profile.viewFullProfile')}
                 </button>
@@ -174,7 +176,7 @@ function ProfilePreviewCard({
                 <button
                   type="button"
                   onClick={onCopyHandle}
-                  className="text-xs text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]"
+                  className="rounded-sm text-xs text-[var(--nimi-text-secondary)] transition-[transform,color] duration-150 hover:text-[var(--nimi-text-primary)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
                 >
                   {copiedHandle ? t('Profile.usernameCopied') : t('Profile.copyUsername')}
                 </button>
@@ -204,6 +206,7 @@ export function PublicProfileEditor({
   const i18n = useDesktopI18nResource();
   const locale = i18n.getCurrentLocale();
   const navigation = useHomeNavigation();
+  const reducedMotion = useDesktopReducedMotion();
 
   const [baseline, setBaseline] = useState(() => buildEditableProfileDraft(profile));
   const [draft, setDraft] = useState(baseline);
@@ -246,6 +249,8 @@ export function PublicProfileEditor({
     };
   }, []);
 
+  const [confirmAction, setConfirmAction] = useState<'discard' | 'remove-photo' | null>(null);
+
   useEffect(() => {
     latestOwnerProfile.current = profile;
     if (!current.current.dirty && !current.current.saving && !current.current.uploading) {
@@ -286,7 +291,7 @@ export function PublicProfileEditor({
           ? cityRef.current
           : null;
     if (target) {
-      target.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+      target.scrollIntoView?.({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' });
       target.focus();
     }
   };
@@ -491,7 +496,7 @@ export function PublicProfileEditor({
           type="button"
           onClick={onOpenPrivacy}
           data-testid="profile-visibility-pill"
-          className="inline-flex items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-1 text-xs text-[var(--nimi-text-secondary)] transition-colors hover:border-[var(--nimi-field-focus)] hover:text-[var(--nimi-text-primary)]"
+          className="inline-flex items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-1 text-xs text-[var(--nimi-text-secondary)] transition-[transform,border-color,color] duration-150 hover:border-[var(--nimi-field-focus)] hover:text-[var(--nimi-text-primary)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
         >
           <Shield size={13} className="shrink-0 text-[var(--nimi-text-muted)]" aria-hidden="true" />
           <span>
@@ -528,7 +533,7 @@ export function PublicProfileEditor({
               {dirtySummaryText}
             </p>
             <div className="flex flex-wrap gap-2">
-              <Button tone="secondary" disabled={busy || !dirty} onClick={discard}>
+              <Button tone="secondary" disabled={busy || !dirty} onClick={() => setConfirmAction('discard')}>
                 {t('Profile.discardChanges')}
               </Button>
               <Button tone="primary" loading={saving} disabled={busy || !dirty} onClick={() => { void save(); }}>
@@ -538,6 +543,41 @@ export function PublicProfileEditor({
           </div>
         </div>
       ) : null}
+      <ConfirmDialog
+        open={confirmAction !== null}
+        title={
+          confirmAction === 'remove-photo'
+            ? t('Profile.removePhotoConfirmTitle')
+            : t('Profile.discardChangesConfirmTitle')
+        }
+        message={
+          confirmAction === 'remove-photo'
+            ? t('Profile.removePhotoConfirmMessage')
+            : t('Profile.discardChangesConfirmMessage')
+        }
+        confirmLabel={
+          confirmAction === 'remove-photo'
+            ? t('Profile.removePhoto')
+            : t('Profile.discardChanges')
+        }
+        cancelLabel={
+          confirmAction === 'remove-photo'
+            ? t('Common.cancel')
+            : t('Profile.continueEditing')
+        }
+        confirmTone="danger"
+        onClose={() => setConfirmAction(null)}
+        onConfirm={() => {
+          const action = confirmAction;
+          setConfirmAction(null);
+          if (action === 'remove-photo') {
+            setSelectedPresetId(null);
+            edit({ avatarUrl: null, avatarResourceId: null, avatarMedia: null });
+          } else if (action === 'discard') {
+            discard();
+          }
+        }}
+      />
       <OverlayShell
         open={leaveOpen}
         kind="dialog"
@@ -614,8 +654,8 @@ export function PublicProfileEditor({
                   onDragLeave={() => setDraggingAvatar(false)}
                   onDrop={handleAvatarDrop}
                   className={cn(
-                    'group relative h-20 w-20 shrink-0 overflow-hidden rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-field-focus)] focus-visible:ring-offset-2',
-                    draggingAvatar && 'ring-2 ring-[var(--nimi-field-focus)] ring-offset-2',
+                    'group relative h-20 w-20 shrink-0 overflow-hidden rounded-full transition-transform duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-field-focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nimi-surface-card)]',
+                    draggingAvatar && 'ring-2 ring-[var(--nimi-field-focus)] ring-offset-2 ring-offset-[var(--nimi-surface-card)]',
                   )}
                 >
                   <EntityAvatar
@@ -656,10 +696,7 @@ export function PublicProfileEditor({
                       <Button
                         tone="ghost"
                         size="sm"
-                        onClick={() => {
-                          setSelectedPresetId(null);
-                          edit({ avatarUrl: null, avatarResourceId: null, avatarMedia: null });
-                        }}
+                        onClick={() => setConfirmAction('remove-photo')}
                       >
                         {t('Profile.removePhoto')}
                       </Button>
@@ -694,7 +731,7 @@ export function PublicProfileEditor({
                         title={colorLabel}
                         onClick={() => { void applyAvatarPreset(palette.id); }}
                         className={cn(
-                          'relative inline-flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-semibold transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-field-focus)] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+                          'relative inline-flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-semibold transition-transform hover:scale-105 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-field-focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nimi-surface-card)] disabled:pointer-events-none disabled:opacity-50',
                           selected && 'ring-2 ring-[var(--nimi-action-primary-bg)] ring-offset-2 ring-offset-[var(--nimi-surface-card)]',
                         )}
                       >

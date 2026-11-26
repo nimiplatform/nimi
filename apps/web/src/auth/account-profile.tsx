@@ -534,7 +534,7 @@ function UsernameEditor({
         </div>
       ) : confirming ? (
         <div>
-          <p className="ac-muted" style={{ marginTop: 18 }}>{c('usernameConfirmIntro')}</p>
+          <p className="ac-muted ac-handle-confirm-intro">{c('usernameConfirmIntro')}</p>
           <div className="ac-handle-diff" data-testid="web-handle-confirm-diff">
             <s>@{currentHandle}</s>
             <span aria-hidden="true">→</span>

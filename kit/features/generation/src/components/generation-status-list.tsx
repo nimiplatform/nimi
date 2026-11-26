@@ -31,7 +31,7 @@ export function GenerationStatusList({
   }
 
   return (
-    <div className={className}>
+    <div className={className} aria-live="polite">
       <div className="space-y-2">
         {items.map((item) => (
           <div key={item.runId} className="rounded-[var(--nimi-radius-md)] border border-[color:var(--nimi-border-subtle)] bg-[color:var(--nimi-surface-card)] px-3 py-2 text-xs">

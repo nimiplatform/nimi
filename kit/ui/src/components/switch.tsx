@@ -41,7 +41,7 @@ export function Toggle({ checked, onValueChange, onChange, disabled = false, cla
       <span
         data-state={state}
         data-disabled={disabled ? '' : undefined}
-        className="nimi-toggle__thumb pointer-events-none block h-5 w-5 rounded-full bg-[var(--nimi-surface-card)] shadow-sm ring-0 transition-transform duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0"
+        className="nimi-toggle__thumb pointer-events-none block h-5 w-5 rounded-full bg-[var(--nimi-action-primary-text)] shadow-[var(--nimi-elevation-base)] ring-0 transition-transform duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0"
       />
     </button>
   );

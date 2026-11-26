@@ -54,9 +54,9 @@ import type { HeroDemoParentosPreview } from '../content/landing-content.js';
 
 type ParentosRoute = 'timeline' | 'profile' | 'journal' | 'advisor' | 'reports' | 'settings';
 
-const textMain = '#1e293b';
-const textMuted = '#475569';
-const textSoft = '#94a3b8';
+const textMain = 'var(--nimi-text-primary, #1e293b)';
+const textMuted = 'var(--nimi-text-secondary, #475569)';
+const textSoft = 'var(--nimi-text-muted, #64748b)';
 const STREAM_TICK_MS = 28;
 const STREAM_LEAD_MS = 700;
 const NOTICE_MS = 5_000;
@@ -118,7 +118,7 @@ function Hdr({ title, link, onClick }: { title: string; link?: string; onClick?:
         <button
           type="button"
           onClick={onClick}
-          className="text-[13px] font-medium transition-colors hover:text-[#1e293b]"
+          className="text-[13px] font-medium transition-colors hover:text-[var(--nimi-text-primary)]"
           style={{ color: textMuted }}
         >
           {link}
@@ -370,7 +370,7 @@ function TimelinePage({
               </div>
               <button
                 type="button"
-                className="text-[13px] font-medium transition-colors hover:text-[#1e293b]"
+                className="text-[13px] font-medium transition-colors hover:text-[var(--nimi-text-primary)]"
                 style={{ color: textMuted }}
                 onClick={() => notice(content.notices.hostOnly)}
               >
@@ -405,7 +405,7 @@ function TimelinePage({
                     key={item.id}
                     type="button"
                     onClick={() => navigate(item.id === 'journal' ? 'journal' : 'profile')}
-                    className="dashboard-quick-link group flex flex-col items-center rounded-[20px] px-3 py-5 transition-all duration-200 hover:-translate-y-1"
+                    className="dashboard-quick-link group flex flex-col items-center rounded-[20px] px-3 py-5 transition-transform duration-200 hover:-translate-y-1"
                   >
                     <div
                       className="mb-3 flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl transition-transform duration-200 group-hover:scale-110"
@@ -624,11 +624,14 @@ function TimelinePage({
               </div>
               <div
                 className="h-2 overflow-hidden rounded-full"
-                style={{ background: 'rgba(226,232,240,0.5)' }}
+                style={{ background: 'color-mix(in srgb, var(--nimi-border-subtle) 70%, transparent)' }}
               >
                 <div
-                  className="h-full rounded-full transition-all"
-                  style={{ width: `${outdoorPercent}%`, background: outdoorColor }}
+                  className="h-full w-full origin-left rounded-full transition-transform"
+                  style={{
+                    transform: `scaleX(${Math.max(0, Math.min(1, outdoorPercent / 100))})`,
+                    background: outdoorColor,
+                  }}
                 />
               </div>
               <p className="text-[14px]" style={{ color: textMuted }}>
@@ -755,15 +758,15 @@ function TimelinePage({
                   key={line.title}
                   type="button"
                   onClick={() => navigate('journal')}
-                  className="dashboard-inset dashboard-inset--interactive rounded-[16px] p-5 text-left transition-all duration-200 hover:-translate-y-1"
+                  className="dashboard-inset dashboard-inset--interactive rounded-[16px] p-5 text-left transition-transform duration-200 hover:-translate-y-1"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span
                       className="rounded-full px-2 py-0.5 text-[12px] font-medium"
                       style={
                         line.keepsake
-                          ? { background: 'rgba(245, 158, 11, 0.12)', color: '#b45309' }
-                          : { background: 'rgba(255,255,255,0.6)', color: textMuted }
+                          ? { background: 'rgba(245, 158, 11, 0.14)', color: 'var(--nimi-status-warning, #b45309)' }
+                          : { background: 'color-mix(in srgb, var(--nimi-surface-card) 72%, transparent)', color: textMuted }
                       }
                     >
                       {line.badge}
@@ -821,8 +824,11 @@ function TimelinePage({
                     style={{ background: 'rgba(148,163,184,0.16)' }}
                   >
                     <div
-                      className="h-full rounded-full"
-                      style={{ width: `${Math.max(item.ratio * 100, 4)}%`, background: '#818CF8' }}
+                      className="h-full w-full origin-left rounded-full"
+                      style={{
+                        transform: `scaleX(${Math.max(item.ratio, 0.04)})`,
+                        background: '#818CF8',
+                      }}
                     />
                   </div>
                 </div>
@@ -885,43 +891,42 @@ function ReminderRow({
   onComplete: () => void;
 }) {
   return (
-    <div className="group flex items-start gap-2.5 rounded-lg px-2 py-2.5 transition-colors hover:bg-white">
+    <div className="group flex items-start gap-2.5 rounded-lg px-2 py-2.5 transition-colors hover:bg-[var(--nimi-action-ghost-hover)]">
       <button
         type="button"
         title={completeLabel}
+        aria-label={completeLabel}
         onClick={onComplete}
-        className="mt-[1px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-[1.5px] transition-all hover:bg-white"
+        className="mt-[1px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors hover:bg-[var(--nimi-surface-card)]"
         style={{ borderColor: tone.border }}
       >
         <Check
           size={9}
           strokeWidth={3}
-          className="opacity-0 transition-opacity group-hover:opacity-100"
+          className="opacity-55 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
           style={{ color: tone.border }}
           aria-hidden="true"
         />
       </button>
       <div className="min-w-0 flex-1">
-        <p className="text-[14px] font-medium leading-snug" style={{ color: '#1e293b' }}>
+        <p className="text-[14px] font-medium leading-snug" style={{ color: textMain }}>
           {item.title}
         </p>
         <p className="mt-0.5 text-[12px]" style={{ color: tone.text }}>
           {item.status}
         </p>
-        <div className="mt-1.5 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+        <div className="mt-1.5 flex items-center gap-2 opacity-85 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
           <button
             type="button"
             onClick={onPrimary}
-            className={ACTION_PILL_CLASS}
-            style={{ background: '#1e293b', color: '#fff' }}
+            className={`${ACTION_PILL_CLASS} bg-[var(--nimi-text-primary)] text-[var(--nimi-text-inverse)]`}
           >
             <span className={ACTION_LABEL_CLASS}>{item.primary}</span>
           </button>
           <button
             type="button"
             onClick={onSchedule}
-            className={`${ACTION_PILL_CLASS} hover:bg-white`}
-            style={{ background: '#f1f5f9', color: '#475569' }}
+            className={`${ACTION_PILL_CLASS} bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-card)]`}
           >
             <span className={ACTION_LABEL_CLASS}>{scheduleLabel}</span>
           </button>
@@ -1111,28 +1116,33 @@ function ReminderPanel({
     >
       <p
         className="mb-4 px-3 text-[18px] font-semibold tracking-tight"
-        style={{ color: '#1e293b', letterSpacing: '-0.3px' }}
+        style={{ color: textMain, letterSpacing: '-0.3px' }}
       >
         {panel.title}
       </p>
-      <div className="mx-2 mb-3 flex gap-1 rounded-full bg-white/60 p-1">
+      <div className="mx-2 mb-3 flex gap-1 rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_72%,transparent)] p-1">
         {(['today', 'upcoming'] as const).map((key) => {
           const count = (key === 'today' ? todayItems : upcomingItems).length;
           return (
             <button
               key={key}
               type="button"
+              aria-pressed={tab === key}
               onClick={() => setTab(key)}
               className={cn(
                 'flex flex-1 items-center justify-center gap-1.5 rounded-full py-1.5 text-[13px] font-medium transition-colors',
-                tab === key ? 'bg-[#1e293b] text-white' : 'text-[#475569] hover:bg-white',
+                tab === key
+                  ? 'bg-[var(--nimi-text-primary)] text-[var(--nimi-text-inverse)]'
+                  : 'text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-card)]',
               )}
             >
               {key === 'today' ? panel.todayTab : panel.upcomingTab}
               <span
                 className={cn(
                   'rounded-full px-1.5 text-[11px]',
-                  tab === key ? 'bg-white/20' : 'bg-slate-200/80',
+                  tab === key
+                    ? 'bg-[color-mix(in_srgb,var(--nimi-text-inverse)_22%,transparent)]'
+                    : 'bg-[color-mix(in_srgb,var(--nimi-border-subtle)_80%,transparent)]',
                 )}
               >
                 {count}
@@ -1146,7 +1156,7 @@ function ReminderPanel({
           <ReminderRow
             key={item.id}
             item={item}
-            tone={{ border: '#1e293b', text: '#475569' }}
+            tone={{ border: textMain, text: textMuted }}
             scheduleLabel={panel.schedule}
             onSchedule={() => setScheduleTarget(item)}
             completeLabel={panel.markComplete}
@@ -1159,6 +1169,7 @@ function ReminderPanel({
       <div className="mx-2 mt-4">
         <button
           type="button"
+          aria-expanded={overdueOpen}
           onClick={() => setOverdueOpen((value) => !value)}
           className="flex w-full items-center gap-1.5 text-left"
         >
@@ -1174,7 +1185,7 @@ function ReminderPanel({
           </span>
           <span
             className="rounded-full px-1.5 py-[1px] text-[12px] font-medium"
-            style={{ background: '#fef3c7', color: '#b45309' }}
+            style={{ background: 'rgba(245, 158, 11, 0.16)', color: 'var(--nimi-status-warning, #b45309)' }}
           >
             {overdueItems.length}
           </span>
@@ -1184,7 +1195,7 @@ function ReminderPanel({
               <ReminderRow
                 key={item.id}
                 item={item}
-                tone={{ border: '#f59e0b', text: '#f59e0b' }}
+                tone={{ border: '#f59e0b', text: '#d97706' }}
                 scheduleLabel={panel.schedule}
                 onSchedule={() => setScheduleTarget(item)}
                 completeLabel={panel.markComplete}
@@ -1199,28 +1210,29 @@ function ReminderPanel({
         {todos.map((todo) => (
           <div
             key={todo.id}
-            className="group flex items-start gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-white"
+            className="group flex items-start gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
           >
             <button
               type="button"
               onClick={() => setTodos((current) => current.filter((entry) => entry.id !== todo.id))}
-              className="mt-[2px] flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full border-[1.5px] hover:bg-white"
-              style={{ borderColor: '#94a3b8' }}
+              className="mt-[2px] flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors hover:bg-[var(--nimi-surface-card)]"
+              style={{ borderColor: textSoft }}
               title={panel.markComplete}
+              aria-label={panel.markComplete}
             >
               <Check
                 size={8}
                 strokeWidth={3}
-                className="opacity-0 group-hover:opacity-100"
-                style={{ color: '#94a3b8' }}
+                className="opacity-55 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+                style={{ color: textSoft }}
                 aria-hidden="true"
               />
             </button>
             <div className="min-w-0 flex-1">
-              <p className="text-[13.5px] leading-snug" style={{ color: '#1e293b' }}>
+              <p className="text-[13.5px] leading-snug" style={{ color: textMain }}>
                 {todo.title}
               </p>
-              <p className="text-[11.5px]" style={{ color: '#94a3b8' }}>
+              <p className="text-[11.5px]" style={{ color: textSoft }}>
                 {todo.due}
               </p>
             </div>
@@ -1228,7 +1240,7 @@ function ReminderPanel({
         ))}
         {composerOpen ? (
           <form
-            className="mt-2 rounded-[12px] bg-white/80 p-2"
+            className="mt-2 rounded-[12px] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_88%,transparent)] p-2 focus-within:border-[var(--nimi-action-primary-bg)] focus-within:ring-2 focus-within:ring-[var(--nimi-action-primary-bg)]"
             style={{ animation: 'customTodoSlideDown 160ms ease both' }}
             onSubmit={(event) => {
               event.preventDefault();
@@ -1247,15 +1259,15 @@ function ReminderPanel({
               onChange={(event) => {
                 setTodoDraft(event.target.value);
               }}
+              aria-label={panel.customTodoTitlePlaceholder}
               placeholder={panel.customTodoTitlePlaceholder}
               rows={2}
-              className="w-full resize-none rounded-[8px] border-0 bg-transparent px-2 py-1 text-[13px] outline-none"
+              className="w-full resize-none rounded-[8px] border-0 bg-transparent px-2 py-1 text-[13px] text-[var(--nimi-text-primary)] outline-none placeholder:text-[var(--nimi-text-muted)]"
             />
             <div className="flex justify-end gap-2 px-1">
               <button
                 type="submit"
-                className="rounded-full px-3 py-1 text-[12px] font-medium text-white"
-                style={{ background: '#1e293b' }}
+                className="rounded-full bg-[var(--nimi-text-primary)] px-3 py-1 text-[12px] font-medium text-[var(--nimi-text-inverse)]"
               >
                 {panel.add}
               </button>
@@ -1265,8 +1277,8 @@ function ReminderPanel({
           <button
             type="button"
             onClick={() => setComposerOpen(true)}
-            className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[13px] transition-colors hover:bg-white"
-            style={{ color: '#94a3b8' }}
+            className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[13px] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
+            style={{ color: textMuted }}
           >
             <Plus size={14} aria-hidden="true" />
             {panel.customTodoPlaceholder}
@@ -1277,28 +1289,28 @@ function ReminderPanel({
       <div className="mt-8 pt-2">
         <p
           className="mb-5 px-3 text-[18px] font-semibold tracking-tight"
-          style={{ color: '#1e293b', letterSpacing: '-0.3px' }}
+          style={{ color: textMain, letterSpacing: '-0.3px' }}
         >
           {panel.observationNudges}
         </p>
         {panel.nudges.map((nudge) => (
           <div
             key={nudge.text}
-            className="group flex items-start gap-2.5 rounded-[12px] px-3 py-3 transition-colors hover:bg-white"
+            className="group flex items-start gap-2.5 rounded-[12px] px-3 py-3 transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
           >
             <div className="min-w-0 flex-1">
-              <p className="text-[14px] font-medium leading-snug" style={{ color: '#1e293b' }}>
+              <p className="text-[14px] font-medium leading-snug" style={{ color: textMain }}>
                 {nudge.text}
               </p>
-              <p className="mt-0.5 text-[12px]" style={{ color: '#475569' }}>
+              <p className="mt-0.5 text-[12px]" style={{ color: textMuted }}>
                 {nudge.question}
               </p>
             </div>
             <button
               type="button"
               onClick={() => navigate('journal')}
-              className="shrink-0 rounded-full px-3 py-1.5 text-[12px] font-medium text-white opacity-0 transition-all group-hover:opacity-100 group-focus-within:opacity-100 hover:-translate-y-0.5"
-              style={{ background: '#1e293b', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+              className="shrink-0 rounded-full bg-[var(--nimi-text-primary)] px-3 py-1.5 text-[12px] font-medium text-[var(--nimi-text-inverse)] opacity-85 transition-[transform,opacity] group-hover:opacity-100 group-focus-within:opacity-100 hover:-translate-y-0.5"
+              style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
             >
               {panel.observe}
             </button>
@@ -1485,7 +1497,7 @@ function AdvisorPage({
             setActiveId(null);
             setDraft('');
           }}
-          className="mb-3 flex min-h-10 w-full items-center justify-center gap-2 parentos-radius-lg border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_86%,var(--nimi-surface-panel))] px-3 text-[14px] font-semibold text-[var(--nimi-text-primary)] transition-all hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,var(--nimi-border-subtle))] hover:shadow-[var(--nimi-elevation-base)]"
+          className="mb-3 flex min-h-10 w-full items-center justify-center gap-2 parentos-radius-lg border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_86%,var(--nimi-surface-panel))] px-3 text-[14px] font-semibold text-[var(--nimi-text-primary)] transition-[border-color,box-shadow,background-color] hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,var(--nimi-border-subtle))] hover:shadow-[var(--nimi-elevation-base)]"
         >
           <Plus size={15} aria-hidden="true" />
           {advisor.newConversation}
@@ -1498,9 +1510,10 @@ function AdvisorPage({
                 <button
                   key={conversation.id}
                   type="button"
+                  aria-current={isActive ? 'page' : undefined}
                   onClick={() => setActiveId(conversation.id)}
                   className={cn(
-                    'flex w-full flex-col gap-1 parentos-radius-lg px-3 py-3 text-left transition-all hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_5%,transparent)]',
+                    'flex w-full flex-col gap-1 parentos-radius-lg px-3 py-3 text-left transition-[background-color,box-shadow] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_5%,transparent)]',
                     isActive &&
                       'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_9%,var(--nimi-surface-card))] shadow-[var(--nimi-elevation-base)]',
                   )}
@@ -1571,7 +1584,7 @@ function AdvisorPage({
                     <button
                       type="button"
                       onClick={() => finish(streaming.conversationId, streaming.text)}
-                      className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-white/70 px-3 py-1 text-[12px] font-medium text-[var(--nimi-text-secondary)]"
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_82%,transparent)] px-3 py-1 text-[12px] font-medium text-[var(--nimi-text-secondary)]"
                     >
                       <Square size={11} aria-hidden="true" />
                       {advisor.stop}
@@ -1603,7 +1616,7 @@ function AdvisorPage({
                   type="button"
                   disabled={Boolean(streaming)}
                   onClick={() => send(suggestion)}
-                  className="rounded-full border border-slate-200/80 bg-white/70 px-3 py-1 text-[14px] text-slate-600 transition-all hover:border-emerald-300 hover:bg-emerald-50/70 hover:text-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-full border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_80%,transparent)] px-3 py-1 text-[14px] text-[var(--nimi-text-secondary)] transition-colors hover:border-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,var(--nimi-surface-card))] hover:text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {suggestion}
                 </button>
@@ -1617,7 +1630,7 @@ function AdvisorPage({
               <button
                 type="button"
                 onClick={() => notice(content.notices.hostOnly)}
-                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-white/70 px-3 py-1 text-[12px] font-medium text-[var(--nimi-text-secondary)]"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_80%,transparent)] px-3 py-1 text-[12px] font-medium text-[var(--nimi-text-secondary)]"
               >
                 <Plus size={14} aria-hidden="true" />
                 {advisor.recordData}
@@ -1640,6 +1653,7 @@ function AdvisorPage({
                       send();
                     }
                   }}
+                  aria-label={advisor.placeholder}
                   placeholder={advisor.placeholder}
                   disabled={Boolean(streaming)}
                   rows={1}
@@ -1788,12 +1802,13 @@ function JournalPage({
                 <button
                   key={key}
                   type="button"
+                  aria-pressed={mode === key}
                   onClick={() => setMode(key)}
                   className={cn(
                     'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors',
                     mode === key
-                      ? 'bg-[var(--nimi-text-primary)] text-white'
-                      : 'bg-white/70 text-[var(--nimi-text-secondary)] hover:bg-white',
+                      ? 'bg-[var(--nimi-text-primary)] text-[var(--nimi-text-inverse)]'
+                      : 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_76%,transparent)] text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-card)]',
                   )}
                 >
                   {key === 'text' ? (
@@ -1812,14 +1827,15 @@ function JournalPage({
                   setText(event.target.value);
                 }}
                 rows={4}
+                aria-label={journal.placeholder}
                 placeholder={journal.placeholder}
-                className="w-full resize-none rounded-[16px] border border-[var(--nimi-border-subtle)] bg-white/70 px-4 py-3 text-[15px] leading-relaxed text-[var(--nimi-text-primary)] outline-none placeholder:text-[var(--nimi-text-muted)] focus:border-[var(--nimi-field-focus)]"
+                className="w-full resize-none rounded-[16px] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_82%,transparent)] px-4 py-3 text-[15px] leading-relaxed text-[var(--nimi-text-primary)] placeholder:text-[var(--nimi-text-muted)] focus-visible:border-[var(--nimi-field-focus)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-action-primary-bg)]"
               />
             ) : (
               <button
                 type="button"
                 onClick={() => notice(content.notices.hostOnly)}
-                className="flex w-full flex-col items-center justify-center gap-3 rounded-[16px] border border-dashed border-[var(--nimi-border-subtle)] bg-white/50 py-8 text-[13px] text-[var(--nimi-text-muted)]"
+                className="flex w-full flex-col items-center justify-center gap-3 rounded-[16px] border border-dashed border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_60%,transparent)] py-8 text-[13px] text-[var(--nimi-text-muted)]"
               >
                 <span
                   className="flex h-14 w-14 items-center justify-center rounded-full text-white"
@@ -1841,8 +1857,8 @@ function JournalPage({
                 className={cn(
                   'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors',
                   keepsake
-                    ? 'bg-amber-100 text-amber-700'
-                    : 'bg-white/70 text-[var(--nimi-text-secondary)] hover:bg-white',
+                    ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,var(--nimi-surface-card))] text-[var(--nimi-status-warning)]'
+                    : 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_76%,transparent)] text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-card)]',
                 )}
               >
                 <Star size={13} aria-hidden="true" />
@@ -1852,8 +1868,8 @@ function JournalPage({
                 type="button"
                 onClick={save}
                 disabled={mode !== 'text' || !text.trim()}
-                className="rounded-full px-5 py-2 text-[14px] font-medium text-white transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
-                style={{ background: textMain, boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}
+                className="rounded-full bg-[var(--nimi-text-primary)] px-5 py-2 text-[14px] font-medium text-[var(--nimi-text-inverse)] transition-[transform,opacity] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
+                style={{ boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}
               >
                 {journal.save}
               </button>
@@ -1871,8 +1887,8 @@ function JournalPage({
               className={cn(
                 'rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors',
                 filter === key
-                  ? 'bg-[var(--nimi-text-primary)] text-white'
-                  : 'bg-white/60 text-[var(--nimi-text-secondary)] hover:bg-white',
+                  ? 'bg-[var(--nimi-text-primary)] text-[var(--nimi-text-inverse)]'
+                  : 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_72%,transparent)] text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-card)]',
               )}
             >
               {key === 'all' ? journal.filterAll : journal.filterKeepsake}
@@ -1905,12 +1921,12 @@ function JournalPage({
                       >
                         <span className="tabular-nums">{entry.time}</span>
                         {entry.dimension ? (
-                          <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] px-2 py-0.5 text-[11px] font-medium text-[#0f6b80]">
+                          <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] px-2 py-0.5 text-[11px] font-medium text-[var(--nimi-action-primary-bg)]">
                             {entry.dimension}
                           </span>
                         ) : null}
                         {entry.keepsake ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--nimi-status-warning)_16%,transparent)] px-2 py-0.5 text-[11px] font-medium text-[var(--nimi-status-warning)]">
                             <Star size={10} aria-hidden="true" />
                             {journal.keepsakeBadge}
                           </span>
@@ -1994,8 +2010,11 @@ function ProfilePage({
                 style={{ background: 'rgba(148,163,184,0.16)' }}
               >
                 <div
-                  className="h-full rounded-full"
-                  style={{ width: `${profile.completeness}%`, background: '#4ECCA3' }}
+                  className="h-full w-full origin-left rounded-full"
+                  style={{
+                    transform: `scaleX(${Math.max(0, Math.min(1, profile.completeness / 100))})`,
+                    background: '#4ECCA3',
+                  }}
                 />
               </div>
             </div>
@@ -2004,15 +2023,15 @@ function ProfilePage({
             <button
               type="button"
               onClick={() => notice(content.notices.hostOnly)}
-              className="rounded-full px-5 py-2.5 text-[14px] font-medium text-white"
-              style={{ background: textMain, boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}
+              className="rounded-full bg-[var(--nimi-text-primary)] px-5 py-2.5 text-[14px] font-medium text-[var(--nimi-text-inverse)]"
+              style={{ boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}
             >
               {profile.addData}
             </button>
             <button
               type="button"
               onClick={() => notice(content.notices.hostOnly)}
-              className="rounded-full border border-[var(--nimi-border-subtle)] bg-white/70 px-5 py-2.5 text-[14px] font-medium"
+              className="rounded-full border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_82%,transparent)] px-5 py-2.5 text-[14px] font-medium"
               style={{ color: textMain }}
             >
               {profile.editChild}
@@ -2095,12 +2114,13 @@ function ReportsPage({
               <button
                 key={label}
                 type="button"
+                aria-pressed={preset === index}
                 onClick={() => setPreset(index)}
                 className={cn(
                   'rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors',
                   preset === index
-                    ? 'bg-[var(--nimi-text-primary)] text-white'
-                    : 'bg-white/60 text-[var(--nimi-text-secondary)] hover:bg-white',
+                    ? 'bg-[var(--nimi-text-primary)] text-[var(--nimi-text-inverse)]'
+                    : 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_72%,transparent)] text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-card)]',
                 )}
               >
                 {label}
@@ -2124,7 +2144,7 @@ function ReportsPage({
           className="rounded-[24px] p-7 sm:p-9"
         >
           <div className="flex items-center justify-between gap-3">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-[12px] font-semibold text-amber-700">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--nimi-status-warning)_16%,transparent)] px-3 py-1 text-[12px] font-semibold text-[var(--nimi-status-warning)]">
               <Star size={12} aria-hidden="true" />
               {reports.letter.badge}
             </span>
@@ -2145,7 +2165,7 @@ function ReportsPage({
               </p>
             ))}
           </div>
-          <div className="dashboard-inset mt-6 rounded-[16px] bg-white/50 p-5">
+          <div className="dashboard-inset mt-6 rounded-[16px] bg-[color-mix(in_srgb,var(--nimi-surface-card)_66%,transparent)] p-5">
             <p
               className="text-[12px] font-semibold uppercase tracking-wide"
               style={{ color: textMuted }}
@@ -2261,7 +2281,7 @@ function SettingsPage({
                 {t('parentos.settingsPage.thePreviewFollowsTheLanguageSelectedAt')}
               </p>
             </div>
-            <span className="rounded-full bg-white/70 px-3 py-1 text-[12px] font-medium">
+            <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_82%,transparent)] px-3 py-1 text-[12px] font-medium text-[var(--nimi-text-primary)]">
               {previewLocale === 'zh'
                 ? t('parentos.settingsPage.chinese')
                 : t('parentos.settingsPage.english')}
@@ -2275,7 +2295,7 @@ function SettingsPage({
                 key={section.id}
                 type="button"
                 onClick={() => notice(content.notices.hostOnly)}
-                className="flex w-full items-center gap-4 border-t border-[var(--nimi-border-subtle)] px-5 py-4 text-left transition-colors hover:bg-white/50"
+                className="flex w-full items-center gap-4 border-t border-[var(--nimi-border-subtle)] px-5 py-4 text-left transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
               >
                 <span
                   className={cn(
@@ -2315,7 +2335,7 @@ function SettingsPage({
               className="flex items-start gap-3 rounded-[18px] p-4"
             >
               <span
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/70"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_80%,transparent)]"
                 style={{ color: textMuted }}
               >
                 {index === 0 ? (
@@ -2356,17 +2376,21 @@ function ChildAppMenu({
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return undefined;
-    const handler = (event: MouseEvent) => {
+    const handler = (event: PointerEvent) => {
       if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
     };
     const escHandler = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        setOpen(false);
+      }
     };
-    document.addEventListener('mousedown', handler);
-    document.addEventListener('keydown', escHandler);
+    document.addEventListener('pointerdown', handler);
+    document.addEventListener('keydown', escHandler, { capture: true });
     return () => {
-      document.removeEventListener('mousedown', handler);
-      document.removeEventListener('keydown', escHandler);
+      document.removeEventListener('pointerdown', handler);
+      document.removeEventListener('keydown', escHandler, { capture: true });
     };
   }, [open]);
   const children = [
@@ -2381,7 +2405,7 @@ function ChildAppMenu({
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={content.childMenuLabel}
-        className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full shadow-[var(--nimi-elevation-base)] ring-1 ring-[var(--nimi-border-subtle)] transition-all hover:-translate-y-0.5"
+        className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full shadow-[var(--nimi-elevation-base)] ring-1 ring-[var(--nimi-border-subtle)] transition-transform hover:-translate-y-0.5"
       >
         <ChildAvatar
           src={content.child.avatarSrc}
@@ -2396,6 +2420,7 @@ function ChildAppMenu({
           padding="none"
           tone="card"
           role="menu"
+          data-demo-nested-dialog="true"
           className="absolute bottom-12 left-0 z-50 w-64 origin-bottom-left overflow-y-auto rounded-xl border-[var(--nimi-material-glass-thick-border)] py-2 shadow-[var(--nimi-elevation-floating)]"
         >
           <div className="px-3.5 pb-1 pt-1 text-[12px] font-medium text-[var(--nimi-text-muted)]">
@@ -2507,7 +2532,7 @@ function ChildAppMenu({
                   setOpen(false);
                   onNavigate(route);
                 }}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] text-[var(--nimi-text-secondary)] transition-all hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]"
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]"
               >
                 <Icon
                   size={18}
@@ -2595,10 +2620,14 @@ export function DemoParentosPreview({ content, journalView, guiding = false }: {
                   aria-current={isActive ? 'page' : undefined}
                   data-tour-anchor={item.id === 'journal' ? 'parent-home' : undefined}
                   onClick={() => setRoute(item.id)}
-                  className={`group relative flex h-[40px] w-[40px] items-center justify-center rounded-xl transition-all duration-150 ${isActive ? 'bg-[var(--nimi-text-primary)] text-[var(--nimi-text-inverse)] shadow-[var(--nimi-elevation-base)]' : 'text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]'}`}
+                  className={`group relative flex h-[40px] w-[40px] items-center justify-center rounded-xl transition-[background-color,color,box-shadow] duration-150 ${isActive ? 'bg-[var(--nimi-text-primary)] text-[var(--nimi-text-inverse)] shadow-[var(--nimi-elevation-base)]' : 'text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]'}`}
                 >
                   <item.Icon size={19} strokeWidth={1.8} aria-hidden="true" />
-                  <span className="nimi-material-glass-thick pointer-events-none absolute left-[52px] z-50 whitespace-nowrap rounded-2xl border border-[var(--nimi-material-glass-thick-border)] bg-[var(--nimi-material-glass-thick-bg)] px-3 py-1.5 text-[13px] font-medium text-[var(--nimi-text-primary)] opacity-0 shadow-[var(--nimi-elevation-floating)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] transition-opacity duration-100 group-hover:opacity-100">
+                  <span
+                    data-nimi-material="glass-thick"
+                    data-nimi-tone="overlay"
+                    className="nimi-material-glass-thick pointer-events-none absolute left-[52px] z-50 whitespace-nowrap rounded-2xl border border-[var(--nimi-material-glass-thick-border)] bg-[var(--nimi-material-glass-thick-bg)] px-3 py-1.5 text-[13px] font-medium text-[var(--nimi-text-primary)] opacity-0 shadow-[var(--nimi-elevation-floating)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] transition-opacity duration-100 group-hover:opacity-100"
+                  >
                     {label}
                   </span>
                 </button>
@@ -2618,9 +2647,13 @@ export function DemoParentosPreview({ content, journalView, guiding = false }: {
               </button>
             </div>
           ) : null}
-          <main className="relative z-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
+          <div
+            role="region"
+            aria-label={content.appName}
+            className="relative z-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden"
+          >
             <div className="h-full">{page}</div>
-          </main>
+          </div>
         </div>
       </AmbientBackground>
     </div>

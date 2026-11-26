@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Button, IconButton, Surface } from '@nimiplatform/kit/ui';
+import { Button, IconButton, nimiToast, Surface } from '@nimiplatform/kit/ui';
 import {
   CheckSquare,
   Copy,
@@ -67,8 +67,13 @@ export function KitRecipesGallery({
     setCategory(nextCategory);
   }
 
-  function copyImport() {
-    void copyText(categoryCopyText);
+  async function copyImport() {
+    try {
+      await copyText(categoryCopyText);
+      nimiToast.success('Copied');
+    } catch {
+      nimiToast.danger('Copy failed');
+    }
   }
 
   return (
@@ -80,7 +85,7 @@ export function KitRecipesGallery({
           <h1 className="m-0 text-2xl font-bold tracking-tight">UI Recipes</h1>
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-2 max-[880px]:flex-none">
-          <p className="kit-doc__browse-label px-1 text-[10px] font-bold uppercase tracking-wider text-[var(--nimi-text-muted)]">Browse</p>
+          <p className="kit-doc__browse-label px-1 text-[length:var(--nimi-type-overline-size)] font-bold uppercase tracking-wider text-[var(--nimi-text-muted)]">Browse</p>
           <nav className="kit-doc__taxonomy grid min-h-0 flex-1 content-start gap-1.5 overflow-auto max-[880px]:flex-none" aria-label="Recipe categories">
             {CATEGORIES.map((entry) => {
               const isActive = entry.id === category;
@@ -90,7 +95,7 @@ export function KitRecipesGallery({
                   type="button"
                   tone="ghost"
                   size="sm"
-                  className={`kit-tax grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border p-2 text-left transition-all [&>span]:contents ${isActive ? 'kit-tax--active border-transparent bg-[var(--nimi-sidebar-item-active)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)]' : 'border-transparent bg-transparent text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-sidebar-item-hover)] hover:text-[var(--nimi-text-primary)]'}`}
+                  className={`kit-tax grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border p-2 text-left [&>span]:contents ${isActive ? 'kit-tax--active border-transparent bg-[var(--nimi-sidebar-item-active)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)]' : 'border-transparent bg-transparent text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-sidebar-item-hover)] hover:text-[var(--nimi-text-primary)]'}`}
                   onClick={() => selectCategory(entry.id)}
                   aria-current={isActive ? 'page' : undefined}
                 >
@@ -115,7 +120,7 @@ export function KitRecipesGallery({
       <section className="kit-doc__main grid min-w-0 content-start gap-4">
         <div className="kit-doc__header flex min-w-0 items-center justify-between gap-4 px-1 py-1 max-[720px]:flex-col max-[720px]:items-stretch">
           <div className="grid min-w-0 gap-2">
-            <h2 className="m-0 truncate text-3xl font-bold tracking-tight">{activeCategory.label}</h2>
+            <h2 className="m-0 truncate text-xl font-bold tracking-tight">{activeCategory.label}</h2>
           </div>
           <div className="kit-doc__header-actions flex min-w-0 shrink-0 flex-wrap items-center gap-2">
             <IconButton
@@ -124,7 +129,7 @@ export function KitRecipesGallery({
               aria-label={category === 'foundations' ? 'Copy CSS setup' : 'Copy imports'}
               className="kit-doc__copy-action bg-[color-mix(in_srgb,var(--nimi-surface-card)_32%,transparent)] border-[color-mix(in_srgb,var(--nimi-border-subtle)_45%,transparent)] shadow-none hover:bg-[var(--nimi-action-primary-bg)] hover:border-[var(--nimi-action-primary-bg)] hover:text-[var(--nimi-action-primary-text)] hover:shadow-none"
               icon={<Copy size={14} aria-hidden="true" />}
-              onClick={copyImport}
+              onClick={() => void copyImport()}
             />
           </div>
         </div>

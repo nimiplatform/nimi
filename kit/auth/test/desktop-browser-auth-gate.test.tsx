@@ -58,15 +58,16 @@ describe('DesktopBrowserAuthGate presentation', () => {
     container.remove();
   });
 
-  it('makes the logo the single keyboard-reachable action and shows no loading dots while idle', () => {
+  it('exposes a visible primary sign-in action beneath the brand logo and shows no loading dots while idle', () => {
     const { container, root } = renderGate();
     const action = container.querySelector<HTMLButtonElement>('[data-testid="login-action"]');
 
     expect(container.querySelector('.nimi-shell-auth-brand-surface')).not.toBeNull();
     expect(container.querySelector('h1')?.textContent).toBe('Nimi');
+    expect(container.querySelector('img')).not.toBeNull();
     expect(action?.tagName).toBe('BUTTON');
+    expect(action?.textContent).toBe('继续登录');
     expect(action?.getAttribute('aria-label')).toBe('继续登录');
-    expect(action?.querySelector('img')).not.toBeNull();
     expect(container.querySelectorAll('button')).toHaveLength(1);
     expect(container.querySelectorAll('.nimi-shell-auth-dot')).toHaveLength(0);
 

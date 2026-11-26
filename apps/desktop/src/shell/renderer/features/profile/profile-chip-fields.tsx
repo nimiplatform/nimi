@@ -93,9 +93,11 @@ function ProfileChipField({
   const generatedId = useId();
   const inputId = id || `${generatedId}-input`;
   const messageId = `${generatedId}-message`;
+  const listboxId = `${generatedId}-listbox`;
   const inputRef = useRef<HTMLInputElement>(null);
   const [draftText, setDraftText] = useState('');
   const [focused, setFocused] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const [localError, setLocalError] = useState<string | null>(null);
 
   const visibleError = error || localError;
@@ -148,6 +150,12 @@ function ProfileChipField({
   }, [suggestions, value, draftText]);
 
   const showSuggestions = Boolean(focused && !disabled && suggestions?.length && filteredSuggestions.length > 0 && value.length < maxItems);
+  const boundedSuggestionIndex = showSuggestions && activeSuggestionIndex >= 0 && activeSuggestionIndex < filteredSuggestions.length
+    ? activeSuggestionIndex
+    : -1;
+  const activeSuggestionId = boundedSuggestionIndex >= 0
+    ? `${listboxId}-option-${boundedSuggestionIndex}`
+    : undefined;
 
   return (
     <div className="nimi-field-shell relative flex min-w-0 flex-col gap-1.5">
@@ -203,6 +211,11 @@ function ProfileChipField({
           ref={inputRef}
           id={inputId}
           type="text"
+          role={suggestions?.length ? 'combobox' : undefined}
+          aria-autocomplete={suggestions?.length ? 'list' : undefined}
+          aria-expanded={suggestions?.length ? showSuggestions : undefined}
+          aria-controls={showSuggestions ? listboxId : undefined}
+          aria-activedescendant={activeSuggestionId}
           disabled={disabled}
           value={draftText}
           placeholder={value.length < maxItems ? placeholder : ''}
@@ -213,11 +226,13 @@ function ProfileChipField({
           onFocus={() => setFocused(true)}
           onBlur={() => {
             setFocused(false);
+            setActiveSuggestionIndex(-1);
             if (draftText.trim()) commitRaw(draftText);
           }}
           onChange={(event) => {
             const raw = event.target.value;
             setLocalError(null);
+            setActiveSuggestionIndex(-1);
             if (/[,，、\n]/u.test(raw)) {
               commitRaw(raw);
             } else {
@@ -225,6 +240,25 @@ function ProfileChipField({
             }
           }}
           onKeyDown={(event) => {
+            if (showSuggestions && event.key === 'ArrowDown') {
+              event.preventDefault();
+              setActiveSuggestionIndex((idx) => (idx + 1) % filteredSuggestions.length);
+              return;
+            }
+            if (showSuggestions && event.key === 'ArrowUp') {
+              event.preventDefault();
+              setActiveSuggestionIndex((idx) => (idx <= 0 ? filteredSuggestions.length - 1 : idx - 1));
+              return;
+            }
+            if (event.key === 'Enter' && showSuggestions && boundedSuggestionIndex >= 0) {
+              event.preventDefault();
+              const selected = filteredSuggestions[boundedSuggestionIndex];
+              if (selected) {
+                commitRaw(selected.value);
+                setActiveSuggestionIndex(-1);
+              }
+              return;
+            }
             if (event.key === 'Enter' && draftText.trim()) {
               event.preventDefault();
               commitRaw(draftText);
@@ -233,6 +267,7 @@ function ProfileChipField({
               removeAt(value.length - 1);
             } else if (event.key === 'Escape') {
               setFocused(false);
+              setActiveSuggestionIndex(-1);
             }
           }}
           onPaste={(event) => {
@@ -247,6 +282,7 @@ function ProfileChipField({
 
       {showSuggestions ? (
         <div
+          id={listboxId}
           role="listbox"
           aria-label={label}
           className="absolute left-0 right-0 top-[calc(100%+4px)] z-[var(--nimi-z-popover)] rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-2 shadow-[var(--nimi-elevation-floating)]"
@@ -257,19 +293,39 @@ function ProfileChipField({
             </p>
           ) : null}
           <div className="flex flex-wrap gap-1.5">
-            {filteredSuggestions.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  commitRaw(option.value);
-                }}
-                className="rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-2.5 py-1 text-xs text-[var(--nimi-text-primary)] transition-colors hover:border-[var(--nimi-field-focus)] hover:text-[var(--nimi-action-primary-bg)]"
-              >
-                + {option.label}
-              </button>
-            ))}
+            {filteredSuggestions.map((option, index) => {
+              const selected = index === boundedSuggestionIndex;
+              return (
+                <button
+                  key={option.value}
+                  id={`${listboxId}-option-${index}`}
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  onPointerDown={(event) => {
+                    event.preventDefault();
+                    commitRaw(option.value);
+                    setActiveSuggestionIndex(-1);
+                  }}
+                  onMouseDown={(event) => {
+                    if (event.defaultPrevented) {
+                      return;
+                    }
+                    event.preventDefault();
+                    commitRaw(option.value);
+                    setActiveSuggestionIndex(-1);
+                  }}
+                  className={cn(
+                    'rounded-full border px-2.5 py-1 text-xs transition-[transform,border-color,color,background-color] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]',
+                    selected
+                      ? 'border-[var(--nimi-field-focus)] bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-action-primary-bg)]'
+                      : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-primary)] hover:border-[var(--nimi-field-focus)] hover:text-[var(--nimi-action-primary-bg)]',
+                  )}
+                >
+                  + {option.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       ) : null}

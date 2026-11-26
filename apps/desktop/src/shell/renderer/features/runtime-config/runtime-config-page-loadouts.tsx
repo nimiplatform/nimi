@@ -733,9 +733,8 @@ export function SavedConfigsView(props: {
   const requestDelete = useCallback((loadout: NimiMachineLoadout) => {
     const selected = isSelected(aggregate, loadout);
     const action = async () => { await loadoutsClient.delete(loadout.loadoutId, selected); };
-    if (selected) requestImpact({ kind: 'delete', title: loadout.displayName, run: action });
-    else void run(`delete:${loadout.loadoutId}`, action);
-  }, [aggregate, loadoutsClient, requestImpact, run]);
+    requestImpact({ kind: 'delete', title: loadout.displayName, selected, run: action });
+  }, [aggregate, loadoutsClient, requestImpact]);
 
   const confirmImpact = useCallback(() => {
     if (busy) return;
@@ -947,7 +946,7 @@ export function SavedConfigsView(props: {
       <OverlayShell
         open={showCreate}
         kind="drawer"
-        size="M"
+        size="md"
         title={t('runtimeConfig.loadouts.create')}
         onClose={() => setShowCreate(false)}
         panelClassName="flex max-h-screen flex-col overflow-hidden"
@@ -987,7 +986,7 @@ export function SavedConfigsView(props: {
                       type="button"
                       data-testid={`create-capability:${capability}`}
                       onClick={() => selectCreateCapability(capability)}
-                      className="group flex items-center gap-3 rounded-xl border border-[var(--nimi-border-subtle)] px-4 py-3 text-left transition hover:border-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,transparent)]"
+                      className="group flex items-center gap-3 rounded-xl border border-[var(--nimi-border-subtle)] px-4 py-3 text-left transition-colors hover:border-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]"
                     >
                       <span className="grid min-w-0 flex-1 gap-0.5">
                         <span className="text-sm font-medium text-[var(--nimi-text-primary)]">{capabilityLabel(capability)}</span>
@@ -1016,7 +1015,7 @@ export function SavedConfigsView(props: {
                       type="button"
                       data-testid={`create-recipe:${recipe.recipeId}`}
                       onClick={() => selectCreateRecipe(recipe)}
-                      className="group grid gap-1.5 rounded-xl border border-[var(--nimi-border-subtle)] px-4 py-3 text-left transition hover:border-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,transparent)]"
+                      className="group grid gap-1.5 rounded-xl border border-[var(--nimi-border-subtle)] px-4 py-3 text-left transition-colors hover:border-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]"
                     >
                       <span className="flex items-center justify-between gap-3">
                         <span className="flex min-w-0 flex-wrap items-center gap-2">
@@ -1159,7 +1158,7 @@ export function SavedConfigsView(props: {
       <OverlayShell
         open={manageLoadout !== null}
         kind="drawer"
-        size="M"
+        size="md"
         title={manageLoadout?.displayName ?? ''}
         onClose={() => {
           setManagePicker(null);
@@ -1404,7 +1403,7 @@ export function SavedConfigsView(props: {
           : 'runtimeConfig.loadouts.installRecommendedConfirm')}
         cancelLabel={t('runtimeConfig.loadouts.cancel')}
         confirmTone="primary"
-        pending={Boolean(busy)}
+        loading={Boolean(busy)}
         onConfirm={confirmRecommendedInstall}
         onClose={() => setPendingInstall(null)}
       />
@@ -1413,7 +1412,14 @@ export function SavedConfigsView(props: {
           open
           kind="dialog"
           closeOnBackdrop={false}
-          title={t(pendingImpact.kind === 'delete' ? 'runtimeConfig.loadouts.deleteImpactTitle' : 'runtimeConfig.loadouts.impactTitle')}
+          title={t(
+            pendingImpact.kind === 'delete'
+              ? (pendingImpact.selected ? 'runtimeConfig.loadouts.deleteImpactTitle' : 'runtimeConfig.loadouts.deleteSavedTitle')
+              : 'runtimeConfig.loadouts.impactTitle',
+            pendingImpact.kind === 'delete' && !pendingImpact.selected
+              ? { defaultValue: 'Delete saved configuration?' }
+              : undefined,
+          )}
           onClose={cancelImpact}
           footer={(
             <div className="flex gap-3">
@@ -1423,7 +1429,17 @@ export function SavedConfigsView(props: {
           )}
         >
           <div className="text-sm text-[var(--nimi-text-secondary)]">
-            {t(pendingImpact.kind === 'delete' ? 'runtimeConfig.loadouts.deleteImpactBody' : 'runtimeConfig.loadouts.impactBody', { name: pendingImpact.title })}
+            {t(
+              pendingImpact.kind === 'delete'
+                ? (pendingImpact.selected ? 'runtimeConfig.loadouts.deleteImpactBody' : 'runtimeConfig.loadouts.deleteSavedBody')
+                : 'runtimeConfig.loadouts.impactBody',
+              {
+                name: pendingImpact.title,
+                ...(pendingImpact.kind === 'delete' && !pendingImpact.selected
+                  ? { defaultValue: 'Permanently delete "{{name}}"? Downloaded model files will stay on this device.' }
+                  : {}),
+              },
+            )}
           </div>
         </OverlayShell>
       ) : null}
@@ -1451,7 +1467,7 @@ function CreateLoadoutStepIndicator(props: { readonly step: 1 | 2 | 3 }) {
             ) : null}
             <span
               aria-hidden="true"
-              className={`grid size-5 shrink-0 place-items-center rounded-full text-[11px] font-bold ${complete
+              className={`grid size-5 shrink-0 place-items-center rounded-full text-[length:var(--nimi-type-caption-size)] font-bold ${complete
                 ? 'bg-[var(--nimi-status-success)] text-[var(--nimi-text-inverse)]'
                 : current
                   ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
@@ -1485,7 +1501,7 @@ function CollapsibleRecipeSection(props: {
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
-        className="flex w-fit items-center gap-1.5 text-left text-sm font-medium text-[var(--nimi-text-muted)] transition hover:text-[var(--nimi-text-primary)]"
+        className="flex w-fit items-center gap-1.5 rounded px-1 py-0.5 text-left text-sm font-medium text-[var(--nimi-text-muted)] transition-colors hover:text-[var(--nimi-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]"
         data-testid="recipe-group-collapse-toggle"
       >
         <span aria-hidden="true" className={`inline-block text-xs transition-transform ${open ? 'rotate-90' : ''}`}>▸</span>

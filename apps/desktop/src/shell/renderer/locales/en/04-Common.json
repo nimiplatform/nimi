@@ -29,5 +29,7 @@
   "unknown": "Unknown",
   "notSet": "Not set",
   "backToTop": "Back to top",
-  "world": "World"
+  "world": "World",
+  "avatarSwitchConfirmTitle": "Switch current companion?",
+  "avatarSwitchConfirmDescription": "Another companion is already active. Switch the desktop companion to this Agent?"
 }

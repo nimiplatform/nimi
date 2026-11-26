@@ -29,5 +29,7 @@
   "unknown": "未知",
   "notSet": "未设置",
   "backToTop": "回到顶部",
-  "world": "世界"
+  "world": "世界",
+  "avatarSwitchConfirmTitle": "切换当前伴侣？",
+  "avatarSwitchConfirmDescription": "当前已有另一个伴侣处于活跃状态，是否将桌面伴侣切换为此智能体？"
 }

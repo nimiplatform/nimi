@@ -706,10 +706,12 @@ test('Chinese authoring copy remains present after descriptor-driven UI cut', as
 test('capability navigation edits one item, preserves drafts, and recovers selection after removal and import', async () => {
   const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: 'http://localhost', pretendToBeVisual: true });
   const values = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
-    HTMLElement: dom.window.HTMLElement, HTMLFormElement: dom.window.HTMLFormElement, HTMLInputElement: dom.window.HTMLInputElement,
-    Element: dom.window.Element, Node: dom.window.Node,
+    HTMLElement: dom.window.HTMLElement, HTMLButtonElement: dom.window.HTMLButtonElement, HTMLFormElement: dom.window.HTMLFormElement, HTMLInputElement: dom.window.HTMLInputElement,
+    Element: dom.window.Element, Node: dom.window.Node, NodeFilter: dom.window.NodeFilter,
     MutationObserver: dom.window.MutationObserver, DocumentFragment: dom.window.DocumentFragment,
     CustomEvent: dom.window.CustomEvent, getComputedStyle: dom.window.getComputedStyle,
+    requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window),
+    cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window),
     Event: dom.window.Event, IS_REACT_ACT_ENVIRONMENT: true };
   const previous = new Map(Object.keys(values).map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   for (const [key, value] of Object.entries(values)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
@@ -769,6 +771,17 @@ test('capability navigation edits one item, preserves drafts, and recovers selec
       .find((button) => button.textContent === 'Remove capability');
     assert.ok(remove);
     await act(async () => remove.click());
+    assert.equal(current.draft.capabilities.length, 2, 'removing capability requires dialog confirmation');
+    const cancelRemove = Array.from(dom.window.document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button'))
+      .find((button) => button.textContent === 'Cancel');
+    assert.ok(cancelRemove);
+    await act(async () => cancelRemove.click());
+    assert.equal(current.draft.capabilities.length, 2, 'cancelling confirmation keeps the capability');
+    await act(async () => remove.click());
+    const confirmRemove = Array.from(dom.window.document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button'))
+      .find((button) => button.textContent === 'Remove capability');
+    assert.ok(confirmRemove);
+    await act(async () => confirmRemove.click());
     byTestId('ai-profile-authoring-capability:text.generate');
     assert.equal(current.draft.capabilities.length, 1);
     await click('ai-profile-authoring-nav:metadata');

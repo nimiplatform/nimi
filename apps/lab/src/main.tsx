@@ -15,6 +15,7 @@ import './styles.css';
 // Synchronously initializes i18next before mount; see shell/i18n/index.ts.
 import { getCurrentLocale } from './shell/i18n/index.js';
 import { installDocumentLangSync } from './shell/i18n/document-lang.js';
+import { resolveLabInitialThemeSnapshot } from './shell/theme.js';
 
 // Platform bootstrap (Kit-owned): install the shell invoke/listen bridge before
 // the fixed local-app SDK client is constructed. The renderer receives only the
@@ -38,6 +39,7 @@ const overlayRoot = document.createElement('div');
 overlayRoot.id = 'lab-production-overlays';
 overlayRoot.classList.add('nimi-ui-module--lab');
 document.body.append(overlayRoot);
+const themeController = createNimiRendererThemeController(resolveLabInitialThemeSnapshot());
 const rendererHost = createNimiRendererHostBinding<NimiRendererHostMethodMap>({
   opaqueScopePrefix: 'lab-production',
   declaredMethods: [],
@@ -46,11 +48,7 @@ const rendererHost = createNimiRendererHostBinding<NimiRendererHostMethodMap>({
     ? { locale: 'zh-CN', language: 'zh', direction: 'ltr' }
     : { locale: 'en-US', language: 'en', direction: 'ltr' },
   targets: { renderer: rendererRoot, overlay: overlayRoot },
-  theme: createNimiRendererThemeController({
-    scheme: 'light',
-    accentPack: 'nimi-accent',
-    density: 'regular',
-  }),
+  theme: themeController,
   operations: {
     invoke: async () => ({ ok: false, error: { disposition: 'unsupported' } }),
   },
@@ -65,7 +63,7 @@ const reactRoot = createRoot(rendererRoot);
 reactRoot.render(
   <React.StrictMode>
     <Suspense fallback={null}>
-      <App rendererHost={rendererHost} />
+      <App rendererHost={rendererHost} onThemeSnapshotChange={themeController.setSnapshot} />
     </Suspense>
   </React.StrictMode>,
 );

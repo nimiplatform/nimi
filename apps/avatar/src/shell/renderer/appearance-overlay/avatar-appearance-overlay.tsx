@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import type { AvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
+import { motion, nimiOverlayPanelMotion, useNimiReducedMotion } from '@nimiplatform/kit/ui/motion';
 import { useTranslation } from '../i18n/index.js';
+import { useClampedOverlayPosition } from '../use-clamped-overlay-position.js';
 
 export type AvatarAppearanceOverlayDismissReason =
   | 'close'
@@ -17,28 +19,13 @@ export type AvatarAppearanceOverlayProps = {
   modelManifest: AvatarModelManifest;
   sourceAuthority: AvatarAppearanceSourceAuthority;
   scale: number;
+  returnFocusTarget?: HTMLElement | null;
   onDismiss(reason: AvatarAppearanceOverlayDismissReason): void;
 };
 
 const OVERLAY_WIDTH_PX = 300;
 const OVERLAY_ESTIMATED_HEIGHT_PX = 240;
 const VIEWPORT_PADDING_PX = 8;
-
-function clampPosition(value: number, size: number, viewport: number): number {
-  if (!Number.isFinite(value)) return VIEWPORT_PADDING_PX;
-  const max = Math.max(VIEWPORT_PADDING_PX, viewport - size - VIEWPORT_PADDING_PX);
-  return Math.max(VIEWPORT_PADDING_PX, Math.min(value, max));
-}
-
-function readViewportSize(): { width: number; height: number } {
-  if (typeof window === 'undefined') {
-    return { width: 400, height: 600 };
-  }
-  return {
-    width: Math.max(1, window.innerWidth),
-    height: Math.max(1, window.innerHeight),
-  };
-}
 
 function scalePercent(scale: number): string {
   const safeScale = Number.isFinite(scale) ? scale : 1;
@@ -52,40 +39,64 @@ export function AvatarAppearanceOverlay(props: AvatarAppearanceOverlayProps) {
     modelManifest,
     sourceAuthority,
     scale,
+    returnFocusTarget,
     onDismiss,
   } = props;
   const { t } = useTranslation();
+  const reducedMotion = useNimiReducedMotion();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
+  const dismissedRef = useRef(false);
+  dismissedRef.current = false;
 
-  const position = useMemo(() => {
-    const viewport = readViewportSize();
-    return {
-      left: clampPosition(x, OVERLAY_WIDTH_PX, viewport.width),
-      top: clampPosition(y, OVERLAY_ESTIMATED_HEIGHT_PX, viewport.height),
-    };
-  }, [x, y]);
+  const position = useClampedOverlayPosition({
+    x,
+    y,
+    fallbackWidth: OVERLAY_WIDTH_PX,
+    fallbackHeight: OVERLAY_ESTIMATED_HEIGHT_PX,
+    padding: VIEWPORT_PADDING_PX,
+    rootRef,
+  });
+  const panelMotion = nimiOverlayPanelMotion({
+    kind: 'popover',
+    side: position.side,
+    align: position.align,
+    reducedMotion,
+  });
 
   useEffect(() => {
-    returnFocusRef.current = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
-    rootRef.current?.focus();
+    const rootEl = rootRef.current;
+    const active = document.activeElement;
+    returnFocusRef.current =
+      returnFocusTarget
+      ?? (active instanceof HTMLElement && !active.closest('[data-avatar-interactive-region="true"]')
+        ? active
+        : null);
+    rootEl?.focus();
     return () => {
       const target = returnFocusRef.current;
-      if (target?.isConnected) target.focus();
+      const currentActive = document.activeElement;
+      const shouldRestore =
+        !currentActive
+        || currentActive === document.body
+        || currentActive === document.documentElement
+        || (rootEl !== null && rootEl.contains(currentActive));
+      if (shouldRestore && target?.isConnected) target.focus();
     };
   }, []);
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent): void => {
+      if (dismissedRef.current) return;
       const root = rootRef.current;
       if (!root || !(event.target instanceof Node) || root.contains(event.target)) return;
+      dismissedRef.current = true;
       onDismiss('outside_click');
     };
     const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.key !== 'Escape') return;
+      if (dismissedRef.current || event.key !== 'Escape') return;
       event.preventDefault();
+      dismissedRef.current = true;
       onDismiss('escape');
     };
     document.addEventListener('pointerdown', handlePointerDown, true);
@@ -120,15 +131,18 @@ export function AvatarAppearanceOverlay(props: AvatarAppearanceOverlayProps) {
   ];
 
   return (
-    <div
+    <motion.div
       ref={rootRef}
       id="avatar-appearance-overlay"
-      className="avatar-appearance-overlay nimi-material-glass-chrome backdrop-blur-[var(--nimi-backdrop-blur-chrome)] backdrop-saturate-[var(--nimi-backdrop-saturate)]"
-      style={{ left: position.left, top: position.top }}
+      className="avatar-appearance-overlay nimi-material-glass-chrome bg-[var(--nimi-material-glass-chrome-bg)] border-[var(--nimi-material-glass-chrome-border)] backdrop-blur-[var(--nimi-backdrop-blur-chrome)] backdrop-saturate-[var(--nimi-backdrop-saturate)]"
+      {...panelMotion}
+      style={{ ...panelMotion.style, left: position.left, top: position.top }}
       role="dialog"
       aria-label={t('Avatar.appearance.popover_aria')}
       tabIndex={-1}
       data-testid="avatar-appearance-overlay"
+      data-nimi-material="glass-chrome"
+      data-nimi-tone="overlay"
       data-avatar-interactive-region="true"
       onContextMenu={(event) => event.preventDefault()}
     >
@@ -139,7 +153,11 @@ export function AvatarAppearanceOverlay(props: AvatarAppearanceOverlayProps) {
           className="avatar-appearance-overlay__icon-button"
           aria-label={t('Avatar.appearance.close_aria')}
           data-testid="avatar-appearance-overlay-close"
-          onClick={() => onDismiss('close')}
+          onClick={() => {
+            if (dismissedRef.current) return;
+            dismissedRef.current = true;
+            onDismiss('close');
+          }}
         >
           <X size={14} aria-hidden="true" />
         </button>
@@ -154,6 +172,6 @@ export function AvatarAppearanceOverlay(props: AvatarAppearanceOverlayProps) {
           </div>
         ))}
       </dl>
-    </div>
+    </motion.div>
   );
 }

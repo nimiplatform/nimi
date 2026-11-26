@@ -1,7 +1,7 @@
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { NimiText, Surface } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, NimiText, Surface } from '@nimiplatform/kit/ui';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 type StorageUsage = {
@@ -32,8 +32,10 @@ export function EnvironmentDataTab() {
   const [usage, setUsage] = useState<StorageUsage | null>(null);
   const [dataRoot, setDataRoot] = useState('');
   const [loadFailed, setLoadFailed] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const refresh = useCallback(async () => {
+    setRefreshing(true);
     try {
       const [estimate, dirs] = await Promise.all([
         bindings.app.commands.settings.estimateStorageUsage(),
@@ -44,6 +46,8 @@ export function EnvironmentDataTab() {
       setLoadFailed(false);
     } catch {
       setLoadFailed(true);
+    } finally {
+      setRefreshing(false);
     }
   }, [bindings]);
 
@@ -58,27 +62,31 @@ export function EnvironmentDataTab() {
   return (
     <div className="flex min-w-0 flex-col gap-4">
       {loadFailed ? (
-        <NimiText role="helper">{t('runtimeConfig.environment.dataLoadFailed', { defaultValue: 'Storage information is unavailable.' })}</NimiText>
+        <InlineAlert tone="warning" role="alert">
+          {t('runtimeConfig.environment.dataLoadFailed', { defaultValue: 'Storage information is unavailable.' })}
+        </InlineAlert>
       ) : null}
       <Surface tone="card" padding="none" className="p-4">
         <div className="flex items-start justify-between gap-3">
           <NimiText as="h3" role="card-title">
             {t('runtimeConfig.environment.dataStorageTitle', { defaultValue: 'App data storage (this shell)' })}
           </NimiText>
-          <button
+          <Button
             type="button"
+            tone="ghost"
+            size="sm"
+            loading={refreshing}
             onClick={() => { void refresh(); }}
-            className="text-[length:var(--nimi-type-body-sm-size)] font-medium text-[var(--nimi-action-primary-bg)] hover:underline"
           >
             {t('runtimeConfig.environment.dataRefresh', { defaultValue: 'Refresh' })}
-          </button>
+          </Button>
         </div>
         <div className="mt-3 space-y-2">
           <div className="flex items-center justify-between">
             <NimiText as="span" role="body">
               {t('runtimeConfig.environment.dataStorageUsed', { defaultValue: 'Estimated used by this app' })}
             </NimiText>
-            <NimiText as="span" role="label" className="text-[var(--nimi-text-primary)]">
+            <NimiText as="span" role="label" className="tabular-nums text-[var(--nimi-text-primary)]">
               {usage ? formatBytes(usage.estimatedUsageBytes) : '-'}
             </NimiText>
           </div>
@@ -86,7 +94,7 @@ export function EnvironmentDataTab() {
             <NimiText as="span" role="body">
               {t('runtimeConfig.environment.dataStorageQuota', { defaultValue: 'Quota' })}
             </NimiText>
-            <NimiText as="span" role="label" className="text-[var(--nimi-text-primary)]">
+            <NimiText as="span" role="label" className="tabular-nums text-[var(--nimi-text-primary)]">
               {usage && usage.estimatedQuotaBytes > 0 ? formatBytes(usage.estimatedQuotaBytes) : '-'}
             </NimiText>
           </div>
@@ -106,7 +114,7 @@ export function EnvironmentDataTab() {
         type="button"
         onClick={openSettingsDataManagement}
         data-testid="runtime-environment-data-open-settings"
-        className="self-start text-[length:var(--nimi-type-body-sm-size)] font-medium text-[var(--nimi-action-primary-bg)] hover:underline"
+        className="self-start rounded px-1 py-0.5 text-[length:var(--nimi-type-body-sm-size)] font-medium text-[var(--nimi-action-primary-bg)] transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]"
       >
         {t('runtimeConfig.environment.dataManageInSettings', { defaultValue: 'Manage cache and account data in Settings' })}
       </button>

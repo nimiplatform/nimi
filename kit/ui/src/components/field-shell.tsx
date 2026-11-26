@@ -10,6 +10,14 @@ type FieldShellProps = {
   className?: string;
 };
 
+const MESSAGE_TONE_CLASS: Record<FeedbackTone, string> = {
+  neutral: 'text-[var(--nimi-text-muted)]',
+  success: 'text-[var(--nimi-status-success-soft-text)]',
+  warning: 'text-[var(--nimi-status-warning-soft-text)]',
+  danger: 'text-[var(--nimi-status-danger-soft-text)]',
+  info: 'text-[var(--nimi-status-info-soft-text)]',
+};
+
 export function FieldShell({
   label,
   description,
@@ -40,9 +48,10 @@ export function FieldShell({
       {message ? (
         <div
           id={messageId}
+          role={messageTone === 'danger' ? 'alert' : undefined}
           className={cn(
             'nimi-field-shell__message text-[length:var(--nimi-type-caption-size)]',
-            messageTone === 'danger' ? 'text-[var(--nimi-status-danger)]' : 'text-[var(--nimi-text-muted)]',
+            MESSAGE_TONE_CLASS[messageTone],
           )}
         >
           {message}

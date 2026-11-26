@@ -338,7 +338,7 @@ export function PartnerUtopiaPresence(props: {
               <span>{t('runtimeConfig.partners.utopia.staleNotice')}</span>
               <button
                 type="button"
-                className="underline"
+                className="rounded-sm underline active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1"
                 onClick={() => { void utopiaQuery.refetch(); }}
               >
                 {t('runtimeConfig.partners.utopia.retryRefresh')}

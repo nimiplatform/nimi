@@ -302,7 +302,12 @@ export function DemoAppPreview({ opened, guiding, apps, preview, onClose, onBody
       : preview;
 
   const dismiss = () => {
-    if (typeof document !== 'undefined' && document.querySelector('[data-demo-nested-dialog]')) return;
+    if (
+      typeof document !== 'undefined' &&
+      document.querySelector('[data-demo-nested-dialog], dialog[open]')
+    ) {
+      return;
+    }
     onClose();
   };
 
@@ -310,7 +315,7 @@ export function DemoAppPreview({ opened, guiding, apps, preview, onClose, onBody
     if (!app || inline) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || event.defaultPrevented) return;
-      if (document.querySelector('[data-demo-nested-dialog]')) return;
+      if (document.querySelector('[data-demo-nested-dialog], dialog[open]')) return;
       onClose();
     };
     window.addEventListener('keydown', onKeyDown);

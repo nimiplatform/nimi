@@ -57,6 +57,8 @@ export function AvatarRuntimeStatusRegion(props: { status: AvatarRuntimeStatus }
       ].filter(Boolean).join(' ')}
       data-testid="avatar-runtime-status"
       data-avatar-status={props.status}
+      data-nimi-material="glass-thick"
+      data-nimi-tone="overlay"
       aria-live="polite"
       aria-atomic="true"
       style={props.status === 'ready' ? VISUALLY_HIDDEN_STYLE as CSSProperties : undefined}

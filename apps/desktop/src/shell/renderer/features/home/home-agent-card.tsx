@@ -257,7 +257,7 @@ export function HomeAgentCardView({
   if (state === 'loading') {
     return (
       <AppCardSurface
-        kind="promoted-glass"
+        kind="operational-solid"
         className="flex h-full min-h-32 flex-col justify-center gap-2.5 rounded-3xl border-transparent! bg-[var(--nimi-home-porcelain-card)]! p-6 shadow-[var(--nimi-home-porcelain-shadow)]!"
         data-testid="home-agent-card"
         data-state={state}
@@ -269,7 +269,7 @@ export function HomeAgentCardView({
   if (state === 'unavailable') {
     return (
       <AppCardSurface
-        kind="promoted-glass"
+        kind="operational-solid"
         className="flex h-full min-h-24 flex-col justify-center gap-2.5 rounded-3xl border-transparent! bg-[var(--nimi-home-porcelain-card)]! p-6 shadow-[var(--nimi-home-porcelain-shadow)]!"
         data-testid="home-agent-card"
         data-state={state}
@@ -281,7 +281,7 @@ export function HomeAgentCardView({
   if (state === 'none') {
     return (
       <AppCardSurface
-        kind="promoted-glass"
+        kind="operational-solid"
         className="flex h-full min-w-0 flex-col justify-between gap-5 rounded-3xl border-transparent! bg-[var(--nimi-home-porcelain-card)]! p-6 shadow-[var(--nimi-home-porcelain-shadow)]!"
         data-testid="home-agent-card"
         data-state={state}
@@ -322,7 +322,7 @@ export function HomeAgentCardView({
 
   return (
     <AppCardSurface
-      kind="promoted-glass"
+      kind="operational-solid"
       className="flex h-full min-w-0 flex-col gap-4 rounded-3xl border-transparent! bg-[var(--nimi-home-porcelain-card)]! p-6 shadow-[var(--nimi-home-porcelain-shadow)]!"
       data-testid="home-agent-card"
       data-state={state}

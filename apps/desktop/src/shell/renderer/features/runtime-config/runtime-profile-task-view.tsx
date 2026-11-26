@@ -1,5 +1,4 @@
 import { capabilityIcon, Button, InlineAlert, LoadingSkeleton } from '@nimiplatform/kit/ui';
-import { LoaderCircle } from 'lucide-react';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
@@ -301,11 +300,11 @@ export function RuntimeProfileTaskView(props: {
               <>
                 <Button
                   tone="primary"
-                  disabled={active || checking || !canUse}
+                  loading={active}
+                  disabled={checking || !canUse}
                   onClick={() => run('prepare-and-use')}
                   data-testid="ai-profile-confirm-use"
                 >
-                  {active ? <LoaderCircle size={15} className="animate-spin" /> : null}
                   {t(nothingToPrepare ? 'runtimeConfig.product.useTheseSettings' : 'runtimeConfig.profileRun.confirm')}
                 </Button>
                 {!nothingToPrepare && canPrepare ? (

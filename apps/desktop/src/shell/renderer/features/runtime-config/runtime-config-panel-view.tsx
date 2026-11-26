@@ -25,7 +25,7 @@ const AdvancedDiagnosticsPage = lazy(async () => ({
 }));
 
 function RuntimeSkeletonBlock({ className }: { className: string }) {
-  return <div className={`animate-pulse rounded-2xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)] ${className}`} />;
+  return <div className={`animate-pulse motion-reduce:animate-none rounded-2xl bg-[var(--nimi-surface-panel)] ${className}`} />;
 }
 
 export function RuntimeConfigPanelBody() {

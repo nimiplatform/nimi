@@ -68,6 +68,13 @@ const en = {
   'workspace.renamePlaceholder': 'Session name',
   'workspace.inspectorToggle': 'Inspector',
   'workspace.contextPill': '{used} tokens',
+  'workspace.viewSwitch': 'Switch view',
+  'workspace.viewMatters': 'Tasks & deliverables',
+  'workspace.viewWorkspace': 'Project workspace',
+  'workspace.snapshotsRegion': 'Pre-write file backups',
+  'workspace.snapshotsLabel': 'Recent pre-write backups (typed file edits only):',
+  'workspace.snapshotRestored': 'Restored {path}',
+  'workspace.snapshotRestore': 'Restore before edit ({path})',
 
   // Permission Modes
   'permission.label': 'Permissions',
@@ -147,6 +154,9 @@ const en = {
   'decision.fullArgs': 'Full arguments',
   'decision.readBadge': 'READ',
   'decision.writeBadge': 'WRITE',
+  'decision.controlPlaneWarning': 'Control-plane file protection: modifying build, script, or Git config files permits single-use approval (allow once) only.',
+  'decision.freeShellWarning': 'Security notice: approved commands run under your OS user account (with a minimal environment allowlist and .env credential redaction) and permit single-use approval only.',
+  'decision.recentAiEditedLabel': 'Files recently edited by AI in this session: ',
 
   // Model & Reasoning & Conflict
   'model.choose': 'Choose model',
@@ -205,6 +215,8 @@ const en = {
   'composer.attachedFiles': 'Attached files',
 
   // Inspector Drawer
+  'inspector.region': 'Inspector',
+  'inspector.tabsLabel': 'Inspector tabs',
   'inspector.files': 'Files',
   'inspector.session': 'Session',
   'inspector.integrations': 'Integrations',
@@ -244,6 +256,8 @@ const en = {
   'settings.saveAsPreset': 'Save as preset',
   'settings.applyPreset': 'Apply',
   'settings.deletePreset': 'Delete',
+  'settings.presetDeleted': 'Removed preset "{name}"',
+  'settings.undo': 'Undo',
   'settings.allowlistTitle': 'Session tool allowlist',
   'settings.allowlistHint': 'Allowed for this session only; cleared on close.',
 
@@ -267,6 +281,7 @@ const en = {
   'remote.noSessions': 'No sessions on this PC yet.',
   'remote.loadMore': 'Load more',
   'remote.selectSession': 'Select a PC session to view its conversation, approve actions, or browse workspace files.',
+  'remote.tabsLabel': 'Session views',
   'remote.tabChat': 'Chat',
   'remote.tabFiles': 'Files',
   'remote.backSessions': 'Sessions',
@@ -367,6 +382,13 @@ const zh: Record<TranslationKey, string> = {
   'workspace.renamePlaceholder': '会话名称',
   'workspace.inspectorToggle': '工作区面板',
   'workspace.contextPill': '{used} tokens',
+  'workspace.viewSwitch': '视图切换',
+  'workspace.viewMatters': '事项与交付',
+  'workspace.viewWorkspace': '项目工作区',
+  'workspace.snapshotsRegion': '类型化文件写前备份',
+  'workspace.snapshotsLabel': '近期文件写入备份（仅限类型化文件改动）：',
+  'workspace.snapshotRestored': '已恢复 {path}',
+  'workspace.snapshotRestore': '恢复此次改动前的文件 ({path})',
 
   // Permission Modes
   'permission.label': '权限模式',
@@ -446,6 +468,9 @@ const zh: Record<TranslationKey, string> = {
   'decision.fullArgs': '完整参数',
   'decision.readBadge': '读取',
   'decision.writeBadge': '写入',
+  'decision.controlPlaneWarning': '控制面文件保护：修改构建/脚本/Git 配置仅允许单次授权（allow_once）。',
+  'decision.freeShellWarning': '安全提示：获批命令在当前操作系统用户权限下运行（已启用最小环境变量白名单与 .env 凭据输出脱敏），且仅支持单次授权。',
+  'decision.recentAiEditedLabel': '本会话近期由 AI 改动的文件：',
 
   // Model & Reasoning & Conflict
   'model.choose': '选择模型',
@@ -504,6 +529,8 @@ const zh: Record<TranslationKey, string> = {
   'composer.attachedFiles': '已附加文件',
 
   // Inspector Drawer
+  'inspector.region': '工作区面板',
+  'inspector.tabsLabel': '面板标签',
   'inspector.files': '文件',
   'inspector.session': '会话与预设',
   'inspector.integrations': '集成',
@@ -543,6 +570,8 @@ const zh: Record<TranslationKey, string> = {
   'settings.saveAsPreset': '存为预设',
   'settings.applyPreset': '应用',
   'settings.deletePreset': '删除',
+  'settings.presetDeleted': '已删除预设“{name}”',
+  'settings.undo': '撤销',
   'settings.allowlistTitle': '本会话已放行工具',
   'settings.allowlistHint': '仅在当前会话内存中有效，关闭后自动清空。',
 
@@ -566,6 +595,7 @@ const zh: Record<TranslationKey, string> = {
   'remote.noSessions': '该电脑上还没有会话。',
   'remote.loadMore': '加载更多',
   'remote.selectSession': '选择一个 PC 会话以查看聊天记录、审批工具调用或浏览工作区文件。',
+  'remote.tabsLabel': '会话视图',
   'remote.tabChat': '对话',
   'remote.tabFiles': '文件',
   'remote.backSessions': '会话列表',

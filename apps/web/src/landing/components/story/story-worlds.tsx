@@ -1,7 +1,8 @@
 import { useRef, useState, type CSSProperties } from 'react';
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { projectMomentum, rubberband } from '@nimiplatform/kit/ui';
 import { getExploreWorlds } from '../../content/explore-demo-data.js';
-import { galleryDragSelection, wrapGalleryIndex } from '../../content/story-model.js';
+import { computeGalleryReleaseVelocity, galleryDragSelection, wrapGalleryIndex } from '../../content/story-model.js';
 import type { StoryText } from '../../content/story-copy.js';
 import { exploreTopics } from '../demo-explore.js';
 import { StoryHeading } from './story-shared.js';
@@ -9,34 +10,76 @@ import { StoryHeading } from './story-shared.js';
 export function StoryWorlds({ t, onOpenWorld, locale }: { locale: 'zh' | 'en'; t: StoryText; onOpenWorld: (worldId: string) => void }) {
   const [index, setIndex] = useState(4);
   const [offset, setOffset] = useState(0);
+  const [dragging, setDragging] = useState(false);
   const reel = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ x: number; y: number; active: boolean } | null>(null);
+  const drag = useRef<{
+    x: number;
+    y: number;
+    active: boolean;
+    samples: Array<{ x: number; t: number }>;
+  } | null>(null);
   const suppressClick = useRef(false);
   const exploreWorlds = getExploreWorlds(locale);
   const world = exploreWorlds[index]!;
   const selectIndex = (next: number) => { setIndex(wrapGalleryIndex(next, exploreWorlds.length)); setOffset(0); };
   const openWorld = () => onOpenWorld(world.id);
+  const finishDrag = (el: HTMLDivElement, pointerId?: number) => {
+    if (pointerId !== undefined && el.hasPointerCapture(pointerId)) {
+      el.releasePointerCapture(pointerId);
+    }
+    drag.current = null;
+    setDragging(false);
+    setOffset(0);
+  };
   return <section className="story-section story-worlds" id="worlds" aria-labelledby="worlds-heading" data-story-scene>
     <div className="story-container"><StoryHeading t={t} section="worlds" /></div>
-    <div className="story-world-reel" id="story-world-reel" ref={reel} data-dragging={drag.current?.active || undefined} tabIndex={0} role="region" aria-label={t('worlds.title')}
+    <div className="story-world-reel" id="story-world-reel" ref={reel} data-dragging={dragging || undefined} tabIndex={0} role="region" aria-label={t('worlds.title')}
       onKeyDown={e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); selectIndex(index + (e.key === 'ArrowLeft' ? -1 : 1)); reel.current?.focus({ preventScroll: true }); } if (e.key === 'Enter' && e.target === e.currentTarget) { e.preventDefault(); openWorld(); } }}
-      onPointerDown={e => { if (e.button !== 0) return; drag.current = { x: e.clientX, y: e.clientY, active: false }; }}
+      onPointerDown={e => {
+        if (e.button !== 0) return;
+        drag.current = { x: e.clientX, y: e.clientY, active: false, samples: [{ x: e.clientX, t: performance.now() }] };
+      }}
       onPointerMove={e => {
         const current = drag.current; if (!current) return;
         const dx = e.clientX - current.x, dy = e.clientY - current.y;
-        if (!current.active && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) { current.active = true; e.currentTarget.setPointerCapture(e.pointerId); }
-        if (current.active) { e.preventDefault(); setOffset(Math.max(-450, Math.min(450, dx))); }
+        const now = performance.now();
+        current.samples.push({ x: e.clientX, t: now });
+        while (current.samples.length > 2 && now - current.samples[0]!.t > 90) {
+          current.samples.shift();
+        }
+        if (!current.active && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
+          current.active = true;
+          setDragging(true);
+          e.currentTarget.setPointerCapture(e.pointerId);
+        }
+        if (current.active) {
+          e.preventDefault();
+          const dim = Math.max(280, e.currentTarget.clientWidth * 0.42);
+          const nextOffset = Math.abs(dx) <= dim
+            ? dx
+            : Math.sign(dx) * (dim + rubberband(Math.abs(dx) - dim, dim));
+          setOffset(nextOffset);
+        }
       }}
       onPointerUp={e => {
-        if (drag.current?.active) { suppressClick.current = true; selectIndex(galleryDragSelection(index, e.clientX - drag.current.x, e.currentTarget.clientWidth, exploreWorlds.length)); window.setTimeout(() => { suppressClick.current = false; }, 0); }
-        drag.current = null; setOffset(0);
-      }} onPointerCancel={() => { drag.current = null; setOffset(0); }}
+        const current = drag.current;
+        if (current?.active) {
+          suppressClick.current = true;
+          const velocityPxPerSec = computeGalleryReleaseVelocity(current.samples, performance.now(), e.clientX);
+          const dx = e.clientX - current.x;
+          const projectedDx = dx + projectMomentum(velocityPxPerSec, 0.99);
+          selectIndex(galleryDragSelection(index, projectedDx, e.currentTarget.clientWidth, exploreWorlds.length));
+          window.setTimeout(() => { suppressClick.current = false; }, 0);
+        }
+        finishDrag(e.currentTarget, e.pointerId);
+      }}
+      onPointerCancel={e => finishDrag(e.currentTarget, e.pointerId)}
       onClickCapture={e => { if (suppressClick.current) { e.preventDefault(); e.stopPropagation(); } }}>
       {[-2, -1, 0, 1, 2].map(position => {
         const item = exploreWorlds[wrapGalleryIndex(index + position, exploreWorlds.length)]!;
         return <button key={item.id} type="button" className={`story-world-print ${position === 0 ? 'is-front' : ''}`} tabIndex={position === 0 ? 0 : -1}
           aria-label={`${t('worlds.open')} · ${item.name}`} aria-pressed={position === 0}
-          style={{ '--reel-position': position, '--reel-distance': Math.abs(position), '--reel-drag': `${offset * 0.5}px` } as CSSProperties}
+          style={{ '--reel-position': position, '--reel-distance': Math.abs(position), '--reel-drag': `${offset}px` } as CSSProperties}
           aria-haspopup={position === 0 ? 'dialog' : undefined}
           onClick={() => position === 0 ? openWorld() : selectIndex(index + position)}>
           <img src={item.image} alt="" draggable={false} loading="lazy" />

@@ -76,7 +76,7 @@ export function IntegrationSidebar({
   return (
     <DesktopModuleSidebar label={t('Integrations.title')} selectionKey={selected} data-testid="integrations-sidebar">
       <div className="desktop-sidebar__header flex min-w-0 items-center justify-between gap-2">
-        <h1 className="desktop-sidebar__title shrink-0 font-semibold text-[var(--nimi-text-primary)]">{t('Integrations.title')}</h1>
+        <h2 className="desktop-sidebar__title shrink-0 font-semibold text-[var(--nimi-text-primary)]">{t('Integrations.title')}</h2>
         <p className="min-w-0 text-right text-xs leading-4 text-[var(--nimi-text-secondary)]">
           {t('Integrations.serviceCount', { count: services.length })}
         </p>
@@ -103,7 +103,6 @@ export function IntegrationSidebar({
               type="button"
               key={kind}
               data-testid={`integration-service-${kind}`}
-              aria-pressed={selected === kind}
               disabled={disabled}
               className={itemClass}
               data-active={selected === kind}
@@ -136,7 +135,6 @@ export function IntegrationSidebar({
           data-active={selected === 'all-permissions'}
           aria-current={selected === 'all-permissions' ? 'page' : undefined}
           disabled={disabled}
-          aria-pressed={selected === 'all-permissions'}
           onClick={() => onSelect('all-permissions')}
         >
           <KeyRound size={16} aria-hidden="true" />
@@ -149,7 +147,6 @@ export function IntegrationSidebar({
           data-active={selected === 'all-calls'}
           aria-current={selected === 'all-calls' ? 'page' : undefined}
           disabled={disabled}
-          aria-pressed={selected === 'all-calls'}
           onClick={() => onSelect('all-calls')}
         >
           <Clock3 size={16} aria-hidden="true" />

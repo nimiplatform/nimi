@@ -67,7 +67,7 @@ export function PartnerProfileLoading({
                   />
                 </>
               ) : (
-                <div aria-hidden="true" className="h-full w-full animate-pulse bg-[var(--nimi-surface-active)]" />
+                <div aria-hidden="true" className="h-full w-full animate-pulse motion-reduce:animate-none bg-[var(--nimi-surface-active)]" />
               )}
               {worldId && worldName && onOpenWorld ? (
                 <button
@@ -110,8 +110,8 @@ export function PartnerProfileLoading({
                   </h1>
                 </div>
                 <div aria-hidden="true" className="mt-2.5 grid max-w-sm gap-2">
-                  <div className="h-4 w-48 max-w-full animate-pulse rounded bg-[var(--nimi-surface-active)]" />
-                  <div className="h-3.5 w-36 max-w-full animate-pulse rounded bg-[var(--nimi-surface-panel)]" />
+                  <div className="h-4 w-48 max-w-full animate-pulse motion-reduce:animate-none rounded bg-[var(--nimi-surface-active)]" />
+                  <div className="h-3.5 w-36 max-w-full animate-pulse motion-reduce:animate-none rounded bg-[var(--nimi-surface-panel)]" />
                 </div>
               </div>
 
@@ -128,12 +128,12 @@ export function PartnerProfileLoading({
                 <div data-testid="world-character-stage-column" className="grid min-w-0 content-start gap-10">
                   <div>{sourceNotice}</div>
                   <div aria-hidden="true" className="grid gap-3">
-                    <div className="h-5 w-32 animate-pulse rounded bg-[var(--nimi-surface-active)]" />
-                    <div className="h-4 animate-pulse rounded bg-[var(--nimi-surface-active)]" />
-                    <div className="h-4 w-11/12 animate-pulse rounded bg-[var(--nimi-surface-active)]" />
-                    <div className="h-4 w-4/5 animate-pulse rounded bg-[var(--nimi-surface-panel)]" />
+                    <div className="h-5 w-32 animate-pulse motion-reduce:animate-none rounded bg-[var(--nimi-surface-active)]" />
+                    <div className="h-4 animate-pulse motion-reduce:animate-none rounded bg-[var(--nimi-surface-active)]" />
+                    <div className="h-4 w-11/12 animate-pulse motion-reduce:animate-none rounded bg-[var(--nimi-surface-active)]" />
+                    <div className="h-4 w-4/5 animate-pulse motion-reduce:animate-none rounded bg-[var(--nimi-surface-panel)]" />
                   </div>
-                  <div aria-hidden="true" className="h-48 animate-pulse rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-panel)]" />
+                  <div aria-hidden="true" className="h-48 animate-pulse motion-reduce:animate-none rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-panel)]" />
                 </div>
 
                 <aside
@@ -142,9 +142,9 @@ export function PartnerProfileLoading({
                 >
                   <div className="char-folio-section">{status}</div>
                   <div aria-hidden="true" className="char-folio-section grid gap-2.5">
-                    <div className="h-4 w-24 animate-pulse rounded bg-[var(--nimi-surface-active)]" />
-                    <div className="h-3.5 w-full animate-pulse rounded bg-[var(--nimi-surface-card)]" />
-                    <div className="h-3.5 w-3/4 animate-pulse rounded bg-[var(--nimi-surface-card)]" />
+                    <div className="h-4 w-24 animate-pulse motion-reduce:animate-none rounded bg-[var(--nimi-surface-active)]" />
+                    <div className="h-3.5 w-full animate-pulse motion-reduce:animate-none rounded bg-[var(--nimi-surface-card)]" />
+                    <div className="h-3.5 w-3/4 animate-pulse motion-reduce:animate-none rounded bg-[var(--nimi-surface-card)]" />
                   </div>
                 </aside>
               </div>

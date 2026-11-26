@@ -1360,4 +1360,69 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
     // Canonical 60Hz cap.
     expect(setIgnoreCursorEventsMock.mock.calls.length).toBeLessThanOrEqual(2);
   });
+
+  it('renders hold feedback indicator during long-press charge, honors reducedMotion, and clears on move/up/cancel', () => {
+    const backend = createMockBackend({
+      hitRegion: {
+        body: { left: 0, top: 0, right: 1, bottom: 1 },
+        drag: { left: 0, top: 0, right: 1, bottom: 1 },
+        isOpaqueAtClientPoint: () => true,
+      },
+    });
+    render(<EmbodimentStage {...baseProps} backend={backend} reducedMotion={true} />);
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+    installStageRect(stage);
+
+    expect(screen.queryByTestId('avatar-long-press-indicator')).toBeNull();
+    fireEvent.pointerDown(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 91,
+      clientX: 140,
+      clientY: 210,
+      screenX: 140,
+      screenY: 210,
+    });
+    const indicator = screen.getByTestId('avatar-long-press-indicator');
+    expect(indicator.getAttribute('data-reduced-motion')).toBe('true');
+    expect(indicator.style.left).toBe('140px');
+    expect(indicator.style.top).toBe('210px');
+
+    // Micro-jitter below 8px keeps the hold indicator alive.
+    fireEvent.pointerMove(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 91,
+      clientX: 145,
+      clientY: 210,
+      screenX: 145,
+      screenY: 210,
+    });
+    expect(screen.getByTestId('avatar-long-press-indicator')).toBeTruthy();
+
+    // Pointer up immediately clears it.
+    fireEvent.pointerUp(stage, {
+      button: 0,
+      pointerId: 91,
+      clientX: 145,
+      clientY: 210,
+      screenX: 145,
+      screenY: 210,
+    });
+    expect(screen.queryByTestId('avatar-long-press-indicator')).toBeNull();
+
+    // Pointer cancel immediately clears it as well.
+    fireEvent.pointerDown(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 92,
+      clientX: 150,
+      clientY: 220,
+      screenX: 150,
+      screenY: 220,
+    });
+    expect(screen.getByTestId('avatar-long-press-indicator')).toBeTruthy();
+    fireEvent.pointerCancel(stage, { pointerId: 92 });
+    expect(screen.queryByTestId('avatar-long-press-indicator')).toBeNull();
+  });
 });

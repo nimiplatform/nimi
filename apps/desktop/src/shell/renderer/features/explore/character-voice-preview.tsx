@@ -136,7 +136,7 @@ export function CharacterVoicePreviewButton({
         toggleCharacterVoicePreview(src);
       }}
       className={
-        `inline-flex items-center rounded-full border transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${layoutClass} ${toneClass} ${className}`
+        `inline-flex items-center rounded-full border transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.96] motion-reduce:transform-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${layoutClass} ${toneClass} ${className}`
       }
     >
       {playing ? (

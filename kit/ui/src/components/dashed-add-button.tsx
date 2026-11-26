@@ -1,4 +1,4 @@
-import React, { forwardRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import React, { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { cn } from '../design-tokens.js';
 import { FOCUS_RING_CLASS_NAME } from '../a11y/focus.js';
 
@@ -37,8 +37,10 @@ function PlusIcon({ size, active }: { size: number; active: boolean }) {
       strokeWidth="1.5"
       strokeLinecap="round"
       aria-hidden="true"
-      className="transition-transform duration-[var(--nimi-motion-slow)]"
-      style={{ transform: active ? 'scale(1.15) rotate(90deg)' : 'scale(1) rotate(0deg)' }}
+      className={cn(
+        'transition-transform duration-[var(--nimi-motion-slow)] ease-[var(--nimi-motion-ease-standard)] motion-reduce:transition-none group-hover:motion-safe:scale-110 group-hover:motion-safe:rotate-90',
+        active && 'motion-safe:scale-110 motion-safe:rotate-90',
+      )}
     >
       <path d="M12 5v14M5 12h14" />
     </svg>
@@ -55,36 +57,25 @@ export const DashedAddButton = forwardRef<HTMLButtonElement, DashedAddButtonProp
     className,
     disabled,
     type = 'button',
-    onMouseEnter,
-    onMouseLeave,
     ...rest
   },
   ref,
 ) {
-  const [hovered, setHovered] = useState(false);
-  const isActive = !disabled && (active || hovered);
+  const isActive = !disabled && active;
 
   return (
     <button
       ref={ref}
       type={type}
       disabled={disabled}
-      onMouseEnter={(event) => {
-        setHovered(true);
-        onMouseEnter?.(event);
-      }}
-      onMouseLeave={(event) => {
-        setHovered(false);
-        onMouseLeave?.(event);
-      }}
       data-active={isActive || undefined}
       className={cn(
-        'nimi-dashed-add-button group border-2 border-dashed transition-colors',
+        'nimi-dashed-add-button group border-2 border-dashed transition-[background-color,border-color,color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] enabled:active:scale-[var(--nimi-motion-pressed-scale)]',
         FOCUS_RING_CLASS_NAME,
         SHAPE_LAYOUT[shape],
         isActive
           ? 'border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] text-[var(--nimi-action-primary-bg)]'
-          : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)]',
+          : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)] enabled:hover:border-[var(--nimi-action-primary-bg)] enabled:hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] enabled:hover:text-[var(--nimi-action-primary-bg)]',
         disabled && 'cursor-not-allowed opacity-[var(--nimi-opacity-disabled)]',
         className,
       )}

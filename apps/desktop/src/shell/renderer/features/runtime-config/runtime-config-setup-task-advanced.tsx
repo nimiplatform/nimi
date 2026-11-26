@@ -78,6 +78,7 @@ export function RuntimeLoadoutOptionsEditor(props: {
     ?? {}
   ), [candidate?.options, draft?.options, recipe.defaultOptions]);
   const [optionsJson, setOptionsJson] = useState(() => JSON.stringify(baseOptions, null, 2));
+  const [numericDrafts, setNumericDrafts] = useState<Record<string, string>>({});
   const parsedOptions = useMemo(() => parseLoadoutOptionsJson(optionsJson), [optionsJson]);
   const [contextSizeDraft, setContextSizeDraft] = useState(() => (
     typeof baseOptions.contextSize === 'number' && Number.isFinite(baseOptions.contextSize)
@@ -86,6 +87,7 @@ export function RuntimeLoadoutOptionsEditor(props: {
   ));
   useEffect(() => {
     setOptionsJson(JSON.stringify(baseOptions, null, 2));
+    setNumericDrafts({});
     setContextSizeDraft(
       typeof baseOptions.contextSize === 'number' && Number.isFinite(baseOptions.contextSize)
         ? String(baseOptions.contextSize)
@@ -321,18 +323,29 @@ export function RuntimeLoadoutOptionsEditor(props: {
                     type="number"
                     aria-label={key}
                     step="any"
-                    className="w-32 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] px-2 py-1 text-sm text-[var(--nimi-text-primary)]"
-                    value={typeof value === 'number' && Number.isFinite(value) ? value : 0}
+                    className="w-32 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] px-2 py-1 text-sm text-[var(--nimi-text-primary)] outline-none focus-visible:border-[var(--nimi-field-focus)] focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+                    value={numericDrafts[key] ?? (typeof value === 'number' && Number.isFinite(value) ? String(value) : '')}
                     onChange={(event) => {
-                      const next = Number(event.currentTarget.value);
-                      if (Number.isFinite(next)) onOptionChange(key, next);
+                      const raw = event.currentTarget.value;
+                      setNumericDrafts((current) => ({ ...current, [key]: raw }));
+                      if (raw.trim() !== '') {
+                        const next = Number(raw);
+                        if (Number.isFinite(next)) onOptionChange(key, next);
+                      }
+                    }}
+                    onBlur={() => {
+                      setNumericDrafts((current) => {
+                        if (!(key in current)) return current;
+                        const { [key]: _removed, ...rest } = current;
+                        return rest;
+                      });
                     }}
                   />
                 ) : valueType === 'string' ? (
                   <input
                     type="text"
                     aria-label={key}
-                    className="w-56 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] px-2 py-1 text-sm text-[var(--nimi-text-primary)]"
+                    className="w-56 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] px-2 py-1 text-sm text-[var(--nimi-text-primary)] outline-none focus-visible:border-[var(--nimi-field-focus)] focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
                     value={typeof value === 'string' ? value : ''}
                     onChange={(event) => onOptionChange(key, event.currentTarget.value)}
                   />
@@ -341,7 +354,7 @@ export function RuntimeLoadoutOptionsEditor(props: {
                     type="text"
                     aria-label={key}
                     key={JSON.stringify(value)}
-                    className="w-56 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] px-2 py-1 font-mono text-xs text-[var(--nimi-text-primary)]"
+                    className="w-56 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] px-2 py-1 font-mono text-xs text-[var(--nimi-text-primary)] outline-none focus-visible:border-[var(--nimi-field-focus)] focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
                     defaultValue={JSON.stringify(value)}
                     onBlur={(event) => {
                       try { onOptionChange(key, JSON.parse(event.currentTarget.value)); }

@@ -50,6 +50,7 @@ export function Spine({ onOpenSkyPanel, skyPanelOpen }: SpineProps) {
         type="button"
         className="spine-btn"
         title={`世界 · ${dockWorld.name} · ${dockWorld.en}`}
+        aria-label={`世界 · ${dockWorld.name} · ${dockWorld.en}`}
         onClick={() => openApp('desktop', `/explore/${dockWorld.id}`)}
       >
         <span className="spine-world" style={{ ['--world-hue' as string]: dockWorld.hue }} />

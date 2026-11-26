@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import {
   Check,
   EyeOff,
@@ -15,8 +15,10 @@ import {
   ZoomOut,
 } from 'lucide-react';
 import { cn } from '@nimiplatform/kit/ui';
+import { motion, nimiOverlayPanelMotion, useNimiReducedMotion } from '@nimiplatform/kit/ui/motion';
 import { useTranslation } from '../i18n/index.js';
 import { moveMenuItemFocus } from '../avatar-shell-utils.js';
+import { useClampedOverlayPosition } from '../use-clamped-overlay-position.js';
 
 export type AvatarContextMenuDismissReason =
   | 'action'
@@ -51,6 +53,7 @@ export type AvatarContextMenuProps = {
   quietActive: boolean;
   settingsEnabled: boolean;
   shellLifecycleEnabled: boolean;
+  returnFocusTarget?: HTMLElement | null;
   onAction(action: AvatarContextMenuAction): void;
   onDismiss(reason: AvatarContextMenuDismissReason): void;
 };
@@ -68,22 +71,6 @@ const MENU_WIDTH_PX = 220;
 const MENU_ESTIMATED_HEIGHT_PX = 448;
 const VIEWPORT_PADDING_PX = 8;
 
-function clampPosition(value: number, size: number, viewport: number): number {
-  if (!Number.isFinite(value)) return VIEWPORT_PADDING_PX;
-  const max = Math.max(VIEWPORT_PADDING_PX, viewport - size - VIEWPORT_PADDING_PX);
-  return Math.max(VIEWPORT_PADDING_PX, Math.min(value, max));
-}
-
-function readViewportSize(): { width: number; height: number } {
-  if (typeof window === 'undefined') {
-    return { width: 400, height: 600 };
-  }
-  return {
-    width: Math.max(1, window.innerWidth),
-    height: Math.max(1, window.innerHeight),
-  };
-}
-
 export function AvatarContextMenu(props: AvatarContextMenuProps) {
   const {
     x,
@@ -98,20 +85,31 @@ export function AvatarContextMenu(props: AvatarContextMenuProps) {
     quietActive,
     settingsEnabled,
     shellLifecycleEnabled,
+    returnFocusTarget,
     onAction,
     onDismiss,
   } = props;
   const { t } = useTranslation();
+  const reducedMotion = useNimiReducedMotion();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
+  const dismissedRef = useRef(false);
+  dismissedRef.current = false;
 
-  const position = useMemo(() => {
-    const viewport = readViewportSize();
-    return {
-      left: clampPosition(x, MENU_WIDTH_PX, viewport.width),
-      top: clampPosition(y, MENU_ESTIMATED_HEIGHT_PX, viewport.height),
-    };
-  }, [x, y]);
+  const position = useClampedOverlayPosition({
+    x,
+    y,
+    fallbackWidth: MENU_WIDTH_PX,
+    fallbackHeight: MENU_ESTIMATED_HEIGHT_PX,
+    padding: VIEWPORT_PADDING_PX,
+    rootRef,
+  });
+  const panelMotion = nimiOverlayPanelMotion({
+    kind: 'popover',
+    side: position.side,
+    align: position.align,
+    reducedMotion,
+  });
 
   const items: MenuItem[] = [
     {
@@ -194,25 +192,38 @@ export function AvatarContextMenu(props: AvatarContextMenuProps) {
   ];
 
   useEffect(() => {
-    returnFocusRef.current = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
-    rootRef.current?.focus();
+    const rootEl = rootRef.current;
+    const active = document.activeElement;
+    returnFocusRef.current =
+      returnFocusTarget
+      ?? (active instanceof HTMLElement && !active.closest('[data-avatar-interactive-region="true"]')
+        ? active
+        : null);
+    rootEl?.focus();
     return () => {
       const target = returnFocusRef.current;
-      if (target?.isConnected) target.focus();
+      const currentActive = document.activeElement;
+      const shouldRestore =
+        !currentActive
+        || currentActive === document.body
+        || currentActive === document.documentElement
+        || (rootEl !== null && rootEl.contains(currentActive));
+      if (shouldRestore && target?.isConnected) target.focus();
     };
   }, []);
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent): void => {
+      if (dismissedRef.current) return;
       const root = rootRef.current;
       if (!root || !(event.target instanceof Node) || root.contains(event.target)) return;
+      dismissedRef.current = true;
       onDismiss('outside_click');
     };
     const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.key !== 'Escape') return;
+      if (dismissedRef.current || event.key !== 'Escape') return;
       event.preventDefault();
+      dismissedRef.current = true;
       onDismiss('escape');
     };
     document.addEventListener('pointerdown', handlePointerDown, true);
@@ -224,14 +235,17 @@ export function AvatarContextMenu(props: AvatarContextMenuProps) {
   }, [onDismiss]);
 
   return (
-    <div
+    <motion.div
       ref={rootRef}
-      className="avatar-context-menu nimi-material-glass-chrome backdrop-blur-[var(--nimi-backdrop-blur-chrome)] backdrop-saturate-[var(--nimi-backdrop-saturate)]"
-      style={{ left: position.left, top: position.top }}
+      className="avatar-context-menu nimi-material-glass-chrome bg-[var(--nimi-material-glass-chrome-bg)] border-[var(--nimi-material-glass-chrome-border)] backdrop-blur-[var(--nimi-backdrop-blur-chrome)] backdrop-saturate-[var(--nimi-backdrop-saturate)]"
+      {...panelMotion}
+      style={{ ...panelMotion.style, left: position.left, top: position.top }}
       role="menu"
       aria-label={t('Avatar.context_menu.aria')}
       tabIndex={-1}
       data-testid="avatar-context-menu"
+      data-nimi-material="glass-chrome"
+      data-nimi-tone="overlay"
       data-avatar-interactive-region="true"
       onContextMenu={(event) => event.preventDefault()}
       onKeyDown={(event) => {
@@ -257,7 +271,8 @@ export function AvatarContextMenu(props: AvatarContextMenuProps) {
             aria-checked={item.checked}
             data-testid={`avatar-context-menu-item-${item.action}`}
             onClick={() => {
-              if (!item.enabled) return;
+              if (!item.enabled || dismissedRef.current) return;
+              dismissedRef.current = true;
               onAction(item.action);
             }}
           >
@@ -271,6 +286,6 @@ export function AvatarContextMenu(props: AvatarContextMenuProps) {
           </button>
         </div>
       ))}
-    </div>
+    </motion.div>
   );
 }

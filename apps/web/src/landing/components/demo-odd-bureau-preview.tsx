@@ -225,6 +225,16 @@ function ObjectPortrait({
   );
 }
 
+function formatOddBureauList(items: readonly string[], locale: 'en' | 'zh'): string {
+  if (typeof Intl !== 'undefined' && typeof Intl.ListFormat === 'function') {
+    return new Intl.ListFormat(locale === 'zh' ? 'zh-CN' : 'en', {
+      style: 'short',
+      type: 'conjunction',
+    }).format(items);
+  }
+  return items.join(locale === 'zh' ? '、' : ', ');
+}
+
 function PhotoStage({
   photo,
   objects,
@@ -254,7 +264,7 @@ function PhotoStage({
   children?: ReactNode;
   markerId: string;
 }) {
-  const { t } = useAppPreviewLocale();
+  const { previewLocale, t } = useAppPreviewLocale();
   const centers = path
     .map((id) => objects.find((p) => p.id === id))
     .filter((p): p is Prop => !!p)
@@ -331,7 +341,7 @@ function PhotoStage({
               }}
               aria-label={t('oddBureau.photoStage.choose', {
                 propLabel: prop.label,
-                badgesPropId: badges[prop.id] ?? '物品',
+                badgesPropId: badges[prop.id] ?? (previewLocale === 'zh' ? '物品' : 'Object'),
               })}
               onClick={() => onSelect?.(prop.id)}
               disabled={!onSelect}
@@ -452,7 +462,7 @@ function MachineGame({
   onChange: (round: MachineRound) => void;
   markerId: string;
 }) {
-  const { t } = useAppPreviewLocale();
+  const { previewLocale, t } = useAppPreviewLocale();
   const operationCopy = {
     source: {
       name: t('oddBureau.machine.operations.source.name'),
@@ -837,7 +847,7 @@ function StrikeGame({
   onVoice: () => void;
   markerId: string;
 }) {
-  const { t } = useAppPreviewLocale();
+  const { previewLocale, t } = useAppPreviewLocale();
   const taskLabels = {
     story: t('oddBureau.tasks.writeStory'),
     reading: t('oddBureau.tasks.readAloud'),
@@ -1311,7 +1321,7 @@ function Mystery({
   onVoice: () => void;
   onHostOnly: () => void;
 }) {
-  const { t } = useAppPreviewLocale();
+  const { previewLocale, t } = useAppPreviewLocale();
   const photo = content.photo;
   const [session, setSession] = useState<Session | null>(null);
   const [mood, setMood] = useState<HeroDemoOddBureauMoodId>('missing');
@@ -1340,8 +1350,18 @@ function Mystery({
     [],
   );
   useEffect(() => {
-    chatBottom.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }, [streaming, session?.messages, selected]);
+    const reduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    chatBottom.current?.scrollIntoView({
+      block: 'nearest',
+      behavior: reduced ? 'auto' : 'smooth',
+    });
+  }, [session?.messages, selected]);
+  useEffect(() => {
+    if (!streaming) return;
+    chatBottom.current?.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+  }, [streaming]);
   function updateSession(next: Session) {
     sessionRef.current = next;
     setSession(next);
@@ -1497,6 +1517,7 @@ function Mystery({
         <button
           type="button"
           className="wordmark"
+          aria-expanded={showHelp}
           onClick={() => setShowHelp((value) => !value)}
           aria-label={t('oddBureau.mystery.oddBureauViewPlayOptions')}
         >
@@ -1506,7 +1527,13 @@ function Mystery({
             <span className="wordmark-en">{t('oddBureau.mystery.oddBureau2')}</span>
           </span>
         </button>
-        <Button className="quiet-button" onClick={onExit} disabled={busy}>
+        <Button
+          className="quiet-button"
+          onClick={() => {
+            operation.current?.abort();
+            onExit();
+          }}
+        >
           {t('oddBureau.mystery.backToThePlayground')}
         </Button>
         <div className="header-actions">
@@ -1515,13 +1542,16 @@ function Mystery({
             className="help-button"
             icon={<Settings2 size={20} />}
             aria-label={t('oddBureau.mystery.capabilitySettings')}
-            onClick={onSettings}
-            disabled={busy}
+            onClick={() => {
+              operation.current?.abort();
+              onSettings();
+            }}
           />
           <IconButton
             className="help-button"
             icon={<CircleHelp size={21} />}
             aria-label={t('oddBureau.mystery.howToPlay')}
+            aria-expanded={showHelp}
             onClick={() => setShowHelp((value) => !value)}
           />
         </div>
@@ -1540,7 +1570,11 @@ function Mystery({
           />
         </div>
       )}
-      <main className={`bureau-main ${session ? 'in-case' : 'at-home'}`}>
+      <div
+        role="region"
+        aria-label={t('oddBureau.mystery.oddBureau')}
+        className={`bureau-main ${session ? 'in-case' : 'at-home'}`}
+      >
         {!session && (
           <div className="intro-line">
             <div>
@@ -1686,7 +1720,10 @@ function Mystery({
                       {stage === 'locating'
                         ? foundProps.length
                           ? t('oddBureau.mystery.locating', {
-                              names: foundProps.map((prop) => prop.label).join('、'),
+                              names: formatOddBureauList(
+                                foundProps.map((prop) => prop.label),
+                                previewLocale,
+                              ),
                             })
                           : t('oddBureau.mystery.findingObjectsToBringIntoPlayThe')
                         : t('oddBureau.mystery.weavingCharactersTestimonyAndACoherentExplanation')}
@@ -1714,6 +1751,7 @@ function Mystery({
                 <button
                   type="button"
                   className="hint-key"
+                  aria-pressed={showHint}
                   onClick={() => {
                     setShowHint((v) => !v);
                     setMiss(false);
@@ -2134,7 +2172,7 @@ function Mystery({
             </div>
             <IconButton
               icon={<X size={18} />}
-              aria-label={t('oddBureau.mystery.hideHints')}
+              aria-label={t('oddBureau.workspace.hideError')}
               onClick={() => setError('')}
             />
           </div>
@@ -2143,7 +2181,7 @@ function Mystery({
           <span>{t('oddBureau.mystery.objectStoriesAreAiCreatedFiction')}</span>
           <span>{t('oddBureau.mystery.discoverQuestionConnectClues')}</span>
         </footer>
-      </main>
+      </div>
     </div>
   );
 }
@@ -2224,7 +2262,7 @@ const effectiveSelectionsFor = (
   }));
 
 function Setup({ onBack }: { onBack: () => void }) {
-  const { t } = useAppPreviewLocale();
+  const { previewLocale, t } = useAppPreviewLocale();
   const [intents, setIntents] = useState<AIConfigIntent[]>(() => [
     {
       capabilityContract: 'vision.locate',
@@ -2289,7 +2327,12 @@ function Setup({ onBack }: { onBack: () => void }) {
     intents.some((c) => c.capabilityContract === id),
   );
   return (
-    <main className="setup-page" data-density="regular">
+    <div
+      role="region"
+      aria-label={t('oddBureau.setup.oddBureauCapabilities')}
+      className="setup-page"
+      data-density="regular"
+    >
       <Button className="quiet-button" leadingIcon={<ArrowLeft size={16} />} onClick={onBack}>
         {t('oddBureau.setup.backToTheScene')}
       </Button>
@@ -2304,7 +2347,7 @@ function Setup({ onBack }: { onBack: () => void }) {
           effectiveSelections={effectiveSelectionsFor(intents, t)}
           listOptions={listOptions}
           onOverwrite={overwrite}
-          language="zh"
+          language={previewLocale}
           copy={{
             title: t('oddBureau.setup.oddBureauCapabilities'),
             description: t('oddBureau.setup.chooseCapabilitiesForThisBureauOnlyOther'),
@@ -2392,7 +2435,7 @@ function Setup({ onBack }: { onBack: () => void }) {
           {t('oddBureau.setup.configuredBackToPlay')}
         </Button>
       )}
-    </main>
+    </div>
   );
 }
 
@@ -2402,7 +2445,7 @@ function Setup({ onBack }: { onBack: () => void }) {
 
 export function DemoOddBureauPreview({ content }: { content: HeroDemoOddBureauPreview }) {
   useEffect(loadOddBureauFont, []);
-  const { t } = useAppPreviewLocale();
+  const { previewLocale, t } = useAppPreviewLocale();
   const photo = content.photo;
   const [route, setRoute] = useState<'home' | 'round' | 'setup' | 'mystery'>('home');
   const [kind, setKind] = useState<PlayRound['kind']>('machine');
@@ -2526,8 +2569,10 @@ export function DemoOddBureauPreview({ content }: { content: HeroDemoOddBureauPr
               <button
                 type="button"
                 className="wordmark"
-                onClick={() => setRoute('home')}
-                disabled={unavailable}
+                onClick={() => {
+                  operation.current?.abort();
+                  setRoute('home');
+                }}
                 aria-label={t('oddBureau.bureauHeader.backToPlaySelection')}
               >
                 <Fingerprint size={33} strokeWidth={1.7} />
@@ -2543,8 +2588,10 @@ export function DemoOddBureauPreview({ content }: { content: HeroDemoOddBureauPr
                 <button
                   type="button"
                   className="mystery-link"
-                  disabled={unavailable}
-                  onClick={() => setRoute('mystery')}
+                  onClick={() => {
+                    operation.current?.abort();
+                    setRoute('mystery');
+                  }}
                 >
                   <Search size={15} />
                   {t('oddBureau.bureauHeader.photoMystery')}
@@ -2553,15 +2600,21 @@ export function DemoOddBureauPreview({ content }: { content: HeroDemoOddBureauPr
                   className="help-button"
                   icon={<Settings2 size={20} />}
                   aria-label={t('oddBureau.bureauHeader.capabilitySettings')}
-                  disabled={unavailable}
-                  onClick={settings}
+                  onClick={() => {
+                    operation.current?.abort();
+                    settings();
+                  }}
                 />
               </div>
             </header>
             {route === 'setup' ? (
               <Setup onBack={() => setRoute(setupBack.current)} />
             ) : route === 'round' && save ? (
-              <main className="bureau-main playground-main">
+              <div
+                role="region"
+                aria-label={t('oddBureau.bureauHeader.oddBureau')}
+                className="bureau-main playground-main"
+              >
                 <div className="play-heading">
                   <div>
                     <span className="activity-name">
@@ -2607,9 +2660,13 @@ export function DemoOddBureauPreview({ content }: { content: HeroDemoOddBureauPr
                     markerId={markerId}
                   />
                 )}
-              </main>
+              </div>
             ) : (
-              <main className="bureau-main playground-main">
+              <div
+                role="region"
+                aria-label={t('oddBureau.bureauHeader.oddBureau')}
+                className="bureau-main playground-main"
+              >
                 <div className="intro-line">
                   <div>
                     <h1>
@@ -2640,7 +2697,10 @@ export function DemoOddBureauPreview({ content }: { content: HeroDemoOddBureauPr
                         <p>
                           {found.length
                             ? t('oddBureau.home.arrivals', {
-                                names: found.map((p) => p.label).join('、'),
+                                names: formatOddBureauList(
+                                  found.map((p) => p.label),
+                                  previewLocale,
+                                ),
                               })
                             : t('oddBureau.bureauMain.firstSeeWhoSInThePhoto')}
                         </p>
@@ -2740,7 +2800,7 @@ export function DemoOddBureauPreview({ content }: { content: HeroDemoOddBureauPr
                     </p>
                   </aside>
                 </div>
-              </main>
+              </div>
             )}
             {error && (
               <div className="play-notices">

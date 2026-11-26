@@ -21,11 +21,11 @@ export function BundledZhiyuEntry() {
   };
   return <div className="flex flex-col gap-2" data-testid="bundled-zhiyu">
     <button type="button" disabled={busy} onClick={() => void open()} aria-label={t('Apps.bundled.openZhiyu')}
-      className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-left transition-colors hover:bg-[var(--nimi-surface-active)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] disabled:opacity-60">
+      className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-left transition-[background-color,transform] hover:bg-[var(--nimi-surface-active)] active:scale-[0.985] motion-reduce:transform-none focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] disabled:opacity-60">
       <img src={zhiyuIcon} alt="" className="size-12 rounded-xl" />
       <span className="min-w-0 flex-1"><span className="block text-sm font-medium">{t('Apps.bundled.zhiyu')}</span>
         <span className="block text-xs text-[var(--nimi-text-secondary)]">{t('Apps.bundled.zhiyuDescription')}</span></span>
-      {busy ? <LoaderCircle size={16} className="animate-spin" /> : <ChevronRight size={16} />}
+      {busy ? <LoaderCircle size={16} className="animate-spin motion-reduce:animate-none" /> : <ChevronRight size={16} />}
     </button>
     {failed && <InlineAlert tone="warning">{t('Apps.bundled.openFailed')}</InlineAlert>}
   </div>;

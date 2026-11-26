@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button, Pill } from './ui';
 import { IconCheck, IconCloud, IconCpu, IconProfile, IconSparkle } from './icons';
 import { presets, type PresetId } from './data';
@@ -11,17 +11,50 @@ const presetIcons: Record<PresetId, typeof IconCloud> = {
   private: IconCpu,
 };
 
-export function SetupGuide({ onClose }: { onClose: () => void }) {
+export function SetupGuide({
+  onClose,
+  onCreatePersonality,
+}: {
+  onClose: () => void;
+  onCreatePersonality?: () => void;
+}) {
   const [step, setStep] = useState(0);
   const [preset, setPreset] = useState<PresetId | null>(null);
   const [personality, setPersonality] = useState<string | null>(null);
+  const [creatingCustom, setCreatingCustom] = useState(false);
+  const [customName, setCustomName] = useState('');
+  const dialogRef = useRef<HTMLDivElement>(null);
   const done = step >= 3;
   const chosen = presets.find((p) => p.id === preset);
 
+  useEffect(() => {
+    dialogRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+
+  const effectivePersonality = creatingCustom ? customName.trim() || null : personality;
+
   return (
-    <div className="rt-wizard-frame">
+    <div
+      ref={dialogRef}
+      className="rt-wizard-frame"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="rt-setup-guide-title"
+      tabIndex={-1}
+    >
       <div className="rt-wizard-head">
-        <h2>Setup Guide</h2>
+        <h2 id="rt-setup-guide-title">Setup Guide</h2>
         <p>{done ? 'Nimi is ready.' : `Step ${step + 1} of 3 — ${stepTitles[step]}`}</p>
         <div className="rt-steps" aria-hidden>
           {[0, 1, 2].map((i) => (
@@ -93,9 +126,12 @@ export function SetupGuide({ onClose }: { onClose: () => void }) {
               <button
                 key={name}
                 type="button"
-                className={`rt-choice-card${personality === name ? ' selected' : ''}`}
-                aria-pressed={personality === name}
-                onClick={() => setPersonality(name)}
+                className={`rt-choice-card${!creatingCustom && personality === name ? ' selected' : ''}`}
+                aria-pressed={!creatingCustom && personality === name}
+                onClick={() => {
+                  setCreatingCustom(false);
+                  setPersonality(name);
+                }}
               >
                 <IconProfile size={18} />
                 <span>
@@ -106,9 +142,38 @@ export function SetupGuide({ onClose }: { onClose: () => void }) {
                 </span>
               </button>
             ))}
-            <Button variant="ghost" size="sm" onClick={() => setPersonality('New personality')}>
-              Or create a new personality…
-            </Button>
+            {creatingCustom ? (
+              <div className="rt-card" style={{ marginBottom: 0 }}>
+                <label style={{ display: 'block' }}>
+                  <span style={{ display: 'block', marginBottom: 6, fontWeight: 600 }}>New personality name</span>
+                  <input
+                    className="rt-input"
+                    autoFocus
+                    placeholder="e.g. Research Partner"
+                    value={customName}
+                    onChange={(e) => setCustomName(e.target.value)}
+                  />
+                </label>
+                {onCreatePersonality && (
+                  <div style={{ marginTop: 8 }}>
+                    <Button variant="ghost" size="sm" onClick={onCreatePersonality}>
+                      Open full profile wizard…
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setCreatingCustom(true);
+                  setPersonality(null);
+                }}
+              >
+                Or create a new personality…
+              </Button>
+            )}
           </>
         )}
 
@@ -119,7 +184,7 @@ export function SetupGuide({ onClose }: { onClose: () => void }) {
             </Pill>
             <h3 style={{ margin: '12px 0 4px' }}>You're all set</h3>
             <p style={{ margin: 0, color: 'var(--nimi-text-secondary)' }}>
-              Answers: {chosen?.name ?? 'Balanced'} · Personality: {personality ?? 'Companion'}.
+              Answers: {chosen?.name ?? 'Balanced'} · Personality: {effectivePersonality ?? 'Companion'}.
               Change either any time from Home.
             </p>
           </div>
@@ -133,7 +198,7 @@ export function SetupGuide({ onClose }: { onClose: () => void }) {
         {!done && (
           <Button
             variant="primary"
-            disabled={(step === 0 && !preset) || (step === 2 && !personality)}
+            disabled={(step === 0 && !preset) || (step === 2 && !effectivePersonality)}
             onClick={() => setStep(step + 1)}
           >
             {step === 2 ? 'Finish' : 'Continue'}

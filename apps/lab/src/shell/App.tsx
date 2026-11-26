@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NimiRendererHostProvider, type NimiRendererHostBindingV1, type NimiRendererHostMethodMap } from '@nimiplatform/kit/shell/renderer/host';
-import { NimiThemeProvider, NimiToaster, TooltipProvider } from '@nimiplatform/kit/ui';
+import { NimiMotionProvider, NimiToaster, TooltipProvider } from '@nimiplatform/kit/ui';
 import { NimiAppChrome } from '@nimiplatform/kit/ui/app-chrome';
 import appPackage from '../../package.json';
 import { labCanonicalRendererFactory } from '../renderer/factory.js';
@@ -9,11 +9,36 @@ import '../renderer/styles.css';
 import { AuthGate } from './auth/auth-gate.js';
 import { useTranslation } from './i18n/index.js';
 import { LabNavigationOwner, LabNavigationScope, useLabNavigationOwner } from './routes/app-navigation.js';
+import { LabThemeProvider, type LabThemeSnapshot } from './theme.js';
 
-export function App(props: { readonly rendererHost: NimiRendererHostBindingV1<NimiRendererHostMethodMap>; readonly webCarrier?: boolean }) {
-  return <NimiRendererHostProvider binding={props.rendererHost}><NimiThemeProvider accentPack="nimi-accent" defaultScheme="light"><TooltipProvider>
-    <LabNavigationOwner><LabFrame rendererHost={props.rendererHost} webCarrier={props.webCarrier} /></LabNavigationOwner>
-  </TooltipProvider></NimiThemeProvider></NimiRendererHostProvider>;
+export function App(props: {
+  readonly rendererHost: NimiRendererHostBindingV1<NimiRendererHostMethodMap>;
+  readonly webCarrier?: boolean;
+  readonly onThemeSnapshotChange?: (snapshot: LabThemeSnapshot) => void;
+}) {
+  const frame = (
+    <LabNavigationOwner>
+      <LabFrame rendererHost={props.rendererHost} webCarrier={props.webCarrier} />
+    </LabNavigationOwner>
+  );
+  if (props.webCarrier) {
+    return (
+      <NimiRendererHostProvider binding={props.rendererHost}>
+        {frame}
+      </NimiRendererHostProvider>
+    );
+  }
+  return (
+    <NimiRendererHostProvider binding={props.rendererHost}>
+      <LabThemeProvider onThemeSnapshotChange={props.onThemeSnapshotChange}>
+        <NimiMotionProvider>
+          <TooltipProvider>
+            {frame}
+          </TooltipProvider>
+        </NimiMotionProvider>
+      </LabThemeProvider>
+    </NimiRendererHostProvider>
+  );
 }
 function LabFrame(props: { readonly rendererHost: NimiRendererHostBindingV1<NimiRendererHostMethodMap>; readonly webCarrier?: boolean }) {
   const owner = useLabNavigationOwner();

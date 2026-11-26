@@ -16,8 +16,14 @@ export type StatisticProps = {
 
 const trendMark: Record<StatisticTrend, string> = {
   up: '+',
-  down: '-',
+  down: '−',
   flat: '=',
+};
+
+const trendLabel: Record<StatisticTrend, string> = {
+  up: 'Increased',
+  down: 'Decreased',
+  flat: 'Unchanged',
 };
 
 const toneClass: Record<StatusTone | 'primary', string> = {
@@ -41,11 +47,16 @@ export function Statistic({
 }: StatisticProps) {
   return (
     <div className={cn('nimi-statistic grid min-w-0 gap-1 rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3', className)}>
-      <span className="nimi-statistic__label truncate text-[length:var(--nimi-type-caption-size)] font-semibold uppercase tracking-[var(--nimi-type-label-letter-spacing)] text-[var(--nimi-text-muted)]">
+      <span className="nimi-statistic__label truncate text-[length:var(--nimi-type-caption-size)] font-semibold uppercase tracking-[var(--nimi-type-overline-letter-spacing)] text-[var(--nimi-text-muted)]">
         {label}
       </span>
-      <span className={cn('nimi-statistic__value flex min-w-0 items-baseline gap-1 text-[length:var(--nimi-type-page-title-size)] font-bold tracking-normal', toneClass[tone])}>
-        {trend ? <span className="nimi-statistic__trend text-[length:var(--nimi-type-body-sm-size)]" aria-hidden="true">{trendMark[trend]}</span> : null}
+      <span className={cn('nimi-statistic__value flex min-w-0 items-baseline gap-1 tabular-nums text-[length:var(--nimi-type-page-title-size)] font-bold tracking-[var(--nimi-type-page-title-letter-spacing)]', toneClass[tone])}>
+        {trend ? (
+          <>
+            <span className="nimi-statistic__trend text-[length:var(--nimi-type-body-sm-size)]" aria-hidden="true">{trendMark[trend]}</span>
+            <span className="sr-only">{trendLabel[trend]}</span>
+          </>
+        ) : null}
         {prefix ? <span className="nimi-statistic__prefix text-[length:var(--nimi-type-body-size)]">{prefix}</span> : null}
         <span className="truncate">{value}</span>
         {suffix ? <span className="nimi-statistic__suffix text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-secondary)]">{suffix}</span> : null}

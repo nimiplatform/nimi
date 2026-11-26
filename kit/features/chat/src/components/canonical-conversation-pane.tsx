@@ -95,6 +95,13 @@ export function CanonicalConversationPane(props: CanonicalConversationPaneProps)
                 )}
               >
                 {props.transcript}
+                {props.composer && props.viewMode === 'chat' ? (
+                  <div
+                    aria-hidden="true"
+                    data-canonical-transcript-bottom-fade="true"
+                    className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-16 bg-gradient-to-t from-[var(--nimi-surface-canvas)] via-[color-mix(in_srgb,var(--nimi-surface-canvas)_55%,transparent)] to-transparent"
+                  />
+                ) : null}
               </div>
               {anchoredSurfaceVisible ? (
                 <div

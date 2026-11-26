@@ -1,5 +1,11 @@
-import { useState } from 'react';
-import { IconButton } from '@nimiplatform/kit/ui';
+import { useEffect, useState } from 'react';
+import {
+  AnimatePresence,
+  IconButton,
+  motion,
+  nimiOverlayPanelMotion,
+  useNimiReducedMotion,
+} from '@nimiplatform/kit/ui';
 import { BarChart3, PanelRightOpen, RotateCcw, Settings } from 'lucide-react';
 import { SCENARIO } from '../scenario/scenario';
 import { MODULES, MODULE_ORDER } from '../scenario/meta';
@@ -54,6 +60,20 @@ export function Cradle({
   const [agentHover, setAgentHover] = useState(false);
   const [agentPinned, setAgentPinned] = useState(false);
   const agentOpen = agentHover || agentPinned;
+  const reducedMotion = useNimiReducedMotion();
+
+  useEffect(() => {
+    if (!agentOpen) return undefined;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setAgentPinned(false);
+        setAgentHover(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [agentOpen]);
   const footprints = state.footprints;
   const visibleGrants = state.grants.filter((g) => g.id !== 'g-local-agent-context-projection');
   const pos = state.cradlePos;
@@ -110,89 +130,100 @@ export function Cradle({
             </span>
           </button>
 
-          {agentOpen ? (
-            <div className="agent-hud-panel" id="agent-hud-panel" role="dialog" aria-label="Nimi LocalAgent 面板">
-              <header className="agent-hud-head">
-                <span className="agent-hud-dot" data-status={state.agent.status} aria-hidden />
-                <span className="agent-hud-head-main">
-                  <b>
-                    {SCENARIO.localAgentPresentation.name} · {AGENT_STATUS[state.agent.status] ?? state.agent.status}
-                  </b>
-                  <span>{SCENARIO.localAgentPresentation.kind}</span>
-                </span>
-                <button
-                  type="button"
-                  className="agent-hud-gear"
-                  title="管理应用与 LocalAgent"
-                  aria-label="管理应用与 LocalAgent"
-                  onClick={onOpenApps}
-                >
-                  <Settings size={14} strokeWidth={1.8} aria-hidden />
-                </button>
-              </header>
+          <AnimatePresence>
+            {agentOpen ? (
+              <motion.div
+                key="agent-hud-panel"
+                className="agent-hud-panel nimi-material-glass-chrome backdrop-blur-[var(--nimi-backdrop-blur-chrome)] backdrop-saturate-[var(--nimi-backdrop-saturate)]"
+                data-nimi-material="glass-chrome"
+                data-nimi-tone="overlay"
+                id="agent-hud-panel"
+                role="dialog"
+                aria-label="Nimi LocalAgent 面板"
+                {...nimiOverlayPanelMotion({ kind: 'popover', side: 'bottom', align: 'end', reducedMotion })}
+              >
+                <header className="agent-hud-head">
+                  <span className="agent-hud-dot" data-status={state.agent.status} aria-hidden />
+                  <span className="agent-hud-head-main">
+                    <b>
+                      {SCENARIO.localAgentPresentation.name} · {AGENT_STATUS[state.agent.status] ?? state.agent.status}
+                    </b>
+                    <span>{SCENARIO.localAgentPresentation.kind}</span>
+                  </span>
+                  <button
+                    type="button"
+                    className="agent-hud-gear"
+                    title="管理应用与 LocalAgent"
+                    aria-label="管理应用与 LocalAgent"
+                    onClick={onOpenApps}
+                  >
+                    <Settings size={14} strokeWidth={1.8} aria-hidden />
+                  </button>
+                </header>
 
-              <section className="agent-hud-section">
-                <span className="agent-hud-label">
-                  <i className="agent-hud-label-ico" aria-hidden /> 今日心情
-                </span>
-                <span className="agent-hud-mood">
-                  <i aria-hidden /> {AGENT_FEELING}
-                </span>
-              </section>
+                <section className="agent-hud-section">
+                  <span className="agent-hud-label">
+                    <i className="agent-hud-label-ico" aria-hidden /> 今日心情
+                  </span>
+                  <span className="agent-hud-mood">
+                    <i aria-hidden /> {AGENT_FEELING}
+                  </span>
+                </section>
 
-              <section className="agent-hud-section">
-                <span className="agent-hud-label">
-                  <i className="agent-hud-label-ico" aria-hidden /> 今日动态
-                </span>
-                <ul className="agent-hud-feed">
-                  {AGENT_FEED.map((item) => (
-                    <li key={item.text} data-done={item.done || undefined}>
-                      {item.text}
-                      {item.at ? <time>{item.at}</time> : null}
-                    </li>
-                  ))}
-                </ul>
-              </section>
+                <section className="agent-hud-section">
+                  <span className="agent-hud-label">
+                    <i className="agent-hud-label-ico" aria-hidden /> 今日动态
+                  </span>
+                  <ul className="agent-hud-feed">
+                    {AGENT_FEED.map((item) => (
+                      <li key={item.text} data-done={item.done || undefined}>
+                        {item.text}
+                        {item.at ? <time>{item.at}</time> : null}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
 
-              <section className="agent-hud-section">
-                <span className="agent-hud-label">
-                  <i className="agent-hud-label-ico" aria-hidden /> 上次聊到
-                </span>
-                <p className="agent-hud-note">{AGENT_LAST_CHAT.text}</p>
-                <span className="agent-hud-meta">{AGENT_LAST_CHAT.at}</span>
-              </section>
+                <section className="agent-hud-section">
+                  <span className="agent-hud-label">
+                    <i className="agent-hud-label-ico" aria-hidden /> 上次聊到
+                  </span>
+                  <p className="agent-hud-note">{AGENT_LAST_CHAT.text}</p>
+                  <span className="agent-hud-meta">{AGENT_LAST_CHAT.at}</span>
+                </section>
 
-              <section className="agent-hud-section">
-                <span className="agent-hud-label">
-                  <i className="agent-hud-label-ico" aria-hidden /> 你最近在做
-                </span>
-                <p className="agent-hud-note">{AGENT_RECENT}</p>
-              </section>
+                <section className="agent-hud-section">
+                  <span className="agent-hud-label">
+                    <i className="agent-hud-label-ico" aria-hidden /> 你最近在做
+                  </span>
+                  <p className="agent-hud-note">{AGENT_RECENT}</p>
+                </section>
 
-              <div className="agent-hud-actions">
-                <button
-                  type="button"
-                  className="agent-hud-btn primary"
-                  onClick={() => {
-                    setAgentPinned(false);
-                    openApp('desktop');
-                  }}
-                >
-                  <RotateCcw size={13} strokeWidth={1.8} aria-hidden /> 继续上次对话
-                </button>
-                <button
-                  type="button"
-                  className="agent-hud-btn"
-                  onClick={() => {
-                    setAgentPinned(false);
-                    if (!state.ledgerOpen) toggleLedger();
-                  }}
-                >
-                  <BarChart3 size={13} strokeWidth={1.8} aria-hidden /> 查看今日轨迹
-                </button>
-              </div>
-            </div>
-          ) : null}
+                <div className="agent-hud-actions">
+                  <button
+                    type="button"
+                    className="agent-hud-btn primary"
+                    onClick={() => {
+                      setAgentPinned(false);
+                      openApp('desktop');
+                    }}
+                  >
+                    <RotateCcw size={13} strokeWidth={1.8} aria-hidden /> 继续上次对话
+                  </button>
+                  <button
+                    type="button"
+                    className="agent-hud-btn"
+                    onClick={() => {
+                      setAgentPinned(false);
+                      if (!state.ledgerOpen) toggleLedger();
+                    }}
+                  >
+                    <BarChart3 size={13} strokeWidth={1.8} aria-hidden /> 查看今日轨迹
+                  </button>
+                </div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
         </div>
       </Pane>
 

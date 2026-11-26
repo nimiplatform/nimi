@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useDesktopReducedMotion } from '../../ui/motion/desktop-motion.js';
 import {
   RecentPartnerAvatar,
   useHomeRecentPartners,
@@ -85,7 +86,7 @@ function PartnerContextTile({
       aria-description={partner.hasUnread ? t('NotificationPanel.unread') : undefined}
       data-testid={`home-partner-card:${partner.localAgentRef}`}
       data-variant="context"
-      className={`group/tile flex min-w-0 flex-col gap-2.5 rounded-2xl bg-[var(--nimi-home-porcelain-card)] p-4 text-left shadow-[var(--nimi-home-porcelain-shadow)] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--nimi-home-porcelain-shadow-hover)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${className}`}
+      className={`group/tile flex min-w-0 flex-col gap-2.5 rounded-2xl bg-[var(--nimi-home-porcelain-card)] p-4 text-left shadow-[var(--nimi-home-porcelain-shadow)] transition-[transform,opacity,background-color,border-color,color] duration-150 hover:shadow-[var(--nimi-home-porcelain-shadow-hover)] active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${className}`}
     >
       <span className="flex min-w-0 items-center gap-3" data-testid={`home-recent-chat:${partner.localAgentRef}`}>
         <RecentPartnerAvatar partner={partner} />
@@ -153,7 +154,7 @@ function PartnerCompactChip({
       aria-label={t('runtimeConfig.overview.recentChats.openConversation', { name: partner.displayName })}
       data-testid={`home-partner-card:${partner.localAgentRef}`}
       data-variant="compact"
-      className="inline-flex max-w-full min-w-0 items-center gap-2.5 rounded-2xl bg-[var(--nimi-home-porcelain-card)] py-2 pr-4 pl-2.5 text-left shadow-[var(--nimi-home-porcelain-shadow)] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--nimi-home-porcelain-shadow-hover)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+      className="inline-flex max-w-full min-w-0 items-center gap-2.5 rounded-2xl bg-[var(--nimi-home-porcelain-card)] py-2 pr-4 pl-2.5 text-left shadow-[var(--nimi-home-porcelain-shadow)] transition-[transform,opacity,background-color,border-color,color] duration-150 hover:shadow-[var(--nimi-home-porcelain-shadow-hover)] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
     >
       <span className="flex min-w-0 items-center gap-2.5" data-testid={`home-recent-chat:${partner.localAgentRef}`}>
         <RecentPartnerAvatar partner={partner} />
@@ -189,6 +190,7 @@ export function HomePartnersHeroCardView({
   onExplore,
 }: HomePartnersHeroCardViewProps) {
   const { t } = useTranslation();
+  const reducedMotion = useDesktopReducedMotion();
   const railRef = useRef<HTMLDivElement>(null);
 
   const visiblePartners = partners.slice(0, HOME_PARTNERS_HERO_LIMIT);
@@ -207,7 +209,7 @@ export function HomePartnersHeroCardView({
   const isScrollableRail = isReady && contextPartners.length >= 4;
 
   const scrollRail = (direction: -1 | 1) => {
-    railRef.current?.scrollBy({ left: direction * 296, behavior: 'smooth' });
+    railRef.current?.scrollBy({ left: direction * 296, behavior: reducedMotion ? 'auto' : 'smooth' });
   };
 
   return (
@@ -318,7 +320,7 @@ export function HomePartnersHeroCardView({
             ) : (
               <div
                 ref={railRef}
-                className="flex min-w-0 gap-3 overflow-x-auto pb-1 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                className="flex min-w-0 gap-3 overflow-x-auto px-1 pb-1 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(to_right,transparent_0,black_8px,black_calc(100%-24px),transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,transparent_0,black_8px,black_calc(100%-24px),transparent_100%)]"
                 data-testid="home-partners-rail"
               >
                 {contextPartners.map(({ partner, index, savedDraft, preview }) => (

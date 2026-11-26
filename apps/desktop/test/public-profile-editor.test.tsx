@@ -162,6 +162,11 @@ test('public profile editor', async (t) => {
       assert.match(dom.window.document.querySelector('[data-testid="profile-tags-field"]')!.textContent!, /worldbuilder/);
 
       await act(async () => { button('Discard changes')!.click(); });
+      assert.match(dom.window.document.querySelector('[data-testid="profile-tags-field"]')!.textContent!, /worldbuilder/, 'discard requires confirmation before reverting');
+      const confirmDiscard = [...dom.window.document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')]
+        .find((element) => element.textContent?.trim() === 'Discard changes');
+      assert.ok(confirmDiscard);
+      await act(async () => { confirmDiscard.click(); });
       assert.equal(bio().value, 'Unsaved draft', 'discard returns to the latest saved owner profile');
       assert.doesNotMatch(dom.window.document.querySelector('[data-testid="profile-tags-field"]')!.textContent!, /worldbuilder/);
     });
@@ -222,6 +227,11 @@ test('public profile editor', async (t) => {
       assert.deepEqual(savedPatches, [{ avatarResourceId: 'res-nimi-avatar-mint.png' }]);
 
       await act(async () => { button('Remove photo')!.click(); });
+      assert.equal(mintPreset.getAttribute('aria-pressed'), 'true', 'photo removal requires confirmation');
+      const confirmRemovePhoto = [...dom.window.document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')]
+        .find((element) => element.textContent?.trim() === 'Remove photo');
+      assert.ok(confirmRemovePhoto);
+      await act(async () => { confirmRemovePhoto.click(); });
       assert.equal(mintPreset.getAttribute('aria-pressed'), 'false');
       assert.ok(dom.window.document.querySelector('[data-testid="profile-dirty-bar"]'));
     });

@@ -2,6 +2,7 @@
   "Common": {
     "retry": "重试",
     "close": "关闭",
+    "undo": "撤销",
     "copy": "复制",
     "copied": "已复制",
     "copyFailed": "复制失败",
@@ -93,6 +94,7 @@
     "deletedRecordAndAsset": "记录和托管资产已删除",
     "deleteAssetFailed": "托管资产删除失败，历史记录已保留",
     "deleteFailed": "删除失败，请重试",
+    "restoreFailed": "无法恢复该记录，请检查历史。",
     "clearScope": "清空当前范围",
     "clearScopeConfirm": "再次点击确认清空",
     "cleared": "历史已清空",
@@ -126,6 +128,12 @@
     "loadFailedTitle": "历史加载失败",
     "saveFailedTitle": "历史保存失败",
     "deleteRecordAndDocument": "删除记录及其保存的结果",
+    "confirmDeleteAssetTitle": "删除记录和托管资产？",
+    "confirmDeleteAssetMessage": "此操作将从应用存储中永久删除该历史记录及其托管媒体资产。",
+    "confirmDeleteDocumentTitle": "删除记录及其保存的结果？",
+    "confirmDeleteDocumentMessage": "此操作将从应用存储中永久删除该历史记录及其保存的结果文档。",
+    "confirmDeleteAction": "永久删除",
+    "cancelDeleteAction": "取消",
     "stopped": "已停止"
   },
   "NonSuccess": {

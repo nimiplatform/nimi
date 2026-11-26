@@ -18,11 +18,13 @@ export function ChatAvatarPopover({ open, onOpenChange, placement, onSelect, lab
   const enter = () => {
     if (keyboardEntry.current && content.current?.isConnected) { content.current.focus(); keyboardEntry.current = false; }
   };
+  const hasOpenSubmenu = () => typeof document !== 'undefined' && Boolean(document.querySelector('[data-chat-avatar-submenu]'));
   const schedule = (next: boolean) => {
     cancel();
     if (next && dismissed.current) return;
+    if (!next && hasOpenSubmenu()) return;
     timer.current = clock.schedule(next ? 180 : 200, result => {
-      if (result.ok && (next || !content.current?.contains(document.activeElement))) onOpenChange(next);
+      if (result.ok && (next || (!content.current?.contains(document.activeElement) && !hasOpenSubmenu()))) onOpenChange(next);
     });
   };
   useEffect(() => { if (!open) cancel(); }, [open]);
@@ -42,8 +44,11 @@ export function ChatAvatarPopover({ open, onOpenChange, placement, onSelect, lab
       onOpenAutoFocus={event => { event.preventDefault(); enter(); }}
       onCloseAutoFocus={event => { event.preventDefault(); if (restoreFocus.current) { trigger.current?.focus(); cancel(); restoreFocus.current = false; } }} className={className}>
       <div ref={node => { content.current = node; enter(); }} tabIndex={-1} data-testid={testId} aria-label={label} className="outline-none"
-        onFocusCapture={cancel} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) schedule(false); }}
-        onKeyDownCapture={event => { if (event.key === 'Escape') { dismissed.current = true; restoreFocus.current = true; } }}>{children}</div>
+        onFocusCapture={cancel} onBlurCapture={event => {
+          const related = event.relatedTarget as HTMLElement | null;
+          if (!event.currentTarget.contains(related) && !related?.closest?.('[data-chat-avatar-submenu]')) schedule(false);
+        }}
+        onKeyDownCapture={event => { if (event.key === 'Escape' && !hasOpenSubmenu()) { dismissed.current = true; restoreFocus.current = true; } }}>{children}</div>
     </PopoverContent>
   </Popover>;
 }

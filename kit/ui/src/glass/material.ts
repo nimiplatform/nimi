@@ -1,6 +1,7 @@
 // @nimi-authority: definition.nimi.platform.ui-design-system.ui-material
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-design-022a
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-design-022c
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-design-022e
 /**
  * Glass material taxonomy primitive (5-tier admitted, 2026-04-18).
  *
@@ -51,9 +52,9 @@ export function isGlassMaterial(material: SurfaceMaterial): material is GlassMat
  * - `transparency='solid'` forces opaque (`'solid'`) regardless of
  *   requested tier (used by reduced-transparency a11y opt-in /
  *   prefers-reduced-transparency media query).
- * - `transparency='reduced'` downgrades glass by one tier
- *   (chrome→thick, thick→regular, regular→thin); thin / solid pass
- *   through.
+ * - `transparency='reduced'` converges one tier toward solid / higher
+ *   opacity (thin→regular, regular→thick, thick→chrome, chrome→solid);
+ *   solid passes through unchanged.
  * - `transparency='default'` returns the requested material verbatim.
  */
 export function downgradeSurfaceMaterial(
@@ -62,8 +63,9 @@ export function downgradeSurfaceMaterial(
 ): SurfaceMaterial {
   if (transparency === 'solid') return 'solid';
   if (transparency !== 'reduced') return material;
-  if (material === 'glass-chrome') return 'glass-thick';
-  if (material === 'glass-thick') return 'glass-regular';
-  if (material === 'glass-regular') return 'glass-thin';
-  return material;
+  if (material === 'glass-thin') return 'glass-regular';
+  if (material === 'glass-regular') return 'glass-thick';
+  if (material === 'glass-thick') return 'glass-chrome';
+  if (material === 'glass-chrome') return 'solid';
+  return 'solid';
 }

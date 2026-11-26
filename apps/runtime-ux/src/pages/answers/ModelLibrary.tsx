@@ -31,8 +31,12 @@ export function ModelLibrary({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // null = prompt visible, 'used' = accepted, 'dismissed' = declined
   const [promptState, setPromptState] = useState<'used' | 'dismissed' | null>(null);
+  const [installed, setInstalled] = useState(() => (emptyInstalled ? [] : installedModels.map((item) => ({ ...item }))));
+  const [installedCatalogIds, setInstalledCatalogIds] = useState<ReadonlySet<string>>(
+    () => new Set(catalogModels.filter((m) => m.installed).map((m) => m.id)),
+  );
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
-  const installed = emptyInstalled ? [] : installedModels;
   const filteredCatalog = catalogModels.filter(
     (m) =>
       (category === 'All' || m.capability === category) &&
@@ -40,11 +44,55 @@ export function ModelLibrary({
   );
   const selected = catalogModels.find((m) => m.id === selectedId);
 
+  const handleRemove = (id: string, name: string) => {
+    setInstalled((prev) => prev.filter((item) => item.id !== id));
+    setInstalledCatalogIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    setStatusMessage(`Removed ${name} from this device.`);
+  };
+
+  const handleInstall = (model: (typeof catalogModels)[number]) => {
+    setInstalledCatalogIds((prev) => new Set(prev).add(model.id));
+    setInstalled((prev) =>
+      prev.some((item) => item.id === model.id)
+        ? prev
+        : [
+            {
+              id: model.id,
+              name: model.name,
+              capability: model.capability,
+              size: model.size,
+              source: 'Catalog',
+              status: 'ready',
+            },
+            ...prev,
+          ],
+    );
+    setStatusMessage(`Installed ${model.name}.`);
+  };
+
+  const handleImportFile = () => {
+    setStatusMessage('Prototype preview: opens a file picker for local GGUF / safetensors model weights.');
+  };
+
   return (
     <>
       <div className="rt-toolbar" style={{ marginBottom: 12 }}>
         <SegmentedControl options={['Installed', 'Discover'] as const} value={mode} onChange={setMode} />
       </div>
+
+      {statusMessage && (
+        <div className="rt-inline-prompt" role="status">
+          <IconCheck size={15} />
+          <span className="rt-inline-prompt-text">{statusMessage}</span>
+          <Button size="sm" variant="ghost" onClick={() => setStatusMessage(null)}>
+            Dismiss
+          </Button>
+        </div>
+      )}
 
       {mode === 'Installed' ? (
         <>
@@ -80,7 +128,7 @@ export function ModelLibrary({
                   <Button variant="primary" onClick={() => setMode('Discover')}>
                     Browse catalog
                   </Button>
-                  <Button>Import file</Button>
+                  <Button onClick={handleImportFile}>Import file</Button>
                 </div>
               }
             />
@@ -106,14 +154,14 @@ export function ModelLibrary({
                       <td>{m.source}</td>
                       <td>{statusCell(m)}</td>
                       <td>
-                        <Button size="sm" variant="ghost">Remove</Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleRemove(m.id, m.name)}>Remove</Button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               <div className="rt-section-gap">
-                <Button size="sm">Import file</Button>
+                <Button size="sm" onClick={handleImportFile}>Import file</Button>
               </div>
             </>
           )}
@@ -154,10 +202,10 @@ export function ModelLibrary({
                 title={selected.name}
                 subtitle={`${selected.capability} · ${selected.size} · ${selected.downloads} installs`}
                 actions={
-                  selected.installed ? (
+                  installedCatalogIds.has(selected.id) ? (
                     <Pill tone="success">Installed</Pill>
                   ) : (
-                    <Button variant="primary" size="sm">
+                    <Button variant="primary" size="sm" onClick={() => handleInstall(selected)}>
                       <IconDownload size={13} /> Install
                     </Button>
                   )

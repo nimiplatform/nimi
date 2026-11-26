@@ -39,9 +39,15 @@ interface FlickOptions {
 /** Settle a released pane with the governed momentum spring and inherited
  * velocity until it reaches the field boundary or minimum velocity. */
 export function startFlick(opts: FlickOptions): () => void {
+  const reducedMotion =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const { vx, vy } = opts;
-  if (Math.hypot(vx, vy) < 80) {
-    opts.onEnd(opts.from.x, opts.from.y);
+  if (reducedMotion || Math.hypot(vx, vy) < 80) {
+    const settled = opts.clamp(opts.from.x, opts.from.y);
+    opts.onMove(settled.x, settled.y);
+    opts.onEnd(settled.x, settled.y);
     return () => undefined;
   }
 

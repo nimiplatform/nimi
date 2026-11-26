@@ -99,7 +99,13 @@ function fill(template: string, count: number): string {
   return template.replace('{{count}}', String(count));
 }
 
-export function DemoShijingAsk({ content }: { content: AskContent }) {
+export function DemoShijingAsk({
+  content,
+  onDesktopOnly,
+}: {
+  content: AskContent;
+  onDesktopOnly?: () => void;
+}) {
   const { t } = useAppPreviewLocale();
   const [question, setQuestion] = useState(() => '');
   const [search, setSearch] = useState(() => '');
@@ -109,23 +115,35 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
   const [drafting, setDrafting] = useState(true);
   const [threads, setThreads] = useState<Record<string, AskTurn[]>>({});
   const [localSessions, setLocalSessions] = useState<Session[]>([]);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const filterRef = useRef<HTMLSpanElement>(null);
   useEffect(
     () => () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
+      for (const timer of timersRef.current.values()) clearTimeout(timer);
+      timersRef.current.clear();
     },
     [],
   );
 
   useEffect(() => {
     if (!filterOpen) return undefined;
-    const onDown = (event: MouseEvent) => {
+    const onDown = (event: PointerEvent) => {
       if (!filterRef.current?.contains(event.target as Node)) setFilterOpen(false);
     };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
+    const onKey = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        setFilterOpen(false);
+      }
+    };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey, { capture: true });
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey, { capture: true });
+    };
   }, [filterOpen]);
 
   // Newest first: questions asked in this session sit above the seeded history.
@@ -179,7 +197,10 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
   const submitTitle = followUp ? content.sendTitle : content.generateTitle;
 
   const finishAfterDelay = (id: string) => {
-    timerRef.current = setTimeout(() => {
+    const existing = timersRef.current.get(id);
+    if (existing) clearTimeout(existing);
+    const timer = setTimeout(() => {
+      timersRef.current.delete(id);
       setThreads((current) => ({
         ...current,
         [id]: (current[id] ?? []).map((turn) =>
@@ -187,6 +208,7 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
         ),
       }));
     }, ASK_THINK_MS);
+    timersRef.current.set(id, timer);
   };
 
   const handleSubmit = (event: FormEvent) => {
@@ -306,8 +328,7 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
                 <button
                   type="button"
                   className="shijing-ctx__manage"
-                  aria-haspopup="dialog"
-                  aria-expanded={false}
+                  onClick={onDesktopOnly}
                 >
                   {'✎ '}
                   {content.contextManage}
@@ -476,6 +497,7 @@ export function DemoShijingAsk({ content }: { content: AskContent }) {
                     <div
                       className="shijing-ask__filter-menu"
                       role="menu"
+                      data-demo-nested-dialog="true"
                       aria-label={content.filterMenuAria}
                     >
                       <button

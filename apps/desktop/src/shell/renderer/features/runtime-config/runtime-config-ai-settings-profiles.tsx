@@ -529,7 +529,7 @@ function ProfileLibraryCard(props: {
         confirmLabel={t('runtimeConfig.aiSettings.profileDelete')}
         cancelLabel={t('Common.cancel')}
         confirmTone="danger"
-        pending={deleting}
+        loading={deleting}
         onConfirm={() => {
           setDeleting(true);
           void props.onDelete().finally(() => {
@@ -537,7 +537,7 @@ function ProfileLibraryCard(props: {
             setConfirmingDelete(false);
           });
         }}
-        onClose={() => setConfirmingDelete(false)}
+        onClose={() => { if (!deleting) setConfirmingDelete(false); }}
       />
     </div>
   );
@@ -774,7 +774,7 @@ function ProfileUsePanel(props: {
       className="desktop-module-stack"
       data-testid="runtime-ai-settings-profile-use-panel"
     >
-      <Button tone="ghost" size="sm" className="-ml-3" onClick={props.onBack}>
+      <Button tone="ghost" size="sm" className="-ml-3 self-start" onClick={props.onBack}>
         <ArrowLeft size={16} aria-hidden="true" />
         {t('runtimeConfig.aiSettings.profileBack')}
       </Button>
@@ -940,13 +940,12 @@ function ProfileUsePanel(props: {
       <div className="flex justify-end">
         <Button
           tone="primary"
-          disabled={busy || props.runtimeWritesDisabled || startablePlans.length === 0}
+          loading={busy}
+          disabled={props.runtimeWritesDisabled || startablePlans.length === 0}
           onClick={onStart}
           data-testid="runtime-ai-settings-profile-start"
         >
-          {busy
-            ? t('runtimeConfig.aiSettings.profileUseStarting', { defaultValue: 'Starting…' })
-            : t('runtimeConfig.product.reviewPreparation')}
+          {t('runtimeConfig.product.reviewPreparation')}
           <ArrowRight size={16} aria-hidden="true" />
         </Button>
       </div>

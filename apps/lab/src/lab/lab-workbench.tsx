@@ -82,7 +82,7 @@ const nativeOnlyNavigation = Object.freeze(['app-access', 'integrations', 'activ
 
 export function LabWorkbench(_props: LabWorkbenchProps) {
   const rendererHost = useLabRendererHost();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const preferences: LabPreferences = rendererHost.app.projection.preferences();
   const owner = useLabNavigationOwner();
   const snapshot = useNimiNavigationSnapshot<LabDestination>();
@@ -291,15 +291,15 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
         <Suspense fallback={<LoadingFallback />}><SettingsRoute /></Suspense>
       ) : view.kind === 'agent-center' ? (
         <Suspense fallback={<LoadingFallback />}>
-          <div className="lab-agent-route"><AgentCenterCapability client={rendererHost.sdk.localAppClient} /></div>
+          <div className="lab-agent-route"><AgentCenterCapability client={rendererHost.sdk.localAppClient} language={i18n.language} /></div>
         </Suspense>
       ) : view.kind === 'agent-conversation' ? (
         <Suspense fallback={<LoadingFallback />}>
-          <div className="lab-agent-route"><AgentConversationCapability client={rendererHost.sdk.localAppClient} /></div>
+          <div className="lab-agent-route"><AgentConversationCapability client={rendererHost.sdk.localAppClient} language={i18n.language} /></div>
         </Suspense>
       ) : view.kind === 'agent-realtime' ? (
         <Suspense fallback={<LoadingFallback />}>
-          <div className="lab-agent-route"><AgentRealtimeCapability client={requireLabNativeClient(rendererHost.sdk.localAppClient)} /></div>
+          <div className="lab-agent-route"><AgentRealtimeCapability client={requireLabNativeClient(rendererHost.sdk.localAppClient)} locale={i18n.language} /></div>
         </Suspense>
       ) : view.kind === 'agent-utopia' ? (
         <Suspense fallback={<LoadingFallback />}><LabUtopiaPage client={requireLabNativeClient(rendererHost.sdk.localAppClient).utopia} /></Suspense>

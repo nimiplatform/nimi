@@ -21,7 +21,7 @@ export const TextareaField = forwardRef<HTMLTextAreaElement, TextareaFieldProps>
   return (
     <label
       className={cn(
-        'flex rounded-[var(--nimi-radius-field)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] text-[var(--nimi-field-text)] transition-colors duration-[var(--nimi-motion-fast)] focus-within:border-[var(--nimi-field-focus)] focus-within:ring-[length:var(--nimi-focus-ring-width)] focus-within:ring-[var(--nimi-focus-ring-color)]',
+        'flex rounded-[var(--nimi-radius-field)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] text-[var(--nimi-field-text)] transition-colors duration-[var(--nimi-motion-fast)] focus-within:border-[var(--nimi-field-focus)] focus-within:ring-[length:var(--nimi-focus-ring-width)] focus-within:ring-[var(--nimi-focus-ring-color)] has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-[var(--nimi-opacity-disabled)]',
         tone === 'quiet' && 'border-transparent bg-transparent',
         tone === 'danger' && 'nimi-field--danger border-[var(--nimi-status-danger)] focus-within:border-[var(--nimi-status-danger)] focus-within:ring-[var(--nimi-status-danger)]',
         className,

@@ -58,9 +58,11 @@ export function FirstRunWizardChrome(props: FirstRunWizardChromeProps): ReactEle
     >
       <style>{`
         @keyframes nimi-first-run-spin { to { transform: rotate(360deg); } }
-        .nimi-first-run-spin { transform-origin: 12px 12px; animation: nimi-first-run-spin 0.9s linear infinite; }
+        .nimi-first-run-spin { transform-origin: center; animation: nimi-first-run-spin 0.9s linear infinite; }
         @keyframes nimi-first-run-pulse { 0%,100% { opacity: 0.55; } 50% { opacity: 1; } }
         .nimi-first-run-pulse { animation: nimi-first-run-pulse 1.6s ease-in-out infinite; }
+        :root[data-nimi-reduced-motion="true"] .nimi-first-run-spin,
+        :root[data-nimi-reduced-motion="true"] .nimi-first-run-pulse { animation: none; }
         @media (prefers-reduced-motion: reduce) {
           .nimi-first-run-spin, .nimi-first-run-pulse { animation: none; }
         }
@@ -74,7 +76,7 @@ export function FirstRunWizardChrome(props: FirstRunWizardChromeProps): ReactEle
         >
           {t('FirstRun.wordmark', { defaultValue: 'NIMI' })}
         </span>
-        <div data-testid="first-run-support-pill" className="[&_button]:rounded-full [&_button]:bg-white [&_button]:shadow-sm">
+        <div data-testid="first-run-support-pill" className="[&_button]:rounded-full [&_button]:bg-[var(--nimi-surface-card)] [&_button]:shadow-sm">
           <SupportDegradedEntry />
         </div>
       </div>

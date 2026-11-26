@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@nimiplatform/kit/ui';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { InlineFeedback } from '../../ui/feedback/inline-feedback';
 
@@ -112,32 +113,29 @@ export function DeveloperModeToggle({
             />
           ) : null}
         </div>
-        <button
-          type="button"
+        <Button
+          tone={enabled ? 'secondary' : 'primary'}
+          size="sm"
           data-testid="developer-mode-toggle-button"
           aria-pressed={enabled}
-          disabled={busy || unavailable}
+          loading={busy}
+          disabled={unavailable}
           onClick={() => { void toggle(); }}
-          className={
-            enabled
-              ? 'rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-active)] px-3.5 py-2 text-xs font-medium text-[var(--nimi-text-primary)] transition hover:bg-[var(--nimi-action-ghost-hover)] disabled:cursor-wait disabled:opacity-70'
-              : 'rounded-lg bg-[var(--nimi-action-primary-bg)] px-3.5 py-2 text-xs font-medium text-[var(--nimi-action-primary-text)] transition hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-wait disabled:opacity-70'
-          }
         >
           {enabled
             ? t('Developer.developerModeDisable')
             : t('Developer.developerModeEnable')}
-        </button>
+        </Button>
         {unavailable ? (
-          <button
-            type="button"
-            disabled={busy}
+          <Button
+            tone="secondary"
+            size="sm"
+            loading={busy}
             data-testid="developer-mode-retry-button"
             onClick={() => { void retry(); }}
-            className="rounded-lg border border-[var(--nimi-border-subtle)] px-3.5 py-2 text-xs font-medium text-[var(--nimi-text-primary)] disabled:cursor-wait disabled:opacity-70"
           >
             {t('Developer.developerModeRetry')}
-          </button>
+          </Button>
         ) : null}
       </div>
     </div>

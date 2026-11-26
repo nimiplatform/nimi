@@ -37,7 +37,7 @@ export function ScreenRepair(props: ScreenRepairProps): ReactElement {
     <div data-testid="first-run-screen-repair" className="flex flex-col items-center gap-4 text-center">
       <span
         aria-hidden
-        className="flex h-10 w-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,white)] text-[var(--nimi-status-warning)]"
+        className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning)]"
       >
         <WrenchIcon className="h-5 w-5" />
       </span>
@@ -93,7 +93,7 @@ export function ScreenBlocked(props: ScreenBlockedProps): ReactElement {
     <div data-testid="first-run-screen-blocked" className="flex flex-col items-center gap-4 text-center">
       <span
         aria-hidden
-        className="flex h-10 w-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-status-danger)_14%,white)] text-[var(--nimi-status-danger)]"
+        className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--nimi-status-danger-soft-bg)] text-[var(--nimi-status-danger)]"
       >
         <AlertIcon className="h-5 w-5" />
       </span>
@@ -130,7 +130,7 @@ export function ScreenReady(): ReactElement {
     <div data-testid="first-run-screen-ready" className="flex flex-col items-center gap-4 text-center">
       <span
         aria-hidden
-        className="flex h-10 w-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,white)] text-[var(--nimi-action-primary-bg)]"
+        className="flex h-10 w-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] text-[var(--nimi-action-primary-bg)]"
       >
         <CheckCircleFilledIcon className="h-5 w-5" />
       </span>

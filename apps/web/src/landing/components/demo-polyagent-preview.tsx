@@ -55,7 +55,7 @@ export function DemoPolyagentPreview({ content }: { content: RemainingPreviewMet
             </>
           }
         />
-        <main className="rp-main rp-page">
+        <div role="region" aria-label={content.name} className="rp-main rp-page">
           <PreviewHeading
             title={nav.find((x) => x.id === view)!.label}
             description={t('polyagent.main.turnMarketChangesIntoBoundedActions')}
@@ -210,7 +210,7 @@ export function DemoPolyagentPreview({ content }: { content: RemainingPreviewMet
               <p>{t('polyagent.demoLedger.thisSavedLedgerDoesNotRepresentExchange')}</p>
             </section>
           )}
-        </main>
+        </div>
       </div>
     </RemainingPreview>
   );

@@ -278,7 +278,7 @@ export function DemoStorybookPreview({ content }: { content: HeroDemoStorybookPr
       }
     >
       <AmbientBackground variant="mesh" className="app-shell">
-        <main className="app-shell__body">
+        <div className="app-shell__body">
           <div className={`sb-app${reading ? ' sb-app--reading' : ''}`} data-testid="storybook-app">
             {!reading && (
               <aside className="sb-sidebar">
@@ -298,6 +298,7 @@ export function DemoStorybookPreview({ content }: { content: HeroDemoStorybookPr
                 <nav className="sb-nav" aria-label={t('storybook.nav.primaryNavigation')}>
                   <button
                     type="button"
+                    aria-current={navActive('all') ? 'page' : undefined}
                     className={navActive('all') ? 'is-active' : ''}
                     data-testid="surface-play"
                     onClick={() => library('all')}
@@ -307,6 +308,7 @@ export function DemoStorybookPreview({ content }: { content: HeroDemoStorybookPr
                   </button>
                   <button
                     type="button"
+                    aria-current={navActive('continue') ? 'page' : undefined}
                     className={navActive('continue') ? 'is-active' : ''}
                     onClick={() => library('continue')}
                   >
@@ -316,6 +318,7 @@ export function DemoStorybookPreview({ content }: { content: HeroDemoStorybookPr
                   <div className="sb-nav-divider" />
                   <button
                     type="button"
+                    aria-current={navActive('studio') ? 'page' : undefined}
                     className={navActive('studio') ? 'is-active' : ''}
                     data-testid="surface-studio"
                     onClick={() => {
@@ -325,7 +328,6 @@ export function DemoStorybookPreview({ content }: { content: HeroDemoStorybookPr
                   >
                     <Feather size={19} />
                     {t('storybook.nav.studio')}
-                    <span className="sb-nav-note">{t('storybook.nav.studio')}</span>
                   </button>
                 </nav>
                 <div className="sb-sidebar-note">
@@ -351,7 +353,7 @@ export function DemoStorybookPreview({ content }: { content: HeroDemoStorybookPr
                 </div>
               </aside>
             )}
-            <main className="sb-main">
+            <div className="sb-main" role="region" aria-label={t('storybook.sidebar.storybook')}>
               {settings ? (
                 <SettingsPage content={content} onClose={() => setSettings(false)} />
               ) : surface === 'play' ? (
@@ -392,7 +394,7 @@ export function DemoStorybookPreview({ content }: { content: HeroDemoStorybookPr
                   onHostOnly={() => notice(content.demo.hostOnly)}
                 />
               )}
-            </main>
+            </div>
           </div>
           {noticeText && (
             <div className="demo-storybook-notice" role="status" data-demo-storybook-notice="true">
@@ -402,7 +404,7 @@ export function DemoStorybookPreview({ content }: { content: HeroDemoStorybookPr
               </button>
             </div>
           )}
-        </main>
+        </div>
       </AmbientBackground>
     </div>
   );
@@ -809,10 +811,32 @@ function PlayRun({
     }, IMPROV_REPLY_MS);
   }
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (journal.current?.open) {
+        event.preventDefault();
+        event.stopPropagation();
+        journal.current.close();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown, { capture: true });
+    return () => document.removeEventListener('keydown', onKeyDown, { capture: true });
+  }, []);
+
+  const handleExit = () => {
+    if (replyTimer.current) {
+      clearTimeout(replyTimer.current);
+      replyTimer.current = null;
+    }
+    setBusy(false);
+    onExit();
+  };
+
   return (
     <div className={`sb-reader${night ? ' sb-reader--night' : ''}`}>
       <header className="sb-reader-bar">
-        <button type="button" className="sb-quiet-button" onClick={onExit} disabled={busy}>
+        <button type="button" className="sb-quiet-button" onClick={handleExit}>
           <ArrowLeft size={17} />
           {t('storybook.playRun.backToTheLibrary')}
         </button>
@@ -869,7 +893,7 @@ function PlayRun({
         </div>
       )}
       <div className="sb-reader-progress">
-        <span style={{ width: `${progress}%` }} />
+        <span style={{ transform: `scaleX(${progress / 100})` }} />
       </div>
       <div className="sb-reader-layout">
         <aside className="sb-story-aside">
@@ -1511,7 +1535,7 @@ function SettingsPage({
   content: HeroDemoStorybookPreview;
   onClose: () => void;
 }) {
-  const { t } = useAppPreviewLocale();
+  const { previewLocale, t } = useAppPreviewLocale();
   const [intents, setIntents] = useState<AIConfigIntent[]>(() => [
     {
       capabilityContract: TEXT_GENERATE,
@@ -1598,6 +1622,7 @@ function SettingsPage({
       <section id="storybook-ai-model-config" className="sb-ai-model-config" tabIndex={-1}>
         <ModelConfigAIConfigSurface
           context={{ owner: 'app-ai-config', appId: 'nimi.storybook' }}
+          language={previewLocale}
           capabilityContracts={[TEXT_GENERATE]}
           capabilities={intents}
           revision={revision}

@@ -98,7 +98,17 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
   } else {
     content = <WorldDetailDiscovery key={props.world.id} props={props} scenes={scenes} onViewCharacter={viewCharacter} onReadWorld={readWorld} />;
   }
-  return <>{content}{selectedCharacter ? <WorldCharacterQuickSheet character={selectedCharacter} onClose={() => setSelectedCharacter(null)} onViewCharacter={props.onViewCharacter} /> : null}</>;
+  return (
+    <>
+      {content}
+      <WorldCharacterQuickSheet
+        open={selectedCharacter !== null}
+        character={selectedCharacter}
+        onClose={() => setSelectedCharacter(null)}
+        onViewCharacter={props.onViewCharacter}
+      />
+    </>
+  );
 }
 
 export function WorldDetailPage(props: WorldDetailPageProps) {

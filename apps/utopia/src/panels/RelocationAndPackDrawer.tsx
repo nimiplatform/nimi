@@ -1,5 +1,5 @@
 import { useRef, useState, type DragEvent } from 'react';
-import { Button, InlineAlert, OverlayShell, StatusBadge } from '@nimiplatform/kit/ui';
+import { Button, ConfirmDialog, InlineAlert, OverlayShell, StatusBadge } from '@nimiplatform/kit/ui';
 import type { NimiUtopiaSnapshot, NimiUtopiaUpdateIntent } from '@nimiplatform/sdk/app';
 import { UploadArchiveIcon } from '../components/UtopiaIcons.js';
 import type { InstalledUtopiaPack, UtopiaStoragePort } from '../domain/bundle-registry.js';
@@ -61,6 +61,7 @@ export function RelocationAndPackDrawer(props: {
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
   const [inspectedCandidate, setInspectedCandidate] = useState<ValidatedUtopiaBundle | null>(null);
   const [confirmTargetPack, setConfirmTargetPack] = useState<InstalledUtopiaPack | null>(null);
+  const [pendingRemovePack, setPendingRemovePack] = useState<InstalledUtopiaPack | null>(null);
   const [syncLocalTimezone, setSyncLocalTimezone] = useState(true);
   const drawerBusy = busy || inspecting || relocating || removingKey !== null;
 
@@ -495,7 +496,7 @@ export function RelocationAndPackDrawer(props: {
                           size="sm"
                           disabled={drawerBusy || !snapshot || frozen}
                           title={!snapshot || frozen ? '需先连接住地并确认使用状态，才能移除本地包' : undefined}
-                          onClick={() => void handleRemovePack(pack)}
+                          onClick={() => setPendingRemovePack(pack)}
                         >
                           {removingKey === `${pack.manifest.bundleId}@${pack.contentDigest}` ? '移除中…' : '移除'}
                         </Button>
@@ -517,6 +518,26 @@ export function RelocationAndPackDrawer(props: {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={pendingRemovePack !== null}
+        title="移除本地洞天包"
+        message={
+          pendingRemovePack
+            ? `确认从本机画卷库永久移除「${pendingRemovePack.manifest.title} · v${pendingRemovePack.manifest.version}」？移除后如需再次使用需重新导入 .utopia 文件。`
+            : ''
+        }
+        confirmLabel="确认移除"
+        cancelLabel="取消"
+        confirmTone="danger"
+        loading={removingKey !== null}
+        onClose={() => setPendingRemovePack(null)}
+        onConfirm={() => {
+          if (!pendingRemovePack) return;
+          const target = pendingRemovePack;
+          setPendingRemovePack(null);
+          void handleRemovePack(target);
+        }}
+      />
     </OverlayShell>
   );
 }

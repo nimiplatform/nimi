@@ -66,7 +66,7 @@ function NimiCollectionTile(props: {
       type="button"
       data-collection-item={props.item.key}
       onClick={props.onOpen}
-      className="flex min-w-0 items-center gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-left shadow-[var(--nimi-elevation-base)] hover:border-[var(--nimi-border-strong)]"
+      className="flex min-w-0 items-center gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-left shadow-[var(--nimi-elevation-base)] transition-colors hover:border-[var(--nimi-border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]"
     >
       <ModelFamilyLogoTile name={itemBrandName(props.item)} seed={props.item.seed} label={title} size="md" />
       <span className="min-w-0 flex-1">
@@ -153,7 +153,7 @@ export function MarketSectionHeader(props: {
               type="button"
               data-testid={props.viewAllTestId}
               onClick={props.onViewAll}
-              className="flex items-center gap-1 text-xs text-[var(--nimi-text-secondary)] transition-colors hover:text-[var(--nimi-action-primary-bg)]"
+              className="flex items-center gap-1 rounded px-1 py-0.5 text-xs text-[var(--nimi-text-secondary)] transition-colors hover:text-[var(--nimi-action-primary-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]"
             >
               {t('runtimeConfig.modelLibrary.viewAll')}
               <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -218,7 +218,7 @@ export function NimiCollectionSection(props: {
           type="button"
           data-testid="model-library-nimi-parts"
           onClick={props.onViewParts}
-          className="flex items-center gap-1 text-xs text-[var(--nimi-text-muted)] transition-colors hover:text-[var(--nimi-action-primary-bg)]"
+          className="flex items-center gap-1 rounded px-1 py-0.5 text-xs text-[var(--nimi-text-muted)] transition-colors hover:text-[var(--nimi-action-primary-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]"
         >
           {t('runtimeConfig.modelLibrary.collection.partsEntry', { count: parts.length })}
           <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -315,7 +315,7 @@ function NimiCollectionRequirementSection(props: {
               type="button"
               data-requirement-item={item.key}
               onClick={() => props.onOpen(item)}
-              className="flex w-full min-w-0 items-center gap-3 px-4 py-3 text-left hover:bg-[var(--nimi-action-ghost-hover)]"
+              className="flex w-full min-w-0 items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--nimi-action-ghost-hover)] active:bg-[var(--nimi-surface-panel)]/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--nimi-focus-ring-color)]"
             >
               <span className="min-w-0 flex-1 truncate text-sm text-[var(--nimi-text-primary)]">
                 {itemTitle(item, t)}
@@ -424,7 +424,7 @@ export function NimiCollectionDetail(props: {
         <dl className="mt-2 space-y-1.5">
           <div className="flex items-baseline justify-between gap-3">
             <dt className="shrink-0 text-[var(--nimi-text-muted)]">{t('runtimeConfig.recommend.planRepo')}</dt>
-            <dd className="min-w-0 break-all text-right font-mono text-[11px]">{item.revision ? `${item.repo}@${item.revision}` : item.repo}</dd>
+            <dd className="min-w-0 break-all text-right font-mono text-[length:var(--nimi-type-caption-size)]">{item.revision ? `${item.repo}@${item.revision}` : item.repo}</dd>
           </div>
           {item.license ? (
             <div className="flex items-baseline justify-between gap-3">
@@ -435,7 +435,7 @@ export function NimiCollectionDetail(props: {
           {item.versions.map((version) => (
             <div key={version.contentId} className="flex items-baseline justify-between gap-3">
               <dt className="shrink-0 text-[var(--nimi-text-muted)]">{version.quantLabel || t('runtimeConfig.recommend.planEntry')}</dt>
-              <dd className="min-w-0 break-all text-right font-mono text-[11px]">{version.entry}</dd>
+              <dd className="min-w-0 break-all text-right font-mono text-[length:var(--nimi-type-caption-size)]">{version.entry}</dd>
             </div>
           ))}
         </dl>

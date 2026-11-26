@@ -20,10 +20,21 @@ export function OtpInput(props: {
     }
   }, []);
 
-  const handleChange = useCallback((index: number, char: string) => {
-    if (!/^\d$/.test(char)) return;
+  const handleChange = useCallback((index: number, raw: string) => {
+    const cleaned = raw.replace(/\D/g, '');
+    if (!cleaned) return;
+    if (cleaned.length > 1) {
+      const merged = [...digits];
+      for (let offset = 0; offset < cleaned.length && index + offset < length; offset += 1) {
+        merged[index + offset] = cleaned[offset]!;
+      }
+      const nextValue = merged.join('').replace(/[^\d]/g, '').slice(0, length);
+      onChange(nextValue);
+      focusInput(Math.min(index + cleaned.length, length - 1));
+      return;
+    }
     const newDigits = [...digits];
-    newDigits[index] = char;
+    newDigits[index] = cleaned;
     const newValue = newDigits.join('').replace(/[^\d]/g, '');
     onChange(newValue);
     if (index < length - 1) {
@@ -67,11 +78,13 @@ export function OtpInput(props: {
           ref={(el) => { inputRefs.current[index] = el; }}
           type="text"
           inputMode="numeric"
-          maxLength={1}
+          autoComplete={index === 0 ? 'one-time-code' : 'off'}
+          aria-label={`Verification code digit ${index + 1} of ${length}`}
+          maxLength={index === 0 ? length : 1}
           value={digit || ''}
           disabled={disabled}
-          className="h-12 w-10 rounded-lg border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] text-center text-xl font-bold text-[var(--nimi-text-primary)] outline-none transition focus:border-[var(--nimi-field-focus)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)] disabled:opacity-50"
-          onChange={(e) => handleChange(index, e.target.value.slice(-1))}
+          className="h-12 w-10 rounded-lg border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] text-center tabular-nums text-xl font-bold text-[var(--nimi-text-primary)] outline-none transition-[border-color,box-shadow] duration-[var(--nimi-motion-fast)] focus-visible:border-[var(--nimi-field-focus)] focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)] disabled:opacity-50"
+          onChange={(e) => handleChange(index, e.target.value)}
           onKeyDown={(e) => handleKeyDown(index, e)}
           onPaste={handlePaste}
           onFocus={(e) => e.target.select()}

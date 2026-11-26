@@ -44,6 +44,8 @@ export function useGlobalAuditData(enabled: boolean) {
     timeTo: '',
   });
   const auditPageWindowRef = useRef<DesktopAuditTimeRange | null>(null);
+  const auditRequestIdRef = useRef(0);
+  const usageRequestIdRef = useRef(0);
 
   // --- Section 3: Usage ---
   const [usageRecords, setUsageRecords] = useState<UsageStatRecord[]>([]);
@@ -73,6 +75,7 @@ export function useGlobalAuditData(enabled: boolean) {
 
   // --- Audit loading ---
   const loadAuditEvents = useCallback(async (filters?: AuditFilters) => {
+    const requestId = ++auditRequestIdRef.current;
     const f = filters ?? auditFilters;
     setAuditLoading(true);
     setAuditError(null);
@@ -90,14 +93,18 @@ export function useGlobalAuditData(enabled: boolean) {
         pageSize: 100,
         pageToken: '',
       });
+      if (requestId !== auditRequestIdRef.current) return;
       setAuditEvents(res.events);
       setAuditNextPageToken(res.nextPageToken);
     } catch (err) {
+      if (requestId !== auditRequestIdRef.current) return;
       setAuditError(err instanceof Error ? err.message : String(err));
     } finally {
-      setAuditLoading(false);
+      if (requestId === auditRequestIdRef.current) {
+        setAuditLoading(false);
+      }
     }
-  }, [auditFilters]);
+  }, [auditFilters, bindings.clock, sdk]);
 
   const loadNextAuditPage = useCallback(async () => {
     if (!auditNextPageToken || auditLoading) return;
@@ -106,6 +113,7 @@ export function useGlobalAuditData(enabled: boolean) {
       setAuditError('Audit pagination window is unavailable. Refresh the audit list.');
       return;
     }
+    const requestId = ++auditRequestIdRef.current;
     setAuditLoading(true);
     setAuditError(null);
     try {
@@ -116,17 +124,22 @@ export function useGlobalAuditData(enabled: boolean) {
         pageSize: 100,
         pageToken: auditNextPageToken,
       });
+      if (requestId !== auditRequestIdRef.current) return;
       setAuditEvents((prev) => [...prev, ...res.events]);
       setAuditNextPageToken(res.nextPageToken);
     } catch (err) {
+      if (requestId !== auditRequestIdRef.current) return;
       setAuditError(err instanceof Error ? err.message : String(err));
     } finally {
-      setAuditLoading(false);
+      if (requestId === auditRequestIdRef.current) {
+        setAuditLoading(false);
+      }
     }
-  }, [auditFilters, auditLoading, auditNextPageToken]);
+  }, [auditFilters, auditLoading, auditNextPageToken, sdk]);
 
   // --- Usage loading ---
   const loadUsageStats = useCallback(async (filters?: UsageFilters) => {
+    const requestId = ++usageRequestIdRef.current;
     const f = filters ?? usageFilters;
     setUsageLoading(true);
     setUsageError(null);
@@ -138,17 +151,22 @@ export function useGlobalAuditData(enabled: boolean) {
         pageSize: 100,
         pageToken: '',
       });
+      if (requestId !== usageRequestIdRef.current) return;
       setUsageRecords(res.records);
       setUsageNextPageToken(res.nextPageToken);
     } catch (err) {
+      if (requestId !== usageRequestIdRef.current) return;
       setUsageError(err instanceof Error ? err.message : String(err));
     } finally {
-      setUsageLoading(false);
+      if (requestId === usageRequestIdRef.current) {
+        setUsageLoading(false);
+      }
     }
-  }, [usageFilters]);
+  }, [sdk, usageFilters]);
 
   const loadNextUsagePage = useCallback(async () => {
     if (!usageNextPageToken || usageLoading) return;
+    const requestId = ++usageRequestIdRef.current;
     setUsageLoading(true);
     setUsageError(null);
     try {
@@ -159,37 +177,51 @@ export function useGlobalAuditData(enabled: boolean) {
         pageSize: 100,
         pageToken: usageNextPageToken,
       });
+      if (requestId !== usageRequestIdRef.current) return;
       setUsageRecords((prev) => [...prev, ...res.records]);
       setUsageNextPageToken(res.nextPageToken);
     } catch (err) {
+      if (requestId !== usageRequestIdRef.current) return;
       setUsageError(err instanceof Error ? err.message : String(err));
     } finally {
-      setUsageLoading(false);
+      if (requestId === usageRequestIdRef.current) {
+        setUsageLoading(false);
+      }
     }
-  }, [usageFilters, usageLoading, usageNextPageToken]);
+  }, [sdk, usageFilters, usageLoading, usageNextPageToken]);
 
   // --- Update filter helpers ---
   const updateAuditFilters = useCallback((patch: Partial<AuditFilters>) => {
-    setAuditFilters((prev) => {
-      const next = { ...prev, ...patch };
-      void loadAuditEvents(next);
-      return next;
-    });
-  }, [loadAuditEvents]);
+    setAuditFilters((prev) => ({ ...prev, ...patch }));
+  }, []);
 
   const updateUsageFilters = useCallback((patch: Partial<UsageFilters>) => {
-    setUsageFilters((prev) => {
-      const next = { ...prev, ...patch };
-      void loadUsageStats(next);
-      return next;
-    });
-  }, [loadUsageStats]);
+    setUsageFilters((prev) => ({ ...prev, ...patch }));
+  }, []);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      auditRequestIdRef.current += 1;
+      setAuditLoading(false);
+      return;
+    }
     void loadAuditEvents();
+    return () => {
+      auditRequestIdRef.current += 1;
+    };
+  }, [enabled, loadAuditEvents]);
+
+  useEffect(() => {
+    if (!enabled) {
+      usageRequestIdRef.current += 1;
+      setUsageLoading(false);
+      return;
+    }
     void loadUsageStats();
-  }, [enabled, loadHealth, loadAuditEvents, loadUsageStats]);
+    return () => {
+      usageRequestIdRef.current += 1;
+    };
+  }, [enabled, loadUsageStats]);
 
   // --- Usage summary ---
   const usageSummary = useMemo(() => {

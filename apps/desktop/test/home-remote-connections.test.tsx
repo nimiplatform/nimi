@@ -193,9 +193,29 @@ test('Home exposes the appropriate access controls before and after this PC beco
 });
 
 test('ConnectionsPanel renders Plan A header Web Manager popover with explicit dev preview label and refresh', async () => {
-  const dom = new JSDOM('<div id="root"></div>');
-  const globals = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
-    HTMLElement: dom.window.HTMLElement, Element: dom.window.Element, React, IS_REACT_ACT_ENVIRONMENT: true };
+  const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost', pretendToBeVisual: true });
+  class ResizeObserverStub { observe() {} unobserve() {} disconnect() {} }
+  const globals: Record<string, unknown> = {
+    window: dom.window,
+    document: dom.window.document,
+    navigator: dom.window.navigator,
+    Element: dom.window.Element,
+    Node: dom.window.Node,
+    NodeFilter: dom.window.NodeFilter,
+    DocumentFragment: dom.window.DocumentFragment,
+    MutationObserver: dom.window.MutationObserver,
+    ResizeObserver: (globalThis as { ResizeObserver?: unknown }).ResizeObserver ?? ResizeObserverStub,
+    getComputedStyle: dom.window.getComputedStyle,
+    requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window),
+    cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window),
+    React,
+    IS_REACT_ACT_ENVIRONMENT: true,
+  };
+  for (const name of Object.getOwnPropertyNames(dom.window)) {
+    if (/^(?:HTML|SVG)\w*Element$|Event$/u.test(name) && !(name in globals)) {
+      globals[name] = (dom.window as unknown as Record<string, unknown>)[name];
+    }
+  }
   const before = new Map(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, value });
   const { createRoot } = await import('react-dom/client');

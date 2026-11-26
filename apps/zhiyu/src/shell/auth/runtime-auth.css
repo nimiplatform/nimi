@@ -15,12 +15,8 @@
   grid-template-rows: minmax(0, 1fr) auto;
   box-sizing: border-box;
   padding: 32px 24px 20px;
-  background:
-    radial-gradient(circle at 26% 42%, rgba(214, 235, 249, 0.55), transparent 34%),
-    radial-gradient(circle at 79% 68%, rgba(211, 235, 249, 0.42), transparent 32%),
-    radial-gradient(circle at 18% 88%, rgba(216, 248, 234, 0.5), transparent 34%),
-    linear-gradient(135deg, rgba(232, 243, 252, 0.82), rgba(252, 252, 255, 0.98) 45%, rgba(230, 242, 251, 0.72));
-  color: var(--nimi-text-primary, #17211c);
+  background: var(--zhiyu-canvas-bg);
+  color: var(--nimi-text-primary);
   font-family: var(--nimi-font-sans, "Inter", "Noto Sans SC", "Microsoft YaHei UI", system-ui, sans-serif);
 }
 
@@ -35,24 +31,24 @@
 
 .runtime-gate-content h1 {
   margin: 22px 0 0;
-  font-size: 20px;
+  font-size: 1.25rem;
   font-weight: 650;
   line-height: 1.35;
-  letter-spacing: 0;
+  letter-spacing: -0.02em;
 }
 
 .runtime-gate-content p {
   max-width: 360px;
   margin: 8px 0 0;
   color: var(--nimi-text-secondary);
-  font-size: 14px;
+  font-size: var(--nimi-type-body-size);
   line-height: 1.6;
 }
 
 .runtime-check-screen .runtime-gate-content p {
   margin-top: 18px;
   color: var(--nimi-text-muted);
-  font-size: 13px;
+  font-size: var(--nimi-type-body-sm-size);
 }
 
 .runtime-gate-content .nimi-action {
@@ -65,7 +61,7 @@
 .runtime-gate-content .nimi-action--primary {
   border-color: var(--nimi-action-primary-bg, #0580ca);
   background: var(--nimi-action-primary-bg, #0580ca);
-  color: var(--nimi-action-primary-text, #111827);
+  color: var(--nimi-action-primary-text, #ffffff);
 }
 
 .runtime-gate-content .nimi-action--primary:not(:disabled):hover {
@@ -92,8 +88,8 @@
   box-sizing: border-box;
   border: 1px solid color-mix(in srgb, var(--nimi-action-primary-bg, #0580ca) 22%, transparent);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.78);
-  box-shadow: 0 12px 32px rgba(5, 128, 202, 0.12);
+  background: color-mix(in srgb, var(--nimi-surface-card) 86%, transparent);
+  box-shadow: var(--nimi-elevation-raised);
 }
 
 .runtime-gate-mark img {
@@ -132,7 +128,7 @@
   justify-self: center;
   width: min(440px, 100%);
   color: var(--nimi-text-muted);
-  font-size: 12px;
+  font-size: var(--nimi-type-caption-size);
 }
 
 .runtime-gate-details summary {
@@ -220,6 +216,36 @@
   }
 }
 
+@media (prefers-reduced-transparency: reduce) {
+  .runtime-gate-mark,
+  .runtime-gate-details__panel {
+    background: var(--nimi-surface-card);
+  }
+}
+
+@media (prefers-contrast: more) {
+  .runtime-gate-mark,
+  .runtime-gate-details__panel {
+    background: var(--nimi-surface-card);
+    border-color: var(--nimi-border-strong);
+  }
+
+  .runtime-gate-content p,
+  .runtime-check-screen .runtime-gate-content p,
+  .runtime-gate-details,
+  .runtime-account-owner-copy,
+  .runtime-unavailable-heading p {
+    color: var(--nimi-text-primary);
+  }
+
+  .runtime-gate-content .nimi-action:focus-visible,
+  .runtime-gate-details__panel .nimi-action:focus-visible,
+  .runtime-gate-details summary:focus-visible {
+    outline: var(--nimi-focus-ring-width, 3px) solid var(--nimi-focus-ring-color);
+    outline-offset: 2px;
+  }
+}
+
 .runtime-login-screen {
   display: grid;
   place-items: center;
@@ -238,7 +264,7 @@
   min-width: 0;
   margin: 0;
   color: var(--nimi-text-secondary);
-  font-size: 14px;
+  font-size: var(--nimi-type-body-size);
   line-height: 1.65;
   overflow-wrap: anywhere;
 }
@@ -269,13 +295,13 @@
 
 .runtime-unavailable-heading h1 {
   margin: 0;
-  letter-spacing: 0;
+  letter-spacing: -0.02em;
 }
 
 .runtime-unavailable-heading p {
   margin: 0;
   color: var(--nimi-text-secondary);
-  font-size: 14px;
+  font-size: var(--nimi-type-body-size);
   line-height: 1.55;
 }
 

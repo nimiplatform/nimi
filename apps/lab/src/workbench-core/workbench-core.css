@@ -170,7 +170,7 @@
   .runtime-check-hint {
     margin: 0;
     color: var(--nimi-text-secondary);
-    font-size: 13px;
+    font-size: var(--nimi-type-body-sm-size);
     line-height: 1.5;
   }
 
@@ -209,7 +209,7 @@
     background: var(--nimi-surface-canvas);
     border: 1px solid var(--nimi-border-subtle);
     color: var(--nimi-action-primary-bg);
-    font-size: 12px;
+    font-size: var(--nimi-type-caption-size);
     font-weight: 700;
   }
 
@@ -221,7 +221,7 @@
   }
 
   .runtime-gate-brand__title {
-    font-size: 13px;
+    font-size: var(--nimi-type-body-sm-size);
     font-weight: 600;
     color: var(--nimi-text-secondary);
     overflow: hidden;
@@ -256,7 +256,7 @@
 
   .runtime-gate-hero h1 {
     margin: 0;
-    font-size: 20px;
+    font-size: 1.25rem;
     line-height: 1.35;
     font-weight: 650;
     letter-spacing: -0.015em;
@@ -266,7 +266,7 @@
   .runtime-gate-summary {
     margin: 0;
     color: var(--nimi-text-secondary);
-    font-size: 13.5px;
+    font-size: 0.84375rem;
     line-height: 1.6;
   }
 
@@ -280,7 +280,7 @@
   }
 
   .runtime-gate-guidance__label {
-    font-size: 11px;
+    font-size: var(--nimi-type-overline-size);
     line-height: 1.3;
     font-weight: 650;
     letter-spacing: 0.04em;
@@ -291,7 +291,7 @@
   .runtime-action-hint {
     margin: 0;
     color: var(--nimi-text-primary);
-    font-size: 13px;
+    font-size: var(--nimi-type-body-sm-size);
     line-height: 1.55;
   }
 
@@ -310,7 +310,7 @@
   .runtime-gate-feedback {
     margin: 0;
     color: var(--nimi-text-muted);
-    font-size: 12px;
+    font-size: var(--nimi-type-caption-size);
     line-height: 1.5;
   }
 
@@ -323,7 +323,7 @@
   .runtime-gate-details {
     min-width: 0;
     color: var(--nimi-text-secondary);
-    font-size: 12px;
+    font-size: var(--nimi-type-caption-size);
   }
 
   .runtime-gate-details summary {
@@ -388,14 +388,14 @@
 
   .runtime-gate-details dt {
     color: var(--nimi-text-muted);
-    font-size: 11.5px;
+    font-size: var(--nimi-type-caption-size);
     font-weight: 500;
   }
 
   .runtime-gate-details dd {
     margin: 0;
     color: var(--nimi-text-primary);
-    font-size: 11.5px;
+    font-size: var(--nimi-type-mono-size);
     overflow-wrap: anywhere;
     font-family: var(--nimi-font-mono);
   }
@@ -403,7 +403,7 @@
   .runtime-gate-details p {
     margin: 0;
     color: var(--nimi-text-muted);
-    font-size: 11.5px;
+    font-size: var(--nimi-type-caption-size);
   }
 
   .workbench-empty-state {
@@ -431,7 +431,7 @@
 
   .workbench-empty-state__eyebrow {
     color: var(--nimi-text-muted);
-    font-size: 12px;
+    font-size: var(--nimi-type-caption-size);
     font-weight: var(--nimi-type-label-weight);
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -447,20 +447,41 @@
 
   .workbench-empty-state__heading h1 {
     color: var(--nimi-text-primary);
-    font-size: 28px;
+    font-size: 1.75rem;
     font-weight: var(--nimi-type-page-title-weight);
   }
 
   .workbench-empty-state__panel h2 {
     color: var(--nimi-text-primary);
-    font-size: 20px;
+    font-size: 1.25rem;
     font-weight: var(--nimi-type-page-title-weight);
   }
 
   .workbench-empty-state__description {
     color: var(--nimi-text-secondary);
-    font-size: 14px;
+    font-size: var(--nimi-type-body-size);
     line-height: 1.6;
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .workbench,
+    .runtime-check-screen,
+    .runtime-unavailable-screen {
+      background: var(--nimi-surface-canvas);
+    }
+
+    .runtime-gate-guidance,
+    .runtime-gate-details__body {
+      background: var(--nimi-surface-panel);
+    }
+  }
+
+  @media (prefers-contrast: more) {
+    .runtime-gate-guidance,
+    .runtime-gate-details__body {
+      background: var(--nimi-surface-panel);
+      border-color: var(--nimi-border-strong);
+    }
   }
 }
 

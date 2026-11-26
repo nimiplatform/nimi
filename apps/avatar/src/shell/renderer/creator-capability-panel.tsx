@@ -48,6 +48,7 @@ export function CreatorCapabilityPanel({ report }: CreatorCapabilityPanelProps) 
 
 function CapabilityRow({ item }: { item: CreatorCapabilityItem }) {
   const { t } = useTranslation();
+  const statusLabel = t(statusKey(item.status));
   return (
     <div
       className={cn(
@@ -66,7 +67,12 @@ function CapabilityRow({ item }: { item: CreatorCapabilityItem }) {
           {t(item.proofKey, item.proofParams)}
         </span>
       </span>
-      <span className="avatar-creator-capabilities__status" title={t(statusKey(item.status))}>
+      <span
+        className="avatar-creator-capabilities__status"
+        role="img"
+        aria-label={statusLabel}
+        title={statusLabel}
+      >
         {statusIcon(item.status)}
       </span>
     </div>

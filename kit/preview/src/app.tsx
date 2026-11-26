@@ -223,7 +223,7 @@ function InputsSection() {
       </Card>
       <Card title="Selection">
         <div className="flex items-center gap-3">
-          <Toggle checked={on} onChange={setOn} />
+          <Toggle checked={on} onValueChange={setOn} ariaLabel="Runtime bridge" />
           <NimiText role="body">Runtime bridge {on ? 'enabled' : 'disabled'}</NimiText>
         </div>
         <div className="flex items-center gap-3">
@@ -282,7 +282,7 @@ function FeedbackSection() {
       </Card>
       <Card title="Progress / skeleton / empty">
         <ProgressIndicator value={62} aria-label="progress" />
-        <LoadingSkeleton className="h-4 w-2/3" label="Loading preview…" />
+        <LoadingSkeleton className="w-2/3" label="Loading preview…" />
         <EmptyState title="No runs yet" description="Start a generation to see history here." />
       </Card>
     </Section>
@@ -298,7 +298,7 @@ function OverlaysSection({ forcedOverlay }: { forcedOverlay: PreviewParams['over
         <div className="flex flex-wrap gap-3">
           <Button tone="secondary" data-testid="open-dialog" onClick={() => setOpen('dialog')}>Open dialog</Button>
           <Button tone="secondary" data-testid="open-drawer" onClick={() => setOpen('drawer')}>Open drawer</Button>
-          <Popover>
+          <Popover open={forcedOverlay === 'popover' ? true : undefined}>
             <PopoverTrigger asChild>
               <Button tone="secondary" data-testid="open-popover">Open popover</Button>
             </PopoverTrigger>

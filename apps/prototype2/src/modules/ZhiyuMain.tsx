@@ -60,7 +60,7 @@ export function ZhiyuMain({ win }: { win: SimWindow }) {
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') ask();
+            if (e.key === 'Enter' && !e.nativeEvent.isComposing) ask();
           }}
           placeholder="向织羽 AI 提问（应用自有会话 · 模拟）"
         />

@@ -295,26 +295,26 @@ export function toDesktopBrowserAuthErrorMessage(error: unknown): string {
     || rawMessage.includes('sdk_platform_client_not_ready')
     || rawMessage.includes('configure_desktop_nimi_client_session')
   ) {
-    return 'Runtime account service is unavailable. Start or connect the external Runtime daemon and try again.';
+    return '本机账号服务暂时不可用，请确认 Nimi 服务已启动后重试。';
   }
 
-  const message = toErrorMessage(error, '网页登录授权失败').trim();
+  const message = toErrorMessage(error, '网页登录未完成，请重试。').trim();
   const lowered = message.toLowerCase();
 
   if (!message) {
-    return '网页登录授权失败，请重试。';
+    return '网页登录未完成，请重试。';
   }
   if (message.includes('等待 OAuth 回调超时') || lowered.includes('timeout')) {
-    return '等待网页登录回调超时。请在浏览器完成授权后重试。';
+    return '等待浏览器返回超时。请在浏览器完成登录后再重试。';
   }
   if (message.includes('state')) {
-    return '网页登录回调校验失败（state 不匹配），请重试。';
+    return '这次登录校验已失效，请重新发起登录。';
   }
   if (message.includes('缺少 access token')) {
-    return '网页授权未返回 access token，请重试。';
+    return '浏览器未返回有效的登录凭据，请重试。';
   }
   if (message.includes('无法打开系统浏览器')) {
-    return '无法打开系统浏览器，请检查默认浏览器设置后重试。';
+    return '无法打开系统默认浏览器，请检查浏览器设置后重试。';
   }
 
   return message;

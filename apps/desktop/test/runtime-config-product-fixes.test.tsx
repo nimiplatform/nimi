@@ -12,7 +12,7 @@ import { createRuntimeSetupTaskStore, useRuntimeSetupTasks } from '../src/shell/
 
 async function withRenderer(run: (ui: {
   document: Document;
-  render: (element: React.ReactElement, sdk?: unknown) => Promise<void>;
+  render: (element: React.ReactElement, sdk?: unknown, clock?: Pick<DesktopCanonicalRendererBindings['clock'], 'schedule'>) => Promise<void>;
   click: (selector: string) => Promise<void>;
 }) => Promise<void>) {
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://localhost', pretendToBeVisual: true });
@@ -42,8 +42,8 @@ async function withRenderer(run: (ui: {
   try {
     await run({
       document: dom.window.document,
-      render: async (element, sdk = {}) => {
-        const bindings = { app: { commands: {} }, sdk } as DesktopCanonicalRendererBindings;
+      render: async (element, sdk = {}, clock) => {
+        const bindings = { app: { commands: {} }, sdk, clock } as DesktopCanonicalRendererBindings;
         await act(async () => root.render(<I18nextProvider i18n={testI18n}><DesktopRendererBindingProvider bindings={bindings}>{element}</DesktopRendererBindingProvider></I18nextProvider>));
       },
       click: async (selector) => {
@@ -63,6 +63,51 @@ async function withRenderer(run: (ui: {
     }
   }
 }
+
+test('local audit polling finishes slow pages and discards results for superseded filters', async () => {
+  await withRenderer(async ui => {
+    const { useAuditPageData } = await import('../src/shell/renderer/features/runtime-config/runtime-config-use-audit-page-data.js');
+    const calls: string[] = [];
+    let tick!: () => void;
+    let finishPage!: () => void;
+    const clock: Pick<DesktopCanonicalRendererBindings['clock'], 'schedule'> = {
+      schedule(_delay, listener) {
+        tick = () => listener({ ok: true });
+        return () => {};
+      },
+    };
+    const sdk = { localAudit: () => ({
+      async listLocalAudits({ source, pageToken }: { source: string; pageToken: string }) {
+        calls.push(source || pageToken || 'first');
+        if (source) return { events: [{ id: source }], nextPageToken: '' };
+        if (!pageToken) return { events: [{ id: 'one' }], nextPageToken: 'second' };
+        await new Promise<void>(resolve => { finishPage = resolve; });
+        return { events: [{ id: 'two' }], nextPageToken: '' };
+      },
+    }) };
+    function AuditList() {
+      const data = useAuditPageData(true);
+      return <>
+        <button onClick={() => data.setAuditSource('cloud')}>Cloud</button>
+        <output>{data.loadingAudits ? 'loading' : data.auditEvents.map(event => event.id).join(',')}</output>
+      </>;
+    }
+    const rendered = () => ui.document.querySelector('output')?.textContent;
+    await ui.render(<AuditList />, sdk, clock);
+    await act(async () => { tick(); tick(); });
+    assert.deepEqual(calls, ['first', 'second']);
+    await act(async () => { finishPage(); });
+    assert.equal(rendered(), 'one,two');
+
+    await act(async () => { tick(); });
+    assert.equal(rendered(), 'loading');
+    await ui.click('button');
+    assert.equal(rendered(), 'cloud');
+    await act(async () => { finishPage(); });
+    assert.equal(rendered(), 'cloud');
+    assert.deepEqual(calls, ['first', 'second', 'first', 'second', 'cloud']);
+  });
+});
 
 test('transfer recovery exposes only advertised actions and reports rejected commands', async () => {
   await withRenderer(async (ui) => {
@@ -726,6 +771,8 @@ test('model settings stay scoped to the chosen configuration and protect unappli
     await ui.click('input[aria-label="useMmap"]');
     const count = applies.length;
     await ui.click('[data-testid="capability-customize-discard"]');
+    assert.match(ui.document.body.textContent ?? '', /settings.discardTitle/, 'cancel protects unsaved edits');
+    await act(async () => [...ui.document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find(button => button.textContent?.includes('customization.discard'))!.click());
     assert.equal(dialog(), null);
     assert.equal(applies.length, count, 'cancel never applies');
     assert.deepEqual(uses, []);

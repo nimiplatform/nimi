@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
     <meta name="description" content="Nimi is an open-source AI foundation for your computer: organize local models and cloud services, with per-app permissions and companion continuity in approved apps." />
     <meta name="keywords" content="Nimi, personal AI foundation, local AI, cross-app context, AI memory, AI companions, open source AI" />
-    <meta name="theme-color" content="#ffffff" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b1220" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Nimi | Personal AI Foundation & Cross-App Continuity" />
     <meta property="og:description" content="Nimi is an open-source AI foundation for your computer: organize local models and cloud services, with per-app permissions and companion continuity in approved apps." />
@@ -46,9 +48,14 @@
     }
     </script>
     <script>
-      document.documentElement.dataset.nimiScheme = 'light';
-      document.documentElement.dataset.nimiAccent = 'nimi-accent';
-      document.documentElement.classList.add('nimi-theme-accent--nimi-accent');
+      (function () {
+        var dark = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var root = document.documentElement;
+        root.dataset.nimiScheme = dark ? 'dark' : 'light';
+        root.classList.toggle('dark', dark);
+        root.dataset.nimiAccent = 'nimi-accent';
+        root.classList.add('nimi-theme-accent--nimi-accent');
+      })();
     </script>
   </head>
   <body>

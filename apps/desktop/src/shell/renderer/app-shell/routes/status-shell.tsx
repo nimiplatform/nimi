@@ -12,9 +12,9 @@ export function NimiLogoMark({ className = 'h-12 w-12' }: { className?: string }
 
 const MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX = 92;
 
-export const STATUS_SHELL_PRIMARY_BUTTON = 'rounded-full bg-[var(--nimi-action-primary-bg)] px-6 py-2.5 text-sm font-medium text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60';
+export const STATUS_SHELL_PRIMARY_BUTTON = 'rounded-full bg-[var(--nimi-action-primary-bg)] px-6 py-2.5 text-sm font-medium text-[var(--nimi-action-primary-text)] transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-action-primary-bg-hover)] active:scale-[0.97] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nimi-surface-canvas)] disabled:cursor-not-allowed disabled:opacity-60';
 
-export const STATUS_SHELL_SECONDARY_BUTTON = 'rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-2.5 text-sm font-medium text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-surface-active)] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nimi-focus-ring-color)] disabled:cursor-not-allowed disabled:opacity-60';
+export const STATUS_SHELL_SECONDARY_BUTTON = 'rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-2.5 text-sm font-medium text-[var(--nimi-text-secondary)] transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-surface-active)] active:scale-[0.97] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nimi-focus-ring-color)] disabled:cursor-not-allowed disabled:opacity-60';
 
 export function SharedStatusShell(props: {
   title: string;

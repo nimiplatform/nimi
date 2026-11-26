@@ -73,7 +73,7 @@ export function DemoOvertonePreview({ content }: { content: RemainingPreviewMeta
         </div>
       )}
       <div className="ot-demo-workspace">
-        <main className="ot-demo-composer">
+        <div role="region" aria-label={content.name} className="ot-demo-composer">
           <PreviewTabs
             items={[
               { value: '探索方向', label: t('overtone.tabs.exploreDirections') },
@@ -182,7 +182,7 @@ export function DemoOvertonePreview({ content }: { content: RemainingPreviewMeta
               </PreviewButton>
             </>
           )}
-        </main>
+        </div>
         <aside className="ot-demo-takes">
           <div className="rp-section-heading">
             <h2>{t('overtone.demoTakes.candidateTracks')}</h2>

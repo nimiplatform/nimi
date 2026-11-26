@@ -569,7 +569,10 @@ export function createDemoZhiyuAgentClient(
   const client: ConfigureClient = {
     conversationContext: {
       async update() {
-        throw new DemoZhiyuMockError('LOCAL_APP_OPERATION_UNAVAILABLE', 'Conversation context controls are unavailable in this preview.');
+        throw new DemoZhiyuMockError(
+          'LOCAL_APP_OPERATION_UNAVAILABLE',
+          content.demo.conversationContextUnavailable,
+        );
       },
     },
     sharedAIConfig: {
@@ -646,7 +649,10 @@ export function createDemoZhiyuAgentClient(
       },
       async update(input) {
         if (input.expectedAutonomyRevision !== autonomy.revision) {
-          throw new DemoZhiyuMockError('AUTONOMY_REVISION_CONFLICT', '主动陪伴设置已在别处更新，请刷新后再试。');
+          throw new DemoZhiyuMockError(
+            'AUTONOMY_REVISION_CONFLICT',
+            content.demo.autonomyRevisionConflict,
+          );
         }
         autonomy = {
           ...autonomy,
@@ -690,12 +696,18 @@ export function createDemoZhiyuAgentClient(
       },
       async commit(input) {
         if (input.expectedPresentationRevision !== presentationRevision) {
-          throw new DemoZhiyuMockError('PRESENTATION_REVISION_CONFLICT', '形象设置已在别处更新，请刷新后再试。');
+          throw new DemoZhiyuMockError(
+            'PRESENTATION_REVISION_CONFLICT',
+            content.demo.presentationRevisionConflict,
+          );
         }
         if ('selectImportedResourcePack' in input.intent) {
           const material = input.importedAssets[0];
           if (!material || material.role !== 'resource-pack') {
-            throw new DemoZhiyuMockError('RESOURCE_PACK_MATERIAL_REQUIRED', '需要 Resource Pack 文件。');
+            throw new DemoZhiyuMockError(
+              'RESOURCE_PACK_MATERIAL_REQUIRED',
+              content.demo.resourcePackMaterialRequired,
+            );
           }
           presentationRevision = nextRevision(presentationRevision);
           resourcePackMaterial = {
@@ -890,7 +902,7 @@ export function createDemoZhiyuAgentClient(
         avatarAssetRef: input.avatarAssetRef,
         previewMaterialRef: null,
         previewImageRef: null,
-        reason: '演示环境未运行内嵌形象预览。',
+        reason: content.demo.embeddedPreviewUnavailable,
         warnings: [],
       };
     },

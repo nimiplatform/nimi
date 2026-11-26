@@ -44,7 +44,7 @@ export function DataTable<TRow>({
                   scope="col"
                   style={column.width ? { width: column.width } : undefined}
                   className={cn(
-                    'nimi-data-table__th px-3 py-2 text-[length:var(--nimi-type-caption-size)] font-bold uppercase tracking-[var(--nimi-type-label-letter-spacing)] text-[var(--nimi-text-muted)]',
+                    'nimi-data-table__th px-3 py-2 text-[length:var(--nimi-type-caption-size)] font-bold uppercase tracking-[var(--nimi-type-overline-letter-spacing)] text-[var(--nimi-text-muted)]',
                     alignClass[column.align ?? 'left'],
                   )}
                 >
@@ -68,6 +68,7 @@ export function DataTable<TRow>({
                     className={cn(
                       'nimi-data-table__td px-3 py-2 text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-secondary)]',
                       alignClass[column.align ?? 'left'],
+                      column.align === 'right' && 'tabular-nums',
                     )}
                   >
                     {column.render(row, rowIndex)}

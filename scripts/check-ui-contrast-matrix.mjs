@@ -146,6 +146,8 @@ const actionFailures = [];
 const actionRows = [];
 const fieldRows = [];
 const fieldFailures = [];
+const sidebarRows = [];
+const sidebarFailures = [];
 // Empty enabled fields still communicate the next action. The existing
 // surface/action matrix did not cover their placeholder text.
 for (const themeId of THEMES) {
@@ -154,6 +156,16 @@ for (const themeId of THEMES) {
   const ratio = foreground && background ? contrast(foreground, background) : 0;
   fieldRows.push({ themeId, ratio });
   if (ratio < TARGET_BODY) fieldFailures.push({ themeId, ratio });
+
+  const sectionLabel = resolvePackToken(themeId, 'sidebar.section_label');
+  const sidebarCanvas = resolvePackToken(themeId, 'sidebar.canvas');
+  const canvasFallback = resolveToneBg(themeId, 'canvas');
+  const effectiveSidebarBg = sidebarCanvas && canvasFallback
+    ? (sidebarCanvas.a < 1 ? composite(sidebarCanvas, canvasFallback) : sidebarCanvas)
+    : sidebarCanvas;
+  const sidebarRatio = sectionLabel && effectiveSidebarBg ? contrast(sectionLabel, effectiveSidebarBg) : 0;
+  sidebarRows.push({ themeId, ratio: sidebarRatio });
+  if (sidebarRatio < TARGET_BODY) sidebarFailures.push({ themeId, ratio: sidebarRatio });
 }
 
 for (const themeId of THEMES) {
@@ -293,14 +305,16 @@ for (const row of badgeRows) {
 console.log('');
 
 for (const row of fieldRows) console.log(`${row.themeId} field.placeholder: ${fmt(row.ratio)}:1 (target ≥ ${TARGET_BODY}:1)`);
-if (failures.length === 0 && actionFailures.length === 0 && focusFailures.length === 0 && badgeFailures.length === 0 && fieldFailures.length === 0) {
-  console.log(`ui-contrast-matrix: OK (${rows.length} surface/glass, ${actionRows.length} action, ${focusRows.length} focus, ${badgeRows.length} badge and ${fieldRows.length} field combinations all ≥ target)`);
+for (const row of sidebarRows) console.log(`${row.themeId} sidebar.section_label: ${fmt(row.ratio)}:1 (target ≥ ${TARGET_BODY}:1)`);
+if (failures.length === 0 && actionFailures.length === 0 && focusFailures.length === 0 && badgeFailures.length === 0 && fieldFailures.length === 0 && sidebarFailures.length === 0) {
+  console.log(`ui-contrast-matrix: OK (${rows.length} surface/glass, ${actionRows.length} action, ${focusRows.length} focus, ${badgeRows.length} badge, ${fieldRows.length} field and ${sidebarRows.length} sidebar combinations all ≥ target)`);
   process.exit(0);
 }
 
 console.error('');
-console.error(`FAIL: ${failures.length + actionFailures.length + focusFailures.length + badgeFailures.length + fieldFailures.length} combination(s) below target:`);
+console.error(`FAIL: ${failures.length + actionFailures.length + focusFailures.length + badgeFailures.length + fieldFailures.length + sidebarFailures.length} combination(s) below target:`);
 for (const row of fieldFailures) console.error(`  ${row.themeId} × field.placeholder: ${fmt(row.ratio)}:1 (target ≥ ${TARGET_BODY}:1)`);
+for (const row of sidebarFailures) console.error(`  ${row.themeId} × sidebar.section_label: ${fmt(row.ratio)}:1 (target ≥ ${TARGET_BODY}:1)`);
 for (const f of failures) {
   console.error(
     `  ${f.themeId} × tone=${f.tone} × tier=${f.tier} × ${f.kind}: ${fmt(f.ratio)}:1 (target ≥ ${f.target}:1)`,

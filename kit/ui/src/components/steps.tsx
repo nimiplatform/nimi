@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react';
+import { AlertCircle, Check } from 'lucide-react';
 import { type ReactNode } from 'react';
 import { cn, type StatusTone } from '../design-tokens.js';
 
@@ -43,8 +43,16 @@ export function Steps({ items, ariaLabel, className }: StepsProps) {
           <li key={item.id} aria-current={status === 'current' ? 'step' : undefined} className="nimi-steps__item grid grid-cols-[28px_minmax(0,1fr)] gap-3">
             <span className="relative grid justify-items-center">
               <span className={cn('nimi-steps__dot z-10 grid h-7 w-7 place-items-center rounded-full border text-[length:var(--nimi-type-caption-size)] font-bold', dotClass[tone])}>
-                {status === 'complete' ? <Check size={14} aria-hidden="true" /> : index + 1}
+                {status === 'complete' ? (
+                  <Check size={14} aria-hidden="true" />
+                ) : status === 'error' ? (
+                  <AlertCircle size={14} aria-hidden="true" />
+                ) : (
+                  index + 1
+                )}
               </span>
+              {status === 'complete' ? <span className="sr-only">Completed</span> : null}
+              {status === 'error' ? <span className="sr-only">Error</span> : null}
               {index < items.length - 1 ? <span className="nimi-steps__connector absolute top-7 h-[calc(100%+12px)] w-px bg-[var(--nimi-border-subtle)]" aria-hidden="true" /> : null}
             </span>
             <span className="nimi-steps__body grid min-w-0 gap-1 pb-2">

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { ChevronRight, CircleAlert } from 'lucide-react';
-import { cn } from '@nimiplatform/kit/ui';
+import { Button, cn } from '@nimiplatform/kit/ui';
 import type { ConversationSetupAction, ConversationSetupState } from '../types.js';
 
 export type ConversationSetupPanelProps = {
@@ -70,21 +70,15 @@ export function ConversationSetupPanel({
         </div>
       </div>
       {state.primaryAction ? (
-        <button
-          type="button"
+        <Button
+          tone="primary"
+          size="md"
           onClick={() => onAction?.(state.primaryAction!)}
-          className={cn(
-            'inline-flex items-center gap-1.5 rounded-[var(--nimi-radius-action)] px-6 py-3 text-sm font-medium text-[var(--nimi-action-primary-text)]',
-            'bg-[var(--nimi-action-primary-bg)]',
-            'shadow-[0_6px_16px_color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)]',
-            'transition-[background-color,box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)]',
-            'hover:bg-[var(--nimi-action-primary-bg-hover)] hover:shadow-[0_10px_24px_color-mix(in_srgb,var(--nimi-action-primary-bg)_26%,transparent)]',
-            'active:scale-[var(--nimi-motion-pressed-scale)]',
-          )}
+          className="px-6 py-3"
         >
           {resolveActionLabel?.(state.primaryAction) || defaultActionLabel(state.primaryAction)}
           <ChevronRight aria-hidden="true" className="h-4 w-4" />
-        </button>
+        </Button>
       ) : null}
       {footer}
     </div>

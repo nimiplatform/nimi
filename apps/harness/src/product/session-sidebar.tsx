@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNimiAppSession } from '@nimiplatform/kit/auth/app';
-import { Popover, PopoverContent, PopoverTrigger } from '@nimiplatform/kit/ui';
+import { ConfirmDialog, Popover, PopoverContent, PopoverTrigger } from '@nimiplatform/kit/ui';
 import {
   ChevronDown,
   Download,
@@ -73,6 +73,7 @@ export function SessionSidebar({
   const [menuOpen, setMenuOpen] = useState(false);
   const [editingId, setEditingId] = useState<string>();
   const [editTitle, setEditTitle] = useState('');
+  const [pendingDelete, setPendingDelete] = useState<HarnessSessionSummary | null>(null);
   const activeRowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -204,9 +205,7 @@ export function SessionSidebar({
                 aria-label={t('sidebar.delete')}
                 onClick={e => {
                   e.stopPropagation();
-                  if (window.confirm(t('sidebar.deleteConfirm', { title: item.title }))) {
-                    onDeleteSession(item.id);
-                  }
+                  setPendingDelete(item);
                 }}
               >
                 <Trash2 size={13} />
@@ -374,6 +373,19 @@ export function SessionSidebar({
           </button>
         </div>
       </footer>
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={t('sidebar.delete')}
+        message={pendingDelete ? t('sidebar.deleteConfirm', { title: pendingDelete.title }) : ''}
+        confirmLabel={t('sidebar.delete')}
+        cancelLabel={t('decision.cancel')}
+        confirmTone="danger"
+        onClose={() => setPendingDelete(null)}
+        onConfirm={() => {
+          if (pendingDelete) onDeleteSession(pendingDelete.id);
+          setPendingDelete(null);
+        }}
+      />
     </aside>
   );
 }

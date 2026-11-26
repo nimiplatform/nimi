@@ -120,7 +120,7 @@ export function DemoOpenwhisprPreview({ content }: { content: OpenwhisprPreviewC
             </PreviewButton>
           </header>
           {view === 'home' ? (
-            <main className="ow-home">
+            <div role="region" aria-label={navigationLabels.home} className="ow-home">
               <h2>{t('openwhispr.home.welcomeBack')}</h2>
               <div className="ow-welcome">
                 <Mic size={22} />
@@ -168,9 +168,9 @@ export function DemoOpenwhisprPreview({ content }: { content: OpenwhisprPreviewC
                 !notes.some((item) =>
                   `${item.title}${item.text}`.toLowerCase().includes(query.toLowerCase()),
                 ) && <p className="tp-empty">{t('openwhispr.home.noMatchingSampleRecords')}</p>}
-            </main>
+            </div>
           ) : view === 'notes' ? (
-            <main className="ow-notes">
+            <div role="region" aria-label={navigationLabels.notes} className="ow-notes">
               <aside>
                 <h3>{t('openwhispr.notes.privateNote')}</h3>
                 {notes.map((item, index) => (
@@ -208,9 +208,9 @@ export function DemoOpenwhisprPreview({ content }: { content: OpenwhisprPreviewC
                   {t('openwhispr.notes.editsLastOnlyInThisPreview')}
                 </span>
               </section>
-            </main>
+            </div>
           ) : view === 'chat' ? (
-            <main className="ow-chat">
+            <div role="region" aria-label={navigationLabels.chat} className="ow-chat">
               <div className="ow-chat-conversation">
                 <span className="ow-chat-mark">
                   <AudioLines size={30} />
@@ -254,10 +254,14 @@ export function DemoOpenwhisprPreview({ content }: { content: OpenwhisprPreviewC
                   <ArrowUp size={19} />
                 </button>
               </form>
-            </main>
+            </div>
           ) : (
-            <main className="ow-home">
-              <h2>{view === 'statistics' ? t('openwhispr.home.sayWhatYouReThinking') : view}</h2>
+            <div role="region" aria-label={navigationLabels[view] ?? view} className="ow-home">
+              <h2>
+                {view === 'statistics'
+                  ? t('openwhispr.home.sayWhatYouReThinking')
+                  : (navigationLabels[view] ?? view)}
+              </h2>
               {view === 'statistics' ? (
                 <div className="ow-statistics">
                   <div>
@@ -304,7 +308,7 @@ export function DemoOpenwhisprPreview({ content }: { content: OpenwhisprPreviewC
                   <p>{t('openwhispr.home.theFullAppLetsYouConfigureLanguage')}</p>
                 </>
               )}
-            </main>
+            </div>
           )}
         </div>
       </div>

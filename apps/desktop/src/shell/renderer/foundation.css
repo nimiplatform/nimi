@@ -7,6 +7,10 @@
 @import "tailwindcss" source(none);
 @source "./**/*.{ts,tsx}";
 
+:root {
+  font-optical-sizing: auto;
+}
+
 /* Desktop light-scheme Cool Neutral palette:
    - Outer shell / canvas backdrop: #F1F6FB
    - Middle sidebar surface: #FCFDFE with #EDF1F5 border
@@ -151,8 +155,71 @@ body {
   }
 }
 
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-nimi-scheme="light"],
+  [data-nimi-scheme="light"],
+  .dark,
+  :root[data-nimi-scheme="dark"],
+  [data-nimi-scheme="dark"] {
+    --nimi-home-drawer-bg: var(--nimi-surface-card);
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root[data-nimi-scheme="light"],
+  [data-nimi-scheme="light"] {
+    --nimi-border-subtle: rgba(15, 23, 42, 0.34);
+    --nimi-border-strong: rgba(15, 23, 42, 0.62);
+    --nimi-sidebar-border: rgba(15, 23, 42, 0.36);
+    --nimi-field-border: rgba(15, 23, 42, 0.48);
+    --nimi-text-secondary: #1f2937;
+    --nimi-text-muted: #374151;
+    --nimi-home-drawer-bg: var(--nimi-surface-card);
+  }
+
+  .dark,
+  :root[data-nimi-scheme="dark"],
+  [data-nimi-scheme="dark"] {
+    --nimi-border-subtle: rgba(226, 232, 240, 0.38);
+    --nimi-border-strong: rgba(248, 250, 252, 0.68);
+    --nimi-sidebar-border: rgba(226, 232, 240, 0.38);
+    --nimi-field-border: rgba(226, 232, 240, 0.52);
+    --nimi-text-secondary: #e2e8f0;
+    --nimi-text-muted: #cbd5e1;
+    --nimi-home-drawer-bg: var(--nimi-surface-card);
+  }
+}
+
+:root[data-nimi-reduced-motion="true"] .nimi-boot-dot {
+  animation: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .nimi-boot-dot {
     animation: none;
   }
+}
+
+/* Subtle luminance ease while switching light/dark theme scheme (D7). */
+:root.nimi-theme-transitioning,
+:root.nimi-theme-transitioning *,
+:root.nimi-theme-transitioning *::before,
+:root.nimi-theme-transitioning *::after {
+  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root.nimi-theme-transitioning,
+  :root.nimi-theme-transitioning *,
+  :root.nimi-theme-transitioning *::before,
+  :root.nimi-theme-transitioning *::after {
+    transition: none;
+  }
+}
+
+:root[data-nimi-reduced-motion="true"].nimi-theme-transitioning,
+:root[data-nimi-reduced-motion="true"].nimi-theme-transitioning *,
+:root[data-nimi-reduced-motion="true"].nimi-theme-transitioning *::before,
+:root[data-nimi-reduced-motion="true"].nimi-theme-transitioning *::after {
+  transition: none;
 }

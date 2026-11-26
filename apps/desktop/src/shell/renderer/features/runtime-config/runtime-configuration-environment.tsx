@@ -24,7 +24,7 @@ export function RuntimeConfigurationEnvironment(props: {
     error: observation.error ?? observation.actionError,
     reasonCode: observation.reasonCode,
     onRefresh: () => { void observation.refresh(); },
-    onCancel: (id: string) => { void observation.cancelJob(id); },
+    onCancel: (id: string) => observation.cancelJob(id),
   };
   const state = observation.data ? projectRuntimeEnvironmentState(observation.data.plan, observation.data.jobs).state : 'unknown';
   const readiness = observation.checking && !observation.data ? 'checking' : state;

@@ -3,7 +3,7 @@ import type { NimiAppScope } from '@nimiplatform/kit/auth/app';
 import { ChatMarkdownRenderer } from '@nimiplatform/kit/features/chat';
 import { Button } from '@nimiplatform/kit/ui';
 import { extractNimiErrorFields, isJsonObject } from '@nimiplatform/sdk/types';
-import { ChevronUp, Loader2, Paperclip, RotateCw, Send, Square, Wrench, X } from 'lucide-react';
+import { ArrowDown, ChevronUp, Loader2, Paperclip, RotateCw, Send, Square, Wrench, X } from 'lucide-react';
 import { useI18n } from '../i18n.js';
 import { invokeSessionOperation, readSessionCall } from './integration-call.js';
 import { sessionFileLimit, uploadFile } from './received-file.js';
@@ -68,6 +68,9 @@ export function RemoteSessionInput({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
+  const follow = useRef(true);
+  const pendingPrependRef = useRef<{ scrollHeight: number; scrollTop: number } | null>(null);
+  const [away, setAway] = useState(false);
   const lifetime = useRef<AbortController | null>(null);
   const prevStageRef = useRef<string | undefined>(undefined);
 
@@ -84,6 +87,12 @@ export function RemoteSessionInput({
       const json = await invokeSessionOperation(scope, target, 'session.getHistory', { sessionId: session.id, cursor, limit: 30 }, signal);
       const parsed = JSON.parse(json) as { entries: HistoryEntry[]; nextCursor: number | null };
       if (!Array.isArray(parsed.entries)) throw new Error('Invalid history response.');
+      if (prepend && viewportRef.current) {
+        pendingPrependRef.current = {
+          scrollHeight: viewportRef.current.scrollHeight,
+          scrollTop: viewportRef.current.scrollTop,
+        };
+      }
       setEntries(prev => prepend ? [...parsed.entries, ...prev] : parsed.entries);
       setNextCursor(parsed.nextCursor ?? null);
     } catch (cause) {
@@ -103,6 +112,9 @@ export function RemoteSessionInput({
     setAttachments([]);
     setError('');
     setFailedText(undefined);
+    follow.current = true;
+    pendingPrependRef.current = null;
+    setAway(false);
     prevStageRef.current = undefined;
 
     async function init() {
@@ -136,7 +148,16 @@ export function RemoteSessionInput({
 
   useLayoutEffect(() => {
     const el = viewportRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    if (!el) return;
+    if (pendingPrependRef.current) {
+      const prev = pendingPrependRef.current;
+      pendingPrependRef.current = null;
+      el.scrollTop = prev.scrollTop + (el.scrollHeight - prev.scrollHeight);
+      return;
+    }
+    if (follow.current && el.clientHeight) {
+      el.scrollTop = el.scrollHeight;
+    }
   }, [entries.length, progress.view?.text]);
 
   async function handleFileSelect(file: File) {
@@ -254,59 +275,87 @@ export function RemoteSessionInput({
         )}
       </div>
 
-      <div ref={viewportRef} className="harness-remote-chat__thread">
-        {nextCursor !== null && (
-          <div className="harness-remote-chat__load-older">
+      <div className="harness-remote-chat__thread-wrap">
+        <div
+          ref={viewportRef}
+          className="harness-remote-chat__thread"
+          onScroll={event => {
+            const panel = event.currentTarget;
+            if (!panel.clientHeight) return;
+            follow.current = panel.scrollHeight - panel.clientHeight - panel.scrollTop < 40;
+            setAway(!follow.current);
+          }}
+        >
+          {nextCursor !== null && (
+            <div className="harness-remote-chat__load-older">
+              <Button
+                size="sm"
+                tone="ghost"
+                disabled={loadingHistory}
+                leadingIcon={<ChevronUp size={14} />}
+                onClick={() => void fetchHistory(nextCursor, true)}
+              >
+                {t('remote.loadOlder')}
+              </Button>
+            </div>
+          )}
+
+          {!loadingHistory && entries.length === 0 && !showLiveBubble && (
+            <p className="harness-muted harness-remote-chat__empty">{t('remote.emptyChat')}</p>
+          )}
+
+          {entries.map(entry => (
+            entry.role === 'user' ? (
+              <article key={entry.id} className="harness-msg harness-msg--user">
+                <div className="harness-msg__bubble">
+                  <p className="harness-msg__plain">{entry.text}</p>
+                </div>
+              </article>
+            ) : entry.role === 'assistant' ? (
+              <article key={entry.id} className="harness-msg harness-msg--assistant">
+                <div className="harness-msg__markdown">
+                  <ChatMarkdownRenderer content={entry.text} />
+                </div>
+              </article>
+            ) : (
+              <details key={entry.id} className="harness-remote-tool-pill">
+                <summary>
+                  <Wrench size={12} aria-hidden="true" />
+                  <code>{entry.toolName || 'tool'}</code>
+                  {entry.toolFailure && <span className="harness-pill harness-pill--danger harness-pill--xs">{entry.toolFailure}</span>}
+                </summary>
+                <pre className="harness-code-block">{entry.text}</pre>
+              </details>
+            )
+          ))}
+
+          {showLiveBubble && (
+            <article className="harness-msg harness-msg--assistant harness-msg--streaming">
+              <div className="harness-msg__markdown">
+                <ChatMarkdownRenderer content={progress.view!.text} />
+              </div>
+              {progress.view?.truncated && (
+                <p className="harness-muted harness-muted--xs">{t('remote.truncatedStream')}</p>
+              )}
+            </article>
+          )}
+        </div>
+
+        {away && (
+          <div className="harness-jump">
             <Button
               size="sm"
-              tone="ghost"
-              disabled={loadingHistory}
-              leadingIcon={<ChevronUp size={14} />}
-              onClick={() => void fetchHistory(nextCursor, true)}
+              tone="secondary"
+              leadingIcon={<ArrowDown size={14} />}
+              onClick={() => {
+                follow.current = true;
+                setAway(false);
+                if (viewportRef.current) viewportRef.current.scrollTop = viewportRef.current.scrollHeight;
+              }}
             >
-              {t('remote.loadOlder')}
+              {t('transcript.jumpLatest')}
             </Button>
           </div>
-        )}
-
-        {!loadingHistory && entries.length === 0 && !showLiveBubble && (
-          <p className="harness-muted harness-remote-chat__empty">{t('remote.emptyChat')}</p>
-        )}
-
-        {entries.map(entry => (
-          entry.role === 'user' ? (
-            <article key={entry.id} className="harness-msg harness-msg--user">
-              <div className="harness-msg__bubble">
-                <p className="harness-msg__plain">{entry.text}</p>
-              </div>
-            </article>
-          ) : entry.role === 'assistant' ? (
-            <article key={entry.id} className="harness-msg harness-msg--assistant">
-              <div className="harness-msg__markdown">
-                <ChatMarkdownRenderer content={entry.text} />
-              </div>
-            </article>
-          ) : (
-            <details key={entry.id} className="harness-remote-tool-pill">
-              <summary>
-                <Wrench size={12} aria-hidden="true" />
-                <code>{entry.toolName || 'tool'}</code>
-                {entry.toolFailure && <span className="harness-pill harness-pill--danger harness-pill--xs">{entry.toolFailure}</span>}
-              </summary>
-              <pre className="harness-code-block">{entry.text}</pre>
-            </details>
-          )
-        ))}
-
-        {showLiveBubble && (
-          <article className="harness-msg harness-msg--assistant harness-msg--streaming">
-            <div className="harness-msg__markdown">
-              <ChatMarkdownRenderer content={progress.view!.text} />
-            </div>
-            {progress.view?.truncated && (
-              <p className="harness-muted harness-muted--xs">{t('remote.truncatedStream')}</p>
-            )}
-          </article>
         )}
       </div>
 
@@ -401,7 +450,7 @@ export function RemoteSessionInput({
               placeholder={t('remote.sendPlaceholder')}
               onChange={e => setDraft(e.target.value)}
               onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) {
+                if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                   e.preventDefault();
                   void handleSend(false);
                 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Search, UserPlus, UsersRound, Inbox, Send, Ban, MoreHorizontal, X } from 'lucide-react';
+import { AnimatePresence, motion, nimiOverlayPanelMotion, useNimiReducedMotion } from '@nimiplatform/kit/ui';
 import {
   applyNimiRealmFriendshipAction,
   fetchNimiRealmPendingFriendRequests,
@@ -301,19 +302,49 @@ function PeopleList({
     person: AccountPerson;
     action: 'remove' | 'block' | 'unblock';
   } | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const confirmation = useRef<HTMLDivElement>(null);
   const actionOrigin = useRef<HTMLElement | null>(null);
+  const menuContainerRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const menuTriggerRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const reducedMotion = useNimiReducedMotion();
+  const menuMotion = nimiOverlayPanelMotion({
+    kind: 'popover',
+    side: 'bottom',
+    align: 'end',
+    reducedMotion,
+  });
   useEffect(() => {
     if (confirm) confirmation.current?.focus();
   }, [confirm]);
+  useEffect(() => {
+    if (!openMenuId) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!(event.target instanceof Node)) return;
+      const container = menuContainerRefs.current.get(openMenuId);
+      if (container?.contains(event.target)) return;
+      setOpenMenuId(null);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      const trigger = menuTriggerRefs.current.get(openMenuId);
+      setOpenMenuId(null);
+      trigger?.focus({ preventScroll: true });
+    };
+    window.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [openMenuId]);
   function reviewAction(
     person: AccountPerson,
     kind: 'remove' | 'block' | 'unblock',
     button: HTMLButtonElement,
   ) {
-    const menu = button.closest('details');
-    actionOrigin.current = menu?.querySelector('summary') ?? button;
-    if (menu) menu.open = false;
+    actionOrigin.current = menuTriggerRefs.current.get(person.id) ?? button;
+    setOpenMenuId(null);
     setConfirm({ person, action: kind });
   }
   const sequence = useRef(0);
@@ -405,7 +436,27 @@ function PeopleList({
               placeholder={c('search')}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape' && (query || search)) {
+                  event.preventDefault();
+                  setQuery('');
+                  setSearch('');
+                }
+              }}
             />
+            {query || search ? (
+              <button
+                type="button"
+                className="ac-launchpad-search-clear"
+                aria-label={c('clearSearch')}
+                onClick={() => {
+                  setQuery('');
+                  setSearch('');
+                }}
+              >
+                <X size={14} aria-hidden="true" />
+              </button>
+            ) : null}
             <button type="submit" className="ac-text-button">
               {c('searchButton')}
             </button>
@@ -515,29 +566,64 @@ function PeopleList({
                       >
                         {c('unblock')}
                       </button>
-                    ) : (
-                      <details className="ac-person-menu">
-                        <summary aria-label={`${c('actions')} · ${person.displayName}`}>
-                          <MoreHorizontal size={22} />
-                        </summary>
-                        <div>
+                    ) : (() => {
+                      const personName = person.isDeleted
+                        ? c('deletedUser')
+                        : person.displayName || (person.handle ? `@${accountHandle(person.handle)}` : '');
+                      const isMenuOpen = openMenuId === person.id;
+                      const menuAriaLabel = personName ? `${c('actions')} · ${personName}` : c('actions');
+                      return (
+                        <div
+                          className="ac-person-menu"
+                          ref={(node) => {
+                            if (node) menuContainerRefs.current.set(person.id, node);
+                            else menuContainerRefs.current.delete(person.id);
+                          }}
+                        >
                           <button
+                            ref={(node) => {
+                              if (node) menuTriggerRefs.current.set(person.id, node);
+                              else menuTriggerRefs.current.delete(person.id);
+                            }}
                             type="button"
-                            disabled={Boolean(busy)}
-                            onClick={(event) => reviewAction(person, 'remove', event.currentTarget)}
+                            className="ac-person-menu-trigger"
+                            aria-label={menuAriaLabel}
+                            aria-haspopup="menu"
+                            aria-expanded={isMenuOpen}
+                            onClick={() => setOpenMenuId((prev) => (prev === person.id ? null : person.id))}
                           >
-                            {c('remove')}
+                            <MoreHorizontal size={22} aria-hidden="true" />
                           </button>
-                          <button
-                            type="button"
-                            disabled={Boolean(busy) || person.isDeleted}
-                            onClick={(event) => reviewAction(person, 'block', event.currentTarget)}
-                          >
-                            {c('block')}
-                          </button>
+                          <AnimatePresence>
+                            {isMenuOpen ? (
+                              <motion.div
+                                role="menu"
+                                className="ac-person-menu-panel"
+                                {...menuMotion}
+                                style={{ ...menuMotion.style, transformOrigin: 'top right' }}
+                              >
+                                <button
+                                  type="button"
+                                  role="menuitem"
+                                  disabled={Boolean(busy)}
+                                  onClick={(event) => reviewAction(person, 'remove', event.currentTarget)}
+                                >
+                                  {c('remove')}
+                                </button>
+                                <button
+                                  type="button"
+                                  role="menuitem"
+                                  disabled={Boolean(busy) || person.isDeleted}
+                                  onClick={(event) => reviewAction(person, 'block', event.currentTarget)}
+                                >
+                                  {c('block')}
+                                </button>
+                              </motion.div>
+                            ) : null}
+                          </AnimatePresence>
                         </div>
-                      </details>
-                    )}
+                      );
+                    })()}
                   </div>
                 </div>
                 {confirm?.person.id === person.id ? (

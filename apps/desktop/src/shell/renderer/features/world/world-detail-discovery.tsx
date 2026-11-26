@@ -77,7 +77,7 @@ function WorldPeopleGallery({ characters, catalog, loading, onView }: {
                     className="flex w-full min-w-0 flex-col items-start text-left focus-visible:rounded-[12px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
                   >
                     <div className="aspect-[3/4] w-full overflow-hidden rounded-[12px] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_88%,var(--nimi-action-primary-bg)_12%)]">
-                      <MediaImage delivery={delivery} externalUrl={image} purpose={imagePurpose} sizes="auto, 220px" alt={character.name} className={`block h-full w-full object-cover text-2xl transition-transform duration-300 group-hover:scale-[1.03] ${hasPortrait ? 'object-top' : 'object-[center_20%]'}`} />
+                      <MediaImage delivery={delivery} externalUrl={image} purpose={imagePurpose} sizes="auto, 220px" alt={character.name} className={`block h-full w-full object-cover text-2xl transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transform-none motion-reduce:transition-none ${hasPortrait ? 'object-top' : 'object-[center_20%]'}`} />
                     </div>
                     <div className="relative z-10 -mt-2 w-full rounded-[12px] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_97%,transparent)] p-3.5 transition-colors duration-200 group-hover:bg-[var(--nimi-surface-panel)]">
                       <div className="flex w-full items-start justify-between gap-2">
@@ -85,7 +85,7 @@ function WorldPeopleGallery({ characters, catalog, loading, onView }: {
                           <NimiText as="span" role="card-title" className="line-clamp-1 break-words text-[17px] font-semibold leading-6 tracking-normal" title={character.name}>{character.name}</NimiText>
                           {identity.length ? <NimiText as="span" role="caption" className="mt-1 line-clamp-1 w-full break-words font-normal leading-5 tracking-[0.01em] text-[var(--nimi-text-secondary)]" title={identity.join(' | ')} data-testid="world-person-meta">{identity.join(' | ')}</NimiText> : null}
                         </div>
-                        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-[var(--nimi-text-muted)] transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-[var(--nimi-text-primary)] group-focus-visible:text-[var(--nimi-text-primary)]">
+                        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-[var(--nimi-text-muted)] transition-[transform,color] duration-200 group-hover:translate-x-0.5 group-hover:text-[var(--nimi-text-primary)] group-focus-visible:text-[var(--nimi-text-primary)] motion-reduce:transform-none motion-reduce:transition-none">
                           <ArrowRight size={17} strokeWidth={1.6} />
                         </span>
                       </div>
@@ -178,7 +178,7 @@ function WorldScenesDiscovery({ worldId, scenes, sharedMediaKeys, onViewCharacte
                     purpose={imagePurpose}
                     sizes="(min-width: 1120px) 440px, (min-width: 640px) 46vw, 94vw"
                     alt={scene.name}
-                    className="block h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none"
+                    className="block h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transform-none motion-reduce:transition-none"
                     onUnavailable={() => markCardMediaUnavailable(primaryVisual.id)}
                   />
                 </div>
@@ -208,7 +208,7 @@ function WorldScenesDiscovery({ worldId, scenes, sharedMediaKeys, onViewCharacte
                   </div>
                   <span className="inline-flex shrink-0 items-center gap-1 text-[12px] font-medium text-[var(--nimi-text-secondary)] transition-colors duration-200 group-hover:text-[var(--nimi-action-primary-bg)] group-focus-visible:text-[var(--nimi-action-primary-bg)]">
                     {t('WorldDetail.discovery.viewScene')}
-                    <ArrowRight size={13} strokeWidth={1.8} className="transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none" aria-hidden />
+                    <ArrowRight size={13} strokeWidth={1.8} className="transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transform-none motion-reduce:transition-none" aria-hidden />
                   </span>
                 </div>
               </div>
@@ -263,7 +263,7 @@ function WorldFollowButton({
       <IconButton
         tone="secondary"
         size="sm"
-        className={`world-hero-bookmark rounded-full active:scale-[0.92] ${overlayGlassClass}`}
+        className={`world-hero-bookmark rounded-full active:scale-[0.92] motion-reduce:transform-none ${overlayGlassClass}`}
         icon={<Bookmark size={17} strokeWidth={1.85} fill="currentColor" className="world-hero-bookmark__icon" aria-hidden />}
         aria-pressed={followed}
         aria-label={label}
@@ -362,7 +362,7 @@ export function WorldDetailDiscovery({ props, scenes = [], onViewCharacter, onRe
                 leadingIcon={<BookOpen size={15} strokeWidth={1.85} className="world-hero-read-cta__book" aria-hidden />}
                 trailingIcon={<ArrowRight size={14} strokeWidth={1.9} className="world-hero-read-cta__arrow" aria-hidden />}
                 onClick={onReadWorld}
-                className="world-hero-read-cta min-h-[38px] rounded-full px-[18px] text-[13.5px] font-medium tracking-[0.01em] active:scale-[0.97]"
+                className="world-hero-read-cta min-h-[38px] rounded-full px-[18px] text-[13.5px] font-medium tracking-[0.01em] active:scale-[0.97] motion-reduce:transform-none"
                 data-testid="world-detail-hero-read"
               >
                 {t('WorldDetail.discovery.readWorld')}

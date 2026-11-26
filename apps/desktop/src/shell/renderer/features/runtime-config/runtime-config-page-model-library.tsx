@@ -80,7 +80,7 @@ export function ModelLibraryPage(props: {
               <span className="inline-flex items-center gap-1.5">
                 {t(item.labelKey, { defaultValue: item.defaultLabel })}
                 {downloadedCount > 0 ? (
-                  <span className="rounded-full bg-[var(--nimi-surface-active)] px-1.5 py-0.5 text-[11px] leading-none font-medium text-[var(--nimi-text-secondary)]">
+                  <span className="rounded-full bg-[var(--nimi-surface-active)] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] leading-none font-medium text-[var(--nimi-text-secondary)]">
                     {downloadedCount}
                   </span>
                 ) : null}

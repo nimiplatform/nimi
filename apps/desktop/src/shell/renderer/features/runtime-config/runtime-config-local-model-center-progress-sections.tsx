@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '@nimiplatform/kit/ui';
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { useState } from 'react';
 import type { TFunction } from 'i18next';
@@ -81,7 +82,7 @@ function LocalTransferDownloadCard(props: TransferCardProps) {
           <button
             type="button"
             aria-label={t('runtimeConfig.localModelCenter.dismissTransfer', { defaultValue: 'Dismiss transfer' })}
-            className="ml-1 rounded-md px-1.5 py-0.5 text-xs text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-surface-hover)] hover:text-[var(--nimi-text-secondary)]"
+            className="ml-1 flex h-7 w-7 items-center justify-center rounded-md text-xs text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]"
             onClick={() => props.onDismiss(event.installSessionId)}
           >
             {'\u00d7'}
@@ -97,10 +98,10 @@ function LocalTransferDownloadCard(props: TransferCardProps) {
       </div>
       <TransferReuseNote event={event} t={t} />
       <div className="flex flex-wrap items-center gap-2">
-        {canPause ? <button type="button" disabled={props.runtimeWritesDisabled} onClick={() => props.onPause(event.installSessionId)} className="rounded border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] disabled:opacity-50">{t('runtimeConfig.localModelCenter.pause', { defaultValue: 'Pause' })}</button> : null}
+        {canPause ? <button type="button" disabled={props.runtimeWritesDisabled} onClick={() => props.onPause(event.installSessionId)} className="rounded border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] enabled:active:scale-[var(--nimi-motion-pressed-scale)] disabled:opacity-50">{t('runtimeConfig.localModelCenter.pause', { defaultValue: 'Pause' })}</button> : null}
         {canResume ? <Button size="sm" disabled={props.runtimeWritesDisabled} onClick={() => props.onResume(event.installSessionId)}>{t('runtimeConfig.localModelCenter.resume', { defaultValue: 'Resume' })}</Button> : null}
         <ModelTransferRecoveryActions event={event} disabled={props.runtimeWritesDisabled} />
-        {canCancel ? <button type="button" disabled={props.runtimeWritesDisabled} onClick={() => props.onCancel(event.installSessionId)} className="rounded border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)] hover:border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] hover:text-[var(--nimi-status-danger)] disabled:opacity-50">{t('Common.cancel', { defaultValue: 'Cancel' })}</button> : null}
+        {canCancel ? <button type="button" disabled={props.runtimeWritesDisabled} onClick={() => props.onCancel(event.installSessionId)} className="rounded border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)] transition-colors hover:border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] hover:text-[var(--nimi-status-danger)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] enabled:active:scale-[var(--nimi-motion-pressed-scale)] disabled:opacity-50">{t('Common.cancel', { defaultValue: 'Cancel' })}</button> : null}
       </div>
     </div>
   );
@@ -141,7 +142,7 @@ function LocalTransferImportCard(props: TransferCardProps) {
           <button
             type="button"
             aria-label={t('runtimeConfig.localModelCenter.dismissTransfer', { defaultValue: 'Dismiss transfer' })}
-            className="ml-1 rounded-md px-1.5 py-0.5 text-xs text-[var(--nimi-text-muted)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] hover:text-[var(--nimi-text-secondary)]"
+            className="ml-1 flex h-7 w-7 items-center justify-center rounded-md text-xs text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]"
             onClick={() => props.onDismiss(event.installSessionId)}
           >
             {'\u00d7'}
@@ -151,7 +152,7 @@ function LocalTransferImportCard(props: TransferCardProps) {
           <button
             type="button"
             disabled={props.runtimeWritesDisabled}
-            className="ml-1 rounded border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)] disabled:opacity-50"
+            className="ml-1 rounded border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] enabled:active:scale-[var(--nimi-motion-pressed-scale)] disabled:opacity-50"
             onClick={() => props.onPause(event.installSessionId)}
           >
             {t('runtimeConfig.localModelCenter.pause', { defaultValue: 'Pause' })}
@@ -167,7 +168,7 @@ function LocalTransferImportCard(props: TransferCardProps) {
           <button
             type="button"
             disabled={props.runtimeWritesDisabled}
-            className="ml-1 rounded border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)] hover:border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] hover:text-[var(--nimi-status-danger)] disabled:opacity-50"
+            className="ml-1 rounded border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)] transition-colors hover:border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] hover:text-[var(--nimi-status-danger)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] enabled:active:scale-[var(--nimi-motion-pressed-scale)] disabled:opacity-50"
             onClick={() => props.onCancel(event.installSessionId)}
           >
             {t('Common.cancel', { defaultValue: 'Cancel' })}
@@ -204,11 +205,29 @@ function LocalModelCenterInProgressSection(props: InProgressSectionProps) {
   const i18n = useDesktopI18nResource().instance;
   const t = i18n.t.bind(i18n);
   const [recentOpen, setRecentOpen] = useState(false);
+  const [pendingCancelEvent, setPendingCancelEvent] = useState<NimiRuntimeLocalTransferProgressEvent | null>(null);
+  const [pendingClearAll, setPendingClearAll] = useState(false);
   const activeCount = props.downloads.length + props.imports.length;
   const terminalCount = props.terminalDownloads.length + props.terminalImports.length;
   if (activeCount === 0 && terminalCount === 0) {
     return null;
   }
+
+  const allTransfers = [
+    ...props.downloads,
+    ...props.imports,
+    ...props.terminalDownloads,
+    ...props.terminalImports,
+  ];
+
+  const requestCancel = (installSessionId: string) => {
+    const target = allTransfers.find((item) => item.installSessionId === installSessionId);
+    if (!target || target.cleanupPending) {
+      props.onCancel(installSessionId);
+      return;
+    }
+    setPendingCancelEvent(target);
+  };
 
   const clearAllTerminal = () => {
     for (const event of [...props.terminalDownloads, ...props.terminalImports]) {
@@ -221,13 +240,59 @@ function LocalModelCenterInProgressSection(props: InProgressSectionProps) {
     runtimeWritesDisabled: props.runtimeWritesDisabled,
     onPause: props.onPause,
     onResume: props.onResume,
-    onCancel: props.onCancel,
+    onCancel: requestCancel,
     onDismiss: props.onDismiss,
     onReimport: props.onReimport,
   };
 
   return (
     <section className="overflow-visible rounded-2xl bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-raised)] ring-1 ring-[var(--nimi-border-subtle)]">
+      <ConfirmDialog
+        open={pendingCancelEvent !== null}
+        title={t('runtimeConfig.downloads.cancelTitle', { defaultValue: 'Cancel this download?' })}
+        message={
+          pendingCancelEvent
+            ? pendingCancelEvent.bytesReceived > 0
+              ? t('runtimeConfig.downloads.cancelMessage', {
+                name: transferDisplayLabel(pendingCancelEvent),
+                size: formatBytes(pendingCancelEvent.bytesReceived),
+              })
+              : t('runtimeConfig.localModelCenter.cancelTransferMessage', {
+                name: transferDisplayLabel(pendingCancelEvent),
+                defaultValue: 'Cancel the transfer for "{{name}}"? Installed models and components are not affected.',
+              })
+            : ''
+        }
+        confirmLabel={t('runtimeConfig.downloads.confirmCancel', { defaultValue: 'Discard and cancel' })}
+        cancelLabel={t('runtimeConfig.downloads.keepTask', { defaultValue: 'Keep downloading' })}
+        confirmTone="danger"
+        onClose={() => setPendingCancelEvent(null)}
+        onConfirm={() => {
+          const target = pendingCancelEvent;
+          setPendingCancelEvent(null);
+          if (target) {
+            props.onCancel(target.installSessionId);
+          }
+        }}
+      />
+      <ConfirmDialog
+        open={pendingClearAll}
+        title={t('runtimeConfig.localModelCenter.clearAllConfirmTitle', {
+          count: terminalCount,
+          defaultValue: 'Clear {{count}} recent tasks?',
+        })}
+        message={t('runtimeConfig.localModelCenter.clearAllConfirmMessage', {
+          defaultValue: 'This removes completed and stopped transfer records from this list. Installed models are not affected.',
+        })}
+        confirmLabel={t('runtimeConfig.localModelCenter.clearAll', { defaultValue: 'Clear all' })}
+        cancelLabel={t('Common.cancel', { defaultValue: 'Cancel' })}
+        confirmTone="danger"
+        onClose={() => setPendingClearAll(false)}
+        onConfirm={() => {
+          setPendingClearAll(false);
+          clearAllTerminal();
+        }}
+      />
       <div className="flex items-center gap-3 border-b border-[var(--nimi-border-subtle)] px-5 py-4">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)] text-[var(--nimi-action-primary-bg)]">
           <DownloadIcon className="h-4 w-4" />
@@ -258,7 +323,7 @@ function LocalModelCenterInProgressSection(props: InProgressSectionProps) {
               type="button"
               onClick={() => setRecentOpen((value) => !value)}
               aria-expanded={recentOpen}
-              className="flex items-center gap-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]"
+              className="flex items-center gap-1.5 rounded px-1 py-0.5 text-xs font-medium text-[var(--nimi-text-secondary)] transition-colors hover:text-[var(--nimi-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]"
             >
               <span aria-hidden="true" className={`inline-block transition-transform ${recentOpen ? 'rotate-90' : ''}`}>{'\u25b8'}</span>
               {t('runtimeConfig.localModelCenter.recentTasks', {
@@ -268,8 +333,8 @@ function LocalModelCenterInProgressSection(props: InProgressSectionProps) {
             </button>
             <button
               type="button"
-              onClick={clearAllTerminal}
-              className="text-xs font-medium text-[var(--nimi-text-muted)] hover:text-[var(--nimi-status-danger)]"
+              onClick={() => setPendingClearAll(true)}
+              className="rounded px-1.5 py-0.5 text-xs font-medium text-[var(--nimi-text-muted)] transition-colors hover:text-[var(--nimi-status-danger)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]"
             >
               {t('runtimeConfig.localModelCenter.clearAll', { defaultValue: 'Clear all' })}
             </button>

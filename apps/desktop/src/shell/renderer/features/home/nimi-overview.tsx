@@ -820,7 +820,7 @@ export function NimiOverview() {
                     aria-expanded={messagesDrawerOpen}
                     onClick={() => toggleHomeMessagesDrawer(hasPending ? 'pending' : 'unread')}
                     data-testid="home-messages-drawer-trigger"
-                    className="inline-flex items-center gap-2 rounded-full bg-[var(--nimi-home-porcelain-card)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-primary)] shadow-[var(--nimi-home-porcelain-shadow)] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--nimi-home-porcelain-shadow-hover)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+                    className="inline-flex items-center gap-2 rounded-full bg-[var(--nimi-home-porcelain-card)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-primary)] shadow-[var(--nimi-home-porcelain-shadow)] transition-[transform,opacity,background-color,border-color,color] duration-150 hover:shadow-[var(--nimi-home-porcelain-shadow-hover)] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
                   >
                     <span className="relative inline-flex items-center justify-center text-[var(--nimi-action-primary-bg)]">
                       <Bell size={13} aria-hidden="true" />
@@ -838,7 +838,7 @@ export function NimiOverview() {
                   onClick={() => setQuickJumpOpen(true)}
                   aria-label={t('runtimeConfig.overview.quickJump.title')}
                   data-testid="home-quick-jump-trigger"
-                  className="inline-flex items-center gap-2 rounded-full bg-[var(--nimi-home-porcelain-card)] px-3 py-1.5 text-xs text-[var(--nimi-text-secondary)] shadow-[var(--nimi-home-porcelain-shadow)] transition-all duration-150 hover:text-[var(--nimi-text-primary)] hover:shadow-[var(--nimi-home-porcelain-shadow-hover)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+                  className="inline-flex items-center gap-2 rounded-full bg-[var(--nimi-home-porcelain-card)] px-3 py-1.5 text-xs text-[var(--nimi-text-secondary)] shadow-[var(--nimi-home-porcelain-shadow)] transition-[transform,opacity,background-color,border-color,color] duration-150 hover:text-[var(--nimi-text-primary)] hover:shadow-[var(--nimi-home-porcelain-shadow-hover)] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
                 >
                   <Search size={13} aria-hidden="true" />
                   <kbd className="font-mono text-[11px]">{shortcutText}</kbd>
@@ -846,7 +846,7 @@ export function NimiOverview() {
               </div>
             </div>
 
-            <h1 className="min-w-0 text-3xl font-semibold leading-tight tracking-tight text-[var(--nimi-text-primary)] md:text-[32px]">
+            <h1 className="min-w-0 text-3xl font-semibold leading-tight tracking-tight text-[var(--nimi-text-primary)] md:text-[2rem]">
               {displayName
                 ? t('runtimeConfig.overview.greetingWithName', { greeting: t(greetingKey(now.getHours())), name: displayName })
                 : t(greetingKey(now.getHours()))}

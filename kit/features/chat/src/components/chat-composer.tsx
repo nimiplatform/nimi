@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState, type ReactNode, type CompositionEvent } from 'react';
 import { cn, InlineAlert, Tooltip } from '@nimiplatform/kit/ui';
+import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
 import { useChatComposer, type UseChatComposerOptions } from '../hooks/use-chat-composer.js';
 import { resolveChatCopy, type ChatCopy } from '../copy.js';
 import type {
@@ -87,6 +88,7 @@ export function ChatComposer<TAttachment = never>({
     const next = Math.min(Math.max(el.scrollHeight, MIN_TEXTAREA_HEIGHT), MAX_TEXTAREA_HEIGHT);
     lastHeightRef.current = next;
     el.style.height = `${next}px`;
+    el.style.overflowY = el.scrollHeight > MAX_TEXTAREA_HEIGHT ? 'auto' : 'hidden';
   }, []);
 
   useEffect(() => {
@@ -147,7 +149,10 @@ export function ChatComposer<TAttachment = never>({
               <button
                 type="button"
                 onClick={() => state.removeAttachment(index)}
-                className="rounded-full p-1 text-[var(--nimi-text-muted)] transition-colors hover:text-[var(--nimi-text-secondary)]"
+                className={cn(
+                  'rounded-full p-1 text-[var(--nimi-text-muted)] transition-[color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:text-[var(--nimi-text-secondary)] active:scale-[var(--nimi-motion-pressed-scale)]',
+                  FOCUS_RING_CLASS_NAME,
+                )}
                 aria-label={copyResolved.composerRemoveAttachmentLabel(label || index + 1)}
               >
                 ×
@@ -181,14 +186,14 @@ export function ChatComposer<TAttachment = never>({
       rows={1}
       data-chat-composer-textarea="true"
       className={cn(
-        'min-h-[36px] max-h-32 min-w-0 flex-1 resize-none overflow-y-hidden',
+        'min-h-[36px] max-h-32 min-w-0 flex-1 resize-none',
         isStacked
           ? 'w-full rounded-[var(--nimi-radius-xl)] border-0 bg-transparent px-2.5 py-2 text-[length:var(--nimi-type-body-sm-size)] leading-5 shadow-none'
           : 'rounded-[var(--nimi-radius-xl)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-4 py-3 text-sm',
         'text-[var(--nimi-field-text)] outline-none',
         'transition-colors duration-[var(--nimi-motion-base)]',
         'placeholder:text-[var(--nimi-field-placeholder)]',
-        isStacked ? 'focus:ring-0' : 'focus:border-[var(--nimi-field-focus)]',
+        isStacked ? 'focus-visible:ring-0' : 'focus:border-[var(--nimi-field-focus)] focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)]',
         isStacked ? 'disabled:bg-transparent' : 'disabled:bg-[var(--nimi-surface-panel)]',
       )}
       placeholder={placeholder}
@@ -210,11 +215,12 @@ export function ChatComposer<TAttachment = never>({
       aria-label={sendLabel}
       data-chat-composer-send="true"
       className={cn(
-        'flex shrink-0 items-center justify-center transition-[background-color,color,box-shadow,transform,opacity] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)]',
+        'flex shrink-0 items-center justify-center transition-[background-color,color,transform,opacity] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)]',
+        FOCUS_RING_CLASS_NAME,
         isStacked
           ? 'h-8 w-8 rounded-full bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)] enabled:bg-[var(--nimi-action-primary-bg)] enabled:text-[var(--nimi-action-primary-text)] enabled:shadow-[0_8px_20px_color-mix(in_srgb,var(--nimi-action-primary-bg)_28%,transparent)] enabled:hover:bg-[var(--nimi-action-primary-bg-hover)] enabled:hover:shadow-[0_12px_24px_color-mix(in_srgb,var(--nimi-action-primary-bg)_34%,transparent)]'
-          : 'h-12 w-12 rounded-[var(--nimi-radius-xl)] bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[0_18px_36px_color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,transparent)] transition-[box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)] enabled:hover:bg-[var(--nimi-action-primary-bg-hover)] enabled:hover:shadow-[0_22px_44px_color-mix(in_srgb,var(--nimi-action-primary-bg)_40%,transparent)] disabled:opacity-40 disabled:shadow-none disabled:hover:translate-y-0',
-        'active:scale-[var(--nimi-motion-pressed-scale)]',
+          : 'h-12 w-12 rounded-[var(--nimi-radius-xl)] bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[0_18px_36px_color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,transparent)] enabled:hover:bg-[var(--nimi-action-primary-bg-hover)] enabled:hover:shadow-[0_22px_44px_color-mix(in_srgb,var(--nimi-action-primary-bg)_40%,transparent)] disabled:opacity-40 disabled:shadow-none',
+        'active:scale-[var(--nimi-motion-pressed-scale)] disabled:active:scale-100',
       )}
     >
       {ICON_SEND}
@@ -245,12 +251,13 @@ export function ChatComposer<TAttachment = never>({
           }
         }}
         className={cn(
-          'flex shrink-0 items-center justify-center transition-colors',
+          'flex shrink-0 items-center justify-center transition-[background-color,border-color,color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)]',
+          FOCUS_RING_CLASS_NAME,
           isStacked
             ? 'h-8 w-8 rounded-full border border-transparent bg-transparent text-[var(--nimi-text-muted)] hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)] hover:text-[var(--nimi-text-secondary)]'
             : 'h-11 w-11 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,transparent)] text-[var(--nimi-text-secondary)] hover:border-[var(--nimi-action-primary-bg)]/50 hover:text-[var(--nimi-action-primary-bg)]',
           showMediaActions ? 'border border-[var(--nimi-action-primary-bg)]/50 bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-action-primary-bg)]' : '',
-          'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[var(--nimi-border-subtle)] disabled:hover:text-[var(--nimi-text-muted)]',
+          'disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100 disabled:hover:border-[var(--nimi-border-subtle)] disabled:hover:text-[var(--nimi-text-muted)]',
         )}
         aria-label={attachLabel}
       >
@@ -302,7 +309,10 @@ export function ChatComposer<TAttachment = never>({
                   action.onAction();
                   setShowMediaActions(false);
                 }}
-                className="rounded-full border border-[var(--nimi-action-primary-bg)]/40 bg-[var(--nimi-action-ghost-hover)] px-3 py-1 text-[length:var(--nimi-type-overline-size)] font-semibold text-[var(--nimi-action-primary-bg)] transition-colors hover:bg-[var(--nimi-surface-active)]"
+                className={cn(
+                  'rounded-full border border-[var(--nimi-action-primary-bg)]/40 bg-[var(--nimi-action-ghost-hover)] px-3 py-1 text-[length:var(--nimi-type-overline-size)] font-semibold text-[var(--nimi-action-primary-bg)] transition-[background-color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:bg-[var(--nimi-surface-active)] active:scale-[var(--nimi-motion-pressed-scale)]',
+                  FOCUS_RING_CLASS_NAME,
+                )}
               >
                 {action.label}
               </button>
@@ -435,7 +445,7 @@ export function ChatComposer<TAttachment = never>({
 // ---------------------------------------------------------------------------
 
 const ICON_SPINNER = (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="animate-spin motion-reduce:animate-none">
     <path d="M21 12a9 9 0 1 1-6.219-8.56" />
   </svg>
 );
@@ -471,7 +481,8 @@ function VoiceButton({
           disabled={disabled || isTranscribing || isPlaying}
           onClick={onToggle}
           className={cn(
-            'flex shrink-0 items-center justify-center transition-colors',
+            'flex shrink-0 items-center justify-center transition-[background-color,border-color,color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)] disabled:active:scale-100',
+            FOCUS_RING_CLASS_NAME,
             compact ? 'h-8 w-8 rounded-full' : 'h-11 w-11 rounded-2xl',
             isRecording
               ? 'border border-[var(--nimi-status-danger-soft-border)] bg-[var(--nimi-status-danger-soft-bg)] text-[var(--nimi-status-danger)] shadow-[0_4px_12px_color-mix(in_srgb,var(--nimi-status-danger)_16%,transparent)]'
@@ -483,6 +494,7 @@ function VoiceButton({
                     ? 'border border-transparent bg-transparent text-[var(--nimi-text-muted)] hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)] hover:text-[var(--nimi-text-secondary)]'
                     : 'border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,transparent)] text-[var(--nimi-text-secondary)] hover:border-[var(--nimi-action-primary-bg)]/50 hover:text-[var(--nimi-action-primary-bg)]',
           )}
+          aria-pressed={isRecording}
           aria-label={voiceLabel}
         >
           {isTranscribing || isPlaying ? ICON_SPINNER : ICON_MIC}
@@ -503,7 +515,10 @@ function VoiceButton({
             type="button"
             onClick={onCancel}
             aria-label={cancelActionLabel}
-            className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-xs font-medium text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-surface-panel)]"
+            className={cn(
+              'rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-xs font-medium text-[var(--nimi-text-secondary)] transition-[background-color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:bg-[var(--nimi-surface-panel)] active:scale-[var(--nimi-motion-pressed-scale)]',
+              FOCUS_RING_CLASS_NAME,
+            )}
           >
             {copy.composerCancelLabel}
           </button>

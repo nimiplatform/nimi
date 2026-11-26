@@ -1,4 +1,4 @@
-import { useContext, useState } from 'react';
+import { useContext, useRef, useState } from 'react';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -134,16 +134,24 @@ export function StoryCompanionShowcase({
   const session = useContext(DemoSessionContext);
   const voice = useVoiceSample();
 
+  const utopiaBannerRef = useRef<HTMLDivElement | null>(null);
+  const utopiaActorRefs = useRef<Map<string, HTMLElement>>(new Map());
   const utopiaContent = createUtopiaPreviewContent(locale);
   const habitat =
     utopiaContent.habitats.find((item) => item.id === habitatId) ?? utopiaContent.habitats[0]!;
   const isTuned = Boolean(tunedByHabitat[habitat.id]);
-  const walkerFrames = useUtopiaWalkers(
+  useUtopiaWalkers(
     habitat.id,
     habitat.residents,
     isTuned,
     false,
     activePillar !== 'utopia',
+    {
+      stageRef: utopiaBannerRef,
+      actorRefs: utopiaActorRefs,
+      zBase: 2,
+      zScale: 0.05,
+    },
   );
 
   const characters = VOICE_CHARACTERS[locale];
@@ -192,7 +200,7 @@ export function StoryCompanionShowcase({
           <div className="story-companion-stage" data-active-scene={activePillar}>
             {activePillar === 'utopia' && (
               <div className="story-companion-scene story-companion-scene--utopia">
-                <div className="story-utopia-banner">
+                <div ref={utopiaBannerRef} className="story-utopia-banner">
                   <img
                     src={habitat.baseImageSrc}
                     alt={habitat.title}
@@ -246,30 +254,28 @@ export function StoryCompanionShowcase({
                   </div>
 
                   {/* Hand-drawn Walking Chibi Actors Positioned on the 2.5D Scroll */}
-                  {habitat.residents.map((resident) => {
+                  {habitat.residents.map((resident, idx) => {
                     const placement = isTuned ? resident.tuned : resident.normal;
-                    const frame = walkerFrames[resident.id] ?? {
-                      x: placement.x,
-                      y: placement.y,
-                      walking: false,
-                      facing: 'right' as const,
-                    };
                     return (
                       <div
                         key={resident.id}
-                        className={`story-utopia-map-actor${frame.walking ? ' is-walking' : ''}`}
+                        ref={(node) => {
+                          if (node) utopiaActorRefs.current.set(resident.id, node);
+                          else utopiaActorRefs.current.delete(resident.id);
+                        }}
+                        className="story-utopia-map-actor"
                         style={{
-                          left: `${frame.x.toFixed(2)}%`,
-                          top: `${frame.y.toFixed(2)}%`,
-                          zIndex: 2 + Math.round(frame.y * 0.05),
+                          left: `${placement.x.toFixed(2)}%`,
+                          top: `${placement.y.toFixed(2)}%`,
+                          zIndex: 2 + Math.round(placement.y * 0.05),
                         }}
                       >
                         <UtopiaMiniChibiSvg
                           cloakColor={resident.defaultCloak}
                           headwear={resident.defaultHeadwear}
                           size={40}
-                          walking={frame.walking}
-                          facing={frame.facing}
+                          walking={false}
+                          facing={idx % 2 === 0 ? 'right' : 'left'}
                         />
                         <span className="story-utopia-map-tag">
                           <strong>{resident.name}</strong>
@@ -416,6 +422,7 @@ export function StoryCompanionShowcase({
                     </div>
                     <button
                       type="button"
+                      aria-pressed={isPlaying}
                       className={`story-voice-play-btn${isPlaying ? ' is-playing' : ''}`}
                       onClick={() => voice.toggle(currentChar.voiceUrl)}
                     >
@@ -426,7 +433,7 @@ export function StoryCompanionShowcase({
                   </div>
                   <blockquote>{currentChar.quote}</blockquote>
                   {voice.failedUrl === currentChar.voiceUrl && (
-                    <p className="story-voice-error">{t('worlds.audioError')}</p>
+                    <p className="story-voice-error" role="alert">{t('worlds.audioError')}</p>
                   )}
                 </div>
               </div>

@@ -1,4 +1,5 @@
-import React, { type ReactNode } from 'react';
+import React, { type KeyboardEvent, type ReactNode } from 'react';
+import { ChevronRight } from 'lucide-react';
 import { cn } from '../design-tokens.js';
 import { FOCUS_RING_CLASS_NAME } from '../a11y/focus.js';
 import { Avatar } from './avatar.js';
@@ -48,7 +49,7 @@ function AccountPanelItemButton({ item }: { item: AccountPanelItem }) {
       aria-current={item.active ? 'page' : undefined}
       onClick={item.onSelect}
       className={cn(
-        'nimi-account-panel__item flex min-h-11 w-full min-w-0 items-center gap-3 rounded-[var(--nimi-radius-md)] px-3 text-left text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-secondary)] transition-colors duration-[var(--nimi-motion-fast)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
+        'nimi-account-panel__item flex min-h-11 w-full min-w-0 items-center gap-3 rounded-[var(--nimi-radius-md)] px-3 text-left text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-secondary)] transition-[background-color,color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] active:scale-[var(--nimi-motion-pressed-scale)] disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
         FOCUS_RING_CLASS_NAME,
         item.active && 'nimi-account-panel__item--active bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]',
         item.tone === 'danger' && 'nimi-account-panel__item--danger text-[var(--nimi-status-danger)] hover:bg-[var(--nimi-status-danger-soft-bg)] hover:text-[var(--nimi-status-danger)]',
@@ -60,8 +61,8 @@ function AccountPanelItemButton({ item }: { item: AccountPanelItem }) {
         </span>
       ) : null}
       <span className="min-w-0 flex-1 truncate">{item.label}</span>
-      <span className="nimi-account-panel__item-chevron shrink-0 text-[var(--nimi-text-muted)]" aria-hidden="true">
-        &gt;
+      <span className="nimi-account-panel__item-chevron inline-flex shrink-0 items-center text-[var(--nimi-text-muted)]" aria-hidden="true">
+        <ChevronRight size={14} />
       </span>
     </button>
   );
@@ -81,11 +82,30 @@ export function AccountPanel({
   const displayName = displayNameFor(user);
   const avatarSeed = user?.id?.trim() || user?.email?.trim() || displayName;
 
+  const handleMenuKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+    const enabled = Array.from(
+      event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)'),
+    );
+    if (!enabled.length) return;
+    event.preventDefault();
+    const current = enabled.indexOf(document.activeElement as HTMLButtonElement);
+    const next = event.key === 'Home'
+      ? 0
+      : event.key === 'End'
+        ? enabled.length - 1
+        : event.key === 'ArrowDown'
+          ? (current + 1 + enabled.length) % enabled.length
+          : (current - 1 + enabled.length) % enabled.length;
+    enabled[next]?.focus();
+  };
+
   return (
     <Surface
       as="section"
       role="menu"
       aria-label={ariaLabel}
+      onKeyDown={handleMenuKeyDown}
       material="glass-thick"
       tone="card"
       elevation="floating"
@@ -116,7 +136,8 @@ export function AccountPanel({
           <button
             type="button"
             className={cn(
-              'nimi-account-panel__action inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--nimi-radius-full)] text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]',
+              'nimi-account-panel__action inline-flex shrink-0 items-center justify-center rounded-[var(--nimi-radius-full)] text-[var(--nimi-text-secondary)] transition-[background-color,color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] active:scale-[var(--nimi-motion-pressed-scale)]',
+              actionIcon ? 'h-9 w-9' : 'min-h-9 px-3',
               FOCUS_RING_CLASS_NAME,
             )}
             aria-label={actionLabel}

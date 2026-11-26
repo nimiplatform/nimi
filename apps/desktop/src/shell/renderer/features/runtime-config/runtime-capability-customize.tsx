@@ -157,6 +157,7 @@ export function RuntimeCapabilityCustomize(props: {
   const [draft, setDraft] = useState(initial);
   const [optionsText, setOptionsText] = useState(initialText);
   const [contextSizeDraft, setContextSizeDraft] = useState(initialContextDraft);
+  const [numericDrafts, setNumericDrafts] = useState<Record<string, string>>({});
   const [optionsEdited, setOptionsEdited] = useState(false);
   const [pickingSlotId, setPickingSlotId] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
@@ -188,6 +189,7 @@ export function RuntimeCapabilityCustomize(props: {
     if (next) {
       setDraft((current) => ({ ...current, options: next }));
       setContextSizeDraft(contextSizeDraftFromOptions(next));
+      setNumericDrafts({});
     }
   };
   const onContextSizeChange = (nextText: string) => {
@@ -344,6 +346,7 @@ export function RuntimeCapabilityCustomize(props: {
     setDraft(initial);
     setOptionsText(initialText);
     setContextSizeDraft(initialContextDraft);
+    setNumericDrafts({});
     setOptionsEdited(false);
     setPickingSlotId(null);
     setApplyError('');
@@ -371,7 +374,7 @@ export function RuntimeCapabilityCustomize(props: {
             onClick={() => setPickingSlotId(null)}
             data-testid="capability-customize-picker-back"
           >
-            <ArrowLeft size={14} />
+            <ArrowLeft size={14} aria-hidden="true" />
             {t('runtimeConfig.loadouts.picker.backToSettings')}
           </Button>
           <span className="text-sm font-semibold text-[var(--nimi-text-primary)]">
@@ -400,7 +403,7 @@ export function RuntimeCapabilityCustomize(props: {
     );
   }
 
-  const fieldClass = 'rounded-[var(--nimi-radius-sm)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-2.5 py-1.5 text-sm text-[var(--nimi-text-primary)]';
+  const fieldClass = 'rounded-[var(--nimi-radius-sm)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-2.5 py-1.5 text-sm text-[var(--nimi-text-primary)] outline-none focus-visible:border-[var(--nimi-field-focus)] focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]';
   return (
     <div className="space-y-4" data-testid="capability-customize-editor">
       <CustomizeCard>
@@ -477,10 +480,21 @@ export function RuntimeCapabilityCustomize(props: {
                       aria-label={key}
                       step="any"
                       className={`w-32 ${fieldClass}`}
-                      value={typeof value === 'number' && Number.isFinite(value) ? value : 0}
+                      value={numericDrafts[key] ?? (typeof value === 'number' && Number.isFinite(value) ? String(value) : '')}
                       onChange={(event) => {
-                        const next = Number(event.currentTarget.value);
-                        if (Number.isFinite(next)) onOption(key, next);
+                        const raw = event.currentTarget.value;
+                        setNumericDrafts((current) => ({ ...current, [key]: raw }));
+                        if (raw.trim() !== '') {
+                          const next = Number(raw);
+                          if (Number.isFinite(next)) onOption(key, next);
+                        }
+                      }}
+                      onBlur={() => {
+                        setNumericDrafts((current) => {
+                          if (!(key in current)) return current;
+                          const { [key]: _removed, ...rest } = current;
+                          return rest;
+                        });
                       }}
                     />
                   ) : (
@@ -508,7 +522,7 @@ export function RuntimeCapabilityCustomize(props: {
                   aria-hidden="true"
                   className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 text-sm font-medium text-[var(--nimi-text-primary)]"
                 >
-                  <Braces size={14} />
+                  <Braces size={14} aria-hidden="true" />
                   <span className="group-open:hidden">{t('runtimeConfig.product.customization.editOptions')}</span>
                   <span className="hidden group-open:inline">{t('runtimeConfig.product.customization.hideOptions')}</span>
                 </span>
@@ -524,8 +538,16 @@ export function RuntimeCapabilityCustomize(props: {
                 />
                 <div className="mt-2 flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
                   <p className="min-w-0 flex-1 text-xs leading-relaxed text-[var(--nimi-text-secondary)]">{t('runtimeConfig.setupTask.advanced.optionsJsonHelp')}</p>
-                  <Button tone="ghost" size="sm" className="-mr-2 -mt-1" onClick={() => writeOptions({ ...(recipe.defaultOptions as NimiJsonObject | undefined) })}>
-                    <RotateCcw size={13} />
+                  <Button
+                    tone="ghost"
+                    size="sm"
+                    className="-mr-2 -mt-1"
+                    onClick={() => {
+                      setNumericDrafts({});
+                      writeOptions({ ...(recipe.defaultOptions as NimiJsonObject | undefined) });
+                    }}
+                  >
+                    <RotateCcw size={13} aria-hidden="true" />
                     {t('runtimeConfig.setupTask.advanced.resetOptions')}
                   </Button>
                 </div>
@@ -548,8 +570,14 @@ export function RuntimeCapabilityCustomize(props: {
             <Button tone="ghost" disabled={disabled} onClick={props.onCancel ?? discard} data-testid="capability-customize-discard">
               {t(props.onCancel ? 'Common.cancel' : 'runtimeConfig.product.customization.discard')}
             </Button>
-            <Button tone="primary" disabled={disabled || formInvalid || !changed} onClick={() => { void apply(); }} data-testid="capability-customize-apply">
-              {applying ? t('runtimeConfig.setupTask.advanced.applying') : (props.applyLabel ?? t('runtimeConfig.product.customization.apply'))}
+            <Button
+              tone="primary"
+              loading={applying}
+              disabled={props.disabled || formInvalid || !changed}
+              onClick={() => { void apply(); }}
+              data-testid="capability-customize-apply"
+            >
+              {props.applyLabel ?? t('runtimeConfig.product.customization.apply')}
             </Button>
           </div>
           {applyError ? <div className="mt-2.5"><InlineAlert tone="warning">{applyError}</InlineAlert></div> : null}

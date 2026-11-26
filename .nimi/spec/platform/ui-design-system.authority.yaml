@@ -676,9 +676,9 @@ units:
     kind: rule
     title: P-DESIGN-022 transparency downgrade interface
     modality: must
-    statement: Transparency level is auto, none, reduced, or full; solid never changes, none maps every glass tier to solid, reduced maps thin to solid, regular to thin, thick to regular, and chrome to thick, full preserves input, auto equals full under no preference and collapses to reduced or to none when the operating-system preference disables transparency, and every downgrade is idempotent and independent of accent packs.
+    statement: Transparency level is auto, none, reduced, or full; solid never changes, none maps every glass tier to solid, reduced converges one tier toward solid by mapping thin to regular, regular to thick, thick to chrome, and chrome to solid, full preserves input, auto equals full under no preference and collapses to reduced or to none when the operating-system preference disables transparency, and every transparency resolution is deterministic and independent of accent packs.
     condition: Whenever runtime material performance or accessibility policy downgrades a tier.
-    failure: Reject an unknown level, noncanonical mapping, non-idempotent result, or accent-dependent downgrade.
+    failure: Reject an unknown level, noncanonical mapping, non-deterministic result, or accent-dependent resolution.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.ui-material

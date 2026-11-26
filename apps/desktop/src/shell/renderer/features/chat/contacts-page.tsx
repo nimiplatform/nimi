@@ -51,12 +51,15 @@ function ContactsEmptyStage({
   canShowRail,
   hasVisibleConversations,
   suppressZeroPrompt,
+  onDiscoverPartners,
 }: {
   contactsOpen: boolean;
   canShowRail: boolean;
   hasVisibleConversations: boolean;
   suppressZeroPrompt: boolean;
+  onDiscoverPartners: () => void;
 }) {
+  const { t } = useTranslation();
   const mode = contactsOpen
     ? 'contacts-open'
     : !canShowRail || suppressZeroPrompt
@@ -69,9 +72,29 @@ function ContactsEmptyStage({
     <div
       data-testid="contacts-empty-stage"
       data-empty-stage-mode={mode}
-      className="flex min-h-0 flex-1 select-none items-center justify-center p-6"
+      className="flex min-h-0 flex-1 select-none flex-col items-center justify-center p-6"
     >
       <NimiLogoWatermark />
+      {mode === 'zero-conversations' ? (
+        <div className="mt-4 flex max-w-xs flex-col items-center gap-3 text-center">
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-[var(--nimi-text-primary)]">
+              {t('Chat.contactsZeroTitle')}
+            </p>
+            <p className="text-xs leading-relaxed text-[var(--nimi-text-secondary)]">
+              {t('Chat.contactsZeroDescription')}
+            </p>
+          </div>
+          <Button
+            tone="primary"
+            size="sm"
+            data-testid="contacts-empty-discover-cta"
+            onClick={onDiscoverPartners}
+          >
+            {t('Chat.contactsZeroDiscoverAction')}
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -254,6 +277,13 @@ export function ContactsPage() {
               canShowRail={canShowRail}
               hasVisibleConversations={visibleRailTargets.length > 0}
               suppressZeroPrompt={loadingSideTargets || sideTargetsFailed}
+              onDiscoverPartners={() => {
+                void navigation.push({
+                  id: 'explore',
+                  exploreSection: 'worlds',
+                  exploreSearchKind: 'characters',
+                });
+              }}
             />
           )}
         </motion.div>

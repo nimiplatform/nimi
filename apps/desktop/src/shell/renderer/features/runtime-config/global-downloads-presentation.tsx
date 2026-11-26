@@ -187,7 +187,7 @@ export function DownloadTaskRow(
           <span
             className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${props.stage === 'interrupted' ? 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]' : active ? 'bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)]' : 'bg-[var(--nimi-surface-active)] text-[var(--nimi-text-secondary)]'}`}
           >
-            {StageIcon ? <StageIcon size={13} className={active && props.stage !== 'paused' ? 'animate-spin' : ''} /> : null}
+            {StageIcon ? <StageIcon size={13} aria-hidden="true" className={active && props.stage !== 'paused' ? 'animate-spin motion-reduce:animate-none' : ''} /> : null}
             {stageLabel}
           </span>
           {props.headerAction}

@@ -99,7 +99,7 @@ export function DemoRealmPersonaPreview({ content }: { content: RemainingPreview
             </>
           }
         />
-        <main className="rp-main rp-page">
+        <div role="region" aria-label={content.name} className="rp-main rp-page">
           {selected !== null ? (
             <>
               <PreviewButton onClick={() => setSelected(null)}>
@@ -325,7 +325,7 @@ export function DemoRealmPersonaPreview({ content }: { content: RemainingPreview
               )}
             </>
           )}
-        </main>
+        </div>
       </div>
     </RemainingPreview>
   );

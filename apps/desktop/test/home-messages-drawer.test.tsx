@@ -227,8 +227,9 @@ test('HomeMessagesDrawer renders pending items, quick preferences, and closes on
     });
 
     const drawer = dom.window.document.querySelector('[data-testid="home-messages-drawer"]');
-    assert.ok(drawer, 'expected the slide-over messages drawer');
-    assert.equal(drawer.getAttribute('role'), 'dialog');
+    assert.ok(drawer, 'expected the non-blocking right-edge messages side sheet');
+    assert.equal(drawer.getAttribute('role'), 'complementary');
+    assert.equal(dom.window.document.querySelector('.nimi-overlay-backdrop'), null, 'side sheet must not render a blocking backdrop scrim');
     const title = dom.window.document.getElementById(drawer.getAttribute('aria-labelledby') ?? '');
     assert.equal(title?.textContent, '消息与事项');
     assert.ok(drawer.contains(title));
@@ -246,6 +247,11 @@ test('HomeMessagesDrawer renders pending items, quick preferences, and closes on
     assert.ok(viewAll);
     await act(async () => viewAll.click());
     assert.deepEqual(actions, ['close', 'viewAll']);
+
+    await act(async () => {
+      dom.window.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    assert.deepEqual(actions, ['close', 'viewAll', 'close']);
   } finally {
     await act(async () => root.unmount());
     // Radix restores focus in a timer after unmount. Keep the test document alive for it.

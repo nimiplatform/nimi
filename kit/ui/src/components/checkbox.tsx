@@ -21,8 +21,21 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Che
           disabled={disabled}
           {...rest}
         />
-        <span className="nimi-checkbox__box pointer-events-none inline-flex h-4 w-4 items-center justify-center rounded-[var(--nimi-radius-sm)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] text-[var(--nimi-action-primary-text)] transition-[background-color,border-color,color] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] peer-checked:border-[var(--nimi-action-primary-bg)] peer-checked:bg-[var(--nimi-action-primary-bg)] peer-focus-visible:ring-[length:var(--nimi-focus-ring-width)] peer-focus-visible:ring-[var(--nimi-focus-ring-color)]">
-          <span className="nimi-checkbox__indicator opacity-0 transition-opacity duration-[var(--nimi-motion-fast)] peer-checked:opacity-100">✓</span>
+        <span className="nimi-checkbox__box pointer-events-none inline-flex h-4 w-4 items-center justify-center rounded border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] text-[var(--nimi-action-primary-text)] transition-[background-color,border-color,color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] peer-active:scale-[var(--nimi-motion-pressed-scale)] peer-checked:border-[var(--nimi-action-primary-bg)] peer-checked:bg-[var(--nimi-action-primary-bg)] peer-focus-visible:ring-[length:var(--nimi-focus-ring-width)] peer-focus-visible:ring-[var(--nimi-focus-ring-color)]">
+          <svg
+            aria-hidden="true"
+            width="11"
+            height="11"
+            viewBox="0 0 12 12"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="nimi-checkbox__indicator transition-opacity duration-[var(--nimi-motion-fast)]"
+          >
+            <path d="M2.25 6.25 4.75 8.75 9.75 3.25" />
+          </svg>
         </span>
       </span>
       {label ? <span className="truncate">{label}</span> : null}

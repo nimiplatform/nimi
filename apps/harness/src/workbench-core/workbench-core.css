@@ -179,7 +179,7 @@
   .runtime-action-hint {
     margin: 0;
     color: var(--nimi-text-secondary);
-    font-size: 13px;
+    font-size: 0.8125rem;
   }
 
   .runtime-gate-actions {
@@ -191,7 +191,7 @@
   .runtime-gate-details {
     min-width: 0;
     color: var(--nimi-text-secondary);
-    font-size: 12px;
+    font-size: 0.75rem;
   }
 
   .runtime-gate-details summary {
@@ -249,7 +249,7 @@
 
   .workbench-empty-state__eyebrow {
     color: var(--nimi-text-muted);
-    font-size: 12px;
+    font-size: 0.75rem;
     font-weight: var(--nimi-type-label-weight);
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -265,19 +265,19 @@
 
   .workbench-empty-state__heading h1 {
     color: var(--nimi-text-primary);
-    font-size: 28px;
+    font-size: 1.75rem;
     font-weight: var(--nimi-type-page-title-weight);
   }
 
   .workbench-empty-state__panel h2 {
     color: var(--nimi-text-primary);
-    font-size: 20px;
+    font-size: 1.25rem;
     font-weight: var(--nimi-type-page-title-weight);
   }
 
   .workbench-empty-state__description {
     color: var(--nimi-text-secondary);
-    font-size: 14px;
+    font-size: 0.875rem;
     line-height: 1.6;
   }
 }

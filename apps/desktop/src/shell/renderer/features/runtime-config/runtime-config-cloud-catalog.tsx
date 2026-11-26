@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { SearchField } from '@nimiplatform/kit/ui';
+import { SearchField, SelectField } from '@nimiplatform/kit/ui';
 import { normalizeNimiRuntimeReasonCode, type NimiRuntimeConnectorCatalogEntry } from '@nimiplatform/sdk/runtime';
 import { asNimiError } from '@nimiplatform/sdk/types';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
@@ -54,17 +54,31 @@ export function CloudConnectorCatalog({ connector, onConfigure }: {
       <h2 className="desktop-module-section-title">{t('runtimeConfig.cloudWorkspace.catalogTitle')}
         {visible.loaded && !visible.error ? <span className="ml-2 text-sm font-normal text-[var(--nimi-text-muted)]">{visible.rows.length}</span> : null}
       </h2>
-      <Button size="sm" variant="ghost" disabled={visible.loading} onClick={() => setReload(value => value + 1)}>{t('runtimeConfig.cloudWorkspace.reloadCatalog')}</Button>
+      <Button size="sm" variant="ghost" loading={visible.loading} onClick={() => setReload(value => value + 1)}>{t('runtimeConfig.cloudWorkspace.reloadCatalog')}</Button>
     </div>
     <p className="mt-1 text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.cloudWorkspace.catalogIntro')}</p>
     {visible.loaded && visible.rows.length > 0 ? <div className="mt-5 flex flex-wrap items-center gap-3">
       <div className="min-w-0 flex-1"><SearchField value={query} onChange={event => { setQuery(event.target.value); setLimit(20); }}
         onClear={() => { setQuery(''); setLimit(20); }} clearLabel={t('Common.clear')}
         aria-label={t('runtimeConfig.cloudWorkspace.searchModels')} placeholder={t('runtimeConfig.cloudWorkspace.searchModels')} /></div>
-      {capabilities.length > 1 ? <select className="max-w-full rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-sm text-[var(--nimi-text-secondary)]" aria-label={t('runtimeConfig.cloudWorkspace.filterCapability')} value={capability} onChange={event => { setCapability(event.target.value); setLimit(20); }}>
-        <option value="">{t('runtimeConfig.cloudWorkspace.allCapabilities')}</option>
-        {capabilities.map(value => <option key={value} value={value}>{displayRuntimeConfigCapabilityLabel(value, t)}</option>)}
-      </select> : null}
+      {capabilities.length > 1 ? (
+        <SelectField
+          aria-label={t('runtimeConfig.cloudWorkspace.filterCapability')}
+          className="w-auto min-w-44 max-w-full"
+          value={capability || '__all__'}
+          onValueChange={(nextValue) => {
+            setCapability(nextValue === '__all__' ? '' : nextValue);
+            setLimit(20);
+          }}
+          options={[
+            { value: '__all__', label: t('runtimeConfig.cloudWorkspace.allCapabilities') },
+            ...capabilities.map((value) => ({
+              value,
+              label: displayRuntimeConfigCapabilityLabel(value, t),
+            })),
+          ]}
+        />
+      ) : null}
       {query || capability ? <Button size="sm" variant="ghost" onClick={() => { setQuery(''); setCapability(''); setLimit(20); }}>{t('runtimeConfig.cloudWorkspace.clearFilters')}</Button> : null}
     </div> : null}
     <div aria-live="polite" className="mt-3 text-sm text-[var(--nimi-text-secondary)]">

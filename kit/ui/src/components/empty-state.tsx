@@ -1,5 +1,5 @@
 import React, { type HTMLAttributes, type ReactNode } from 'react';
-import { cn } from '../design-tokens.js';
+import { cn, type SurfaceMaterial } from '../design-tokens.js';
 import { Surface } from './surface.js';
 
 // HTMLAttributes.title is `string`; Omit it so the `title` slot keeps its
@@ -9,6 +9,7 @@ type EmptyStateProps = Omit<HTMLAttributes<HTMLDivElement>, 'title'> & {
   title: ReactNode;
   description?: ReactNode;
   action?: ReactNode;
+  material?: SurfaceMaterial;
 };
 
 export function EmptyState({
@@ -16,11 +17,12 @@ export function EmptyState({
   title,
   description,
   action,
+  material = 'solid',
   className,
   ...rest
 }: EmptyStateProps) {
   return (
-    <Surface tone="card" material="glass-thin" padding="lg" className={cn('nimi-empty-state flex min-w-0 flex-col items-center justify-center gap-3 text-center', className)} {...rest}>
+    <Surface tone="card" material={material} padding="lg" className={cn('nimi-empty-state flex min-w-0 flex-col items-center justify-center gap-3 text-center', className)} {...rest}>
       {icon ? <div className="nimi-empty-state__icon inline-flex h-10 w-10 items-center justify-center rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] text-[var(--nimi-text-muted)]">{icon}</div> : null}
       <div className="min-w-0">
         <div className="nimi-empty-state__title text-[length:var(--nimi-type-label-size)] font-[var(--nimi-type-label-weight)] text-[var(--nimi-text-primary)]">{title}</div>

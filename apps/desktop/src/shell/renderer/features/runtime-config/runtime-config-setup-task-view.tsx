@@ -945,7 +945,7 @@ export function RuntimeConfigSetupTaskView(props: {
         <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
           <button
             type="button"
-            className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] px-4 py-3 text-left hover:border-[var(--nimi-border-strong)]"
+            className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] px-4 py-3 text-left transition-colors hover:border-[var(--nimi-border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] enabled:active:scale-[var(--nimi-motion-pressed-scale)] disabled:opacity-50"
             onClick={() => onSelectRoute('local')}
             disabled={busy}
             data-testid="runtime-setup-route-local"
@@ -961,7 +961,7 @@ export function RuntimeConfigSetupTaskView(props: {
           </button>
           <button
             type="button"
-            className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] px-4 py-3 text-left hover:border-[var(--nimi-border-strong)]"
+            className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] px-4 py-3 text-left transition-colors hover:border-[var(--nimi-border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] enabled:active:scale-[var(--nimi-motion-pressed-scale)] disabled:opacity-50"
             onClick={() => onSelectRoute('cloud')}
             disabled={busy}
             data-testid="runtime-setup-route-cloud"

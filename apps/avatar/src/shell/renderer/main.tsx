@@ -7,6 +7,7 @@ import './i18n/index.js';
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { NimiThemeProvider, type NimiThemeScheme } from '@nimiplatform/kit/ui';
+import { NimiMotionProvider } from '@nimiplatform/kit/ui/motion';
 import { installNimiShellRuntimeBridge } from '@nimiplatform/kit/shell/renderer/bridge';
 import { App } from './App.js';
 import { t } from './i18n/index.js';
@@ -33,7 +34,9 @@ function AvatarThemeRoot() {
   }, []);
   return (
     <NimiThemeProvider accentPack="nimi-accent" scheme={scheme}>
-      <App />
+      <NimiMotionProvider>
+        <App />
+      </NimiMotionProvider>
     </NimiThemeProvider>
   );
 }

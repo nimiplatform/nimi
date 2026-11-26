@@ -26,6 +26,7 @@ export const sillytavernMessagesEn = {
   'sillytavern.demoChat.repliesArePrewrittenExamplesIndependentOfYour':
     'Replies are prewritten examples, independent of your message.',
   'sillytavern.demoPanel.closeCharacterPanel': 'Close character panel',
+  'sillytavern.demoPanel.closePanel': 'Close {panel} panel',
   'sillytavern.demoPanel.fictionalSampleCharacters': 'Fictional sample characters',
   'sillytavern.demoPanel.eveningLibrary': 'Evening Library',
   'sillytavern.demoPanel.theLibraryAfterSunset': 'The library after sunset',

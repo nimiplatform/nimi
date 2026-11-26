@@ -334,8 +334,8 @@ export function RealmChatTimeline({
                             resolveMediaSource={resolveMediaSource}
                           />
                           {display.isUploadingMedia ? (
-                            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-overlay)_65%,transparent)]">
-                              <span className="h-10 w-10 animate-spin rounded-full border-[3px] border-[color-mix(in_srgb,var(--nimi-surface-overlay)_70%,transparent)] border-t-[var(--nimi-action-primary-bg)] shadow-sm" />
+                            <div role="status" aria-label={uploadingMediaLabel} className="absolute inset-0 flex items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-overlay)_65%,transparent)]">
+                              <span aria-hidden="true" className="h-10 w-10 animate-spin motion-reduce:animate-none rounded-full border-[3px] border-[color-mix(in_srgb,var(--nimi-surface-overlay)_70%,transparent)] border-t-[var(--nimi-action-primary-bg)] shadow-sm" />
                             </div>
                           ) : null}
                         </div>
@@ -352,8 +352,8 @@ export function RealmChatTimeline({
                             uploading={display.isUploadingMedia}
                           />
                           {display.isUploadingMedia ? (
-                            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-overlay-backdrop)_55%,transparent)]">
-                              <span className="h-10 w-10 animate-spin rounded-full border-[3px] border-[color-mix(in_srgb,var(--nimi-surface-overlay)_60%,transparent)] border-t-[var(--nimi-surface-overlay)] shadow-sm" />
+                            <div role="status" aria-label={uploadingMediaLabel} className="absolute inset-0 flex items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-overlay-backdrop)_55%,transparent)]">
+                              <span aria-hidden="true" className="h-10 w-10 animate-spin motion-reduce:animate-none rounded-full border-[3px] border-[color-mix(in_srgb,var(--nimi-surface-overlay)_60%,transparent)] border-t-[var(--nimi-surface-overlay)] shadow-sm" />
                             </div>
                           ) : null}
                         </div>

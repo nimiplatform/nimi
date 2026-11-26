@@ -1,5 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { NimiMotionProvider, NimiThemeProvider } from '@nimiplatform/kit/ui';
 import App from './App';
 import './styles/tokens.css';
 import './styles/field.css';
@@ -12,6 +13,10 @@ if (!root) throw new Error('missing #root element');
 
 createRoot(root).render(
   <StrictMode>
-    <App />
+    <NimiThemeProvider scheme="dark" accentPack="nimi-accent">
+      <NimiMotionProvider>
+        <App />
+      </NimiMotionProvider>
+    </NimiThemeProvider>
   </StrictMode>,
 );

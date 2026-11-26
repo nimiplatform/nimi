@@ -3,33 +3,33 @@ import type { CSSProperties } from 'react';
 type ExplorerStyle = CSSProperties & Record<`--${string}`, string>;
 
 export const WORLD_EXPLORER_COLORS = {
-  background: '#F6F8FB',
-  surface: '#FFFFFF',
-  weakSurface: '#F8FAFC',
+  background: 'var(--nimi-surface-canvas)',
+  surface: 'var(--nimi-surface-card)',
+  weakSurface: 'var(--nimi-surface-panel)',
   brand: 'var(--nimi-action-primary-bg)',
   brandHover: 'var(--nimi-action-primary-bg-hover)',
   brandSoft: 'color-mix(in srgb, var(--nimi-action-primary-bg) 12%, transparent)',
-  text: '#17202A',
-  textSecondary: '#6B7280',
-  textMuted: '#9AA4B2',
-  border: '#E5EAF0',
-  favorite: '#E95C5C',
+  text: 'var(--nimi-text-primary)',
+  textSecondary: 'var(--nimi-text-secondary)',
+  textMuted: 'var(--nimi-text-muted)',
+  border: 'var(--nimi-border-subtle)',
+  favorite: 'var(--nimi-status-danger)',
 } as const;
 
 export const WORLD_EXPLORER_SHADOWS = {
-  shell: '0 26px 70px rgba(20, 35, 50, 0.08)',
-  card: '0 12px 28px rgba(20, 35, 50, 0.05)',
-  cardHover: '0 16px 34px rgba(20, 35, 50, 0.08)',
+  shell: 'var(--nimi-elevation-floating)',
+  card: 'var(--nimi-elevation-base)',
+  cardHover: 'var(--nimi-elevation-floating)',
   selected: '0 16px 36px color-mix(in srgb, var(--nimi-action-primary-bg) 16%, transparent)',
-  panel: '0 22px 52px rgba(20, 35, 50, 0.09)',
-  nav: '0 10px 28px rgba(20, 35, 50, 0.045)',
+  panel: 'var(--nimi-elevation-floating)',
+  nav: 'var(--nimi-elevation-base)',
   button: '0 12px 24px color-mix(in srgb, var(--nimi-action-primary-bg) 22%, transparent)',
-  icon: '0 6px 16px rgba(20, 35, 50, 0.06)',
+  icon: 'var(--nimi-elevation-base)',
 } as const;
 
 // The one abstract cover for Worlds without a banner; Worlds declare no cover style to choose from.
 export const WORLD_NEUTRAL_COVER_BACKGROUND =
-  'linear-gradient(135deg, color-mix(in srgb, var(--nimi-action-primary-bg) 16%, transparent), transparent 38%), linear-gradient(45deg, #F8FAFC 0 24%, #EEF2F5 24% 48%, #F6F8FB 48% 72%, #EAF6FB 72% 100%)';
+  'linear-gradient(135deg, color-mix(in srgb, var(--nimi-action-primary-bg) 16%, transparent), transparent 42%), linear-gradient(45deg, var(--nimi-surface-panel) 0 25%, var(--nimi-surface-card) 25% 50%, var(--nimi-surface-panel) 50% 75%, color-mix(in srgb, var(--nimi-action-primary-bg) 8%, var(--nimi-surface-panel)) 75% 100%)';
 
 export const WORLD_EXPLORER_THEME = {
   root: {
@@ -48,52 +48,52 @@ export const WORLD_EXPLORER_THEME = {
   } satisfies ExplorerStyle,
   page: {
     background:
-      'radial-gradient(circle at 4% 92%, color-mix(in srgb, var(--nimi-action-primary-bg) 20%, transparent), transparent 34%), radial-gradient(circle at 98% 5%, rgba(221, 214, 254, 0.22), transparent 31%), linear-gradient(135deg, #F7F9FB 0%, #F6F8FB 58%, #FBF9FD 100%)',
+      'radial-gradient(circle at 4% 92%, color-mix(in srgb, var(--nimi-action-primary-bg) 16%, transparent), transparent 34%), radial-gradient(circle at 98% 5%, color-mix(in srgb, var(--nimi-action-primary-bg) 10%, transparent), transparent 31%), var(--nimi-surface-canvas)',
   } satisfies CSSProperties,
   discoveryPanel: {
     boxShadow: WORLD_EXPLORER_SHADOWS.shell,
   } satisfies CSSProperties,
   nav: {
-    background: 'rgba(255, 255, 255, 0.72)',
-    border: '1px solid rgba(255, 255, 255, 0.82)',
+    background: 'color-mix(in srgb, var(--nimi-surface-card) 86%, transparent)',
+    border: `1px solid ${WORLD_EXPLORER_COLORS.border}`,
     boxShadow: WORLD_EXPLORER_SHADOWS.nav,
   } satisfies CSSProperties,
   card: {
-    background: 'rgba(255, 255, 255, 0.82)',
-    border: '1px solid rgba(255, 255, 255, 0.78)',
+    background: 'var(--nimi-surface-card)',
+    border: `1px solid ${WORLD_EXPLORER_COLORS.border}`,
     boxShadow: WORLD_EXPLORER_SHADOWS.card,
   } satisfies CSSProperties,
   selectedCard: {
-    background: 'rgba(255, 255, 255, 0.88)',
+    background: 'var(--nimi-surface-card)',
     border: `1px solid ${WORLD_EXPLORER_COLORS.brand}`,
     boxShadow: WORLD_EXPLORER_SHADOWS.selected,
   } satisfies CSSProperties,
   panel: {
-    background: 'rgba(255, 255, 255, 0.82)',
-    border: '1px solid rgba(255, 255, 255, 0.78)',
+    background: 'var(--nimi-surface-card)',
+    border: `1px solid ${WORLD_EXPLORER_COLORS.border}`,
     boxShadow: WORLD_EXPLORER_SHADOWS.panel,
   } satisfies CSSProperties,
   weakBlock: {
-    background: 'rgba(248, 250, 252, 0.72)',
+    background: 'var(--nimi-surface-panel)',
     border: `1px solid ${WORLD_EXPLORER_COLORS.border}`,
   } satisfies CSSProperties,
   primaryAction: {
     boxShadow: WORLD_EXPLORER_SHADOWS.button,
   } satisfies CSSProperties,
   iconButton: {
-    background: 'rgba(255, 255, 255, 0.86)',
+    background: 'var(--nimi-surface-card)',
     border: `1px solid ${WORLD_EXPLORER_COLORS.border}`,
     boxShadow: WORLD_EXPLORER_SHADOWS.icon,
   } satisfies CSSProperties,
   discoverMore: {
-    boxShadow: '0 10px 24px rgba(20, 35, 50, 0.04)',
+    boxShadow: WORLD_EXPLORER_SHADOWS.card,
   } satisfies CSSProperties,
   featuredOverlay: {
     background:
-      'linear-gradient(180deg, transparent 22%, rgba(23, 32, 42, 0.10) 50%, rgba(23, 32, 42, 0.34) 100%)',
+      'linear-gradient(180deg, transparent 22%, rgba(0, 0, 0, 0.14) 50%, rgba(0, 0, 0, 0.42) 100%)',
   } satisfies CSSProperties,
   coverOverlay: {
     background:
-      'linear-gradient(180deg, rgba(23, 32, 42, 0.04) 0%, rgba(23, 32, 42, 0.24) 100%)',
+      'linear-gradient(180deg, rgba(0, 0, 0, 0.04) 0%, rgba(0, 0, 0, 0.28) 100%)',
   } satisfies CSSProperties,
 } as const;

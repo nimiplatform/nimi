@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
@@ -42,15 +42,6 @@ export function useLocalModelCenterRuntimeState() {
       return next;
     });
   }, []);
-
-  useEffect(() => {
-    if (!showImportMenu) return undefined;
-    return bindings.app.events.subscribeDocumentMouseDown((event) => {
-      if (importMenuRef.current && !importMenuRef.current.contains(event.target as Node)) {
-        setShowImportMenu(false);
-      }
-    });
-  }, [bindings.app.events, showImportMenu]);
 
   const importActions = useLocalModelCenterImportActions({
     onRefreshAssets: refreshInstalledAssets,

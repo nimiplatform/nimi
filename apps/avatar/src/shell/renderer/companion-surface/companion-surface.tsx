@@ -18,6 +18,12 @@ import {
   X,
 } from 'lucide-react';
 import { IconButton, cn } from '@nimiplatform/kit/ui';
+import {
+  motion,
+  nimiOverlayPanelMotion,
+  useNimiReducedMotion,
+} from '@nimiplatform/kit/ui/motion';
+import { AvatarOverlayPresence } from '../avatar-overlay-presence.js';
 import type { BootstrapHandle } from '../app-shell/app-bootstrap.js';
 import { createAbortError, toErrorMessage } from '../avatar-shell-utils.js';
 import type {
@@ -60,14 +66,15 @@ export type CompanionSurfaceProps = {
   onInterruptLocalCleanup(): void;
   onInterruptFailure(message: string): void;
   onClose(): void;
+  returnFocusTarget?: HTMLElement | null;
 };
 
 const GLASS_REGULAR_SURFACE_CLASS =
-  'nimi-material-glass-chrome backdrop-blur-[var(--nimi-backdrop-blur-chrome)] backdrop-saturate-[var(--nimi-backdrop-saturate)]';
+  'nimi-material-glass-chrome bg-[var(--nimi-material-glass-chrome-bg)] border-[var(--nimi-material-glass-chrome-border)] backdrop-blur-[var(--nimi-backdrop-blur-chrome)] backdrop-saturate-[var(--nimi-backdrop-saturate)]';
 const ICON_SIZE = 16;
 
 type CompanionSurfaceStyle = CSSProperties & {
-  '--avatar-voice-level'?: string;
+  '--avatar-voice-level-scale'?: string;
 };
 
 type InterruptRequestState = 'idle' | 'pending' | 'failed';
@@ -126,19 +133,45 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
     onInterruptLocalCleanup,
     onInterruptFailure,
     onClose,
+    returnFocusTarget,
   } = props;
   const { t } = useTranslation();
+  const reducedMotion = useNimiReducedMotion();
+  const rootRef = useRef<HTMLElement | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const [captureReady, setCaptureReady] = useState(false);
   const [interruptRequest, setInterruptRequest] = useState<InterruptRequestState>('idle');
 
+  const surfaceMotion = nimiOverlayPanelMotion({
+    kind: 'popover',
+    side: 'top',
+    align: 'end',
+    reducedMotion,
+  });
+  const pillMotion = nimiOverlayPanelMotion({
+    kind: 'popover',
+    side: 'top',
+    align: 'end',
+    reducedMotion,
+  });
+
   useEffect(() => {
-    returnFocusRef.current = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
+    const rootEl = rootRef.current;
+    const active = document.activeElement;
+    returnFocusRef.current =
+      returnFocusTarget
+      ?? (active instanceof HTMLElement && !active.closest('[data-avatar-interactive-region="true"]')
+        ? active
+        : null);
     return () => {
       const target = returnFocusRef.current;
-      if (target?.isConnected) target.focus();
+      const currentActive = document.activeElement;
+      const shouldRestore =
+        !currentActive
+        || currentActive === document.body
+        || currentActive === document.documentElement
+        || (rootEl !== null && rootEl.contains(currentActive));
+      if (shouldRestore && target?.isConnected) target.focus();
     };
   }, []);
 
@@ -163,8 +196,8 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
     : interruptRequest === 'failed'
       ? t('Avatar.status.interrupt_failed')
       : t(presence.labelKey);
-  const levelPercent = `${Math.round(Math.max(0, Math.min(1, voice.level)) * 100)}%`;
-  const rootStyle: CompanionSurfaceStyle = { '--avatar-voice-level': levelPercent };
+  const levelScale = String(Math.max(0, Math.min(1, Number.isFinite(voice.level) ? voice.level : 0)));
+  const rootStyle: CompanionSurfaceStyle = { '--avatar-voice-level-scale': levelScale };
   const audioActive = presence.audioActive;
   const audioUnavailable = presence.audioUnavailable;
   const showCaptions = shellSettings.showVoiceCaptions
@@ -341,13 +374,15 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
       : t('Avatar.status.mic_listen_aria');
 
   return (
-    <section
+    <motion.section
+      ref={rootRef}
       className={cn(
         'avatar-companion-surface',
         `avatar-companion-surface--${presence.tone}`,
         audioActive && 'avatar-companion-surface--audio-active',
         voice.lipsyncActive && 'avatar-companion-surface--lipsync-active',
       )}
+      {...surfaceMotion}
       data-testid="avatar-companion-surface"
       data-avatar-interactive-region="true"
       data-presence-state={presence.stateId}
@@ -357,32 +392,66 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
       data-caption-size={shellSettings.captionSize}
       data-caption-contrast={shellSettings.captionContrast}
       aria-label={t('Avatar.shell.companion_aria')}
-      style={rootStyle}
+      style={{ ...surfaceMotion.style, ...rootStyle }}
     >
-      {showCaptions && voice.userCaption ? (
-        <p className={cn(
-          'avatar-companion-surface__caption',
-          'avatar-companion-surface__caption--user',
-          GLASS_REGULAR_SURFACE_CLASS,
-        )} role="status" aria-live="polite">
-          {shortCaption(voice.userCaption.text)}
-        </p>
-      ) : null}
-      {showCaptions && voice.assistantCaption ? (
-        <p className={cn(
-          'avatar-companion-surface__caption',
-          'avatar-companion-surface__caption--assistant',
-          voice.assistantCaption.live && 'avatar-companion-surface__caption--live',
-          GLASS_REGULAR_SURFACE_CLASS,
-        )} role="status" aria-live="polite">
-          {shortCaption(voice.assistantCaption.text)}
-        </p>
-      ) : null}
-      {voice.status === 'error' && voice.errorMessage ? (
-        <p className="avatar-companion-surface__error" role="alert">{voice.errorMessage}</p>
-      ) : null}
+      <AvatarOverlayPresence open={Boolean(showCaptions && voice.userCaption)}>
+        {showCaptions && voice.userCaption ? (
+          <motion.p
+            key="user-caption"
+            className={cn(
+              'avatar-companion-surface__caption',
+              'avatar-companion-surface__caption--user',
+              GLASS_REGULAR_SURFACE_CLASS,
+            )}
+            {...pillMotion}
+            style={pillMotion.style}
+            data-nimi-material="glass-chrome"
+            data-nimi-tone="overlay"
+            role="status"
+            aria-live="polite"
+          >
+            {shortCaption(voice.userCaption.text)}
+          </motion.p>
+        ) : null}
+      </AvatarOverlayPresence>
+      <AvatarOverlayPresence open={Boolean(showCaptions && voice.assistantCaption)}>
+        {showCaptions && voice.assistantCaption ? (
+          <motion.p
+            key="assistant-caption"
+            className={cn(
+              'avatar-companion-surface__caption',
+              'avatar-companion-surface__caption--assistant',
+              voice.assistantCaption.live && 'avatar-companion-surface__caption--live',
+              GLASS_REGULAR_SURFACE_CLASS,
+            )}
+            {...pillMotion}
+            style={pillMotion.style}
+            data-nimi-material="glass-chrome"
+            data-nimi-tone="overlay"
+            role="status"
+            aria-live="polite"
+          >
+            {shortCaption(voice.assistantCaption.text)}
+          </motion.p>
+        ) : null}
+      </AvatarOverlayPresence>
+      <AvatarOverlayPresence open={Boolean(voice.status === 'error' && voice.errorMessage)}>
+        {voice.status === 'error' && voice.errorMessage ? (
+          <motion.p
+            key="voice-error"
+            className="avatar-companion-surface__error"
+            {...pillMotion}
+            style={pillMotion.style}
+            role="alert"
+          >
+            {voice.errorMessage}
+          </motion.p>
+        ) : null}
+      </AvatarOverlayPresence>
       <div
         className={cn('avatar-companion-surface__presence-capsule', GLASS_REGULAR_SURFACE_CLASS)}
+        data-nimi-material="glass-chrome"
+        data-nimi-tone="overlay"
         role="toolbar"
         aria-label={t('Avatar.status.toolbar_aria')}
         data-testid="avatar-companion-presence-capsule"
@@ -482,6 +551,6 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
           tone="ghost"
         />
       </div>
-    </section>
+    </motion.section>
   );
 }

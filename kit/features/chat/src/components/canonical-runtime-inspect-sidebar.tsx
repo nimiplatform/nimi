@@ -62,7 +62,7 @@ export function CanonicalRuntimeInspectSidebar({
           </svg>
         </span>
         <div>
-          <h3 className="text-[length:var(--nimi-type-page-title-size)] font-black tracking-tight text-[var(--nimi-text-primary)]">{title}</h3>
+          <h3 className="text-[length:var(--nimi-type-section-title-size)] font-[var(--nimi-type-section-title-weight)] leading-[var(--nimi-type-section-title-line-height)] tracking-[var(--nimi-type-section-title-letter-spacing)] text-[var(--nimi-text-primary)]">{title}</h3>
           <p className="text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-text-muted)]">{subtitle}</p>
         </div>
       </div>

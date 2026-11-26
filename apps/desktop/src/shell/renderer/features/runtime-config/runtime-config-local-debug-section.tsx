@@ -54,14 +54,15 @@ export function LocalDebugSection({ collapsed, onToggle }: LocalDebugSectionProp
 function CollapsedHeader({ onExpand }: { onExpand: () => void }) {
   const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
-  const data = useAuditPageData(true);
+  const data = useAuditPageData(true, { poll: false });
   const latestEvent = data.filteredAudits.length > 0 ? data.filteredAudits[0] : null;
 
   return (
     <button
       type="button"
+      aria-expanded={false}
       onClick={onExpand}
-      className="flex w-full items-center justify-between gap-4 p-5 text-left transition-colors hover:bg-[var(--nimi-surface-panel)]/30"
+      className="flex w-full items-center justify-between gap-4 p-5 text-left transition-colors hover:bg-[var(--nimi-surface-panel)]/30 active:bg-[var(--nimi-surface-panel)]/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--nimi-focus-ring-color)]"
     >
       <div className="min-w-0">
         <h3 className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>
@@ -140,7 +141,6 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
       setAuditTimeFrom('');
       setAuditTimeTo('');
       setShowCustomRange(false);
-      void loadAudits({ timeFrom: '', timeTo: '' });
       return;
     }
     if (key === 'custom') {
@@ -158,7 +158,6 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
     setAuditTimeFrom(localValue);
     setAuditTimeTo('');
     setShowCustomRange(false);
-    void loadAudits({ timeFrom: localValue, timeTo: '' });
   };
 
   const onCopyAll = () => {
@@ -221,10 +220,11 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
           ) : null}
           <button
             type="button"
+            aria-expanded={true}
             onClick={onCollapse}
             aria-label={t('runtimeConfig.runtime.clickToCollapse', { defaultValue: 'Collapse' })}
             className={cn(
-              'flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-[var(--nimi-surface-panel)] hover:text-[var(--nimi-text-primary)]',
+              'flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-[var(--nimi-surface-panel)] hover:text-[var(--nimi-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]',
               TOKEN_TEXT_MUTED,
             )}
           >
@@ -238,13 +238,10 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
         <SearchField
           value={auditReasonCodeQuery}
           onChange={(event) => {
-            const next = event.target.value;
-            setAuditReasonCodeQuery(next);
-            void loadAudits({ reasonCode: next });
+            setAuditReasonCodeQuery(event.target.value);
           }}
           onClear={() => {
             setAuditReasonCodeQuery('');
-            void loadAudits({ reasonCode: '' });
           }}
           clearLabel={t('Common.clear')}
           placeholder={t('runtimeConfig.runtime.auditSearchPlaceholder', {
@@ -267,7 +264,7 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
         <div className="flex items-center gap-0.5">
           <IconButton
             size="md"
-            icon={<RefreshIcon className={loadingAudits ? 'animate-spin' : ''} />}
+            icon={<RefreshIcon className={loadingAudits ? 'animate-spin motion-reduce:animate-none' : ''} />}
             title={t('runtimeConfig.runtime.refresh', { defaultValue: 'Refresh' })}
             disabled={loadingAudits}
             onClick={() => void loadAudits()}
@@ -295,28 +292,26 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
           </span>
           <input
             type="datetime-local"
+            aria-label={t('runtimeConfig.runtime.auditCustomRangeFrom', { defaultValue: 'Start time' })}
             value={auditTimeFrom}
             onChange={(event) => {
-              const next = event.target.value;
-              setAuditTimeFrom(next);
-              void loadAudits({ timeFrom: next });
+              setAuditTimeFrom(event.target.value);
             }}
             className={cn(
-              'h-8 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2 text-[length:var(--nimi-type-caption-size)] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]',
+              'min-h-8 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2 py-1 text-[length:var(--nimi-type-caption-size)] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]',
               TOKEN_TEXT_PRIMARY,
             )}
           />
-          <span className={cn('text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>→</span>
+          <span className={cn('text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)} aria-hidden="true">→</span>
           <input
             type="datetime-local"
+            aria-label={t('runtimeConfig.runtime.auditCustomRangeTo', { defaultValue: 'End time' })}
             value={auditTimeTo}
             onChange={(event) => {
-              const next = event.target.value;
-              setAuditTimeTo(next);
-              void loadAudits({ timeTo: next });
+              setAuditTimeTo(event.target.value);
             }}
             className={cn(
-              'h-8 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2 text-[length:var(--nimi-type-caption-size)] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]',
+              'min-h-8 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2 py-1 text-[length:var(--nimi-type-caption-size)] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]',
               TOKEN_TEXT_PRIMARY,
             )}
           />
@@ -327,9 +322,8 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
               setAuditTimeFrom('');
               setAuditTimeTo('');
               setQuickRange('all');
-              void loadAudits({ timeFrom: '', timeTo: '' });
             }}
-            className={cn('ml-auto text-[length:var(--nimi-type-caption-size)] font-medium transition-colors hover:text-[var(--nimi-text-primary)]', TOKEN_TEXT_MUTED)}
+            className={cn('ml-auto rounded px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium transition-colors hover:text-[var(--nimi-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]', TOKEN_TEXT_MUTED)}
           >
             {t('runtimeConfig.runtime.auditRangeClear', { defaultValue: 'Clear' })}
           </button>
@@ -339,7 +333,7 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
           <button
             type="button"
             onClick={() => setShowCustomRange(true)}
-            className={cn('text-[length:var(--nimi-type-caption-size)] font-medium transition-colors hover:text-[var(--nimi-text-primary)]', TOKEN_TEXT_MUTED)}
+            className={cn('rounded px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium transition-colors hover:text-[var(--nimi-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]', TOKEN_TEXT_MUTED)}
           >
             {t('runtimeConfig.runtime.auditCustomRangeShow', { defaultValue: 'Custom range…' })}
           </button>
@@ -354,9 +348,7 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
           active={auditEventType === 'all'}
           onClick={() => {
             setAuditEventType('all');
-            void loadAudits({ eventType: 'all' });
           }}
-          dark
         />
         {eventTypeCounts.map((item) => (
           <EventTypePill
@@ -367,7 +359,6 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
             onClick={() => {
               const next = auditEventType === item.eventType ? 'all' : item.eventType;
               setAuditEventType(next);
-              void loadAudits({ eventType: next });
             }}
             className={auditEventTypeColor(item.eventType)}
           />
@@ -384,7 +375,6 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
           active={auditSource === 'all'}
           onClick={() => {
             setAuditSource('all');
-            void loadAudits({ source: 'all' });
           }}
         />
         {sourceCounts.map((item) => (
@@ -396,7 +386,6 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
             onClick={() => {
               const next = auditSource === item.source ? 'all' : item.source;
               setAuditSource(next);
-              void loadAudits({ source: next });
             }}
           />
         ))}
@@ -413,7 +402,6 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
             active={auditModality === 'all'}
             onClick={() => {
               setAuditModality('all');
-              void loadAudits({ modality: 'all' });
             }}
           />
           {modalityCounts.map((item) => (
@@ -425,7 +413,6 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
               onClick={() => {
                 const next = auditModality === item.modality ? 'all' : item.modality;
                 setAuditModality(next);
-                void loadAudits({ modality: next });
               }}
             />
           ))}
@@ -435,7 +422,7 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
       {/* Table */}
       <div className="mt-5">
         {filteredAudits.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[var(--nimi-border-subtle)] py-10 text-center">
+          <div className="flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[var(--nimi-border-subtle)] py-6 text-center">
             <p className={cn('text-sm', TOKEN_TEXT_SECONDARY)}>
               {t('runtimeConfig.runtime.noLocalAuditEvents', {
                 defaultValue: 'No local audit events matching current filters.',
@@ -455,7 +442,7 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
               <span>{t('runtimeConfig.runtime.auditColReason', { defaultValue: 'Reason' })}</span>
               <span />
             </div>
-            <ScrollArea className="max-h-[calc(100cqh-30rem)]" viewportClassName="max-h-[calc(100cqh-30rem)]">
+            <ScrollArea className="max-h-[max(12rem,calc(100cqh-30rem))]" viewportClassName="max-h-[max(12rem,calc(100cqh-30rem))]">
               <div className="divide-y divide-[var(--nimi-border-subtle)]/50">
                 {filteredAudits.map((event) => (
                   <AuditTableRow key={event.id} event={event} />

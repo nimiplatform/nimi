@@ -75,7 +75,7 @@ export function DemoSillyTavernPreview({ content }: { content: RemainingPreviewM
           </div>
         </header>
         <div className="st-demo-workspace">
-          <main className="st-demo-chat">
+          <div role="region" aria-label={t('sillytavern.navigation.chat')} className="st-demo-chat">
             <div className="st-demo-chat-title">
               <img src={current.image} alt={''} />
               <div>
@@ -152,14 +152,16 @@ export function DemoSillyTavernPreview({ content }: { content: RemainingPreviewM
             <p className="st-demo-sample">
               {t('sillytavern.demoChat.repliesArePrewrittenExamplesIndependentOfYour')}
             </p>
-          </main>
+          </div>
           {panel !== 'Chat' && (
             <aside className="st-demo-panel">
               <div>
                 <h2>{navigationLabels[panel]}</h2>
                 <button
                   type="button"
-                  aria-label={t('sillytavern.demoPanel.closeCharacterPanel')}
+                  aria-label={t('sillytavern.demoPanel.closePanel', {
+                    panel: navigationLabels[panel] ?? panel,
+                  })}
                   onClick={() => setPanel('Chat')}
                 >
                   <X size={17} />

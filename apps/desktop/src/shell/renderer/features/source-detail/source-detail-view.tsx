@@ -34,7 +34,7 @@ export function SourceDetailView(props: SourceDetailViewProps) {
           <button
             type="button"
             onClick={props.onBack}
-            className="rounded-[10px] bg-[var(--nimi-surface-panel)] px-4 py-2 text-sm font-medium text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-active)]"
+            className="rounded-[10px] bg-[var(--nimi-surface-panel)] px-4 py-2 text-sm font-medium text-[var(--nimi-text-secondary)] transition-[background-color,transform] hover:bg-[var(--nimi-surface-active)] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1"
           >
             {t('Common.back')}
           </button>

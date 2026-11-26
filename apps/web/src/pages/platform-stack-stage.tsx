@@ -277,6 +277,30 @@ const STAGGER_Y_PCT = [-0.032, 0.028, -0.018, 0.034] as const;
 const FIVE_X_PCT = [0.125, 0.3125, 0.5, 0.6875, 0.875] as const;
 const THREE_SUB_X_PCT = [0.205, 0.5, 0.795] as const;
 
+export function computePlatformStageProgress(
+  containerTop: number,
+  stickyTop: number,
+  travel: number,
+): number {
+  if (travel <= 0) return 0;
+  return clamp01((stickyTop - containerTop) / travel);
+}
+
+export function resolvePlatformStageStep(progress: number): StageStep {
+  if (progress < 0.17) return 0;
+  if (progress < 0.51) return 1;
+  if (progress < 0.84) return 2;
+  return 3;
+}
+
+function readIsDarkScheme(): boolean {
+  if (typeof document === 'undefined') return false;
+  return (
+    document.documentElement.dataset.nimiScheme === 'dark'
+    || document.documentElement.classList.contains('dark')
+  );
+}
+
 function drawRoundedSlab(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -322,6 +346,7 @@ function drawEverydayAppChrome(
   alpha: number,
   badgeText: string,
   compact: boolean,
+  isDark: boolean,
 ) {
   if (alpha <= 0.01) return;
   ctx.save();
@@ -334,9 +359,9 @@ function drawEverydayAppChrome(
 
   // Top titlebar strip
   const barH = Math.max(22, h * 0.15);
-  ctx.fillStyle = '#f8fafc';
+  ctx.fillStyle = isDark ? '#111827' : '#f8fafc';
   ctx.fillRect(x, y, w, barH);
-  ctx.strokeStyle = '#e2e8f0';
+  ctx.strokeStyle = isDark ? 'rgba(148, 163, 184, 0.2)' : '#e2e8f0';
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(x, y + barH);
@@ -353,7 +378,7 @@ function drawEverydayAppChrome(
   });
 
   if (!compact) {
-    ctx.fillStyle = '#64748b';
+    ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
     ctx.font = '600 9.5px "Inter", "PingFang SC", "Noto Sans SC", sans-serif';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
@@ -368,32 +393,32 @@ function drawEverydayAppChrome(
 
   if (idx === 0) {
     // Search App: search bar + 2 result cards
-    ctx.fillStyle = '#eff6ff';
+    ctx.fillStyle = isDark ? '#172554' : '#eff6ff';
     ctx.beginPath();
     ctx.roundRect(x + padX, bodyTop, innerW, Math.max(12, bodyH * 0.28), 999);
     ctx.fill();
-    ctx.strokeStyle = '#bfdbfe';
+    ctx.strokeStyle = isDark ? 'rgba(96, 165, 250, 0.35)' : '#bfdbfe';
     ctx.stroke();
 
-    ctx.fillStyle = '#e2e8f0';
+    ctx.fillStyle = isDark ? '#1e293b' : '#e2e8f0';
     ctx.beginPath();
     ctx.roundRect(x + padX, bodyTop + bodyH * 0.42, innerW * 0.88, Math.max(8, bodyH * 0.18), 5);
     ctx.roundRect(x + padX, bodyTop + bodyH * 0.68, innerW * 0.68, Math.max(8, bodyH * 0.18), 5);
     ctx.fill();
   } else if (idx === 1) {
     // Media Studio: preview frame + multi-track bars
-    ctx.fillStyle = '#f0fdfa';
+    ctx.fillStyle = isDark ? '#0f2928' : '#f0fdfa';
     ctx.beginPath();
     ctx.roundRect(x + padX, bodyTop, innerW, Math.max(16, bodyH * 0.46), 7);
     ctx.fill();
-    ctx.strokeStyle = '#99f6e4';
+    ctx.strokeStyle = isDark ? 'rgba(45, 212, 191, 0.32)' : '#99f6e4';
     ctx.stroke();
 
-    ctx.fillStyle = '#bae6fd';
+    ctx.fillStyle = isDark ? '#1e3a5f' : '#bae6fd';
     ctx.beginPath();
     ctx.roundRect(x + padX, bodyTop + bodyH * 0.58, innerW * 0.72, Math.max(6, bodyH * 0.14), 4);
     ctx.fill();
-    ctx.fillStyle = '#a7f3d0';
+    ctx.fillStyle = isDark ? '#115e59' : '#a7f3d0';
     ctx.beginPath();
     ctx.roundRect(x + padX + innerW * 0.16, bodyTop + bodyH * 0.78, innerW * 0.76, Math.max(6, bodyH * 0.14), 4);
     ctx.fill();
@@ -401,19 +426,21 @@ function drawEverydayAppChrome(
     // Notes Tool: document lines
     const rows = [0.92, 0.74, 0.84];
     rows.forEach((rw, rIdx) => {
-      ctx.fillStyle = rIdx === 0 ? '#dbeafe' : '#e2e8f0';
+      ctx.fillStyle = rIdx === 0
+        ? (isDark ? '#1e3a5f' : '#dbeafe')
+        : (isDark ? '#1e293b' : '#e2e8f0');
       ctx.beginPath();
       ctx.roundRect(x + padX, bodyTop + rIdx * (bodyH * 0.30), innerW * rw, Math.max(8, bodyH * 0.19), 5);
       ctx.fill();
     });
   } else {
     // Web Chat Tab: left & right chat bubbles
-    ctx.fillStyle = '#e2e8f0';
+    ctx.fillStyle = isDark ? '#1e293b' : '#e2e8f0';
     ctx.beginPath();
     ctx.roundRect(x + padX, bodyTop, innerW * 0.72, Math.max(12, bodyH * 0.34), 8);
     ctx.fill();
 
-    ctx.fillStyle = '#dbeafe';
+    ctx.fillStyle = isDark ? '#1e3a5f' : '#dbeafe';
     ctx.beginPath();
     ctx.roundRect(x + padX + innerW * 0.24, bodyTop + bodyH * 0.46, innerW * 0.76, Math.max(12, bodyH * 0.34), 8);
     ctx.fill();
@@ -430,6 +457,7 @@ export function PlatformStackStage({
   copy: PlatformStackStageCopy;
 }) {
   const ui = STAGE_COPY[locale];
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const frameRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -442,15 +470,9 @@ export function PlatformStackStage({
   const [isCompactWidth, setIsCompactWidth] = useState(false);
 
   const stepRef = useRef<StageStep>(0);
-  const anchorBypassUntilRef = useRef(0);
-  const scrollGlideRafRef = useRef(0);
-
-  // Cached Screen-1 (fits below Hero with 0 truncation) vs Screen-2 (fills full viewport) frame heights
-  const heightsRef = useRef({
-    stageDocTop: 420,
-    frameH0: 360,
-    frameHFull: 640,
-  });
+  const requestDrawRef = useRef<() => void>(() => {});
+  const topLabelRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const canvasSizeRef = useRef({ width: 1080, height: 420 });
 
   const liveRef = useRef({
     progress: 0,
@@ -461,82 +483,51 @@ export function PlatformStackStage({
     focusedViewport: null as number | null,
     activeEngine: 0 as 0 | 1,
     ui,
+    isDark: readIsDarkScheme(),
   });
   liveRef.current.focusedViewport = focusedViewport;
   liveRef.current.activeEngine = activeEngine;
   liveRef.current.ui = ui;
 
-  const measureFrameHeights = useCallback(() => {
-    if (typeof window === 'undefined') return;
+  const getStickyMetrics = useCallback(() => {
+    if (typeof window === 'undefined') return null;
+    const containerEl = containerRef.current;
     const stageEl = stageRef.current;
-    const frameEl = frameRef.current;
-    if (!stageEl || !frameEl) return;
-
-    const vh = window.innerHeight;
-    const compact = window.innerWidth <= 980;
-    const rect = stageEl.getBoundingClientRect();
-    const stageDocTop = Math.max(180, Math.round(rect.top + window.scrollY));
-    const chromeH = Math.max(120, stageEl.offsetHeight - frameEl.offsetHeight);
-
-    // Screen 1 height: fits 100% above the bottom of the first viewport with 22px clean margin!
-    const frameH0 = compact
-      ? Math.round(frameEl.clientWidth * (540 / 720))
-      : clamp(Math.round(vh - stageDocTop - chromeH - 22), 208, 720);
-
-    // Screen 2 height: fills the full viewport below the floating navbar (top=82px, bottom=vh-22px)!
-    const frameHFull = compact
-      ? frameH0
-      : Math.max(frameH0, clamp(Math.round(vh - 82 - chromeH - 22), 440, 1060));
-
-    heightsRef.current = { stageDocTop, frameH0, frameHFull };
-
-    if (!compact) {
-      const expandT = smoothstep(0, 0.34, liveRef.current.progress);
-      frameEl.style.height = `${Math.round(lerp(frameH0, frameHFull, expandT))}px`;
-    } else {
-      frameEl.style.height = '';
-    }
+    if (!containerEl || !stageEl) return null;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const parsedTop = Number.parseFloat(window.getComputedStyle(stageEl).top);
+    const stickyTop = Number.isFinite(parsedTop) ? parsedTop : 82;
+    const travel = containerEl.offsetHeight - stageEl.offsetHeight;
+    const isStickyActive = !reduced && window.innerWidth > 980 && travel > 40;
+    return { containerEl, stageEl, stickyTop, travel, isStickyActive, reduced };
   }, []);
 
-  // Synchronized smooth window scroll glide
-  const glideWindowTo = useCallback((targetY: number, duration = 1080) => {
-    if (typeof window === 'undefined') return;
-    window.cancelAnimationFrame(scrollGlideRafRef.current);
-    const startY = window.scrollY;
-    const diff = targetY - startY;
-    if (Math.abs(diff) < 2) return;
-
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      window.scrollTo(0, targetY);
-      return;
-    }
-
-    const startTs = performance.now();
-    const tick = (now: number) => {
-      const t = clamp01((now - startTs) / duration);
-      const eased = easeGentle(t);
-      window.scrollTo(0, Math.round(startY + diff * eased));
-      if (t < 1) {
-        scrollGlideRafRef.current = window.requestAnimationFrame(tick);
-      }
-    };
-    scrollGlideRafRef.current = window.requestAnimationFrame(tick);
-  }, []);
-
-  // Fires a discrete state transition (0 | 1 | 2 | 3) with synchronized scroll & height unfolding
+  // Jumps to a discrete step via native smooth scroll (sticky desktop) or immediate/tweened draw (reduced-motion / compact)
   const commitStep = useCallback(
-    (nextStep: StageStep, scrollMode: 'none' | 'focus' | 'top' = 'none') => {
-      measureFrameHeights();
+    (nextStep: StageStep) => {
       stepRef.current = nextStep;
       setActiveStep(nextStep);
 
       const target = STEP_TARGETS[nextStep];
+      const metrics = getStickyMetrics();
+
+      if (metrics?.isStickyActive) {
+        const containerDocTop = metrics.containerEl.getBoundingClientRect().top + window.scrollY;
+        const targetScrollY = Math.max(
+          0,
+          Math.round(containerDocTop - metrics.stickyTop + target * metrics.travel),
+        );
+        window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
+        requestDrawRef.current();
+        return;
+      }
+
       const reduced =
-        typeof window !== 'undefined' &&
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        metrics?.reduced
+        ?? (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
       const cur = liveRef.current.progress;
       const distance = Math.abs(target - cur);
-      const duration = reduced || distance < 0.005 ? 0 : distance > 0.45 ? 2100 : 1650;
+      const duration = reduced || distance < 0.005 ? 0 : distance > 0.45 ? 820 : 580;
 
       liveRef.current.tweenFrom = cur;
       liveRef.current.tweenTo = target;
@@ -546,266 +537,63 @@ export function PlatformStackStage({
       if (duration === 0) {
         liveRef.current.progress = target;
         setDisplayProgress(target);
-        measureFrameHeights();
       }
-
-      if (scrollMode !== 'none' && typeof window !== 'undefined') {
-        const { stageDocTop } = heightsRef.current;
-        const glideDuration = Math.min(1180, Math.max(960, Math.round(duration * 0.72)));
-        if (scrollMode === 'top') {
-          glideWindowTo(0, glideDuration);
-        } else {
-          const focusScrollY = Math.max(0, stageDocTop - 82);
-          glideWindowTo(focusScrollY, glideDuration);
-        }
-      }
+      requestDrawRef.current();
     },
-    [glideWindowTo, measureFrameHeights],
+    [getStickyMetrics],
   );
 
-  // Event-driven discrete scroll gesture controller (wheel + touch + scrollbar sync)
+  // Passive native scroll-driven progression (zero wheel/touch interception)
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    let scrollRaf = 0;
+
+    const syncFromScroll = () => {
+      scrollRaf = 0;
+      const metrics = getStickyMetrics();
+      if (!metrics?.isStickyActive) return;
+
+      const p = computePlatformStageProgress(
+        metrics.containerEl.getBoundingClientRect().top,
+        metrics.stickyTop,
+        metrics.travel,
+      );
+      liveRef.current.tweenDuration = 0;
+      liveRef.current.tweenFrom = p;
+      liveRef.current.tweenTo = p;
+      liveRef.current.progress = p;
+
+      const nextStep = resolvePlatformStageStep(p);
+      if (nextStep !== stepRef.current) {
+        stepRef.current = nextStep;
+        setActiveStep(nextStep);
+      }
+      requestDrawRef.current();
+    };
+
+    const scheduleSync = () => {
+      if (!scrollRaf) scrollRaf = window.requestAnimationFrame(syncFromScroll);
+    };
 
     const onResize = () => {
       setIsCompactWidth(window.innerWidth <= 980);
-      measureFrameHeights();
+      scheduleSync();
+      requestDrawRef.current();
     };
+
     onResize();
+    const settleId = window.setTimeout(syncFromScroll, 80);
+
     window.addEventListener('resize', onResize);
-
-    // Re-measure once fonts/layout settle
-    const settleId = window.setTimeout(measureFrameHeights, 80);
-
-    const onDocClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement | null;
-      const anchor = target?.closest?.('a[href^="#"]');
-      if (anchor) {
-        anchorBypassUntilRef.current = performance.now() + 1200;
-      }
-    };
-    document.addEventListener('click', onDocClick, true);
-
-    const gesture = {
-      locked: false,
-      engaging: false,
-      accum: 0,
-      lastEventTs: 0,
-      lastFireTs: 0,
-      prevAbs: 0,
-      dir: 0 as 1 | -1 | 0,
-    };
-
-    const getMetrics = () => {
-      const el = stageRef.current;
-      if (!el) return null;
-      const rect = el.getBoundingClientRect();
-      const vh = window.innerHeight;
-      const visTop = Math.max(rect.top, 68);
-      const visBottom = Math.min(rect.bottom, vh);
-      const visibleRatio = Math.max(0, visBottom - visTop) / Math.max(1, rect.height);
-      const fitsViewport = rect.height <= vh - 60;
-      return { rect, vh, visibleRatio, fitsViewport };
-    };
-
-    const onWheel = (e: WheelEvent) => {
-      if (e.ctrlKey || e.metaKey) return;
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-      const now = performance.now();
-      if (now < anchorBypassUntilRef.current) return;
-      if (Math.abs(e.deltaY) < 0.5) return;
-
-      const m = getMetrics();
-      if (!m || !m.fitsViewport) return;
-
-      const dir: 1 | -1 = e.deltaY > 0 ? 1 : -1;
-      const absD = Math.abs(e.deltaY);
-      const gap = now - gesture.lastEventTs;
-
-      const sinceLastFire = now - gesture.lastFireTs;
-      const isDirectionChange = gesture.dir !== 0 && dir !== gesture.dir && sinceLastFire > 360;
-      const isCooldownDone = sinceLastFire > 1350;
-      const isPauseReset = isCooldownDone && gap > 220;
-      const isFreshFlickSpike =
-        gesture.locked && isCooldownDone && absD > Math.max(24, gesture.prevAbs * 1.5);
-      const isDiscreteWheelNotch =
-        gesture.locked && isCooldownDone && (e.deltaMode === 1 || (absD >= 76 && gap > 60));
-
-      if (isDirectionChange || isPauseReset || isFreshFlickSpike || isDiscreteWheelNotch) {
-        gesture.locked = false;
-        gesture.accum = 0;
-      }
-
-      gesture.lastEventTs = now;
-      gesture.prevAbs = absD;
-
-      // Absorb lingering inertia tail of the step transition just fired
-      if (gesture.engaging && gesture.locked && dir === gesture.dir) {
-        e.preventDefault();
-        return;
-      }
-
-      const curStep = stepRef.current;
-
-      // Downward engagement:
-      // - At Step 0 (Screen 1): engage immediately from the top of the page!
-      // - At Steps 1..2 (Screen 2): engage while stage is near viewport focus
-      const shouldEngageDown =
-        dir === 1 &&
-        curStep < 3 &&
-        ((curStep === 0 && window.scrollY < heightsRef.current.stageDocTop + 40 && m.visibleRatio >= 0.55) ||
-          (m.rect.top <= 220 && m.rect.bottom >= m.vh * 0.52));
-
-      // Upward engagement:
-      // - At Steps 1..3: engage when stage is in or returning into viewport focus
-      const shouldEngageUp =
-        dir === -1 &&
-        curStep > 0 &&
-        m.rect.top >= -140 &&
-        m.rect.top <= 220;
-
-      if (!shouldEngageDown && !shouldEngageUp) {
-        gesture.engaging = false;
-        return;
-      }
-
-      gesture.engaging = true;
-      gesture.dir = dir;
-      e.preventDefault();
-
-      gesture.accum += e.deltaY;
-      if (Math.abs(gesture.accum) < 44) return;
-
-      gesture.locked = true;
-      gesture.lastFireTs = now;
-      gesture.accum = 0;
-
-      // When returning upward from Chapter 01 below while stage was partially off-screen, center on Step 3 first
-      if (dir === -1 && m.visibleRatio < 0.80) {
-        glideWindowTo(Math.max(0, heightsRef.current.stageDocTop - 82), 820);
-        return;
-      }
-
-      // On narrow mobile where Step 0 starts lower down, center first if < 75% visible
-      if (dir === 1 && curStep === 0 && window.innerWidth <= 980 && m.visibleRatio < 0.75) {
-        glideWindowTo(Math.max(0, heightsRef.current.stageDocTop - 82), 820);
-        return;
-      }
-
-      const next = clamp(curStep + dir, 0, 3) as StageStep;
-      if (next !== curStep) {
-        commitStep(next, next === 0 ? 'top' : 'focus');
-      }
-    };
-
-    // Mobile touch swipe discrete step support
-    const touch = {
-      startY: 0,
-      startX: 0,
-      consumed: false,
-      active: false,
-    };
-
-    const onTouchStart = (e: TouchEvent) => {
-      const t = e.touches[0];
-      if (!t) return;
-      touch.startY = t.clientY;
-      touch.startX = t.clientX;
-      touch.consumed = false;
-      touch.active = true;
-    };
-
-    const onTouchMove = (e: TouchEvent) => {
-      if (!touch.active) return;
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-      if (performance.now() < anchorBypassUntilRef.current) return;
-
-      const t = e.touches[0];
-      if (!t) return;
-      const dy = touch.startY - t.clientY;
-      const dx = touch.startX - t.clientX;
-      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 14) return;
-      if (Math.abs(dy) < 8) return;
-
-      const m = getMetrics();
-      if (!m || !m.fitsViewport) return;
-
-      const dir: 1 | -1 = dy > 0 ? 1 : -1;
-      const curStep = stepRef.current;
-
-      if (touch.consumed) {
-        if (e.cancelable) e.preventDefault();
-        return;
-      }
-
-      const shouldEngageDown =
-        dir === 1 && curStep < 3 && m.rect.top <= 200 && m.rect.bottom >= m.vh * 0.52;
-      const shouldEngageUp =
-        dir === -1 && curStep > 0 && m.rect.top >= -120 && m.rect.top <= 220;
-
-      if (!shouldEngageDown && !shouldEngageUp) return;
-
-      if (e.cancelable) e.preventDefault();
-      if (Math.abs(dy) < 34) return;
-
-      touch.consumed = true;
-      if (m.visibleRatio < 0.78) {
-        glideWindowTo(Math.max(0, heightsRef.current.stageDocTop - 82), 820);
-        return;
-      }
-      const next = clamp(curStep + dir, 0, 3) as StageStep;
-      if (next !== curStep) {
-        commitStep(next, next === 0 ? 'top' : 'focus');
-      }
-    };
-
-    const onTouchEnd = () => {
-      touch.active = false;
-      touch.consumed = false;
-    };
-
-    // Passive scroll sync when user drags scrollbar far past or all the way back to top
-    const onScroll = () => {
-      const el = stageRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const vh = window.innerHeight;
-
-      if (rect.height > vh - 60) {
-        const centerOffset = vh * 0.5 - (rect.top + rect.height * 0.5);
-        const targetStep: StageStep =
-          centerOffset < -120 ? 0 : centerOffset < -10 ? 1 : centerOffset < 120 ? 2 : 3;
-        if (targetStep !== stepRef.current) {
-          commitStep(targetStep, 'none');
-        }
-        return;
-      }
-
-      if (rect.bottom < 80 && stepRef.current !== 3) {
-        commitStep(3, 'none');
-      } else if (window.scrollY <= 6 && liveRef.current.tweenDuration === 0 && stepRef.current !== 0) {
-        commitStep(0, 'none');
-      }
-    };
-
-    window.addEventListener('wheel', onWheel, { passive: false });
-    window.addEventListener('touchstart', onTouchStart, { passive: true });
-    window.addEventListener('touchmove', onTouchMove, { passive: false });
-    window.addEventListener('touchend', onTouchEnd, { passive: true });
-    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scroll', scheduleSync, { passive: true });
 
     return () => {
       window.clearTimeout(settleId);
-      window.cancelAnimationFrame(scrollGlideRafRef.current);
+      window.cancelAnimationFrame(scrollRaf);
       window.removeEventListener('resize', onResize);
-      document.removeEventListener('click', onDocClick, true);
-      window.removeEventListener('wheel', onWheel);
-      window.removeEventListener('touchstart', onTouchStart);
-      window.removeEventListener('touchmove', onTouchMove);
-      window.removeEventListener('touchend', onTouchEnd);
-      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('scroll', scheduleSync);
     };
-  }, [commitStep, glideWindowTo, measureFrameHeights]);
+  }, [getStickyMetrics]);
 
   // Gentle auto-toggle of bottom engine in Step 3
   const userPickedEngineRef = useRef(false);
@@ -822,6 +610,10 @@ export function PlatformStackStage({
     };
   }, []);
 
+  useEffect(() => {
+    requestDrawRef.current();
+  }, [activeEngine, focusedViewport, ui]);
+
   // Full-Width 2.5D Canvas Renderer + Synchronized Frame Unfolding (Step 0 -> Step 1..3)
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -837,7 +629,41 @@ export function PlatformStackStage({
     let lastSyncedWallIdx = 0;
     const startTime = performance.now();
 
+    const syncTopLabelTransforms = (p: number, cssW: number, cssH: number) => {
+      const tXrayDomNow = smoothstep(0.03, 0.31, p);
+      const tInvertDomNow = smoothstep(0.37, 0.63, p);
+      for (let idx = 0; idx < 5; idx += 1) {
+        const el = topLabelRefs.current[idx];
+        if (!el) continue;
+        const isFifth = idx === 4;
+        const opacity = isFifth ? smoothstep(0.74, 0.92, p) : 1;
+        const leftPct = isFifth
+          ? FIVE_X_PCT[4]
+          : lerp(FOUR_X_PCT[idx]!, FIVE_X_PCT[idx]!, tInvertDomNow);
+        const step0TopPct = 0.33 + (isFifth ? 0 : STAGGER_Y_PCT[idx]!);
+        const topPct = isFifth
+          ? 0.175
+          : lerp(lerp(step0TopPct, 0.196, tXrayDomNow), 0.175, tInvertDomNow);
+        const xPx = Math.round(leftPct * cssW * 10) / 10;
+        const yPx = Math.round(topPct * cssH * 10) / 10;
+        el.style.transform = `translate3d(${xPx}px, ${yPx}px, 0) translate(-50%, -50%)`;
+        el.style.opacity = String(opacity);
+        el.style.pointerEvents = opacity > 0.4 ? 'auto' : 'none';
+      }
+    };
+
+    const updateCachedCanvasSize = () => {
+      const rect = canvas.getBoundingClientRect();
+      const compact = window.innerWidth <= 980;
+      canvasSizeRef.current = {
+        width: Math.max(300, rect.width || (compact ? 360 : 1080)),
+        height: Math.max(220, rect.height || (compact ? 270 : 420)),
+      };
+    };
+    updateCachedCanvasSize();
+
     const render = (now: number) => {
+      rafId = 0;
       const compact = window.innerWidth <= 980;
       const elapsed = reduced.matches ? 1.2 : (now - startTime) / 1000;
       const state = liveRef.current;
@@ -857,24 +683,17 @@ export function PlatformStackStage({
 
       const p = state.progress;
 
-      // Smoothly unfold frame height from Screen-1 Fit (Step 0) -> Full-Viewport Screen-2 (Step 1..3)
-      if (!compact) {
-        const { frameH0, frameHFull } = heightsRef.current;
-        const expandT = smoothstep(0, 0.34, p);
-        const desiredH = Math.round(lerp(frameH0, frameHFull, expandT));
-        if (Math.abs(frameEl.clientHeight - desiredH) >= 1) {
-          frameEl.style.height = `${desiredH}px`;
-        }
-      }
+      const cssW = canvasSizeRef.current.width;
+      const cssH = canvasSizeRef.current.height;
+      syncTopLabelTransforms(p, cssW, cssH);
 
-      if (Math.abs(p - lastSyncedDomP) > 0.002 || (state.tweenDuration === 0 && lastSyncedDomP !== p)) {
+      if (
+        Math.abs(p - lastSyncedDomP) > 0.04
+        || (state.tweenDuration === 0 && lastSyncedDomP !== p)
+      ) {
         lastSyncedDomP = p;
         setDisplayProgress(p);
       }
-
-      const frameRect = canvas.getBoundingClientRect();
-      const cssW = Math.max(300, frameRect.width || (compact ? 360 : 1080));
-      const cssH = Math.max(220, frameRect.height || (compact ? 270 : 420));
 
       const W = compact ? 720 : 1080;
       const H = Math.max(260, Math.round(W * (cssH / cssW)));
@@ -889,6 +708,7 @@ export function PlatformStackStage({
       ctx.setTransform(bw / W, 0, 0, bh / H, 0, 0);
 
       const curUi = state.ui;
+      const isDark = state.isDark;
 
       // 4-State Choreographed Phase Curves:
       // p = 0.00 (Step 0: Scattered Everyday Apps)
@@ -902,16 +722,16 @@ export function PlatformStackStage({
 
       ctx.clearRect(0, 0, W, H);
 
-      // 1. Luminous Light-Architectural Drafting Surface
+      // 1. Architectural Drafting Surface (adapts to light & dark color schemes)
       const bgGrad = ctx.createRadialGradient(W * 0.5, H * 0.48, 30, W * 0.5, H * 0.5, W * 0.62);
-      bgGrad.addColorStop(0, '#ffffff');
-      bgGrad.addColorStop(1, '#f1f6fc');
+      bgGrad.addColorStop(0, isDark ? '#111a2c' : '#ffffff');
+      bgGrad.addColorStop(1, isDark ? '#0b1220' : '#f1f6fc');
       ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, W, H);
 
       // Receding 2.5D drafting grid lines
       ctx.save();
-      ctx.strokeStyle = 'rgba(15, 23, 42, 0.04)';
+      ctx.strokeStyle = isDark ? 'rgba(148, 163, 184, 0.08)' : 'rgba(15, 23, 42, 0.04)';
       ctx.lineWidth = 1;
       for (let i = -9; i <= 9; i += 1) {
         ctx.beginPath();
@@ -944,8 +764,19 @@ export function PlatformStackStage({
         const iw = compact ? W * 0.84 : W * 0.64;
         const ih = Math.max(28, H * 0.10);
         const iy = H * 0.815;
-        drawRoundedSlab(ctx, (W - iw) * 0.5, iy, iw, ih, 999, 3, '#ffffff', '#e2e8f0', 'rgba(20, 118, 212, 0.24)');
-        ctx.fillStyle = '#1e40af';
+        drawRoundedSlab(
+          ctx,
+          (W - iw) * 0.5,
+          iy,
+          iw,
+          ih,
+          999,
+          3,
+          isDark ? '#162033' : '#ffffff',
+          isDark ? '#1e293b' : '#e2e8f0',
+          isDark ? 'rgba(96, 165, 250, 0.36)' : 'rgba(20, 118, 212, 0.24)',
+        );
+        ctx.fillStyle = isDark ? '#93c5fd' : '#1e40af';
         ctx.font = `600 ${compact ? 13 : 12.5}px "Inter", "PingFang SC", "Noto Sans SC", "Microsoft YaHei UI", sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -968,7 +799,9 @@ export function PlatformStackStage({
           ctx.save();
           ctx.globalAlpha = wallAlpha;
           ctx.setLineDash([5, 5]);
-          ctx.strokeStyle = idx === activeWall ? 'rgba(244, 63, 94, 0.7)' : 'rgba(148, 163, 184, 0.52)';
+          ctx.strokeStyle = idx === activeWall
+            ? 'rgba(244, 63, 94, 0.78)'
+            : (isDark ? 'rgba(148, 163, 184, 0.42)' : 'rgba(148, 163, 184, 0.52)');
           ctx.lineWidth = idx === activeWall ? 1.8 : 1.4;
           ctx.beginPath();
           ctx.moveTo(wx, baseTopY - 10);
@@ -988,7 +821,7 @@ export function PlatformStackStage({
               ctx.beginPath();
               ctx.moveTo(startX, baseTopY + 32);
               ctx.quadraticCurveTo((startX + hitX) * 0.5, baseTopY + 12, ox, oy);
-              ctx.strokeStyle = 'rgba(244, 63, 94, 0.58)';
+              ctx.strokeStyle = 'rgba(244, 63, 94, 0.65)';
               ctx.lineWidth = 2.2;
               ctx.stroke();
 
@@ -1024,7 +857,7 @@ export function PlatformStackStage({
           ctx.beginPath();
           ctx.moveTo(sx, siloBottomY);
           ctx.bezierCurveTo(sx, cyMid, targetX, cyMid, targetX, floorY);
-          ctx.strokeStyle = 'rgba(245, 158, 11, 0.46)';
+          ctx.strokeStyle = 'rgba(245, 158, 11, 0.5)';
           ctx.lineWidth = 1.8;
           ctx.setLineDash([4, 4]);
           ctx.stroke();
@@ -1033,7 +866,19 @@ export function PlatformStackStage({
 
         ctx.save();
         ctx.globalAlpha = wallAlpha;
-        drawRoundedSlab(ctx, floorX, floorY, floorW, floorH, 15, 5, '#fff7f8', '#fecdd3', 'rgba(244, 63, 94, 0.36)', true);
+        drawRoundedSlab(
+          ctx,
+          floorX,
+          floorY,
+          floorW,
+          floorH,
+          15,
+          5,
+          isDark ? '#28121a' : '#fff7f8',
+          isDark ? '#4c1d28' : '#fecdd3',
+          isDark ? 'rgba(251, 113, 133, 0.45)' : 'rgba(244, 63, 94, 0.36)',
+          true,
+        );
 
         const row1Y = floorY + floorH * 0.37;
         const row2Y = floorY + floorH * 0.74;
@@ -1048,13 +893,13 @@ export function PlatformStackStage({
           const labelW = 98;
           const barX = meterRight - labelW - barW - 8;
 
-          ctx.fillStyle = '#9f1239';
+          ctx.fillStyle = isDark ? '#fda4af' : '#9f1239';
           ctx.font = '700 13px "Inter", "PingFang SC", "Noto Sans SC", "Microsoft YaHei UI", sans-serif';
           ctx.textAlign = 'left';
           ctx.textBaseline = 'middle';
           ctx.fillText(curUi.gpuClashTitle, floorX + 22, row1Y, Math.max(180, barX - (floorX + 22) - 16));
 
-          ctx.fillStyle = '#ffe4e6';
+          ctx.fillStyle = isDark ? '#3f1824' : '#ffe4e6';
           ctx.beginPath();
           ctx.roundRect(barX, row1Y - barH * 0.5, barW, barH, 999);
           ctx.fill();
@@ -1067,22 +912,22 @@ export function PlatformStackStage({
           ctx.roundRect(barX, row1Y - barH * 0.5, barW * meterLoad, barH, 999);
           ctx.fill();
 
-          ctx.fillStyle = '#be123c';
+          ctx.fillStyle = isDark ? '#fda4af' : '#be123c';
           ctx.font = '700 11.5px "Inter", "PingFang SC", "Noto Sans SC", monospace';
           ctx.textAlign = 'right';
           ctx.fillText(`${pctNum}% ${curUi.gpuClashMeter}`, meterRight, row1Y);
 
-          ctx.fillStyle = '#881337';
+          ctx.fillStyle = isDark ? '#fecdd3' : '#881337';
           ctx.font = '560 12.5px "Inter", "PingFang SC", "Noto Sans SC", "Microsoft YaHei UI", sans-serif';
           ctx.textAlign = 'center';
           ctx.fillText(curUi.siloFloorNote, W * 0.5, row2Y, floorW - 36);
         } else {
-          ctx.fillStyle = '#9f1239';
+          ctx.fillStyle = isDark ? '#fda4af' : '#9f1239';
           ctx.font = '700 13.5px "Inter", "PingFang SC", "Noto Sans SC", sans-serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillText(curUi.gpuClashTitleMobile, W * 0.5, row1Y, floorW - 24);
-          ctx.fillStyle = '#881337';
+          ctx.fillStyle = isDark ? '#fecdd3' : '#881337';
           ctx.font = '560 12.5px "Inter", "PingFang SC", "Noto Sans SC", sans-serif';
           ctx.fillText(curUi.siloFloorNoteMobile, W * 0.5, row2Y, floorW - 24);
         }
@@ -1138,7 +983,9 @@ export function PlatformStackStage({
           ctx.beginPath();
           ctx.moveTo(ox, sy);
           ctx.bezierCurveTo(ox, (sy + ey) * 0.5, tx, (sy + ey) * 0.5, tx, ey);
-          ctx.strokeStyle = isFocus ? 'rgba(17, 188, 226, 0.65)' : 'rgba(100, 116, 139, 0.44)';
+          ctx.strokeStyle = isFocus
+            ? 'rgba(17, 188, 226, 0.72)'
+            : (isDark ? 'rgba(148, 163, 184, 0.36)' : 'rgba(100, 116, 139, 0.44)');
           ctx.lineWidth = isFocus ? 2.5 : 1.5;
           if (idx === 4 && !isFocus) ctx.setLineDash([4, 4]);
           ctx.stroke();
@@ -1151,7 +998,7 @@ export function PlatformStackStage({
             const py = omt ** 3 * sy + 3 * omt ** 2 * u * cyMid + 3 * omt * u ** 2 * cyMid + u ** 3 * ey;
             ctx.beginPath();
             ctx.arc(px, py, isFocus ? 3.8 : 2.5, 0, Math.PI * 2);
-            ctx.fillStyle = isFocus ? '#05dc78' : '#1476d4';
+            ctx.fillStyle = isFocus ? '#05dc78' : '#38bdf8';
             ctx.fill();
           }
           ctx.restore();
@@ -1172,7 +1019,9 @@ export function PlatformStackStage({
           ctx.beginPath();
           ctx.moveTo(sx, sy);
           ctx.bezierCurveTo(sx, (sy + ey) * 0.5, ex, (sy + ey) * 0.5, ex, ey);
-          ctx.strokeStyle = isActive ? 'rgba(20, 118, 212, 0.56)' : 'rgba(100, 116, 139, 0.38)';
+          ctx.strokeStyle = isActive
+            ? (isDark ? 'rgba(96, 165, 250, 0.65)' : 'rgba(20, 118, 212, 0.56)')
+            : (isDark ? 'rgba(148, 163, 184, 0.32)' : 'rgba(100, 116, 139, 0.38)');
           ctx.lineWidth = isActive ? 2.3 : 1.3;
           ctx.stroke();
 
@@ -1184,7 +1033,7 @@ export function PlatformStackStage({
             const py = omt ** 3 * sy + 3 * omt ** 2 * u * cyMid + 3 * omt * u ** 2 * cyMid + u ** 3 * ey;
             ctx.beginPath();
             ctx.arc(px, py, 3.4, 0, Math.PI * 2);
-            ctx.fillStyle = idx === 2 ? '#05dc78' : '#1476d4';
+            ctx.fillStyle = idx === 2 ? '#05dc78' : '#38bdf8';
             ctx.fill();
           }
           ctx.restore();
@@ -1209,17 +1058,25 @@ export function PlatformStackStage({
 
         ctx.save();
         ctx.globalAlpha = alpha;
-        ctx.shadowColor = isFocused ? 'rgba(17, 188, 226, 0.22)' : 'rgba(15, 23, 42, 0.07)';
+        ctx.shadowColor = isFocused
+          ? 'rgba(17, 188, 226, 0.24)'
+          : (isDark ? 'rgba(0, 0, 0, 0.35)' : 'rgba(15, 23, 42, 0.07)');
         ctx.shadowBlur = isFocused ? 22 : 14;
         ctx.shadowOffsetY = 6;
 
-        const topSurface = isFocused ? '#f0fdf9' : '#ffffff';
-        const sideBevel = isFocused ? '#99f6e4' : tInvert > 0.5 ? '#dbe4f0' : '#cbd5e1';
+        const topSurface = isFocused
+          ? (isDark ? '#0e2c29' : '#f0fdf9')
+          : (isDark ? '#162033' : '#ffffff');
+        const sideBevel = isFocused
+          ? (isDark ? '#0d9488' : '#99f6e4')
+          : isDark
+            ? '#1e293b'
+            : (tInvert > 0.5 ? '#dbe4f0' : '#cbd5e1');
         const borderStroke = isFocused
-          ? '#05dc78'
+          ? (isDark ? '#34d399' : '#05dc78')
           : tInvert < 0.35
-            ? 'rgba(148, 163, 184, 0.55)'
-            : 'rgba(20, 118, 212, 0.24)';
+            ? (isDark ? 'rgba(148, 163, 184, 0.34)' : 'rgba(148, 163, 184, 0.55)')
+            : (isDark ? 'rgba(96, 165, 250, 0.34)' : 'rgba(20, 118, 212, 0.24)');
 
         drawRoundedSlab(ctx, x, itemY, topW, topH, 15, topDepth, topSurface, sideBevel, borderStroke, isFifth);
         ctx.restore();
@@ -1235,6 +1092,7 @@ export function PlatformStackStage({
             windowChromeAlpha,
             curUi.step0WindowBadge,
             compact,
+            isDark,
           );
         }
       }
@@ -1247,7 +1105,7 @@ export function PlatformStackStage({
 
         ctx.save();
         ctx.globalAlpha = tCore;
-        ctx.shadowColor = 'rgba(20, 118, 212, 0.16)';
+        ctx.shadowColor = isDark ? 'rgba(0, 0, 0, 0.45)' : 'rgba(20, 118, 212, 0.16)';
         ctx.shadowBlur = 30;
         ctx.shadowOffsetY = 10;
 
@@ -1256,7 +1114,18 @@ export function PlatformStackStage({
         bevelGrad.addColorStop(0.5, '#11bce2');
         bevelGrad.addColorStop(1, '#1a75ff');
 
-        drawRoundedSlab(ctx, coreX, coreY, coreW, coreH, 20, 10, '#ffffff', bevelGrad, 'rgba(17, 188, 226, 0.45)');
+        drawRoundedSlab(
+          ctx,
+          coreX,
+          coreY,
+          coreW,
+          coreH,
+          20,
+          10,
+          isDark ? '#131f33' : '#ffffff',
+          bevelGrad,
+          isDark ? 'rgba(56, 189, 248, 0.45)' : 'rgba(17, 188, 226, 0.45)',
+        );
         ctx.restore();
 
         const pad = W * 0.015;
@@ -1270,10 +1139,14 @@ export function PlatformStackStage({
           ctx.globalAlpha = tCore;
           ctx.beginPath();
           ctx.roundRect(chX, chY, chW, chH, 12);
-          ctx.fillStyle = c === 1 ? '#f0fdf9' : '#f5f9ff';
+          ctx.fillStyle = c === 1
+            ? (isDark ? '#0f2928' : '#f0fdf9')
+            : (isDark ? '#172540' : '#f5f9ff');
           ctx.fill();
           ctx.lineWidth = 1;
-          ctx.strokeStyle = c === 1 ? 'rgba(5, 220, 120, 0.34)' : 'rgba(20, 118, 212, 0.22)';
+          ctx.strokeStyle = c === 1
+            ? (isDark ? 'rgba(52, 211, 153, 0.32)' : 'rgba(5, 220, 120, 0.34)')
+            : (isDark ? 'rgba(96, 165, 250, 0.28)' : 'rgba(20, 118, 212, 0.22)');
           ctx.stroke();
           ctx.restore();
         }
@@ -1285,8 +1158,12 @@ export function PlatformStackStage({
       const cubeAlpha = xrayReveal * cubeAbsorb;
       if (cubeAlpha > 0.01) {
         const targetChamberForRow = [2, 1, 0] as const;
-        const rowFill = ['#e8eef5', '#eff6ff', '#fffbeb'] as const;
-        const rowStroke = ['#64748b', '#60a5fa', '#f59e0b'] as const;
+        const rowFill = isDark
+          ? (['#1e293b', '#172554', '#3b2509'] as const)
+          : (['#e8eef5', '#eff6ff', '#fffbeb'] as const);
+        const rowStroke = isDark
+          ? (['#94a3b8', '#60a5fa', '#fbbf24'] as const)
+          : (['#64748b', '#60a5fa', '#f59e0b'] as const);
         const chamberCenters = [W * 0.22, W * 0.5, W * 0.78];
         const brickLabels = compact ? curUi.cubeLabelsShort : curUi.cubeLabelsLong;
         const brickTextAlpha = cubeAlpha * (1 - smoothstep(0.36, 0.45, p));
@@ -1318,13 +1195,13 @@ export function PlatformStackStage({
               8,
               3.5 * (1 - localT * 0.5),
               rowFill[r]!,
-              '#cbd5e1',
+              isDark ? '#334155' : '#cbd5e1',
               rowStroke[r]!,
             );
 
             if (brickTextAlpha > 0.02) {
               ctx.globalAlpha = brickTextAlpha;
-              ctx.fillStyle = '#334155';
+              ctx.fillStyle = isDark ? '#e2e8f0' : '#334155';
               ctx.font = `600 ${compact ? 11 : 12}px "Inter", "PingFang SC", "Noto Sans SC", "Microsoft YaHei UI", sans-serif`;
               ctx.textAlign = 'center';
               ctx.textBaseline = 'middle';
@@ -1342,8 +1219,19 @@ export function PlatformStackStage({
         tagXs.forEach((tx, idx) => {
           ctx.save();
           ctx.globalAlpha = streamTagAlpha;
-          drawRoundedSlab(ctx, tx - 94, H * 0.305, 188, 28, 999, 0, '#eff6ff', '#bfdbfe', 'rgba(20, 118, 212, 0.35)');
-          ctx.fillStyle = '#1d4ed8';
+          drawRoundedSlab(
+            ctx,
+            tx - 94,
+            H * 0.305,
+            188,
+            28,
+            999,
+            0,
+            isDark ? '#172554' : '#eff6ff',
+            isDark ? '#1e3a8a' : '#bfdbfe',
+            isDark ? 'rgba(96, 165, 250, 0.42)' : 'rgba(20, 118, 212, 0.35)',
+          );
+          ctx.fillStyle = isDark ? '#93c5fd' : '#1d4ed8';
           ctx.font = '600 11.5px "Inter", "PingFang SC", "Noto Sans SC", "Microsoft YaHei UI", sans-serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
@@ -1358,8 +1246,19 @@ export function PlatformStackStage({
         ctx.save();
         ctx.globalAlpha = step2RibbonAlpha;
         const rw = compact ? W * 0.86 : W * 0.76;
-        drawRoundedSlab(ctx, (W - rw) * 0.5, H * 0.78, rw, H * 0.095, 999, 4, '#f0fdf9', '#99f6e4', 'rgba(5, 220, 120, 0.38)');
-        ctx.fillStyle = '#065f46';
+        drawRoundedSlab(
+          ctx,
+          (W - rw) * 0.5,
+          H * 0.78,
+          rw,
+          H * 0.095,
+          999,
+          4,
+          isDark ? '#0d2922' : '#f0fdf9',
+          isDark ? '#115e59' : '#99f6e4',
+          isDark ? 'rgba(52, 211, 153, 0.42)' : 'rgba(5, 220, 120, 0.38)',
+        );
+        ctx.fillStyle = isDark ? '#6ee7b7' : '#065f46';
         ctx.font = `600 ${compact ? 14 : 13}px "Inter", "PingFang SC", "Noto Sans SC", "Microsoft YaHei UI", sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -1378,7 +1277,7 @@ export function PlatformStackStage({
           const isVault = idx === 2;
           ctx.save();
           ctx.globalAlpha = tFlow;
-          ctx.shadowColor = 'rgba(15, 23, 42, 0.06)';
+          ctx.shadowColor = isDark ? 'rgba(0, 0, 0, 0.35)' : 'rgba(15, 23, 42, 0.06)';
           ctx.shadowBlur = 14;
           ctx.shadowOffsetY = 5;
 
@@ -1390,9 +1289,13 @@ export function PlatformStackStage({
             subH,
             14,
             6,
-            isSelected ? '#eff8ff' : '#ffffff',
-            isSelected ? '#93c5fd' : '#dbe4f0',
-            isSelected ? '#1476d4' : isVault ? 'rgba(5, 220, 120, 0.42)' : 'rgba(148, 163, 184, 0.42)',
+            isSelected ? (isDark ? '#152b4a' : '#eff8ff') : (isDark ? '#162033' : '#ffffff'),
+            isSelected ? (isDark ? '#3b82f6' : '#93c5fd') : (isDark ? '#1e293b' : '#dbe4f0'),
+            isSelected
+              ? (isDark ? '#60a5fa' : '#1476d4')
+              : isVault
+                ? (isDark ? 'rgba(52, 211, 153, 0.45)' : 'rgba(5, 220, 120, 0.42)')
+                : (isDark ? 'rgba(148, 163, 184, 0.32)' : 'rgba(148, 163, 184, 0.42)'),
           );
           ctx.restore();
         });
@@ -1428,7 +1331,53 @@ export function PlatformStackStage({
       }
     };
 
-    rafId = window.requestAnimationFrame(render);
+    const requestDraw = () => {
+      if (rafId !== 0) return;
+      rafId = window.requestAnimationFrame(render);
+    };
+    requestDrawRef.current = requestDraw;
+
+    requestDraw();
+
+    const ro = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver((entries) => {
+          const entry = entries[0];
+          if (entry) {
+            const compact = window.innerWidth <= 980;
+            canvasSizeRef.current = {
+              width: Math.max(300, entry.contentRect.width || (compact ? 360 : 1080)),
+              height: Math.max(220, entry.contentRect.height || (compact ? 270 : 420)),
+            };
+          } else {
+            updateCachedCanvasSize();
+          }
+          requestDraw();
+        })
+      : null;
+    ro?.observe(canvas);
+
+    const onReducedChange = () => {
+      if (reduced.matches) {
+        liveRef.current.tweenDuration = 0;
+        liveRef.current.progress = liveRef.current.tweenTo;
+      }
+      requestDraw();
+    };
+    reduced.addEventListener('change', onReducedChange);
+
+    const mo = typeof MutationObserver !== 'undefined'
+      ? new MutationObserver(() => {
+          const nextDark = readIsDarkScheme();
+          if (liveRef.current.isDark !== nextDark) {
+            liveRef.current.isDark = nextDark;
+            requestDraw();
+          }
+        })
+      : null;
+    mo?.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-nimi-scheme', 'class'],
+    });
 
     const io = new IntersectionObserver(
       (entries) => {
@@ -1436,14 +1385,19 @@ export function PlatformStackStage({
         if (!e) return;
         isVisible = e.isIntersecting;
         window.cancelAnimationFrame(rafId);
-        if (isVisible) rafId = window.requestAnimationFrame(render);
+        rafId = 0;
+        if (isVisible) requestDraw();
       },
       { threshold: 0.04 },
     );
     io.observe(canvas);
 
     return () => {
+      requestDrawRef.current = () => {};
       window.cancelAnimationFrame(rafId);
+      ro?.disconnect();
+      mo?.disconnect();
+      reduced.removeEventListener('change', onReducedChange);
       io.disconnect();
     };
   }, []);
@@ -1457,12 +1411,16 @@ export function PlatformStackStage({
   const handleCueClick = () => {
     if (activeStep < 3) {
       const next = (activeStep + 1) as StageStep;
-      commitStep(next, next === 0 ? 'top' : 'focus');
+      commitStep(next);
       return;
     }
     if (typeof document !== 'undefined') {
-      anchorBypassUntilRef.current = performance.now() + 1200;
-      document.getElementById('capabilities')?.scrollIntoView({ behavior: 'smooth' });
+      const prefersReduced =
+        typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      document
+        .getElementById('capabilities')
+        ?.scrollIntoView({ behavior: prefersReduced ? 'instant' : 'smooth' });
     }
   };
 
@@ -1471,13 +1429,13 @@ export function PlatformStackStage({
       if (activeStep < 3) {
         e.preventDefault();
         const next = (activeStep + 1) as StageStep;
-        commitStep(next, 'focus');
+        commitStep(next);
       }
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
       if (activeStep > 0) {
         e.preventDefault();
         const next = (activeStep - 1) as StageStep;
-        commitStep(next, next === 0 ? 'top' : 'focus');
+        commitStep(next);
       }
     }
   };
@@ -1487,7 +1445,7 @@ export function PlatformStackStage({
     smoothstep(0.16, 0.30, displayProgress) * (1 - smoothstep(0.36, 0.45, displayProgress));
 
   return (
-    <div className="platform-scrolly-inversion is-full-cinema">
+    <div ref={containerRef} className="platform-scrolly-inversion is-full-cinema">
       <div
         ref={stageRef}
         className="public-arch-diagram platform-blueprint-stage"
@@ -1538,7 +1496,7 @@ export function PlatformStackStage({
                     aria-current={isCurrent ? 'step' : undefined}
                     className={`platform-stepper-pill${isCurrent ? ' is-current' : ''}`}
                     style={{ '--pill-fill': isCurrent ? '1' : '0' } as React.CSSProperties}
-                    onClick={() => commitStep(idx as StageStep, idx === 0 ? 'top' : 'focus')}
+                    onClick={() => commitStep(idx as StageStep)}
                   >
                     <span className="platform-stepper-num">{act.num}</span>
                     <span className="platform-stepper-label">
@@ -1613,20 +1571,32 @@ export function PlatformStackStage({
                 ? ui.siloSubTag
                 : copy.blueprintSurfaces[idx]?.tag ?? '';
 
+            const xPx = Math.round((leftPct / 100) * canvasSizeRef.current.width * 10) / 10;
+            const yPx = Math.round((topPct / 100) * canvasSizeRef.current.height * 10) / 10;
+            const isInteractive = opacity > 0.4;
+
             return (
               <button
                 key={idx}
+                ref={(node) => {
+                  topLabelRefs.current[idx] = node;
+                }}
                 type="button"
+                tabIndex={isInteractive ? 0 : -1}
+                disabled={!isInteractive}
+                aria-hidden={!isInteractive || undefined}
+                aria-pressed={focusedViewport === idx}
                 className={`platform-iso-top-label${focusedViewport === idx ? ' is-hovered' : ''}`}
                 style={{
-                  left: `${leftPct}%`,
-                  top: `${topPct}%`,
+                  left: 0,
+                  top: 0,
+                  transform: `translate3d(${xPx}px, ${yPx}px, 0) translate(-50%, -50%)`,
                   opacity,
-                  pointerEvents: opacity > 0.4 ? 'auto' : 'none',
+                  pointerEvents: isInteractive ? 'auto' : 'none',
                 }}
-                onMouseEnter={() => setFocusedViewport(idx)}
+                onMouseEnter={() => { if (isInteractive) setFocusedViewport(idx); }}
                 onMouseLeave={() => setFocusedViewport(null)}
-                onClick={() => setFocusedViewport((prev) => (prev === idx ? null : idx))}
+                onClick={() => { if (isInteractive) setFocusedViewport((prev) => (prev === idx ? null : idx)); }}
               >
                 <strong>{label}</strong>
                 <small>{subTag}</small>
@@ -1637,6 +1607,7 @@ export function PlatformStackStage({
           {/* Anchored Middle Personal Core Labels (Step 2 & Step 3) */}
           <div
             className="platform-iso-core-overlay"
+            aria-hidden={tCoreTextDom <= 0.5 || undefined}
             style={{
               opacity: tCoreTextDom,
               transform: `translateY(${lerp(8, 0, tCoreTextDom)}px)`,
@@ -1661,6 +1632,7 @@ export function PlatformStackStage({
           {/* Anchored Bottom Hot-Swappable Substrate Docks (Step 3) */}
           <div
             className="platform-iso-bottom-overlay"
+            aria-hidden={tFlowDom <= 0.5 || undefined}
             style={{
               opacity: tFlowDom,
               pointerEvents: tFlowDom > 0.5 ? 'auto' : 'none',
@@ -1668,6 +1640,7 @@ export function PlatformStackStage({
           >
             {(isCompactWidth ? ui.substratesMobile : ui.substratesDesktop).map((label, idx) => {
               const isCompute = idx < 2;
+              const isDockInteractive = tFlowDom > 0.5;
               const isSelected = idx === activeEngine;
               const Icon = idx === 0 ? Cpu : idx === 1 ? RefreshCw : HardDrive;
               const statusTag =
@@ -1680,10 +1653,13 @@ export function PlatformStackStage({
                 <button
                   key={label}
                   type="button"
-                  disabled={!isCompute}
+                  tabIndex={isDockInteractive && isCompute ? 0 : -1}
+                  disabled={!isCompute || !isDockInteractive}
+                  aria-hidden={!isDockInteractive || undefined}
+                  aria-pressed={isCompute ? isSelected : undefined}
                   className={`platform-iso-sub-btn${isSelected ? ' is-active' : ''}${idx === 2 ? ' is-vault' : ''}`}
                   onClick={() => {
-                    if (!isCompute) return;
+                    if (!isCompute || !isDockInteractive) return;
                     userPickedEngineRef.current = true;
                     setActiveEngine(idx as 0 | 1);
                   }}

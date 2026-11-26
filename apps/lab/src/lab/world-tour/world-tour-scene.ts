@@ -77,7 +77,7 @@ export function createWorldTourScene(container: HTMLElement, world: WorldTourArc
     renderer.setSize(width, height); camera.aspect = width / height; camera.updateProjectionMatrix();
   };
   const observer = new ResizeObserver(resize); observer.observe(container); resize();
-  const down = (event: PointerEvent) => { if (event.button !== 0 || objects.interceptPointer()) return; canvas.focus(); canvas.setPointerCapture(event.pointerId); drag = { id: event.pointerId, x: event.clientX, y: event.clientY }; };
+  const down = (event: PointerEvent) => { if (drag || event.button !== 0 || objects.interceptPointer()) return; canvas.focus(); canvas.setPointerCapture(event.pointerId); drag = { id: event.pointerId, x: event.clientX, y: event.clientY }; };
   const move = (event: PointerEvent) => {
     if (!drag || drag.id !== event.pointerId) return;
     const rotation = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
@@ -85,12 +85,16 @@ export function createWorldTourScene(container: HTMLElement, world: WorldTourArc
     rotation.x = THREE.MathUtils.clamp(rotation.x - (event.clientY - drag.y) * 0.003, -Math.PI / 2 + 0.02, Math.PI / 2 - 0.02);
     camera.quaternion.setFromEuler(rotation); drag.x = event.clientX; drag.y = event.clientY;
   };
-  const up = () => { drag = null; };
+  const up = (event: PointerEvent) => {
+    if (!drag || event.pointerId !== drag.id) return;
+    if (canvas.hasPointerCapture(drag.id)) canvas.releasePointerCapture(drag.id);
+    drag = null;
+  };
   const keydown = (event: KeyboardEvent) => { if (document.activeElement !== canvas || objectDragging || !controls.has(event.code)) return; event.preventDefault(); keys.add(event.code); };
   const keyup = (event: KeyboardEvent) => { keys.delete(event.code); };
   const visibility = () => { if (document.visibilityState !== 'visible') clearInput(); };
   canvas.addEventListener('pointerdown', down); canvas.addEventListener('pointermove', move); canvas.addEventListener('pointerup', up);
-  canvas.addEventListener('lostpointercapture', up); canvas.addEventListener('keydown', keydown); canvas.addEventListener('blur', clearInput);
+  canvas.addEventListener('pointercancel', up); canvas.addEventListener('lostpointercapture', up); canvas.addEventListener('keydown', keydown); canvas.addEventListener('blur', clearInput);
   window.addEventListener('keyup', keyup); window.addEventListener('blur', clearInput); document.addEventListener('visibilitychange', visibility);
   const velocity = new THREE.Vector3(); let lastTime = performance.now();
   const tick = (now: number) => {
@@ -156,7 +160,7 @@ export function createWorldTourScene(container: HTMLElement, world: WorldTourArc
     dispose: () => {
       if (disposed) return; disposed = true; clearInput(); cancelAnimationFrame(frame); observer.disconnect();
       canvas.removeEventListener('pointerdown', down); canvas.removeEventListener('pointermove', move); canvas.removeEventListener('pointerup', up);
-      canvas.removeEventListener('lostpointercapture', up); canvas.removeEventListener('keydown', keydown); canvas.removeEventListener('blur', clearInput);
+      canvas.removeEventListener('pointercancel', up); canvas.removeEventListener('lostpointercapture', up); canvas.removeEventListener('keydown', keydown); canvas.removeEventListener('blur', clearInput);
       window.removeEventListener('keyup', keyup); window.removeEventListener('blur', clearInput); document.removeEventListener('visibilitychange', visibility);
       objects.dispose(); walk?.dispose(); splat.dispose(); spark.dispose(); renderer.dispose(); canvas.remove();
     },

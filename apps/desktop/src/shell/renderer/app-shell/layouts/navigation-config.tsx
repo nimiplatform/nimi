@@ -233,7 +233,7 @@ export function NavLink({
         whileHover={interactiveMotion.whileHover}
         whileTap={interactiveMotion.whileTap}
         transition={interactiveMotion.transition}
-        className={`relative flex items-center overflow-hidden text-sm transition-colors duration-150 ${
+        className={`relative flex items-center overflow-hidden text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--nimi-focus-ring-color)] ${
           active
             ? 'font-semibold text-[var(--nimi-text-primary)]'
             : 'text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)] hover:text-[var(--nimi-text-primary)]'

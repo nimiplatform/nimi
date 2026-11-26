@@ -218,6 +218,8 @@
       "generating": "Replying…",
       "stop": "Stop",
       "startOver": "New conversation",
+      "confirmStartOverTitle": "Start a new conversation?",
+      "confirmStartOverMessage": "This clears the current conversation transcript and saved continuity data.",
       "you": "You",
       "assistant": "Model",
       "empty": "No messages yet. Send a message to start.",

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Button, EmptyState, Pill, StatusDot } from '../../ui';
 import { IconCloud, IconPlus } from '../../icons';
 import { services, type Service } from '../../data';
@@ -9,7 +10,42 @@ function statusPill(status: Service['status']) {
 }
 
 export function ConnectedServices({ empty = false }: { empty?: boolean }) {
-  const list = empty ? [] : services;
+  const [list, setList] = useState<Service[]>(() => (empty ? [] : services.map((s) => ({ ...s }))));
+  const [statusNote, setStatusNote] = useState<string | null>(null);
+
+  const handleTestOrConfigure = (service: Service) => {
+    setList((prev) =>
+      prev.map((item) =>
+        item.id === service.id
+          ? {
+              ...item,
+              status: 'connected',
+              detail: service.status === 'not-configured' ? 'Configured · verified just now' : 'Health check passed just now',
+              models: item.models.length > 0 ? item.models : ['default-chat'],
+            }
+          : item,
+      ),
+    );
+    setStatusNote(
+      service.status === 'not-configured'
+        ? `Configured ${service.name} in prototype preview.`
+        : `Connection test for ${service.name} succeeded.`,
+    );
+  };
+
+  const handleAddService = () => {
+    const nextIdx = list.length + 1;
+    const added: Service = {
+      id: `custom-${nextIdx}`,
+      name: `OpenRouter #${nextIdx}`,
+      kind: 'API key',
+      status: 'connected',
+      detail: 'Connected just now',
+      models: ['openrouter/auto'],
+    };
+    setList((prev) => [...prev, added]);
+    setStatusNote(`Added ${added.name}.`);
+  };
 
   if (list.length === 0) {
     return (
@@ -18,7 +54,7 @@ export function ConnectedServices({ empty = false }: { empty?: boolean }) {
         title="No services connected"
         description="Connect a cloud provider like OpenAI or Anthropic so Nimi can answer through their models. Credentials stay on this device."
         action={
-          <Button variant="primary">
+          <Button variant="primary" onClick={handleAddService}>
             <IconPlus size={14} /> Add service
           </Button>
         }
@@ -28,6 +64,14 @@ export function ConnectedServices({ empty = false }: { empty?: boolean }) {
 
   return (
     <>
+      {statusNote && (
+        <div className="rt-inline-prompt" role="status">
+          <span className="rt-inline-prompt-text">{statusNote}</span>
+          <Button size="sm" variant="ghost" onClick={() => setStatusNote(null)}>
+            Dismiss
+          </Button>
+        </div>
+      )}
       <table className="rt-table">
         <thead>
           <tr>
@@ -52,7 +96,7 @@ export function ConnectedServices({ empty = false }: { empty?: boolean }) {
               <td>{s.kind}</td>
               <td>
                 {statusPill(s.status)}
-                <div style={{ color: 'var(--nimi-text-tertiary)', fontSize: 11.5, marginTop: 2 }}>
+                <div style={{ color: 'var(--nimi-text-tertiary)', fontSize: '0.71875rem', marginTop: 2 }}>
                   {s.detail}
                 </div>
               </td>
@@ -70,14 +114,16 @@ export function ConnectedServices({ empty = false }: { empty?: boolean }) {
                 )}
               </td>
               <td>
-                <Button size="sm">{s.status === 'not-configured' ? 'Configure' : 'Test'}</Button>
+                <Button size="sm" onClick={() => handleTestOrConfigure(s)}>
+                  {s.status === 'not-configured' ? 'Configure' : 'Test'}
+                </Button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
       <div className="rt-section-gap">
-        <Button size="sm">
+        <Button size="sm" onClick={handleAddService}>
           <IconPlus size={13} /> Add service
         </Button>
       </div>

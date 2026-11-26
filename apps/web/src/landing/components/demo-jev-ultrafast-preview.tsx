@@ -38,7 +38,7 @@ export function DemoJevUltrafastPreview({ content }: { content: JevUltrafastPrev
           {t('jevUltrafast.header.jevUltrafast')}
         </span>
       </header>
-      <main className="ju-main">
+      <div role="region" aria-label={content.title} className="ju-main">
         <div className="ju-intro">
           <h1>{content.title}</h1>
           <p>{content.description}</p>
@@ -249,7 +249,7 @@ export function DemoJevUltrafastPreview({ content }: { content: JevUltrafastPrev
             )}
           </section>
         )}
-      </main>
+      </div>
       <PreviewCredits />
     </div>
   );

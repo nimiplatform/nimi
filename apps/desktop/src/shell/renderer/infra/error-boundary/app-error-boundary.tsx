@@ -82,12 +82,12 @@ class AppErrorBoundaryImpl extends React.Component<
     const { i18n, bindings } = this.props;
     const locale = i18n.getCurrentLocale();
     const title = i18n.instance.t('ErrorBoundary.rendererFailed', {
-      defaultValue: locale === 'zh' ? '渲染层发生异常' : 'Renderer crashed',
+      defaultValue: locale === 'zh' ? '界面遇到意外错误' : 'The interface encountered an unexpected error',
     });
     const hint = i18n.instance.t('ErrorBoundary.rendererHint', {
       defaultValue: locale === 'zh'
-        ? '请重启应用，或在 devtools 中查看 `renderer` 相关日志链路。'
-        : 'Restart the app or inspect renderer logs in devtools.',
+        ? '请重启应用；如果问题持续出现，请打开支持页面导出诊断日志。'
+        : 'Restart the app, or open Support to export diagnostic logs if this keeps happening.',
     });
     const reloadLabel = i18n.instance.t('ErrorBoundary.reload', {
       defaultValue: locale === 'zh' ? '重新加载' : 'Reload',
@@ -118,7 +118,7 @@ class AppErrorBoundaryImpl extends React.Component<
               type="button"
               data-testid="desktop-error-boundary-reload"
               onClick={() => bindings.app.commands.reloadApplication()}
-              className="mt-4 rounded-full bg-[var(--nimi-action-primary-bg)] px-6 py-2.5 text-sm font-medium text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-2"
+              className="mt-4 rounded-full bg-[var(--nimi-action-primary-bg)] px-6 py-2.5 text-sm font-medium text-[var(--nimi-action-primary-text)] transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-action-primary-bg-hover)] active:scale-[0.97] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nimi-surface-canvas)]"
             >
               {reloadLabel}
             </button>

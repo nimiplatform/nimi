@@ -177,6 +177,17 @@ export function WorldSceneViewer({
     ? allScenePlates.findIndex((entry) => entry.scene.id === scene.id && entry.asset.id === lightboxAssetId)
     : -1;
   const activeLightboxEntry = activeLightboxIndex >= 0 ? allScenePlates[activeLightboxIndex] ?? null : null;
+  const lastLightboxStateRef = useRef<{
+    entry: { scene: WorldSceneItem; asset: WorldPublicMediaAsset };
+    index: number;
+  } | null>(null);
+  if (activeLightboxEntry && activeLightboxIndex >= 0) {
+    lastLightboxStateRef.current = { entry: activeLightboxEntry, index: activeLightboxIndex };
+  }
+  const renderedLightboxEntry = activeLightboxEntry ?? lastLightboxStateRef.current?.entry ?? null;
+  const renderedLightboxIndex = activeLightboxIndex >= 0
+    ? activeLightboxIndex
+    : (lastLightboxStateRef.current?.index ?? 0);
 
   const moveLightbox = (step: -1 | 1) => {
     if (allScenePlates.length < 2 || activeLightboxIndex < 0) return;
@@ -376,7 +387,7 @@ export function WorldSceneViewer({
                   data-testid="world-scene-media-enlarge"
                   aria-label={t('WorldDetail.discovery.enlargeIllustration', { name: scene.name })}
                   onClick={() => setLightboxAssetId(asset.id)}
-                  className="group relative block aspect-[3/2] w-full cursor-pointer overflow-hidden rounded-[12px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+                  className="group relative block aspect-[3/2] w-full cursor-pointer overflow-hidden rounded-[12px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] text-left transition-transform duration-150 active:scale-[0.985] motion-reduce:transform-none motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
                 >
                   <MediaImage
                     delivery={asset.delivery}
@@ -385,10 +396,13 @@ export function WorldSceneViewer({
                     sizes={imageMedia.length === 1 ? '632px' : '(min-width: 640px) 308px, calc(100vw - 80px)'}
                     loading="eager"
                     alt={scene.name}
-                    className="block h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02] motion-reduce:transition-none"
+                    className="block h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02] motion-reduce:transform-none motion-reduce:transition-none"
                     onUnavailable={() => hideMedia(asset.id)}
                   />
-                  <span className="pointer-events-none absolute right-2.5 bottom-2.5 inline-flex items-center gap-1 rounded-full bg-black/58 px-2.5 py-1 text-[11px] font-medium text-white opacity-90 backdrop-blur-xs transition-opacity duration-150 group-hover:opacity-100">
+                  <span
+                    data-nimi-material="glass-thin"
+                    className="nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)] pointer-events-none absolute right-2.5 bottom-2.5 inline-flex items-center gap-1 rounded-full bg-black/72 px-2.5 py-1 text-[11px] font-medium text-white opacity-90 transition-opacity duration-150 group-hover:opacity-100"
+                  >
                     <Expand size={12} aria-hidden />
                     {t('WorldDetail.discovery.enlarge')}
                   </span>
@@ -424,7 +438,7 @@ export function WorldSceneViewer({
                   key={target.id}
                   type="button"
                   onClick={() => onSelect(target.id)}
-                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-1 text-xs font-medium text-[var(--nimi-text-primary)] transition-colors duration-150 hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_45%,var(--nimi-border-subtle))] hover:text-[var(--nimi-action-primary-bg)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-1 text-xs font-medium text-[var(--nimi-text-primary)] transition-[colors,transform] duration-150 hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_45%,var(--nimi-border-subtle))] hover:text-[var(--nimi-action-primary-bg)] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
                 >
                   <MapPin size={12} className="text-[var(--nimi-action-primary-bg)]" aria-hidden />
                   <span>{target.name}</span>
@@ -461,7 +475,7 @@ export function WorldSceneViewer({
                       ) : null}
                     </span>
                     {onViewCharacter ? (
-                      <ArrowRight size={14} className="shrink-0 text-[var(--nimi-text-muted)] transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-[var(--nimi-action-primary-bg)] motion-reduce:transition-none" aria-hidden />
+                      <ArrowRight size={14} className="shrink-0 text-[var(--nimi-text-muted)] transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-[var(--nimi-action-primary-bg)] motion-reduce:transform-none motion-reduce:transition-none" aria-hidden />
                     ) : null}
                   </>
                 );
@@ -483,7 +497,7 @@ export function WorldSceneViewer({
                       onClose();
                       onViewCharacter(character);
                     }}
-                    className="group flex min-w-0 cursor-pointer items-center gap-2.5 rounded-[12px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-2 text-left transition-colors duration-200 hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_42%,var(--nimi-border-subtle))] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+                    className="group flex min-w-0 cursor-pointer items-center gap-2.5 rounded-[12px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-2 text-left transition-[border-color,transform] duration-200 hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_42%,var(--nimi-border-subtle))] active:scale-[0.985] motion-reduce:transform-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
                   >
                     {body}
                   </button>
@@ -588,11 +602,11 @@ export function WorldSceneViewer({
       getReturnFocusTarget={() => lastViewedPreviewRef.current?.isConnected
         ? lastViewedPreviewRef.current : closeSceneRef.current}
       data-testid="world-scene-lightbox"
-      className="bg-black/88 backdrop-blur-sm"
+      className="bg-black/88"
       panelClassName="w-max max-w-[calc(100vw-3rem)] border-0 bg-transparent shadow-none"
       contentClassName="p-0"
     >
-      {activeLightboxEntry ? (
+      {renderedLightboxEntry ? (
         <div
           onKeyDown={(event) => {
             if (allScenePlates.length < 2 || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) return;
@@ -604,15 +618,15 @@ export function WorldSceneViewer({
           <div className="flex w-full items-center justify-between gap-4 text-white">
             <div className="flex items-baseline gap-2.5">
               <DialogTitle className="flex items-baseline gap-2.5">
-                <span className="text-sm font-semibold">{activeLightboxEntry.scene.name}</span>
-                {activeLightboxEntry.scene.spatial?.settingType ? (
+                <span className="text-sm font-semibold">{renderedLightboxEntry.scene.name}</span>
+                {renderedLightboxEntry.scene.spatial?.settingType ? (
                   <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-medium text-white/90">
-                    {t(`WorldDetail.discovery.sceneSettingType.${activeLightboxEntry.scene.spatial.settingType}`)}
+                    {t(`WorldDetail.discovery.sceneSettingType.${renderedLightboxEntry.scene.spatial.settingType}`)}
                   </span>
                 ) : null}
               </DialogTitle>
               <DialogDescription className="text-xs text-white/65 tabular-nums">
-                {activeLightboxIndex + 1} / {allScenePlates.length}
+                {renderedLightboxIndex + 1} / {allScenePlates.length}
               </DialogDescription>
             </div>
             <button
@@ -620,7 +634,7 @@ export function WorldSceneViewer({
               data-testid="world-scene-lightbox-close"
               aria-label={t('WorldDetail.discovery.closeImage')}
               onClick={() => setLightboxAssetId(null)}
-              className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25 focus-visible:outline-2 focus-visible:outline-white"
+              className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/15 text-white transition-[background-color,transform] hover:bg-white/25 active:scale-[0.95] motion-reduce:transform-none focus-visible:outline-2 focus-visible:outline-white"
             >
               <X className="h-4 w-4" aria-hidden />
             </button>
@@ -633,7 +647,7 @@ export function WorldSceneViewer({
                 data-testid="world-scene-lightbox-prev"
                 aria-label={t('WorldDetail.discovery.previousImage')}
                 onClick={() => moveLightbox(-1)}
-                className="mr-3 inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25 focus-visible:outline-2 focus-visible:outline-white"
+                className="mr-3 inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white/15 text-white transition-[background-color,transform] hover:bg-white/25 active:scale-[0.95] motion-reduce:transform-none focus-visible:outline-2 focus-visible:outline-white"
               >
                 <ChevronLeft className="h-5 w-5" aria-hidden />
               </button>
@@ -641,11 +655,11 @@ export function WorldSceneViewer({
 
             <div className="flex items-center justify-center overflow-hidden rounded-2xl shadow-2xl">
               <SceneLightboxImage
-                key={JSON.stringify([worldId, activeLightboxEntry.scene.id, activeLightboxEntry.asset.id])}
+                key={JSON.stringify([worldId, renderedLightboxEntry.scene.id, renderedLightboxEntry.asset.id])}
                 worldId={worldId}
-                sceneId={activeLightboxEntry.scene.id}
-                assetId={activeLightboxEntry.asset.id}
-                sceneName={activeLightboxEntry.scene.name}
+                sceneId={renderedLightboxEntry.scene.id}
+                assetId={renderedLightboxEntry.asset.id}
+                sceneName={renderedLightboxEntry.scene.name}
               />
             </div>
 
@@ -655,7 +669,7 @@ export function WorldSceneViewer({
                 data-testid="world-scene-lightbox-next"
                 aria-label={t('WorldDetail.discovery.nextImage')}
                 onClick={() => moveLightbox(1)}
-                className="ml-3 inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25 focus-visible:outline-2 focus-visible:outline-white"
+                className="ml-3 inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white/15 text-white transition-[background-color,transform] hover:bg-white/25 active:scale-[0.95] motion-reduce:transform-none focus-visible:outline-2 focus-visible:outline-white"
               >
                 <ChevronRight className="h-5 w-5" aria-hidden />
               </button>

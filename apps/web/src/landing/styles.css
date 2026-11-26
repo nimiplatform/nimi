@@ -41,7 +41,7 @@
 }
 
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
   --font-heading: "Sora", "IBM Plex Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Segoe UI", sans-serif;
   --font-display: "Sora", "Geist", "IBM Plex Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Segoe UI", sans-serif;
   --font-body: "IBM Plex Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Segoe UI", sans-serif;
@@ -54,6 +54,14 @@
    * window's right edge line up at every width. */
   --container-hero-max: 1600px;
   --container-hero-gutter: clamp(2rem, 9.4vw, 9.5rem);
+}
+
+:root[data-nimi-scheme="dark"],
+.dark {
+  --color-ink: #f8fafc;
+  --surface: #111827;
+  --surface-border: rgba(148, 163, 184, 0.22);
+  --shadow-window: 0 1px 2px rgba(0, 0, 0, 0.45), 0 22px 48px -20px rgba(0, 0, 0, 0.65);
 }
 
 html,
@@ -71,6 +79,11 @@ body {
   font-family: var(--font-body);
   background: #f8fafc;
   color: #0f172a;
+}
+
+:is([data-nimi-scheme="dark"], .dark) body {
+  background: #0b1220;
+  color: #f8fafc;
 }
 
 .font-heading {
@@ -140,9 +153,18 @@ body {
   }
 }
 
-.demo-surface-leave {
-  animation: demo-surface-leave 160ms ease-in both;
-  pointer-events: none;
+@media (prefers-reduced-motion: no-preference) {
+  .demo-surface-leave {
+    animation: demo-surface-leave 160ms ease-in both;
+    pointer-events: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .demo-surface-leave {
+    animation: demo-surface-leave-reduced 140ms ease-in both;
+    pointer-events: none;
+  }
 }
 
 @keyframes demo-surface-leave {
@@ -153,6 +175,15 @@ body {
   to {
     opacity: 0;
     transform: translateY(-6px);
+  }
+}
+
+@keyframes demo-surface-leave-reduced {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
   }
 }
 

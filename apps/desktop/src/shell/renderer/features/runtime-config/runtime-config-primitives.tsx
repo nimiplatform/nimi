@@ -24,24 +24,29 @@ import {
 } from './runtime-config-state-types';
 import {
   useDesktopCardMotion,
-  useDesktopInteractiveMotion,
 } from '../../ui/motion/desktop-motion';
 
 export function Card({
   children,
   className = '',
-  hoverMotion = true,
+  hoverMotion = false,
 }: {
   children: ReactNode;
   className?: string;
   hoverMotion?: boolean;
 }) {
   const cardMotion = useDesktopCardMotion();
+  if (!hoverMotion) {
+    return (
+      <AppCardSurface kind="operational-solid" className={cn(className)}>
+        {children}
+      </AppCardSurface>
+    );
+  }
   return (
     <motion.div
-      layout
-      whileHover={hoverMotion ? cardMotion.whileHover : undefined}
-      whileTap={hoverMotion ? cardMotion.whileTap : undefined}
+      whileHover={cardMotion.whileHover}
+      whileTap={cardMotion.whileTap}
       transition={cardMotion.transition}
       className={cn(className)}
     >
@@ -61,34 +66,38 @@ export function Button({
   onClick,
   variant = 'primary',
   disabled,
+  loading,
+  type = 'button',
   size = 'md',
   className,
+  'aria-label': ariaLabel,
+  'data-testid': dataTestId,
 }: {
   children: ReactNode;
   onClick?: () => void;
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   disabled?: boolean;
+  loading?: boolean;
+  type?: 'button' | 'submit' | 'reset';
   size?: 'sm' | 'md';
   className?: string;
+  'aria-label'?: string;
+  'data-testid'?: string;
 }) {
-  const interactiveMotion = useDesktopInteractiveMotion();
   return (
-    <motion.span
-      className="inline-flex"
-      whileHover={disabled ? undefined : interactiveMotion.whileHover}
-      whileTap={disabled ? undefined : interactiveMotion.whileTap}
-      transition={interactiveMotion.transition}
+    <KitButton
+      type={type}
+      tone={variant}
+      size={size}
+      onClick={onClick}
+      disabled={disabled}
+      loading={loading}
+      className={className}
+      aria-label={ariaLabel}
+      data-testid={dataTestId}
     >
-      <KitButton
-        tone={variant}
-        size={size}
-        onClick={onClick}
-        disabled={disabled}
-        className={className}
-      >
-        {children}
-      </KitButton>
-    </motion.span>
+      {children}
+    </KitButton>
   );
 }
 
@@ -147,6 +156,7 @@ export type RuntimeSelectOption = {
 };
 
 export function RuntimeSelect({
+  id,
   value,
   onChange,
   options,
@@ -160,6 +170,7 @@ export function RuntimeSelect({
   searchPlaceholder,
   emptyLabel,
 }: {
+  id?: string;
   value: string;
   onChange: (value: string) => void;
   options: RuntimeSelectOption[];
@@ -180,6 +191,7 @@ export function RuntimeSelect({
   if (searchable) {
     return (
       <SearchableRuntimeSelect
+        id={id}
         value={value}
         onChange={onChange}
         options={options}
@@ -197,6 +209,7 @@ export function RuntimeSelect({
 
   return (
     <KitSelectField
+      id={id}
       value={value}
       onValueChange={onChange}
       options={options}
@@ -227,6 +240,7 @@ function SelectCheckIcon() {
 }
 
 function SearchableRuntimeSelect({
+  id,
   value,
   onChange,
   options,
@@ -239,6 +253,7 @@ function SearchableRuntimeSelect({
   searchPlaceholder,
   emptyLabel,
 }: {
+  id?: string;
   value: string;
   onChange: (value: string) => void;
   options: RuntimeSelectOption[];
@@ -253,9 +268,10 @@ function SearchableRuntimeSelect({
 }) {
   const i18n = useDesktopI18nResource().instance;
   const t = i18n.t.bind(i18n);
+  const listboxId = useId();
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const interactiveMotion = useDesktopInteractiveMotion();
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const safeOptions = useMemo(() => options.filter((option) => option.value !== ''), [options]);
   const selectedOption = safeOptions.find((option) => option.value === value) || null;
   const filteredOptions = useMemo(() => {
@@ -267,10 +283,25 @@ function SearchableRuntimeSelect({
     ));
   }, [safeOptions, searchQuery]);
 
+  const enabledIndices = useMemo(
+    () => filteredOptions.reduce<number[]>((acc, option, idx) => {
+      if (!option.disabled) acc.push(idx);
+      return acc;
+    }, []),
+    [filteredOptions],
+  );
+
+  const activeIndex = highlightedIndex >= 0
+    && highlightedIndex < filteredOptions.length
+    && !filteredOptions[highlightedIndex]?.disabled
+    ? highlightedIndex
+    : -1;
+
   const handleOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen);
     if (!nextOpen) {
       setSearchQuery('');
+      setHighlightedIndex(-1);
     }
   };
 
@@ -285,28 +316,45 @@ function SearchableRuntimeSelect({
       handleOpenChange(false);
       return;
     }
-    if (event.key === 'Enter') {
-      const firstEnabled = filteredOptions.find((option) => !option.disabled);
-      if (!firstEnabled) return;
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Home' || event.key === 'End') {
+      if (enabledIndices.length === 0) return;
       event.preventDefault();
-      selectOption(firstEnabled.value);
+      const pos = enabledIndices.indexOf(activeIndex);
+      if (event.key === 'Home') {
+        setHighlightedIndex(enabledIndices[0]!);
+      } else if (event.key === 'End') {
+        setHighlightedIndex(enabledIndices[enabledIndices.length - 1]!);
+      } else if (event.key === 'ArrowDown') {
+        const nextPos = pos < 0 ? 0 : (pos + 1) % enabledIndices.length;
+        setHighlightedIndex(enabledIndices[nextPos]!);
+      } else {
+        const prevPos = pos <= 0 ? enabledIndices.length - 1 : pos - 1;
+        setHighlightedIndex(enabledIndices[prevPos]!);
+      }
+      return;
+    }
+    if (event.key === 'Enter') {
+      const targetOption = activeIndex >= 0
+        ? filteredOptions[activeIndex]
+        : filteredOptions.find((option) => !option.disabled);
+      if (!targetOption || targetOption.disabled) return;
+      event.preventDefault();
+      selectOption(targetOption.value);
     }
   };
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <motion.button
+        <button
+          id={id}
           type="button"
           disabled={disabled}
           aria-label={ariaLabel}
           aria-haspopup="listbox"
           aria-expanded={open}
-          whileHover={disabled ? undefined : interactiveMotion.whileHover}
-          whileTap={disabled ? undefined : interactiveMotion.whileTap}
-          transition={interactiveMotion.transition}
           className={cn(
-            'flex w-full items-center justify-between gap-2 border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] text-left text-[var(--nimi-field-text)] transition-colors duration-[var(--nimi-motion-fast)] outline-none enabled:hover:border-[var(--nimi-field-focus)] focus:border-[var(--nimi-field-focus)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)] disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
+            'flex w-full items-center justify-between gap-2 border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] text-left text-[var(--nimi-field-text)] transition-[transform,border-color,background-color] duration-[var(--nimi-motion-fast)] active:scale-[var(--nimi-motion-pressed-scale)] outline-none enabled:hover:border-[var(--nimi-field-focus)] focus-visible:border-[var(--nimi-field-focus)] focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)] disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
             triggerClass,
             className,
           )}
@@ -320,7 +368,7 @@ function SearchableRuntimeSelect({
           <span className="shrink-0 text-[var(--nimi-text-muted)]">
             <ChevronIcon />
           </span>
-        </motion.button>
+        </button>
       </PopoverTrigger>
       <PopoverContent
         align="start"
@@ -334,30 +382,42 @@ function SearchableRuntimeSelect({
           <SearchField
             autoFocus
             value={searchQuery}
-            onChange={(event) => setSearchQuery(event.currentTarget.value)}
-            onClear={() => setSearchQuery('')}
+            onChange={(event) => {
+              setSearchQuery(event.currentTarget.value);
+              setHighlightedIndex(-1);
+            }}
+            onClear={() => {
+              setSearchQuery('');
+              setHighlightedIndex(-1);
+            }}
             clearLabel={t('Common.clear')}
             onKeyDown={onSearchKeyDown}
+            aria-controls={listboxId}
+            aria-activedescendant={activeIndex >= 0 ? `${listboxId}-opt-${activeIndex}` : undefined}
             placeholder={searchPlaceholder || t('runtimeConfig.common.searchOptions', { defaultValue: 'Search options...' })}
             aria-label={searchPlaceholder || t('runtimeConfig.common.searchOptions', { defaultValue: 'Search options...' })}
             className="min-h-9 w-full"
           />
         </div>
         <ScrollArea className="h-72 max-h-[var(--radix-popover-content-available-height)]" contentClassName="p-1 pr-3">
-          <div role="listbox" className="space-y-0.5">
-            {filteredOptions.length > 0 ? filteredOptions.map((option) => {
+          <div id={listboxId} role="listbox" className="space-y-0.5">
+            {filteredOptions.length > 0 ? filteredOptions.map((option, index) => {
               const selected = option.value === value;
+              const highlighted = index === activeIndex;
               return (
                 <button
                   key={option.value}
+                  id={`${listboxId}-opt-${index}`}
                   type="button"
                   role="option"
                   aria-selected={selected}
                   disabled={option.disabled}
+                  onMouseEnter={() => setHighlightedIndex(index)}
                   onClick={() => selectOption(option.value)}
                   className={cn(
-                    'relative flex min-h-9 w-full items-center rounded-md py-2 pl-3 pr-8 text-left text-sm text-[var(--nimi-text-primary)] outline-none transition-colors',
+                    'relative flex min-h-9 w-full items-center rounded-md py-2 pl-3 pr-8 text-left text-sm text-[var(--nimi-text-primary)] outline-none transition-[transform,background-color,color] duration-150 active:scale-[var(--nimi-motion-pressed-scale)] focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]',
                     'hover:bg-[var(--nimi-action-ghost-hover)] focus:bg-[var(--nimi-action-ghost-hover)]',
+                    highlighted ? 'bg-[var(--nimi-action-ghost-hover)]' : '',
                     selected ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]' : '',
                     option.disabled ? 'pointer-events-none opacity-[var(--nimi-opacity-disabled)]' : '',
                   )}

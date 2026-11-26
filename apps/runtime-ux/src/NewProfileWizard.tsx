@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button, Pill } from './ui';
 import { IconCheck, IconLoadout, IconProfile, IconSparkle } from './icons';
 
@@ -11,12 +11,35 @@ export function NewProfileWizard({ onClose }: { onClose: () => void }) {
   const [path, setPath] = useState<Path | null>(null);
   const [template, setTemplate] = useState<string | null>(null);
   const [name, setName] = useState('');
+  const dialogRef = useRef<HTMLDivElement>(null);
   const done = step >= 3;
 
+  useEffect(() => {
+    dialogRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+
   return (
-    <div className="rt-wizard-frame">
+    <div
+      ref={dialogRef}
+      className="rt-wizard-frame"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="rt-new-profile-title"
+      tabIndex={-1}
+    >
       <div className="rt-wizard-head">
-        <h2>New profile</h2>
+        <h2 id="rt-new-profile-title">New profile</h2>
         <p>{done ? 'Profile created.' : `Step ${step + 1} of 3 — ${stepTitles[step]}`}</p>
         <div className="rt-steps" aria-hidden>
           {[0, 1, 2].map((i) => (

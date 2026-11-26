@@ -51,7 +51,7 @@ const PLACEHOLDER_APPS: AppEntry[] = [
 /** The apps page — a launcher overlay entered from the cradle's 领域 pane.
  * Lists live modules (with real running state) alongside placeholder apps,
  * with search, tabs, favorites and sorting. */
-export function AppsPage({ onClose }: { onClose: () => void }) {
+export function AppsPage({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { state, openApp } = useSim();
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState<AppsTab>('recent');
@@ -106,9 +106,9 @@ export function AppsPage({ onClose }: { onClose: () => void }) {
 
   return (
     <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open) onClose();
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose();
       }}
     >
       <DialogContent

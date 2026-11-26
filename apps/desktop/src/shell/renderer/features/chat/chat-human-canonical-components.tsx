@@ -83,12 +83,12 @@ function useHumanMessageRenderers(input: {
   }, [t, input.model.newestMessageId, input.model.acknowledgeRead]);
 
   const footerContent = (
-    <>
-    {reportMessage ? <ReportUserDialog target={{ id: reportMessage.targetId,
-      displayName: reportMessage.senderName || input.model.contactName }}
-      message={{ chatId: reportMessage.sessionId, messageId: reportMessage.id, previewText: reportMessage.text }}
-      onClose={() => setReportMessage(null)} /> : null}
-    </>
+    <ReportUserDialog
+      open={reportMessage !== null}
+      target={reportMessage ? { id: reportMessage.targetId, displayName: reportMessage.senderName || input.model.contactName } : null}
+      message={reportMessage ? { chatId: reportMessage.sessionId, messageId: reportMessage.id, previewText: reportMessage.text } : null}
+      onClose={() => setReportMessage(null)}
+    />
   );
 
   return {
@@ -154,11 +154,35 @@ function createHumanCanonicalTranscriptProps(input: {
     loading: input.model.messagesQuery.isPending,
     loadingLabel: input.t('MessagePane.loadingConversation', { defaultValue: 'Loading conversation…' }),
     error: input.model.messagesQuery.isError && !input.model.canonicalMessages.length ? input.t('ChatTimeline.messageLoadError') : null,
-    errorAction: <button type="button" onClick={() => void input.model.messagesQuery.refetch()}>{input.t('Common.retry')}</button>,
+    errorAction: (
+      <button
+        type="button"
+        onClick={() => void input.model.messagesQuery.refetch()}
+        className="rounded-md px-2.5 py-1 text-sm font-medium text-[var(--nimi-action-primary-bg)] transition-[background-color,transform] hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1"
+      >
+        {input.t('Common.retry')}
+      </button>
+    ),
     bannerContent: <div className="flex items-center justify-center gap-3 p-2 text-sm">
-      {input.model.hasOlderMessages || input.model.olderMessagesError ? <button type="button" disabled={input.model.loadingOlderMessages}
-        onClick={() => void input.model.loadOlderMessages()}>{input.model.olderMessagesError ? input.t('Common.retry') : input.t('Chat.loadEarlierMessages', { defaultValue: 'Load earlier messages' })}</button> : null}
-      {input.model.readError ? <button type="button" onClick={() => void input.model.acknowledgeRead(input.model.readError!)}>{input.t('Chat.retryReadReceipt', { defaultValue: 'Retry marking as read' })}</button> : null}
+      {input.model.hasOlderMessages || input.model.olderMessagesError ? (
+        <button
+          type="button"
+          disabled={input.model.loadingOlderMessages}
+          onClick={() => void input.model.loadOlderMessages()}
+          className="rounded-md px-2.5 py-1 text-sm font-medium text-[var(--nimi-action-primary-bg)] transition-[background-color,transform] hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1 disabled:opacity-50"
+        >
+          {input.model.olderMessagesError ? input.t('Common.retry') : input.t('Chat.loadEarlierMessages', { defaultValue: 'Load earlier messages' })}
+        </button>
+      ) : null}
+      {input.model.readError ? (
+        <button
+          type="button"
+          onClick={() => void input.model.acknowledgeRead(input.model.readError!)}
+          className="rounded-md px-2.5 py-1 text-sm font-medium text-[var(--nimi-action-primary-bg)] transition-[background-color,transform] hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1"
+        >
+          {input.t('Chat.retryReadReceipt', { defaultValue: 'Retry marking as read' })}
+        </button>
+      ) : null}
     </div>,
     emptyEyebrow: input.model.deletedPeer ? '' : input.t('MessagePane.welcomeEyebrow', { defaultValue: 'Welcome' }),
     emptyTitle: input.model.deletedPeer ? input.t('Relationship.contacts.deletedUser') : input.t('MessagePane.welcomeTitle', {

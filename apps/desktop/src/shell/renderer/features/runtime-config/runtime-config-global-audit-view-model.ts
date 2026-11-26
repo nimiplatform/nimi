@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import {
   projectNimiRuntimeAuditCallerKindName,
   projectNimiRuntimeHealthStatusName,
@@ -5,14 +6,14 @@ import {
   toNimiRuntimeIsoFromTimestamp,
 } from '@nimiplatform/sdk/runtime';
 
-export function runtimeHealthStatusLabel(status: number): string {
+export function runtimeHealthStatusLabel(status: number, t?: TFunction): string {
   switch (projectNimiRuntimeHealthStatusName(status)) {
-    case 'STOPPED': return 'Stopped';
-    case 'STARTING': return 'Starting';
-    case 'READY': return 'Ready';
-    case 'DEGRADED': return 'Degraded';
-    case 'STOPPING': return 'Stopping';
-    default: return 'Unspecified';
+    case 'STOPPED': return t ? t('runtimeConfig.runtime.healthStatus.STOPPED', { defaultValue: 'Stopped' }) : 'Stopped';
+    case 'STARTING': return t ? t('runtimeConfig.runtime.healthStatus.STARTING', { defaultValue: 'Starting' }) : 'Starting';
+    case 'READY': return t ? t('runtimeConfig.runtime.healthStatus.READY', { defaultValue: 'Ready' }) : 'Ready';
+    case 'DEGRADED': return t ? t('runtimeConfig.runtime.healthStatus.DEGRADED', { defaultValue: 'Degraded' }) : 'Degraded';
+    case 'STOPPING': return t ? t('runtimeConfig.runtime.healthStatus.STOPPING', { defaultValue: 'Stopping' }) : 'Stopping';
+    default: return t ? t('runtimeConfig.runtime.healthStatus.UNSPECIFIED', { defaultValue: 'Unspecified' }) : 'Unspecified';
   }
 }
 
@@ -50,20 +51,20 @@ export function formatCpuMilli(milliStr: string): string {
   return `${cores.toFixed(cores < 1 ? 2 : 1)} cores`;
 }
 
-export function callerKindLabel(kind: number): string {
+export function callerKindLabel(kind: number, t?: TFunction): string {
   switch (projectNimiRuntimeAuditCallerKindName(kind)) {
-    case 'DESKTOP_CORE': return 'Desktop Core';
-    case 'THIRD_PARTY_APP': return 'Third-Party App';
-    case 'THIRD_PARTY_SERVICE': return 'Third-Party Service';
+    case 'DESKTOP_CORE': return t ? t('runtimeConfig.runtime.desktopCore', { defaultValue: 'Desktop Core' }) : 'Desktop Core';
+    case 'THIRD_PARTY_APP': return t ? t('runtimeConfig.runtime.thirdPartyApp', { defaultValue: 'Third-Party App' }) : 'Third-Party App';
+    case 'THIRD_PARTY_SERVICE': return t ? t('runtimeConfig.runtime.thirdPartyService', { defaultValue: 'Third-Party Service' }) : 'Third-Party Service';
     default: return '-';
   }
 }
 
-export function usageWindowLabel(usageWindow: number): string {
+export function usageWindowLabel(usageWindow: number, t?: TFunction): string {
   switch (projectNimiRuntimeUsageWindowName(usageWindow)) {
-    case 'MINUTE': return 'Minute';
-    case 'HOUR': return 'Hour';
-    case 'DAY': return 'Day';
+    case 'MINUTE': return t ? t('runtimeConfig.runtime.windowMinute', { defaultValue: 'Minute' }) : 'Minute';
+    case 'HOUR': return t ? t('runtimeConfig.runtime.windowHour', { defaultValue: 'Hour' }) : 'Hour';
+    case 'DAY': return t ? t('runtimeConfig.runtime.windowDay', { defaultValue: 'Day' }) : 'Day';
     default: return '-';
   }
 }

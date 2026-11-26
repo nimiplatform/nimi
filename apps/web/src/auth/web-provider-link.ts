@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 import {
   NIMI_REALM_OAUTH_PROVIDER,
   linkNimiRealmOAuth,
@@ -8,6 +9,14 @@ import { getGoogleClientId, type WebAccountAuthAdapter, type WebAccountAuthAlter
 import { ReasonCode, createNimiError } from '@nimiplatform/sdk/types';
 import { BROWSER_SESSION_RESPONSE, runWebBrowserSessionLogin, createWebBrowserRealm } from './browser-realm.js';
 import { readValidatedOauthNext } from './oauth-continuation.js';
+
+function oauthMessage(key: string, fallback: string, options?: Record<string, string>): string {
+  if (i18n.isInitialized) {
+    const translated = i18n.t(key, options);
+    if (translated && translated !== key) return translated;
+  }
+  return options?.error ? fallback.replace('{{error}}', options.error) : fallback;
+}
 
 export function getWebGoogleClientId(): string {
   return import.meta.env?.VITE_NIMI_GOOGLE_CLIENT_ID?.trim()
@@ -46,21 +55,27 @@ function base64Url(bytes: Uint8Array): string {
 }
 
 function randomValue(byteLength: number): string {
-  if (!globalThis.crypto?.getRandomValues) throw new Error('安全随机数不可用。');
+  if (!globalThis.crypto?.getRandomValues) {
+    throw new Error(oauthMessage('Account.cryptoRandomUnavailable', 'Secure random generation is unavailable in this browser.'));
+  }
   const bytes = new Uint8Array(byteLength);
   globalThis.crypto.getRandomValues(bytes);
   return base64Url(bytes);
 }
 
 async function codeChallenge(verifier: string): Promise<string> {
-  if (!globalThis.crypto?.subtle) throw new Error('浏览器不支持安全的 PKCE S256。');
+  if (!globalThis.crypto?.subtle) {
+    throw new Error(oauthMessage('Account.pkceUnavailable', 'This browser does not support secure PKCE S256.'));
+  }
   const digest = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
   return base64Url(new Uint8Array(digest));
 }
 
 async function beginTikTokAccountOAuth(mode: PendingProviderLink['mode'], search = '', expectedAccountId?: string): Promise<void> {
   const clientId = String(import.meta.env.VITE_NIMI_TIKTOK_CLIENT_ID || '').trim();
-  if (!clientId) throw new Error('TikTok 登录当前未配置。');
+  if (!clientId) {
+    throw new Error(oauthMessage('Account.tiktokNotConfigured', 'TikTok sign-in is not currently configured.'));
+  }
   const pending: PendingProviderLink = {
     provider: 'TIKTOK',
     mode,
@@ -95,10 +110,10 @@ export function beginTikTokAccountLink(expectedAccountId: string): Promise<void>
 function consumePendingProviderLink(): PendingProviderLink {
   const raw = window.sessionStorage.getItem(PENDING_LINK_KEY);
   window.sessionStorage.removeItem(PENDING_LINK_KEY);
-  if (!raw) throw new Error('OAuth 绑定事务不存在或已消费。');
+  if (!raw) throw new Error(oauthMessage('Account.oauthStateMissing', 'The OAuth link session is missing or has already been used.'));
   let parsed: unknown;
-  try { parsed = JSON.parse(raw); } catch { throw new Error('OAuth 绑定事务无效。'); }
-  if (!parsed || typeof parsed !== 'object') throw new Error('OAuth 绑定事务无效。');
+  try { parsed = JSON.parse(raw); } catch { throw new Error(oauthMessage('Account.oauthStateInvalid', 'The OAuth link session is invalid.')); }
+  if (!parsed || typeof parsed !== 'object') throw new Error(oauthMessage('Account.oauthStateInvalid', 'The OAuth link session is invalid.'));
   const record = parsed as Partial<PendingProviderLink>;
   if (
     record.provider !== 'TIKTOK'
@@ -109,12 +124,14 @@ function consumePendingProviderLink(): PendingProviderLink {
     || typeof record.issuedAt !== 'number'
     || Date.now() - record.issuedAt < 0
     || Date.now() - record.issuedAt > PENDING_LINK_MAX_AGE_MS
-  ) throw new Error('OAuth 绑定事务已失效。');
+  ) throw new Error(oauthMessage('Account.oauthStateExpired', 'The OAuth link session has expired. Please try again.'));
   if (record.oauthNext !== undefined) {
     const validated = typeof record.oauthNext === 'string'
       ? readValidatedOauthNext(`?oauth_next=${encodeURIComponent(record.oauthNext)}`)
       : null;
-    if (!validated || validated !== record.oauthNext) throw new Error('OAuth continuation 已失效。');
+    if (!validated || validated !== record.oauthNext) {
+      throw new Error(oauthMessage('Account.oauthContinuationExpired', 'This authorization request has expired. Please start again.'));
+    }
   }
   return record as PendingProviderLink;
 }
@@ -140,10 +157,16 @@ export async function completeTikTokAccountOAuth(search: string, invalidAccountM
   const pending = consumePendingProviderLink();
   const query = new URLSearchParams(search);
   const error = String(query.get('error') || '').trim();
-  if (error) throw new Error(`TikTok 授权失败：${error}`);
-  if (String(query.get('state') || '').trim() !== pending.state) throw new Error('OAuth state 不匹配。');
+  if (error) {
+    throw new Error(oauthMessage('Account.oauthAuthFailedPrefix', 'TikTok authorization failed: {{error}}', { error }));
+  }
+  if (String(query.get('state') || '').trim() !== pending.state) {
+    throw new Error(oauthMessage('Account.oauthStateMismatch', 'OAuth state mismatch. Please start again.'));
+  }
   const code = String(query.get('code') || '').trim();
-  if (!code) throw new Error('TikTok 未返回授权 code。');
+  if (!code) {
+    throw new Error(oauthMessage('Account.oauthCodeMissing', 'TikTok did not return an authorization code.'));
+  }
   const input = {
     provider: NIMI_REALM_OAUTH_PROVIDER.TIKTOK,
     code,
@@ -157,7 +180,11 @@ export async function completeTikTokAccountOAuth(search: string, invalidAccountM
   }
   const loginResult = await runWebBrowserSessionLogin(async realm => {
     const result = await loginNimiRealmOAuth(realm, input, BROWSER_SESSION_RESPONSE);
-    if (result.tokens != null) throw browserSessionContractError('Realm 向 Web browser session 返回了禁止的 bearer。');
+    if (result.tokens != null) {
+      throw browserSessionContractError(
+        oauthMessage('Account.bearerForbidden', 'The sign-in service returned an unexpected response. Please try again later or contact support.'),
+      );
+    }
     return result;
   }, '');
   return { mode: pending.mode, oauthNext: pending.oauthNext, loginResult };

@@ -890,7 +890,8 @@ export function DemoZhiyuPreview({
         data-demo-owns-scroll="true"
         data-demo-interactive="true"
       >
-        <main
+        <div
+          role="region"
           className="zhiyu-agent-chat"
           aria-label={content.appName}
           data-zhiyu-screen="home"
@@ -1238,7 +1239,7 @@ export function DemoZhiyuPreview({
               ) : null}
             </div>
           </div>
-        </main>
+        </div>
       </div>
     </div>
   );

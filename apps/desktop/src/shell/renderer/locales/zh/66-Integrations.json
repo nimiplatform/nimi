@@ -354,5 +354,6 @@
   "unlistedOperationsHelp": "这些操作虽未列在当前目录中，但仍包含在已有许可内。保留勾选可继续保留权限；取消勾选并保存则会收回对应许可。",
   "closeSetupHelp": "关闭此窗口会取消尚未完成的连接设置。",
   "affectedApps": "以下应用的使用许可也会撤销",
-  "endpointPlaceholder": "https://example.com/mcp"
+  "endpointPlaceholder": "https://example.com/mcp",
+  "qrUnavailableFallback": "无法生成二维码，请使用下方验证链接继续。"
 }

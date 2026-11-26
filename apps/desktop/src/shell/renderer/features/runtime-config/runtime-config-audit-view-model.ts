@@ -128,8 +128,16 @@ export function filterAuditEvents(input: {
       return false;
     }
     if (reasonCodeQuery) {
-      const reasonCode = resolveAuditReasonCode(event).toLowerCase();
-      if (!reasonCode.includes(reasonCodeQuery)) {
+      const candidates = [
+        resolveAuditReasonCode(event),
+        String(event.modelId || '').trim(),
+        payloadValue(event, 'model'),
+        payloadValue(event, 'modelKey'),
+        resolveAuditDetail(event),
+        String(event.eventType || '').trim(),
+        payloadValue(event, 'targetId'),
+      ];
+      if (!candidates.some((value) => value.toLowerCase().includes(reasonCodeQuery))) {
         return false;
       }
     }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, Route, Routes, useBeforeUnload, useBlocker, useLocation, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { ConfirmDialog } from '@nimiplatform/kit/ui';
 import { WebAccountAuthPage } from '@nimiplatform/kit/auth';
 import { fetchNimiRealmPendingFriendRequests, isNimiRealmExpectedAnonymousSessionError } from '@nimiplatform/sdk/realm';
 import { createWebBrowserRealm, webRealmOrigin } from './browser-realm.js';
@@ -49,6 +50,7 @@ export function AccountManagementPage() {
   const [deleted, setDeleted] = useState<AccountTerminationReceipt | null>(null);
   const [verifyingOwner, setVerifyingOwner] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [pendingSignOut, setPendingSignOut] = useState<{ verify: boolean } | null>(null);
   const [receivedRequests, setReceivedRequests] = useState<{ owner: string; total: number } | null>(null);
   const [friendsRevision, setFriendsRevision] = useState(0);
   const request = useRef(0);
@@ -167,9 +169,8 @@ export function AccountManagementPage() {
       .querySelector<HTMLHeadingElement>('.ac-page-heading h1, .ac-hero-header h1, .ac-portal-greeting h1, .download-hero h1')
       ?.focus({ preventScroll: true });
   }, [location.pathname, i18n.language]);
-  async function signOut(verify = false) {
+  async function performSignOut(verify = false) {
     if (working || !user) return;
-    if (dirty && !window.confirm(c('discard'))) return;
     const owner = String(user.id);
     setWorking(true);
     setError(null);
@@ -179,6 +180,7 @@ export function AccountManagementPage() {
       confirmedOnEntry.current = false;
       request.current += 1;
       setDirty(false);
+      setPendingSignOut(null);
       setUser(null);
       if (verify) setVerifyingOwner(owner);
     } catch (reason) {
@@ -186,6 +188,7 @@ export function AccountManagementPage() {
       if (isNimiRealmExpectedAnonymousSessionError(reason)) {
         confirmedOnEntry.current = false;
         request.current += 1;
+        setPendingSignOut(null);
         setUser(null);
         if (verify) setVerifyingOwner(owner);
       } else setError(reason instanceof Error ? reason.message : t('Account.logoutFailed'));
@@ -193,13 +196,21 @@ export function AccountManagementPage() {
       if (mounted.current) setWorking(false);
     }
   }
+  function signOut(verify = false) {
+    if (working || !user) return;
+    if (dirty) {
+      setPendingSignOut({ verify });
+      return;
+    }
+    void performSignOut(verify);
+  }
   if (deleted)
     return (
       <main className="ac-entry">
         <div className="ac-entry-content" role="status">
           <h1>{t('AccountSecurity.deleted')}</h1>
           <p>{t('AccountSecurity.deletedBody')}</p>
-          <Link to="/">{c('home')}</Link>
+          <Link className="ac-button" to="/">{c('home')}</Link>
         </div>
       </main>
     );
@@ -211,6 +222,7 @@ export function AccountManagementPage() {
           <p>{t(verifyingDeletion ? 'AccountSecurity.reverifyBody' : 'AccountSecurity.verifyOwnershipBody')}</p>
           <button
             type="button"
+            className="ac-button ac-button--secondary"
             onClick={() => {
               setVerifyingOwner(null);
               setUser(null);
@@ -364,12 +376,27 @@ export function AccountManagementPage() {
           element={
             <>
               <AccountHeading title={c('notFound')} />
-              <Link to="/account">{c('backAccount')}</Link>
+              <Link className="ac-text-link" to="/account">{c('backAccount')}</Link>
             </>
           }
         />
       </Routes>
       <AccountDraftDialog blocker={blocker} />
+      <ConfirmDialog
+        open={Boolean(pendingSignOut)}
+        title={c('discard')}
+        message={c('discard')}
+        cancelLabel={c('keepEditing')}
+        confirmLabel={c('discardAndSignOut')}
+        confirmTone="danger"
+        loading={working}
+        onClose={() => setPendingSignOut(null)}
+        onConfirm={() => {
+          const target = pendingSignOut;
+          if (!target) return;
+          void performSignOut(target.verify);
+        }}
+      />
     </AccountFrame>
   );
 }

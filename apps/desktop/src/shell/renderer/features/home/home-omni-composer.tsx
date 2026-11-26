@@ -1,5 +1,5 @@
 import { hasElectronInvoke, openShellFileDialog } from '@nimiplatform/kit/shell/renderer/bridge';
-import { Button, ScrollArea } from '@nimiplatform/kit/ui';
+import { Button, Popover, PopoverContent, PopoverTrigger, ScrollArea } from '@nimiplatform/kit/ui';
 import {
   RouteAndSubmitOutcome,
   type RouteAndSubmitInputResponse,
@@ -643,8 +643,14 @@ export function HomeOmniComposer({
     setTarget((prev) => (prev.kind === 'partner' ? { ...prev, mode: 'harness' } : prev));
   };
 
+  const [isDragOver, setIsDragOver] = useState(false);
+  const dragDepthRef = useRef(0);
+  const focusInputOnMenuCloseRef = useRef(false);
+
   const handleDropFiles = (event: DragEvent<HTMLFormElement>) => {
     event.preventDefault();
+    dragDepthRef.current = 0;
+    setIsDragOver(false);
     const resolveElectronFilePath = (
       globalThis as { __NIMI_DESKTOP_FILE_PATH__?: (file: File) => string }
     ).__NIMI_DESKTOP_FILE_PATH__;
@@ -777,10 +783,33 @@ export function HomeOmniComposer({
     <div className="relative z-30 flex min-w-0 flex-col gap-3" data-testid="home-omni-composer">
       <form
         onSubmit={handleSubmit}
-        onDragOver={(event) => event.preventDefault()}
+        onDragEnter={(event) => {
+          if (event.dataTransfer.types.includes('Files')) {
+            event.preventDefault();
+            dragDepthRef.current += 1;
+            setIsDragOver(true);
+          }
+        }}
+        onDragOver={(event) => {
+          event.preventDefault();
+          if (event.dataTransfer.types.includes('Files') && !isDragOver) {
+            setIsDragOver(true);
+          }
+        }}
+        onDragLeave={() => {
+          dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+          if (dragDepthRef.current === 0) {
+            setIsDragOver(false);
+          }
+        }}
         onDrop={handleDropFiles}
         data-testid="home-quick-start-bar"
-        className="relative flex min-w-0 flex-col gap-2 rounded-3xl bg-[var(--nimi-home-porcelain-card)] px-4 py-3 shadow-[var(--nimi-home-porcelain-pill-shadow)] transition-shadow duration-150 focus-within:shadow-[var(--nimi-home-porcelain-shadow-hover)] focus-within:ring-2 focus-within:ring-[var(--nimi-focus-ring-color)]/30"
+        data-drag-over={isDragOver ? 'true' : undefined}
+        className={`relative flex min-w-0 flex-col gap-2 rounded-3xl px-4 py-3 shadow-[var(--nimi-home-porcelain-pill-shadow)] transition-[background-color,border-color,box-shadow] duration-150 focus-within:shadow-[var(--nimi-home-porcelain-shadow-hover)] focus-within:ring-2 focus-within:ring-[var(--nimi-focus-ring-color)]/30 ${
+          isDragOver
+            ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,var(--nimi-home-porcelain-card))] ring-2 ring-[var(--nimi-action-primary-bg)]'
+            : 'bg-[var(--nimi-home-porcelain-card)]'
+        }`}
       >
         {/* Top Target & Attachment Pills Row */}
         <div className="flex flex-wrap items-center gap-1.5 text-xs">
@@ -825,7 +854,7 @@ export function HomeOmniComposer({
                 type="button"
                 aria-label={t('runtimeConfig.overview.omni.clearTarget')}
                 onClick={() => setTarget({ kind: 'auto' })}
-                className="rounded-full p-0.5 hover:bg-black/10"
+                className="rounded-full p-0.5 transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
               >
                 <X size={11} aria-hidden="true" />
               </button>
@@ -844,7 +873,7 @@ export function HomeOmniComposer({
                 data-testid="home-omni-partner-mode-toggle"
                 disabled={hasOmniFileContext(attachments)}
                 onClick={() => setTarget((prev) => toggleOmniPartnerMode(prev, attachments))}
-                className="rounded-full bg-[var(--nimi-surface-card)] px-2 py-0.5 text-[11px] text-[var(--nimi-action-primary-bg)] shadow-xs disabled:opacity-60"
+                className="rounded-full bg-[var(--nimi-surface-card)] px-2 py-0.5 text-[11px] text-[var(--nimi-action-primary-bg)] shadow-xs transition-[transform,background-color] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] disabled:opacity-60"
                 title={t('runtimeConfig.overview.omni.partnerModeHint')}
               >
                 {effectivePartnerMode === 'harness'
@@ -855,7 +884,7 @@ export function HomeOmniComposer({
                 type="button"
                 aria-label={t('runtimeConfig.overview.omni.clearTarget')}
                 onClick={() => setTarget({ kind: 'auto' })}
-                className="rounded-full p-0.5 hover:bg-black/10"
+                className="rounded-full p-0.5 transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
               >
                 <X size={11} aria-hidden="true" />
               </button>
@@ -873,7 +902,7 @@ export function HomeOmniComposer({
                 type="button"
                 aria-label={t('runtimeConfig.overview.omni.clearTarget')}
                 onClick={() => setTarget({ kind: 'auto' })}
-                className="rounded-full p-0.5 hover:bg-black/10"
+                className="rounded-full p-0.5 transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
               >
                 <X size={11} aria-hidden="true" />
               </button>
@@ -893,7 +922,7 @@ export function HomeOmniComposer({
                 type="button"
                 aria-label={t('runtimeConfig.overview.omni.removeAttachment')}
                 onClick={() => setAttachments((prev) => removeReadOnlyAttachmentPath(prev, filePath))}
-                className="rounded-full p-0.5 hover:bg-black/10"
+                className="rounded-full p-0.5 transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
               >
                 <X size={10} aria-hidden="true" />
               </button>
@@ -912,7 +941,7 @@ export function HomeOmniComposer({
                 type="button"
                 aria-label={t('runtimeConfig.overview.omni.removeWorkspace')}
                 onClick={() => setAttachments((prev) => clearWritableWorkspaceRoot(prev))}
-                className="rounded-full p-0.5 hover:bg-black/10"
+                className="rounded-full p-0.5 transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
               >
                 <X size={10} aria-hidden="true" />
               </button>
@@ -922,16 +951,116 @@ export function HomeOmniComposer({
 
         {/* Main Input Row */}
         <div className="flex min-w-0 items-end gap-2">
-          <button
-            type="button"
-            aria-label={t('runtimeConfig.overview.omni.openPlusMenu')}
-            aria-expanded={plusMenuOpen}
-            data-testid="home-omni-plus-button"
-            onClick={() => setPlusMenuOpen((open) => !open)}
-            className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-[var(--nimi-home-soft-well)] text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-home-soft-well-hover)] hover:text-[var(--nimi-text-primary)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
-          >
-            <Plus size={16} aria-hidden="true" />
-          </button>
+          <Popover open={plusMenuOpen} onOpenChange={setPlusMenuOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                aria-label={t('runtimeConfig.overview.omni.openPlusMenu')}
+                aria-haspopup="menu"
+                aria-expanded={plusMenuOpen}
+                data-testid="home-omni-plus-button"
+                className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-[var(--nimi-home-soft-well)] text-[var(--nimi-text-secondary)] transition-[transform,background-color,color] duration-150 hover:bg-[var(--nimi-home-soft-well-hover)] hover:text-[var(--nimi-text-primary)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+              >
+                <Plus size={16} aria-hidden="true" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              align="start"
+              side="bottom"
+              sideOffset={8}
+              onCloseAutoFocus={(event) => {
+                if (focusInputOnMenuCloseRef.current) {
+                  event.preventDefault();
+                  focusInputOnMenuCloseRef.current = false;
+                  inputRef.current?.focus();
+                }
+              }}
+              className="w-72 rounded-2xl border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-1.5 text-xs shadow-[var(--nimi-elevation-floating)]"
+            >
+              <div
+                role="menu"
+                aria-label={t('runtimeConfig.overview.omni.openPlusMenu')}
+                data-testid="home-omni-plus-menu"
+                onKeyDown={(event) => {
+                  if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+                  const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)'));
+                  if (items.length === 0) return;
+                  event.preventDefault();
+                  const current = items.indexOf(document.activeElement as HTMLButtonElement);
+                  const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1
+                    : event.key === 'ArrowDown' ? (current + 1) % items.length : (current - 1 + items.length) % items.length;
+                  items[next]?.focus();
+                }}
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    focusInputOnMenuCloseRef.current = true;
+                    setPlusMenuOpen(false);
+                    const next = `${draft}${draft && !draft.endsWith(' ') ? ' ' : ''}@`;
+                    setDraft(next);
+                    setCaretIndex(next.length);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[var(--nimi-text-primary)] transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-home-soft-well)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+                >
+                  <AtSign size={14} aria-hidden="true" className="text-[var(--nimi-action-primary-bg)]" />
+                  <span>{t('runtimeConfig.overview.omni.menuHuman')}</span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    focusInputOnMenuCloseRef.current = true;
+                    setPlusMenuOpen(false);
+                    const next = `${draft}${draft && !draft.endsWith(' ') ? ' ' : ''}~`;
+                    setDraft(next);
+                    setCaretIndex(next.length);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[var(--nimi-text-primary)] transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-home-soft-well)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+                >
+                  <Bot size={14} aria-hidden="true" className="text-[var(--nimi-action-primary-bg)]" />
+                  <span>{t('runtimeConfig.overview.omni.menuPartner')}</span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    focusInputOnMenuCloseRef.current = true;
+                    setPlusMenuOpen(false);
+                    const next = `${draft}${draft && !draft.endsWith(' ') ? ' ' : ''}#`;
+                    setDraft(next);
+                    setCaretIndex(next.length);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[var(--nimi-text-primary)] transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-home-soft-well)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+                >
+                  <Hash size={14} aria-hidden="true" className="text-[var(--nimi-action-primary-bg)]" />
+                  <span>{t('runtimeConfig.overview.omni.menuSession')}</span>
+                </button>
+                <div role="separator" className="my-1 border-t border-[var(--nimi-border-subtle)]" />
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-testid="home-omni-menu-attach-readonly"
+                  onClick={() => void handleAttachReadOnlyFile()}
+                  className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[var(--nimi-text-primary)] transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-home-soft-well)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+                >
+                  <Paperclip size={14} aria-hidden="true" />
+                  <span>{t('runtimeConfig.overview.omni.menuAttachReadOnly')}</span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-testid="home-omni-menu-authorize-workspace"
+                  onClick={() => void handleAuthorizeWorkspace()}
+                  className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[var(--nimi-text-primary)] transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-home-soft-well)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+                >
+                  <FolderOpen size={14} aria-hidden="true" />
+                  <span>{t('runtimeConfig.overview.omni.menuAuthorizeWorkspace')}</span>
+                </button>
+              </div>
+            </PopoverContent>
+          </Popover>
 
           <textarea
             ref={inputRef}
@@ -956,7 +1085,7 @@ export function HomeOmniComposer({
             placeholder={t('runtimeConfig.overview.quickStart.placeholder')}
             aria-label={t('runtimeConfig.overview.quickStart.label')}
             data-testid="home-quick-start-input"
-            className="max-h-28 min-w-0 flex-1 resize-none bg-transparent py-1.5 text-[15px] leading-6 text-[var(--nimi-text-primary)] placeholder:text-[var(--nimi-text-muted)] focus:outline-none"
+            className="max-h-28 min-w-0 flex-1 resize-none bg-transparent py-1.5 text-[0.9375rem] leading-6 text-[var(--nimi-text-primary)] placeholder:text-[var(--nimi-text-muted)] focus:outline-none"
           />
 
           <button
@@ -965,7 +1094,7 @@ export function HomeOmniComposer({
             aria-label={submitLabel}
             title={submitLabel}
             data-testid="home-quick-start-submit"
-            className={`inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full transition-all duration-150 focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${
+            className={`inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full transition-[transform,opacity,background-color,border-color,color] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] ${
               isHumanTarget
                 ? 'bg-[var(--nimi-status-info-soft-bg)] px-3.5 text-xs font-semibold text-[var(--nimi-action-primary-bg)] hover:opacity-90'
                 : hasDraft
@@ -1015,76 +1144,6 @@ export function HomeOmniComposer({
           </p>
         ) : null}
 
-        {/* + Action Menu (Zero-memory discovery for @ / ~ / # / read-only file / writable workspace) */}
-        {plusMenuOpen ? (
-          <div
-            data-testid="home-omni-plus-menu"
-            className="absolute top-full left-0 z-50 mt-2 w-72 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-1.5 text-xs shadow-xl"
-          >
-            <button
-              type="button"
-              onClick={() => {
-                setPlusMenuOpen(false);
-                const next = `${draft}${draft && !draft.endsWith(' ') ? ' ' : ''}@`;
-                setDraft(next);
-                setCaretIndex(next.length);
-                inputRef.current?.focus();
-              }}
-              className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[var(--nimi-text-primary)] hover:bg-[var(--nimi-home-soft-well)]"
-            >
-              <AtSign size={14} aria-hidden="true" className="text-[var(--nimi-action-primary-bg)]" />
-              <span>{t('runtimeConfig.overview.omni.menuHuman')}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setPlusMenuOpen(false);
-                const next = `${draft}${draft && !draft.endsWith(' ') ? ' ' : ''}~`;
-                setDraft(next);
-                setCaretIndex(next.length);
-                inputRef.current?.focus();
-              }}
-              className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[var(--nimi-text-primary)] hover:bg-[var(--nimi-home-soft-well)]"
-            >
-              <Bot size={14} aria-hidden="true" className="text-[var(--nimi-action-primary-bg)]" />
-              <span>{t('runtimeConfig.overview.omni.menuPartner')}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setPlusMenuOpen(false);
-                const next = `${draft}${draft && !draft.endsWith(' ') ? ' ' : ''}#`;
-                setDraft(next);
-                setCaretIndex(next.length);
-                inputRef.current?.focus();
-              }}
-              className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[var(--nimi-text-primary)] hover:bg-[var(--nimi-home-soft-well)]"
-            >
-              <Hash size={14} aria-hidden="true" className="text-[var(--nimi-action-primary-bg)]" />
-              <span>{t('runtimeConfig.overview.omni.menuSession')}</span>
-            </button>
-            <div className="my-1 border-t border-[var(--nimi-border-subtle)]" />
-            <button
-              type="button"
-              data-testid="home-omni-menu-attach-readonly"
-              onClick={() => void handleAttachReadOnlyFile()}
-              className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[var(--nimi-text-primary)] hover:bg-[var(--nimi-home-soft-well)]"
-            >
-              <Paperclip size={14} aria-hidden="true" />
-              <span>{t('runtimeConfig.overview.omni.menuAttachReadOnly')}</span>
-            </button>
-            <button
-              type="button"
-              data-testid="home-omni-menu-authorize-workspace"
-              onClick={() => void handleAuthorizeWorkspace()}
-              className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[var(--nimi-text-primary)] hover:bg-[var(--nimi-home-soft-well)]"
-            >
-              <FolderOpen size={14} aria-hidden="true" />
-              <span>{t('runtimeConfig.overview.omni.menuAuthorizeWorkspace')}</span>
-            </button>
-          </div>
-        ) : null}
-
         {/* Symbol Trigger Autocomplete Popover (@ / ~ / #) */}
         {activeTrigger && triggerOptions.length > 0 ? (
           <div
@@ -1098,7 +1157,14 @@ export function HomeOmniComposer({
                 type="button"
                 role="option"
                 aria-selected={idx === activeOptionIndex}
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  opt.onSelect();
+                }}
                 onMouseDown={(event) => {
+                  if (event.defaultPrevented) {
+                    return;
+                  }
                   event.preventDefault();
                   opt.onSelect();
                 }}
@@ -1129,8 +1195,9 @@ export function HomeOmniComposer({
             </span>
             <button
               type="button"
+              aria-label={t('Common.close', { defaultValue: 'Dismiss' })}
               onClick={() => setDisambiguation(null)}
-              className="text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-primary)]"
+              className="-m-1 inline-flex size-6 items-center justify-center rounded-md text-[var(--nimi-text-muted)] transition-[transform,color,background-color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
             >
               <X size={13} aria-hidden="true" />
             </button>

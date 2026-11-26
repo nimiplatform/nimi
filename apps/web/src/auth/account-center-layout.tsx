@@ -18,7 +18,15 @@ import {
   UsersRound,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getAvatarMonogram, resolveAvatarMeshPalette } from '@nimiplatform/kit/ui';
+import {
+  AnimatePresence,
+  Surface,
+  getAvatarMonogram,
+  motion,
+  nimiOverlayPanelMotion,
+  resolveAvatarMeshPalette,
+  useNimiReducedMotion,
+} from '@nimiplatform/kit/ui';
 import { useAccountCopy, type AccountCopyKey } from './account-center-copy.js';
 import { accountHandle } from './account-center-model.js';
 import { LanguageToggle } from '../landing/components/language-toggle.js';
@@ -162,6 +170,15 @@ export function AccountFrame({
   const [menuOpen, setMenuOpen] = useState(false);
   const menuContainerRef = useRef<HTMLDivElement>(null);
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  const menuPopoverRef = useRef<HTMLDivElement>(null);
+  const openViaKeyboardRef = useRef(false);
+  const reducedMotion = useNimiReducedMotion();
+  const popoverMotion = nimiOverlayPanelMotion({
+    kind: 'popover',
+    side: 'bottom',
+    align: 'end',
+    reducedMotion,
+  });
   const locale = i18n.language.startsWith('zh') ? 'zh' : 'en';
   const layoutMode = resolveLayoutMode(location.pathname);
   const displayName = String(user.displayName || user.handle || c('profile'));
@@ -178,10 +195,38 @@ export function AccountFrame({
 
   useEffect(() => {
     if (!menuOpen) return;
+    if (openViaKeyboardRef.current) {
+      openViaKeyboardRef.current = false;
+      window.requestAnimationFrame(() => {
+        const items = menuPopoverRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)');
+        items?.[0]?.focus({ preventScroll: true });
+      });
+    }
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || event.defaultPrevented) return;
-      setMenuOpen(false);
-      menuTriggerRef.current?.focus({ preventScroll: true });
+      if (event.key === 'Escape' && !event.defaultPrevented) {
+        setMenuOpen(false);
+        menuTriggerRef.current?.focus({ preventScroll: true });
+        return;
+      }
+      if (!menuPopoverRef.current?.contains(document.activeElement)) return;
+      const items = Array.from(
+        menuPopoverRef.current.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)'),
+      ).filter((el) => el.offsetParent !== null);
+      if (items.length === 0) return;
+      const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        items[(currentIndex + 1 + items.length) % items.length]?.focus();
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        items[(currentIndex - 1 + items.length) % items.length]?.focus();
+      } else if (event.key === 'Home') {
+        event.preventDefault();
+        items[0]?.focus();
+      } else if (event.key === 'End') {
+        event.preventDefault();
+        items[items.length - 1]?.focus();
+      }
     };
     const onPointerDown = (event: PointerEvent) => {
       if (!(event.target instanceof Node)) return;
@@ -202,7 +247,14 @@ export function AccountFrame({
         {locale === 'zh' ? '跳到主要内容' : 'Skip to content'}
       </a>
 
-      <div className="ac-topbar-wrap">
+      <Surface
+        as="div"
+        material="glass-chrome"
+        tone="overlay"
+        elevation="base"
+        padding="none"
+        className="ac-topbar-wrap"
+      >
         <header className="ac-topbar">
           <Link to={withLocaleQuery('/', locale)} className="ac-brand" aria-label={c('home')}>
             <img src="/logo.svg" alt="" width={29} height={29} />
@@ -260,7 +312,16 @@ export function AccountFrame({
               />
             </div>
 
-            <div className="ac-identity-menu" ref={menuContainerRef}>
+            <div
+              className="ac-identity-menu"
+              ref={menuContainerRef}
+              onBlur={(event) => {
+                if (!menuOpen) return;
+                const next = event.relatedTarget;
+                if (next instanceof Node && menuContainerRef.current?.contains(next)) return;
+                setMenuOpen(false);
+              }}
+            >
               <button
                 ref={menuTriggerRef}
                 type="button"
@@ -268,6 +329,15 @@ export function AccountFrame({
                 aria-expanded={menuOpen}
                 aria-haspopup="menu"
                 aria-controls="ac-identity-popover"
+                onKeyDown={(event) => {
+                  if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
+                    openViaKeyboardRef.current = true;
+                    if (event.key === 'ArrowDown' && !menuOpen) {
+                      event.preventDefault();
+                      setMenuOpen(true);
+                    }
+                  }
+                }}
                 onClick={() => setMenuOpen((open) => !open)}
               >
                 <AccountAvatar user={user} size="small" />
@@ -278,135 +348,153 @@ export function AccountFrame({
                 <ChevronDown size={15} aria-hidden="true" className="ac-identity-trigger-chevron" />
               </button>
 
-              {menuOpen ? (
-                <div id="ac-identity-popover" className="ac-identity-popover" role="menu">
-                  <div className="ac-popover-person">
-                    <AccountAvatar user={user} size="normal" />
-                    <div className="ac-popover-person-copy">
-                      <strong>{displayName}</strong>
-                      {secondaryIdentity ? <small>{secondaryIdentity}</small> : null}
-                    </div>
-                    <Link
-                      to="/account/profile"
-                      role="menuitem"
-                      className="ac-popover-edit"
-                      title={c('edit')}
-                      aria-label={c('edit')}
+              <AnimatePresence>
+                {menuOpen ? (
+                  <motion.div
+                    ref={menuPopoverRef}
+                    {...popoverMotion}
+                    style={{ ...popoverMotion.style, transformOrigin: 'top right' }}
+                    className="ac-identity-popover-motion"
+                  >
+                    <Surface
+                      as="div"
+                      material="solid"
+                      tone="overlay"
+                      elevation="floating"
+                      padding="none"
+                      id="ac-identity-popover"
+                      className="ac-identity-popover"
+                      role="menu"
                     >
-                      <Pencil size={15} aria-hidden="true" />
-                    </Link>
-                  </div>
+                      <div className="ac-popover-person">
+                        <AccountAvatar user={user} size="normal" />
+                        <div className="ac-popover-person-copy">
+                          <strong>{displayName}</strong>
+                          {secondaryIdentity ? <small>{secondaryIdentity}</small> : null}
+                        </div>
+                        <Link
+                          to="/account/profile"
+                          role="menuitem"
+                          className="ac-popover-edit"
+                          title={c('edit')}
+                          aria-label={c('edit')}
+                        >
+                          <Pencil size={15} aria-hidden="true" />
+                        </Link>
+                      </div>
 
-                  <div className="ac-popover-divider ac-popover-divider--accent" aria-hidden="true" />
+                      <div className="ac-popover-divider ac-popover-divider--accent" aria-hidden="true" />
 
-                  <div className="ac-popover-mobile-nav">
-                    <NavLink
-                      to="/account"
-                      end
-                      role="menuitem"
-                      className={({ isActive }) => `ac-popover-item${isActive ? ' is-active' : ''}`}
-                    >
-                      <House size={16} aria-hidden="true" />
-                      <span className="ac-popover-item-label">{c('navPortal')}</span>
-                      <ChevronRight size={14} aria-hidden="true" className="ac-popover-chevron" />
-                    </NavLink>
-                    <NavLink
-                      to="/account/runtime"
-                      role="menuitem"
-                      className={({ isActive }) => `ac-popover-item${isActive ? ' is-active' : ''}`}
-                    >
-                      <Cpu size={16} aria-hidden="true" />
-                      <span className="ac-popover-item-label">{c('runtimeNav')}</span>
-                      <ChevronRight size={14} aria-hidden="true" className="ac-popover-chevron" />
-                    </NavLink>
-                    <NavLink
-                      to="/account/download"
-                      role="menuitem"
-                      className={({ isActive }) => `ac-popover-item${isActive ? ' is-active' : ''}`}
-                    >
-                      <ArrowDownToLine size={16} aria-hidden="true" />
-                      <span className="ac-popover-item-label">{c('navDownloadDesktop')}</span>
-                      <ChevronRight size={14} aria-hidden="true" className="ac-popover-chevron" />
-                    </NavLink>
-                    <div className="ac-popover-divider" aria-hidden="true" />
-                  </div>
-
-                  <div className="ac-popover-group">
-                    <span className="ac-popover-group-label">{c('navGroupIdentity')}</span>
-                    <div className="ac-popover-list">
-                      {identityMenuItems.map(([to, label, Icon]) => (
+                      <div className="ac-popover-mobile-nav">
                         <NavLink
-                          key={to}
-                          to={to}
+                          to="/account"
+                          end
                           role="menuitem"
                           className={({ isActive }) => `ac-popover-item${isActive ? ' is-active' : ''}`}
                         >
-                          <Icon size={16} aria-hidden="true" />
-                          <span className="ac-popover-item-label">{c(label)}</span>
-                          {to === '/account/friends' && hasPendingRequests ? (
-                            <span className="ac-badge">{pendingReceivedCount}</span>
-                          ) : null}
+                          <House size={16} aria-hidden="true" />
+                          <span className="ac-popover-item-label">{c('navPortal')}</span>
                           <ChevronRight size={14} aria-hidden="true" className="ac-popover-chevron" />
                         </NavLink>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="ac-popover-group">
-                    <span className="ac-popover-group-label">{c('navGroupSecurity')}</span>
-                    <div className="ac-popover-list">
-                      {securityMenuItems.map(([to, label, Icon]) => (
                         <NavLink
-                          key={to}
-                          to={to}
+                          to="/account/runtime"
                           role="menuitem"
-                          className={({ isActive }) =>
-                            `ac-popover-item${isActive || (to === '/account/data' && isDeleteRoute) ? ' is-active' : ''}`
-                          }
+                          className={({ isActive }) => `ac-popover-item${isActive ? ' is-active' : ''}`}
                         >
-                          <Icon size={16} aria-hidden="true" />
-                          <span className="ac-popover-item-label">{c(label)}</span>
-                          {to === '/account/security' ? (
-                            <span className={`ac-popover-pill${twoFactor ? ' is-enabled' : ''}`}>
-                              {c(twoFactor ? 'enabled' : 'notEnabled')}
-                            </span>
-                          ) : null}
+                          <Cpu size={16} aria-hidden="true" />
+                          <span className="ac-popover-item-label">{c('runtimeNav')}</span>
                           <ChevronRight size={14} aria-hidden="true" className="ac-popover-chevron" />
                         </NavLink>
-                      ))}
-                    </div>
-                  </div>
+                        <NavLink
+                          to="/account/download"
+                          role="menuitem"
+                          className={({ isActive }) => `ac-popover-item${isActive ? ' is-active' : ''}`}
+                        >
+                          <ArrowDownToLine size={16} aria-hidden="true" />
+                          <span className="ac-popover-item-label">{c('navDownloadDesktop')}</span>
+                          <ChevronRight size={14} aria-hidden="true" className="ac-popover-chevron" />
+                        </NavLink>
+                        <div className="ac-popover-divider" aria-hidden="true" />
+                      </div>
 
-                  <div className="ac-popover-divider" aria-hidden="true" />
+                      <div className="ac-popover-group">
+                        <span className="ac-popover-group-label">{c('navGroupIdentity')}</span>
+                        <div className="ac-popover-list">
+                          {identityMenuItems.map(([to, label, Icon]) => (
+                            <NavLink
+                              key={to}
+                              to={to}
+                              role="menuitem"
+                              className={({ isActive }) => `ac-popover-item${isActive ? ' is-active' : ''}`}
+                            >
+                              <Icon size={16} aria-hidden="true" />
+                              <span className="ac-popover-item-label">{c(label)}</span>
+                              {to === '/account/friends' && hasPendingRequests ? (
+                                <span className="ac-badge">{pendingReceivedCount}</span>
+                              ) : null}
+                              <ChevronRight size={14} aria-hidden="true" className="ac-popover-chevron" />
+                            </NavLink>
+                          ))}
+                        </div>
+                      </div>
 
-                  <div className="ac-popover-list ac-popover-list--bottom">
-                    <Link
-                      to="/account/recovery"
-                      role="menuitem"
-                      className="ac-popover-item"
-                    >
-                      <CircleHelp size={16} aria-hidden="true" />
-                      <span className="ac-popover-item-label">{c('help')}</span>
-                      <ChevronRight size={14} aria-hidden="true" className="ac-popover-chevron" />
-                    </Link>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="ac-popover-item ac-popover-item--danger"
-                      disabled={working}
-                      onClick={onSignOut}
-                    >
-                      <LogOut size={16} aria-hidden="true" />
-                      <span className="ac-popover-item-label">{c('signOut')}</span>
-                      <ChevronRight size={14} aria-hidden="true" className="ac-popover-chevron" />
-                    </button>
-                  </div>
-                </div>
-              ) : null}
+                      <div className="ac-popover-group">
+                        <span className="ac-popover-group-label">{c('navGroupSecurity')}</span>
+                        <div className="ac-popover-list">
+                          {securityMenuItems.map(([to, label, Icon]) => (
+                            <NavLink
+                              key={to}
+                              to={to}
+                              role="menuitem"
+                              className={({ isActive }) =>
+                                `ac-popover-item${isActive || (to === '/account/data' && isDeleteRoute) ? ' is-active' : ''}`
+                              }
+                            >
+                              <Icon size={16} aria-hidden="true" />
+                              <span className="ac-popover-item-label">{c(label)}</span>
+                              {to === '/account/security' ? (
+                                <span className={`ac-popover-pill${twoFactor ? ' is-enabled' : ''}`}>
+                                  {c(twoFactor ? 'enabled' : 'notEnabled')}
+                                </span>
+                              ) : null}
+                              <ChevronRight size={14} aria-hidden="true" className="ac-popover-chevron" />
+                            </NavLink>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="ac-popover-divider" aria-hidden="true" />
+
+                      <div className="ac-popover-list ac-popover-list--bottom">
+                        <Link
+                          to="/account/recovery"
+                          role="menuitem"
+                          className="ac-popover-item"
+                        >
+                          <CircleHelp size={16} aria-hidden="true" />
+                          <span className="ac-popover-item-label">{c('help')}</span>
+                          <ChevronRight size={14} aria-hidden="true" className="ac-popover-chevron" />
+                        </Link>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="ac-popover-item ac-popover-item--danger"
+                          disabled={working}
+                          onClick={onSignOut}
+                        >
+                          <LogOut size={16} aria-hidden="true" />
+                          <span className="ac-popover-item-label">{c('signOut')}</span>
+                          <ChevronRight size={14} aria-hidden="true" className="ac-popover-chevron" />
+                        </button>
+                      </div>
+                    </Surface>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
             </div>
           </div>
         </header>
-      </div>
+      </Surface>
 
       <div className={`ac-workspace ac-workspace--${layoutMode}`}>
         {layoutMode === 'settings' ? (

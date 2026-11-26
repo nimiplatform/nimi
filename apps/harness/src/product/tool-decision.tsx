@@ -207,15 +207,15 @@ export function ToolDecision({
 
       {isControlPlane && (
         <p className="harness-decision-card__hint" role="note">
-          控制面文件保护：修改构建/脚本/Git 配置仅允许单次授权（allow_once）。
+          {t('decision.controlPlaneWarning')}
         </p>
       )}
       {isFreeShell && (
         <div className="harness-decision-card__hint" role="note">
-          <p>安全提示：获批命令在当前操作系统用户权限下运行（已启用最小环境变量白名单与 .env 凭据输出脱敏），且仅支持单次授权。</p>
+          <p>{t('decision.freeShellWarning')}</p>
           {recentAiEditedWarning && recentAiEditedWarning.length > 0 && (
             <p>
-              <strong>本会话近期由 AI 改动的文件：</strong>
+              <strong>{t('decision.recentAiEditedLabel')}</strong>
               <code>{recentAiEditedWarning.slice(0, 6).join(', ')}</code>
             </p>
           )}

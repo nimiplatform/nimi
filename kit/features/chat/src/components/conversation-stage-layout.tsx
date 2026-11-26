@@ -1,4 +1,4 @@
-import { useState, useCallback, type ReactNode } from 'react';
+import { useState, useCallback, useEffect, type ReactNode } from 'react';
 import { IconButton, SidebarShell, cn } from '@nimiplatform/kit/ui';
 import { ConversationAnimationStyles } from './conversation-animations.js';
 
@@ -44,6 +44,21 @@ export function ConversationStageLayout({
     [onSettingsOpenChange],
   );
 
+  useEffect(() => {
+    if (!isOpen || !settingsDrawer) {
+      return;
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, setOpen, settingsDrawer]);
+
   return (
     <div
       className={cn(
@@ -65,6 +80,8 @@ export function ConversationStageLayout({
         <button
           type="button"
           aria-label="Close settings"
+          aria-hidden={!isOpen}
+          tabIndex={isOpen ? 0 : -1}
           className={cn(
             'absolute inset-0 z-20 bg-[var(--nimi-overlay-backdrop)] transition-opacity duration-[var(--nimi-motion-base)]',
             isOpen ? 'opacity-100' : 'pointer-events-none opacity-0',
@@ -77,6 +94,10 @@ export function ConversationStageLayout({
       {settingsDrawer ? (
         <SidebarShell
           as="aside"
+          role="dialog"
+          aria-label="Settings"
+          aria-hidden={!isOpen}
+          inert={!isOpen}
           className={cn(
             'absolute inset-y-0 right-0 z-30 flex w-[360px] max-w-[92vw] flex-col',
             'rounded-none border-y-0 border-r-0 bg-[var(--nimi-sidebar-canvas)]',

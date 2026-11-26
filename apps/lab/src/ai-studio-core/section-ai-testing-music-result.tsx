@@ -34,10 +34,10 @@ export function MusicGenerationNotice({ value }: { readonly value?: StudioMusicG
     <p>{t(value.termination === 'model-end' ? 'Music.terminationModelEnd' : value.termination === 'budget-limit' ? 'Music.terminationBudget' : 'Music.terminationUnknown')}</p>
     {value.generatedScore?.truncated ? <p>{t('Music.scoreTruncated')}</p> : null}
     {scorePath ? <div className="space-y-2">
-      <Button onClick={() => setExpanded((current) => !current)}>{t(expanded ? 'Music.hideScore' : 'Music.viewScore')}</Button>
+      <Button size="sm" tone="secondary" onClick={() => setExpanded((current) => !current)}>{t(expanded ? 'Music.hideScore' : 'Music.viewScore')}</Button>
       {expanded && score ? <>
         <TextareaField value={score} readOnly textareaClassName="min-h-40 font-mono" aria-label={t('Music.generatedPlan')} />
-        <Button onClick={() => void downloadTextFile(host, 'generated-score.abc', score)}>{t('Music.exportScore')}</Button>
+        <Button size="sm" tone="secondary" onClick={() => void downloadTextFile(host, 'generated-score.abc', score)}>{t('Music.exportScore')}</Button>
       </> : null}
       {error ? <p role="alert">{error}</p> : null}
     </div> : null}

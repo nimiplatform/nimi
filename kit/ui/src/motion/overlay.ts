@@ -23,6 +23,7 @@ import { nimiReducedFade, nimiSpring, type NimiSpringPreset } from './springs.js
 
 export type NimiOverlayMotionKind = 'dialog' | 'drawer' | 'popover';
 export type NimiPopoverSide = 'top' | 'right' | 'bottom' | 'left';
+export type NimiPopoverAlign = 'start' | 'center' | 'end';
 
 export type NimiOverlayMotionProps = {
   initial: TargetAndTransition;
@@ -34,12 +35,26 @@ export type NimiOverlayMotionProps = {
 
 const POPOVER_SIDE_OFFSET_PX = 4;
 
-const POPOVER_ORIGIN: Record<NimiPopoverSide, string> = {
-  bottom: 'top center',
-  top: 'bottom center',
-  right: 'left center',
-  left: 'right center',
-};
+function popoverTransformOrigin(side: NimiPopoverSide, align: NimiPopoverAlign = 'center'): string {
+  if (side === 'bottom') {
+    if (align === 'start') return 'top left';
+    if (align === 'end') return 'top right';
+    return 'top center';
+  }
+  if (side === 'top') {
+    if (align === 'start') return 'bottom left';
+    if (align === 'end') return 'bottom right';
+    return 'bottom center';
+  }
+  if (side === 'right') {
+    if (align === 'start') return 'left top';
+    if (align === 'end') return 'left bottom';
+    return 'left center';
+  }
+  if (align === 'start') return 'right top';
+  if (align === 'end') return 'right bottom';
+  return 'right center';
+}
 
 /** A panel spring is settled once under this fraction of its travel remains ... */
 const PANEL_SETTLE_DELTA_RATIO = 0.02;
@@ -109,12 +124,14 @@ function popoverAxisOffset(side: NimiPopoverSide): Pick<TargetAndTransition, 'x'
  */
 export function nimiOverlayPanelMotion({
   kind,
-  side = 'bottom',
+  side = kind === 'drawer' ? 'right' : 'bottom',
+  align = 'center',
   preset = 'default',
   reducedMotion = false,
 }: {
   kind: NimiOverlayMotionKind;
   side?: NimiPopoverSide;
+  align?: NimiPopoverAlign;
   preset?: NimiSpringPreset;
   reducedMotion?: boolean;
 }): NimiOverlayMotionProps {
@@ -130,10 +147,20 @@ export function nimiOverlayPanelMotion({
   const transition = nimiSpring(preset);
 
   if (kind === 'drawer') {
+    const edgeOffset: TargetAndTransition = side === 'left'
+      ? { x: '-100%', opacity: 1 }
+      : side === 'top'
+        ? { y: '-100%', opacity: 1 }
+        : side === 'bottom'
+          ? { y: '100%', opacity: 1 }
+          : { x: '100%', opacity: 1 };
+    const settled: TargetAndTransition = side === 'top' || side === 'bottom'
+      ? { y: 0, opacity: 1 }
+      : { x: 0, opacity: 1 };
     return {
-      initial: { x: '100%', opacity: 1 },
-      animate: { x: 0, opacity: 1 },
-      exit: { x: '100%', opacity: 1 },
+      initial: edgeOffset,
+      animate: settled,
+      exit: edgeOffset,
       transition: panelTransition(transition),
     };
   }
@@ -145,7 +172,7 @@ export function nimiOverlayPanelMotion({
       animate: { opacity: 1, scale: 1, x: 0, y: 0 },
       exit: { opacity: 0, scale: 0.96, ...offset },
       transition: panelTransition(transition),
-      style: { transformOrigin: POPOVER_ORIGIN[side] },
+      style: { transformOrigin: popoverTransformOrigin(side, align) },
     };
   }
 

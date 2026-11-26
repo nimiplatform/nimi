@@ -198,6 +198,11 @@ export type HeroDemoZhiyuPreview = {
     cloudConnectorLabel: string;
     cloudTargetLabels: Readonly<Record<string, string>>;
     presetVoices: ReadonlyArray<{ voiceId: string; name: string }>;
+    conversationContextUnavailable: string;
+    autonomyRevisionConflict: string;
+    presentationRevisionConflict: string;
+    resourcePackMaterialRequired: string;
+    embeddedPreviewUnavailable: string;
   };
   partners: ReadonlyArray<HeroDemoZhiyuPartner>;
 };

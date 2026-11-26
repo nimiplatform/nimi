@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@nimiplatform/kit/ui';
 import { useAIStudioHost } from '../../ai-studio-core/host-context.js';
-import { StudioBooleanParameter, StudioNumberParameter, StudioParameterField, type StudioParameterPanelProps } from '../../ai-studio-core/parameter-fields.js';
+import { StudioBooleanParameter, StudioNumberParameter, type StudioParameterPanelProps } from '../../ai-studio-core/parameter-fields.js';
 import type { StudioAudioSeparateParameters } from './parameters.js';
 
 export function AudioSeparateFields(props: StudioParameterPanelProps) {
@@ -52,13 +52,16 @@ export function AudioSeparateFields(props: StudioParameterPanelProps) {
   }
   return <div className="space-y-4">
     {!ready ? <p>{t('AudioSeparate.configureInputs')}</p> : <p>{t('AudioSeparate.inputHint')}</p>}
-    <StudioParameterField label={t('AudioSeparate.source')}>
+    <fieldset className="studio-parameters__field">
+      <legend className="studio-parameters__label">{t('AudioSeparate.source')}</legend>
       <input ref={sourceInput} hidden type="file" accept=".mp3,.wav,.flac" onChange={event => {
         const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; if (file) void importAudio(file);
       }} />
-      <Button disabled={disabled || !ready} onClick={() => sourceInput.current?.click()}>{t(busy ? 'Music.importing' : 'AudioSeparate.chooseSource')}</Button>
+      <div>
+        <Button size="sm" tone="secondary" disabled={disabled || !ready} onClick={() => sourceInput.current?.click()}>{t(busy ? 'Music.importing' : 'AudioSeparate.chooseSource')}</Button>
+      </div>
       {parameters.sourceRelativePath ? <p>{parameters.sourceName}</p> : null}
-    </StudioParameterField>
+    </fieldset>
     {ready ? <>
       <StudioNumberParameter current={parameters} field="startSeconds" label={t('AudioSeparate.start')} onChange={update} disabled={disabled} />
       <StudioNumberParameter current={parameters} field="endSeconds" label={t('AudioSeparate.end')} onChange={update} disabled={disabled} />

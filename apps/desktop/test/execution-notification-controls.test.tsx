@@ -120,7 +120,7 @@ test('Settings toggle and system-entry pause share one serial owner mutation and
     let pause!: Promise<void>;
     await act(async () => {
       pause = fixture.controls[0]!.pause();
-      fixture.dom.window.document.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click();
+      fixture.dom.window.document.querySelector<HTMLButtonElement>('button[role="switch"]')!.click();
     });
     await fixture.settle();
     assert.equal(fixture.writes.length, 1, 'the second hook must wait for the same mutation scope');

@@ -2,6 +2,7 @@ import { useGlobalDownloads } from './global-downloads-context.js';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { NimiRuntimeLocalTransferProgressEvent } from '@nimiplatform/sdk/runtime';
 import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
+import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service';
 import {
   partitionTransferSessionsByDisplayState,
@@ -91,11 +92,16 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
         }));
       })
       .catch((err) => {
+        const errorMessage = err instanceof Error ? err.message : String(err);
         emitRuntimeLog({
           level: 'warn',
           area: 'local-ai',
           message: 'action:mergeSessionSummary:failed',
-          details: { installSessionId, error: err instanceof Error ? err.message : String(err) },
+          details: { installSessionId, error: errorMessage },
+        });
+        emitFeedbackToast({
+          kind: 'error',
+          message: errorMessage || 'Transfer action failed.',
         });
       });
   }, []);

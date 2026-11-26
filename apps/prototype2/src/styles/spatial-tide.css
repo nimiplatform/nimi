@@ -6,7 +6,11 @@
   --tide-camera-yaw: 0deg;
   --tide-camera-pitch: 0deg;
   z-index: 2;
-  outline: none;
+}
+
+.stage[data-tide='true']:focus-visible {
+  outline: 2px solid var(--nimi-focus-ring-color);
+  outline-offset: -4px;
 }
 
 .field:has(.stage[data-tide='true'])::after {
@@ -17,9 +21,7 @@
   pointer-events: none;
   background:
     radial-gradient(circle at 50% 48%, rgba(55, 126, 103, 0.13), transparent 32%),
-    rgba(2, 5, 7, 0.76);
-  backdrop-filter: saturate(72%) brightness(68%);
-  -webkit-backdrop-filter: saturate(72%) brightness(68%);
+    rgba(2, 5, 7, 0.78);
 }
 
 .tide-caption {
@@ -31,8 +33,6 @@
   border-radius: var(--nimi-radius-full);
   background: var(--nimi-material-glass-chrome-bg);
   box-shadow: var(--nimi-elevation-floating);
-  backdrop-filter: blur(var(--nimi-backdrop-blur-chrome));
-  -webkit-backdrop-filter: blur(var(--nimi-backdrop-blur-chrome));
 }
 
 .tide-caption::before {
@@ -86,12 +86,10 @@
       rotateX(var(--tide-rotate-x))
       rotateY(var(--tide-rotate-y))
       scale(var(--tide-scale));
-    opacity: 0.58;
-    filter: brightness(0.76) saturate(0.82) blur(0.45px);
+    opacity: 0.62;
     transition:
       transform var(--nimi-motion-slow) var(--nimi-motion-ease-emphasized),
       opacity var(--nimi-motion-base) var(--nimi-motion-ease-standard),
-      filter var(--nimi-motion-base) var(--nimi-motion-ease-standard),
       border-color var(--nimi-motion-base) var(--nimi-motion-ease-standard),
       box-shadow var(--nimi-motion-slow) var(--nimi-motion-ease-standard);
     will-change: transform;
@@ -143,16 +141,14 @@
   .stage[data-tide='true'] .pane-float.pane-bare[data-top='true'] {
     background: linear-gradient(
       145deg,
-      rgba(255, 255, 255, 0.16),
-      rgba(255, 255, 255, 0.055) 50%,
-      rgba(12, 18, 20, 0.2)
+      rgba(38, 32, 46, 0.86),
+      rgba(26, 22, 32, 0.9) 50%,
+      rgba(16, 18, 24, 0.92)
     );
     border: 1px solid var(--nimi-material-glass-regular-border);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.28),
       var(--nimi-elevation-floating);
-    backdrop-filter: blur(var(--nimi-backdrop-blur-regular)) saturate(var(--nimi-backdrop-saturate));
-    -webkit-backdrop-filter: blur(var(--nimi-backdrop-blur-regular)) saturate(var(--nimi-backdrop-saturate));
   }
 
   .stage[data-tide='true'][data-tide-focus='identity'] [data-pane-id='identity'],
@@ -169,7 +165,6 @@
     --tide-scale: 1;
     z-index: 50 !important;
     opacity: 1;
-    filter: none;
     border-color: var(--nimi-border-strong);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.34),
@@ -185,21 +180,17 @@
 @media (prefers-reduced-motion: reduce) {
   .stage[data-tide='true'] .cradle-space,
   .stage[data-tide='true'] .cradle-space > .pane-float {
-    transition: none;
+    transition: opacity 160ms ease;
   }
 }
 
 @media (prefers-reduced-transparency: reduce) {
   .field:has(.stage[data-tide='true'])::after {
     background: rgba(5, 8, 10, 0.94);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
   }
 
   .stage[data-tide='true'] .pane-float.pane-bare,
   .stage[data-tide='true'] .pane-float.pane-bare[data-top='true'] {
     background: var(--nimi-surface-panel);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
   }
 }

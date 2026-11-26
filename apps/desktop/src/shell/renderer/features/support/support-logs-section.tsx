@@ -104,7 +104,7 @@ function SupportLogsExportCard() {
           data-testid="support-logs-export-done"
           className="space-y-2 rounded-lg bg-[var(--nimi-surface-canvas)] px-3 py-2"
         >
-          <p className="text-xs font-medium text-[var(--nimi-status-positive)]">
+          <p className="text-xs font-medium text-[var(--nimi-status-success)]">
             {t('Support.logsExportSucceeded', {
               files: exportState.result.fileCount,
             })}

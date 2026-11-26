@@ -1,13 +1,14 @@
 import {
   useEffect,
-  useMemo,
   useRef,
   type FormEvent,
   type KeyboardEvent,
 } from 'react';
 import { Send, X } from 'lucide-react';
 import { IconButton, TextareaField } from '@nimiplatform/kit/ui';
+import { motion, nimiOverlayPanelMotion, useNimiReducedMotion } from '@nimiplatform/kit/ui/motion';
 import { useTranslation } from '../i18n/index.js';
+import { useClampedOverlayPosition } from '../use-clamped-overlay-position.js';
 
 export type AvatarTransientComposerDismissReason =
   | 'focus_switch'
@@ -23,6 +24,7 @@ export type AvatarTransientComposerProps = {
   draft: string;
   sendState: AvatarTransientComposerSendState;
   sendError: string | null;
+  returnFocusTarget?: HTMLElement | null;
   onDraftChange(draft: string): void;
   onSubmit(): void;
   onDismiss(reason: AvatarTransientComposerDismissReason): void;
@@ -32,22 +34,6 @@ const COMPOSER_WIDTH_PX = 336;
 const COMPOSER_ESTIMATED_HEIGHT_PX = 112;
 const VIEWPORT_PADDING_PX = 10;
 
-function clampPosition(value: number, size: number, viewport: number): number {
-  if (!Number.isFinite(value)) return VIEWPORT_PADDING_PX;
-  const max = Math.max(VIEWPORT_PADDING_PX, viewport - size - VIEWPORT_PADDING_PX);
-  return Math.max(VIEWPORT_PADDING_PX, Math.min(value, max));
-}
-
-function readViewportSize(): { width: number; height: number } {
-  if (typeof window === 'undefined') {
-    return { width: 400, height: 600 };
-  }
-  return {
-    width: Math.max(1, window.innerWidth),
-    height: Math.max(1, window.innerHeight),
-  };
-}
-
 export function AvatarTransientComposer(props: AvatarTransientComposerProps) {
   const {
     x,
@@ -55,42 +41,64 @@ export function AvatarTransientComposer(props: AvatarTransientComposerProps) {
     draft,
     sendState,
     sendError,
+    returnFocusTarget,
     onDraftChange,
     onSubmit,
     onDismiss,
   } = props;
   const { t } = useTranslation();
+  const reducedMotion = useNimiReducedMotion();
   const rootRef = useRef<HTMLFormElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
+  const dismissedRef = useRef(false);
+  dismissedRef.current = false;
 
-  const position = useMemo(() => {
-    const viewport = readViewportSize();
-    return {
-      left: clampPosition(x, COMPOSER_WIDTH_PX, viewport.width),
-      top: clampPosition(y, COMPOSER_ESTIMATED_HEIGHT_PX, viewport.height),
-    };
-  }, [x, y]);
+  const position = useClampedOverlayPosition({
+    x,
+    y,
+    fallbackWidth: COMPOSER_WIDTH_PX,
+    fallbackHeight: COMPOSER_ESTIMATED_HEIGHT_PX,
+    padding: VIEWPORT_PADDING_PX,
+    rootRef,
+  });
+  const panelMotion = nimiOverlayPanelMotion({
+    kind: 'popover',
+    side: position.side,
+    align: position.align,
+    reducedMotion,
+  });
 
   useEffect(() => {
-    returnFocusRef.current = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
+    const rootEl = rootRef.current;
+    const active = document.activeElement;
+    returnFocusRef.current =
+      returnFocusTarget
+      ?? (active instanceof HTMLElement && !active.closest('[data-avatar-interactive-region="true"]')
+        ? active
+        : null);
     textareaRef.current?.focus();
     return () => {
       const target = returnFocusRef.current;
-      if (target?.isConnected) target.focus();
+      const currentActive = document.activeElement;
+      const shouldRestore =
+        !currentActive
+        || currentActive === document.body
+        || currentActive === document.documentElement
+        || (rootEl !== null && rootEl.contains(currentActive));
+      if (shouldRestore && target?.isConnected) target.focus();
     };
   }, []);
 
   const dismiss = (reason: AvatarTransientComposerDismissReason): void => {
-    if (sendState === 'sending') return;
+    if (dismissedRef.current || sendState === 'sending') return;
+    dismissedRef.current = true;
     onDismiss(reason);
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
-    if (sendState === 'sending') return;
+    if (dismissedRef.current || sendState === 'sending') return;
     onSubmit();
   };
 
@@ -107,25 +115,31 @@ export function AvatarTransientComposer(props: AvatarTransientComposerProps) {
   const handleComposerKeyDown = (event: KeyboardEvent<HTMLFormElement>): void => {
     // Escape applies anywhere inside the composer, including its action
     // buttons, but must not consume Escape owned by another overlay.
-    if (event.key !== 'Escape' || event.nativeEvent.isComposing) return;
+    if (dismissedRef.current || event.key !== 'Escape' || event.nativeEvent.isComposing) return;
     if (sendState === 'sending') return;
     event.preventDefault();
+    dismissedRef.current = true;
     onDismiss('escape');
   };
 
   return (
-    <form
+    <motion.form
       ref={rootRef}
-      className="avatar-transient-composer nimi-material-glass-chrome backdrop-blur-[var(--nimi-backdrop-blur-chrome)] backdrop-saturate-[var(--nimi-backdrop-saturate)]"
-      style={{ left: position.left, top: position.top }}
+      className="avatar-transient-composer nimi-material-glass-chrome bg-[var(--nimi-material-glass-chrome-bg)] border-[var(--nimi-material-glass-chrome-border)] backdrop-blur-[var(--nimi-backdrop-blur-chrome)] backdrop-saturate-[var(--nimi-backdrop-saturate)]"
+      {...panelMotion}
+      style={{ ...panelMotion.style, left: position.left, top: position.top }}
       data-testid="avatar-transient-composer"
+      data-nimi-material="glass-chrome"
+      data-nimi-tone="overlay"
       data-avatar-interactive-region="true"
       onSubmit={handleSubmit}
       onKeyDownCapture={handleComposerKeyDown}
       onContextMenu={(event) => event.preventDefault()}
       onBlurCapture={(event) => {
+        if (dismissedRef.current) return;
         const root = event.currentTarget;
         window.requestAnimationFrame(() => {
+          if (dismissedRef.current) return;
           const activeElement = document.activeElement;
           if (activeElement instanceof Element && root.contains(activeElement)) return;
           dismiss('focus_switch');
@@ -144,14 +158,13 @@ export function AvatarTransientComposer(props: AvatarTransientComposerProps) {
         disabled={sendState === 'sending'}
         rows={2}
       />
+      {sendError ? (
+        <p className="avatar-transient-composer__error" role="alert">
+          {`${t('Avatar.composer.send_failed_prefix')}: ${sendError}`}
+        </p>
+      ) : null}
       <div className="avatar-transient-composer__actions">
-        {sendError ? (
-          <p className="avatar-transient-composer__error" role="alert">
-            {`${t('Avatar.composer.send_failed_prefix')}: ${sendError}`}
-          </p>
-        ) : (
-          <span className="avatar-transient-composer__spacer" aria-hidden="true" />
-        )}
+        <span className="avatar-transient-composer__spacer" aria-hidden="true" />
         <IconButton
           type="button"
           className="avatar-transient-composer__close"
@@ -173,6 +186,6 @@ export function AvatarTransientComposer(props: AvatarTransientComposerProps) {
           disabled={sendState === 'sending' || draft.trim().length === 0}
         />
       </div>
-    </form>
+    </motion.form>
   );
 }

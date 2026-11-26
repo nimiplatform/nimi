@@ -1,5 +1,7 @@
 import React, { useEffect, useState, type ReactNode } from 'react';
+import { motion } from 'motion/react';
 import { Button, SidebarShell, Surface } from '@nimiplatform/kit/ui';
+import { NIMI_SPRING_DEFAULT, nimiReducedFade, useNimiReducedMotion } from '@nimiplatform/kit/ui/motion';
 
 type SidebarBoundaryProps = {
   children: ReactNode;
@@ -87,6 +89,7 @@ export function CanonicalRightSidebar({
   closeLabel = 'Close Inspect',
 }: CanonicalRightSidebarProps) {
   const [shouldRenderSidebar, setShouldRenderSidebar] = useState(open);
+  const reducedMotion = useNimiReducedMotion();
 
   useEffect(() => {
     if (!prewarm) {
@@ -125,14 +128,16 @@ export function CanonicalRightSidebar({
 
   return (
     <>
-      <div
-        className="absolute inset-y-0 right-0 z-30 h-full shrink-0 overflow-hidden transition-[width,opacity,transform] duration-[var(--nimi-motion-slow)] ease-[var(--nimi-motion-ease-standard)]"
+      <motion.div
+        className="absolute inset-y-0 right-0 z-30 h-full shrink-0 overflow-hidden"
+        initial={false}
+        animate={reducedMotion
+          ? { opacity: open ? 1 : 0, x: 0 }
+          : { opacity: open ? 1 : 0, x: open ? 0 : widthPx }}
+        transition={reducedMotion ? nimiReducedFade() : NIMI_SPRING_DEFAULT}
         style={{
-          width: open ? `${widthPx}px` : '0px',
-          opacity: open ? 1 : 0,
-          transform: open ? 'translateX(0)' : 'translateX(18px)',
+          width: `${widthPx}px`,
           pointerEvents: open ? 'auto' : 'none',
-          willChange: 'width, opacity, transform',
         }}
         aria-hidden={!open}
         inert={!open}
@@ -145,7 +150,7 @@ export function CanonicalRightSidebar({
           data-canonical-right-sidebar-shell="true"
         >
           {shouldRenderSidebar ? (
-            <div className={`h-full transition-opacity duration-[var(--nimi-motion-slow)] ${open ? 'opacity-100 delay-75' : 'opacity-0'}`}>
+            <div className="h-full">
               <CanonicalRightSidebarBoundary
                 resetKey={resetKey}
                 title={fallbackTitle}
@@ -158,14 +163,14 @@ export function CanonicalRightSidebar({
             </div>
           ) : (
             <div className="flex h-full flex-col p-4">
-              <div className="h-12 w-40 animate-pulse rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-panel)]" />
-              <div className="mt-4 h-40 w-full animate-pulse rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-panel)]" />
-              <div className="mt-4 h-16 w-full animate-pulse rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-panel)]" />
-              <div className="mt-4 h-72 w-full animate-pulse rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-panel)]" />
+              <div className="h-12 w-40 animate-pulse motion-reduce:animate-none rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-panel)]" />
+              <div className="mt-4 h-40 w-full animate-pulse motion-reduce:animate-none rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-panel)]" />
+              <div className="mt-4 h-16 w-full animate-pulse motion-reduce:animate-none rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-panel)]" />
+              <div className="mt-4 h-72 w-full animate-pulse motion-reduce:animate-none rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-panel)]" />
             </div>
           )}
         </SidebarShell>
-      </div>
+      </motion.div>
 
       {overlayMenu}
     </>

@@ -1,19 +1,13 @@
-import { useEffect, useState } from 'react';
-import { Button } from '@nimiplatform/kit/ui';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { Button, nimiToast } from '@nimiplatform/kit/ui';
 import type { NimiAppScope } from '@nimiplatform/kit/auth/app';
-import { extractNimiErrorFields, isJsonObject } from '@nimiplatform/sdk/types';
 import { BookmarkPlus, Check, Play, Trash2 } from 'lucide-react';
 import { useI18n } from '../i18n.js';
-
-const legacyReusableKey = 'reusable-session-instructions.json';
-const presetsKey = 'instruction-presets-v1.json';
-
-type InstructionPreset = { id: string; name: string; text: string };
-
-function isNotFound(error: unknown): boolean {
-  const code = extractNimiErrorFields(error).reasonCode;
-  return code === 'APP_STORAGE_ENTRY_NOT_FOUND' || code === 'not-found';
-}
+import {
+  deleteInstructionPresetOptimistically,
+  presetsForScope,
+  type InstructionPreset,
+} from './session-presets.js';
 
 export function SessionSettings({
   scope,
@@ -38,59 +32,33 @@ export function SessionSettings({
   const [note, setNote] = useState(instructions);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState('');
-  const [presets, setPresets] = useState<InstructionPreset[]>([]);
-  const [presetsLoaded, setPresetsLoaded] = useState(false);
+  const presetStore = presetsForScope(scope);
+  const presets = useSyncExternalStore(presetStore.subscribe, presetStore.getSnapshot, presetStore.getSnapshot);
   const [presetName, setPresetName] = useState('');
+  const mountedRef = useRef(true);
+  const undoToastIdsRef = useRef(new Set<string>());
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  useEffect(() => () => {
+    for (const toastId of undoToastIdsRef.current) nimiToast.dismiss(toastId);
+    undoToastIdsRef.current.clear();
+  }, [scope]);
 
   useEffect(() => setNote(instructions), [instructions]);
 
   useEffect(() => {
     let active = true;
-    async function loadPresets() {
-      try {
-        const { value } = await scope.client.storage.readJson(presetsKey);
-        if (!Array.isArray(value)) throw new Error('Invalid instruction presets.');
-        const loaded = value.filter((item): item is InstructionPreset =>
-          isJsonObject(item)
-          && typeof item.id === 'string'
-          && typeof item.name === 'string'
-          && typeof item.text === 'string'
-          && item.text.length <= 4000,
-        );
-        if (active && !scope.signal.aborted) {
-          setPresets(loaded);
-          setPresetsLoaded(true);
-        }
-        return;
-      } catch (error) {
-        if (!active || scope.signal.aborted) return;
-        if (!isNotFound(error)) {
-          report(error instanceof Error ? error.message : String(error));
-          setPresetsLoaded(true);
-          return;
-        }
+    void presetStore.load().catch(error => {
+      if (active && !scope.signal.aborted) {
+        report(error instanceof Error ? error.message : String(error));
       }
-      // Migrate legacy single reusable-session-instructions.json transparently if present.
-      try {
-        const { value } = await scope.client.storage.readJson(legacyReusableKey);
-        if (active && !scope.signal.aborted) {
-          if (typeof value === 'string' && value.trim() && value.length <= 4000) {
-            setPresets([{ id: 'legacy-default', name: 'Saved instructions', text: value }]);
-          } else {
-            setPresets([]);
-          }
-          setPresetsLoaded(true);
-        }
-      } catch (error) {
-        if (!active || scope.signal.aborted) return;
-        if (!isNotFound(error)) report(error instanceof Error ? error.message : String(error));
-        setPresets([]);
-        setPresetsLoaded(true);
-      }
-    }
-    void loadPresets();
+    });
     return () => { active = false; };
-  }, [scope, report]);
+  }, [presetStore, scope, report]);
 
   async function save(action: () => Promise<void>, message: string) {
     setSaving(true);
@@ -106,16 +74,20 @@ export function SessionSettings({
     }
   }
 
-  async function persistPresets(next: InstructionPreset[]) {
-    await scope.client.storage.writeJson(presetsKey, next);
-    // Keep legacy key mirrored with first preset for backward compatibility across versions.
-    if (next.length > 0) {
-      await scope.client.storage.writeJson(legacyReusableKey, next[0].text).catch(() => {});
-    } else {
-      await scope.client.storage.removeJson(legacyReusableKey).catch(() => {});
-    }
-    scope.signal.throwIfAborted();
-    setPresets(next);
+  function deletePresetOptimistically(preset: InstructionPreset) {
+    setStatus('');
+    report('');
+    deleteInstructionPresetOptimistically({
+      preset,
+      scope,
+      onError: (message) => {
+        if (mountedRef.current) report(message);
+      },
+      message: t('settings.presetDeleted', { name: preset.name }),
+      undoLabel: t('settings.undo'),
+      trackToastId: (toastId) => { undoToastIdsRef.current.add(toastId); },
+      untrackToastId: (toastId) => { undoToastIdsRef.current.delete(toastId); },
+    });
   }
 
   const usedTokens = usage ? usage.inputTokens + usage.outputTokens : 0;
@@ -139,7 +111,7 @@ export function SessionSettings({
                 <div className="harness-progress-track" role="progressbar" aria-valuenow={pct ?? 0} aria-valuemin={0} aria-valuemax={100}>
                   <div
                     className={`harness-progress-bar ${(pct ?? 0) > 80 ? 'harness-progress-bar--warn' : ''}`}
-                    style={{ width: `${Math.max(2, pct ?? 0)}%` }}
+                    style={{ transform: `scaleX(${Math.max(0.02, (pct ?? 0) / 100)})` }}
                   />
                 </div>
                 <p className="harness-muted harness-muted--xs">
@@ -197,7 +169,7 @@ export function SessionSettings({
           <Button
             size="sm"
             tone="secondary"
-            disabled={saving || !presetsLoaded || !note.trim() || !presetName.trim()}
+            disabled={saving || presets === null || !note.trim() || !presetName.trim()}
             leadingIcon={<BookmarkPlus size={13} />}
             onClick={() => void save(async () => {
               const entry: InstructionPreset = {
@@ -205,7 +177,7 @@ export function SessionSettings({
                 name: presetName.trim(),
                 text: note.trim(),
               };
-              await persistPresets([entry, ...presets]);
+              await presetStore.add(entry);
               setPresetName('');
             }, t('settings.saved'))}
           >
@@ -213,7 +185,7 @@ export function SessionSettings({
           </Button>
         </div>
 
-        {presets.length === 0 ? (
+        {presets === null ? null : presets.length === 0 ? (
           <p className="harness-muted harness-muted--xs">{t('settings.presetsEmpty')}</p>
         ) : (
           <ul className="harness-preset-list">
@@ -240,7 +212,7 @@ export function SessionSettings({
                       disabled={saving}
                       leadingIcon={<Trash2 size={12} />}
                       aria-label={t('settings.deletePreset')}
-                      onClick={() => void save(() => persistPresets(presets.filter(item => item.id !== preset.id)), t('settings.saved'))}
+                      onClick={() => deletePresetOptimistically(preset)}
                     />
                   </div>
                 </div>

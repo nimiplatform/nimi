@@ -89,6 +89,15 @@ export const zhiyuMessagesEn = {
   'zhiyu.demo.presetVoices.item1.name': 'Qingchuan',
   'zhiyu.demo.presetVoices.item2.name': 'Evening voice',
   'zhiyu.demo.presetVoices.item3.name': 'Xiaoman',
+  'zhiyu.demo.conversationContextUnavailable':
+    'Conversation context controls are unavailable in this preview.',
+  'zhiyu.demo.autonomyRevisionConflict':
+    'Proactive companion settings changed elsewhere. Refresh and try again.',
+  'zhiyu.demo.presentationRevisionConflict':
+    'Appearance settings changed elsewhere. Refresh and try again.',
+  'zhiyu.demo.resourcePackMaterialRequired': 'A Resource Pack file is required.',
+  'zhiyu.demo.embeddedPreviewUnavailable':
+    'Embedded appearance preview is not running in this web preview.',
   'zhiyu.workspace.you': 'You',
   'zhiyu.partnerInitial.local': 'Local',
   'zhiyu.zhiyuAgentRail.nimi': 'Nimi',

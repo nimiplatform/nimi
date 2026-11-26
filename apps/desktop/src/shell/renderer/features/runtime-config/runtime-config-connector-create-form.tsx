@@ -3,8 +3,8 @@
 import { InlineAlert, OverlayShell, ScrollArea, SearchField } from '@nimiplatform/kit/ui';
 import { isNimiBrowserManagedConnectorProfile } from '@nimiplatform/sdk/runtime';
 import type { ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/wire-types';
-import { ArrowLeft, ChevronDown, SlidersHorizontal } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, ChevronDown, Eye, EyeOff, SlidersHorizontal } from 'lucide-react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { ProviderLogoTile } from '../../components/provider-logo-tile.js';
@@ -63,9 +63,12 @@ export function RuntimeConfigConnectorCreateForm(props: {
   const [endpoint, setEndpoint] = useState('');
   const [authOptionValue, setAuthOptionValue] = useState('');
   const [tokenDraft, setTokenDraft] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [providerQuery, setProviderQuery] = useState('');
+  const vendorSelectId = useId();
+  const authTypeSelectId = useId();
 
   useEffect(() => {
     let active = true;
@@ -130,6 +133,10 @@ export function RuntimeConfigConnectorCreateForm(props: {
     onError: (message) => setSaveError(message),
   });
   const oauthBusy = oauth.busy;
+
+  useEffect(() => {
+    props.onSavingChange?.(saving || oauthBusy);
+  }, [oauthBusy, props.onSavingChange, saving]);
 
   // Account changes mid-flow invalidate the in-flight OAuth operation.
   const authContextRef = useRef(authContext);
@@ -202,7 +209,7 @@ export function RuntimeConfigConnectorCreateForm(props: {
       {providerGroups.map(group => (
         <div key={group.key} className="space-y-1.5">
           {providerGroups.length > 1 || group.key === 'connected' ? (
-            <p className="px-1 text-[11px] font-medium uppercase tracking-wide text-[var(--nimi-text-muted)]">{t(`runtimeConfig.product.providerGroup.${group.key}`)}</p>
+            <p className="px-1 text-[length:var(--nimi-type-caption-size)] font-medium uppercase tracking-wide text-[var(--nimi-text-muted)]">{t(`runtimeConfig.product.providerGroup.${group.key}`)}</p>
           ) : null}
           <div className="grid gap-1.5 sm:grid-cols-2">
             {group.items.map(entry => {
@@ -211,7 +218,7 @@ export function RuntimeConfigConnectorCreateForm(props: {
                 <button
                   key={entry.provider}
                   type="button"
-                  className="flex items-center gap-3 rounded-xl px-3 py-2 text-left text-sm hover:bg-[var(--nimi-surface-active)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+                  className="flex items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors hover:bg-[var(--nimi-surface-active)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]"
                   onClick={() => chooseProvider(entry.provider)}
                   data-testid={`${testId}-provider:${entry.provider}`}
                 >
@@ -237,7 +244,7 @@ export function RuntimeConfigConnectorCreateForm(props: {
           <ProviderLogoTile provider={resolvedProvider} label={providerLabel(resolvedProvider)} size="md" />
           <h3 className="text-base font-semibold">{providerLabel(resolvedProvider)}</h3>
         </div>
-        <Button variant="ghost" size="sm" disabled={saving || oauthBusy} onClick={() => onChangeField(() => { setProvider(''); setTokenDraft(''); })}><ArrowLeft size={14} />{t('runtimeConfig.product.changeService')}</Button>
+        <Button variant="ghost" size="sm" disabled={saving || oauthBusy} onClick={() => onChangeField(() => { setProvider(''); setTokenDraft(''); })}><ArrowLeft size={14} aria-hidden="true" />{t('runtimeConfig.product.changeService')}</Button>
       </div>
       {catalogError ? (
         <InlineAlert tone="danger">{catalogError}</InlineAlert>
@@ -251,10 +258,11 @@ export function RuntimeConfigConnectorCreateForm(props: {
         <div className="space-y-4 border-t border-[var(--nimi-border-subtle)] px-3.5 py-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
+              <label htmlFor={vendorSelectId} className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
                 {t('runtimeConfig.cloud.vendor', { defaultValue: 'Vendor' })}
               </label>
               <RuntimeSelect
+                id={vendorSelectId}
                 value={resolvedProvider}
                 onChange={(nextProvider) => onChangeField(() => {
                   setProvider(nextProvider);
@@ -284,10 +292,11 @@ export function RuntimeConfigConnectorCreateForm(props: {
             ) : null}
             {authOptions.length > 1 ? (
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
+                <label htmlFor={authTypeSelectId} className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
                   {t('runtimeConfig.cloud.credentialType', { defaultValue: 'Credential Type' })}
                 </label>
                 <RuntimeSelect
+                  id={authTypeSelectId}
                   value={resolvedAuthOption?.value ?? ''}
                   onChange={(next) => onChangeField(() => {
                     setAuthOptionValue(next);
@@ -307,10 +316,24 @@ export function RuntimeConfigConnectorCreateForm(props: {
           label={t('runtimeConfig.cloud.apiKeyRequired', { defaultValue: 'API Key (required)' })}
           value={tokenDraft}
           onChange={(next) => onChangeField(() => setTokenDraft(next))}
-          type="password"
+          type={showApiKey ? 'text' : 'password'}
           placeholder={t('runtimeConfig.product.keyPlaceholder')}
           icon={<KeyIcon />}
           disabled={saving || oauthBusy}
+          rightAccessory={(
+            <button
+              type="button"
+              onClick={() => setShowApiKey((current) => !current)}
+              disabled={saving || oauthBusy}
+              aria-label={showApiKey
+                ? t('runtimeConfig.cloud.hideApiKey', { defaultValue: 'Hide API key' })
+                : t('runtimeConfig.cloud.showApiKey', { defaultValue: 'Show API key' })}
+              aria-pressed={showApiKey}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] enabled:active:scale-[var(--nimi-motion-pressed-scale)] disabled:opacity-50"
+            >
+              {showApiKey ? <EyeOff size={14} aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}
+            </button>
+          )}
         />
       ) : (
         <p className="rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] px-4 py-3 text-xs text-[var(--nimi-text-muted)]">
@@ -338,32 +361,32 @@ export function RuntimeConfigConnectorCreateForm(props: {
         </p>
       ) : null}
       {saveError ? (
-        <p className="rounded-lg bg-[var(--nimi-status-danger-soft-bg)] px-3 py-2 text-xs text-[var(--nimi-status-danger-soft-text)]">{saveError}</p>
+        <p role="alert" className="rounded-lg bg-[var(--nimi-status-danger-soft-bg)] px-3 py-2 text-xs text-[var(--nimi-status-danger-soft-text)]">{saveError}</p>
       ) : null}
       <div className="flex flex-wrap items-center gap-2">
         {!isOAuthManaged ? (
           <Button
             variant="primary"
             size="sm"
-            disabled={!tokenDraft.trim() || !resolvedProvider || saving || oauthBusy}
+            loading={saving}
+            disabled={!tokenDraft.trim() || !resolvedProvider || oauthBusy}
             onClick={() => void submitApiKey()}
           >
-            {saving
-              ? t('runtimeConfig.cloud.saving', { defaultValue: 'Saving...' })
-              : props.submitLabel ?? t('runtimeConfig.cloud.createConnector', { defaultValue: 'Create Connector' })}
+            {props.submitLabel ?? t('runtimeConfig.cloud.createConnector', { defaultValue: 'Create Connector' })}
           </Button>
         ) : isBrowserManaged ? (
           <Button
             variant="primary"
             size="sm"
-            disabled={oauthBusy || oauthRequiresAuth || !resolvedProvider}
+            loading={oauthBusy}
+            disabled={oauthRequiresAuth || !resolvedProvider}
             onClick={startOAuth}
           >
             {chatGPTPlanSignInLabel({ busy: oauthBusy, isDraft: true, hasCredential: false, t })}
           </Button>
         ) : null}
         {props.onCancel ? (
-          <Button variant="secondary" size="sm" onClick={props.onCancel} disabled={saving}>
+          <Button variant="secondary" size="sm" onClick={props.onCancel} disabled={saving || oauthBusy}>
             {t('Common.cancel', { defaultValue: 'Cancel' })}
           </Button>
         ) : null}
@@ -380,14 +403,22 @@ export function RuntimeConfigConnectorCreateDialog(props: {
   readonly connectedProviders?: readonly string[];
 }) {
   const { t } = useTranslation();
-  const saving = useRef(false);
-  const close = () => { if (!saving.current) props.onClose(); };
+  const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
+  const onSavingChange = useCallback((value: boolean) => {
+    busyRef.current = value;
+    setBusy(value);
+  }, []);
+  const close = useCallback(() => {
+    if (!busyRef.current) props.onClose();
+  }, [props]);
   if (!props.open) return null;
   return (
     <OverlayShell
       open
       kind="dialog"
       size="md"
+      closeOnBackdrop={!busy}
       onClose={close}
       title={t('runtimeConfig.cloud.addConnector', { defaultValue: 'Add' })}
       dataTestId="runtime-connector-create-dialog"
@@ -396,7 +427,7 @@ export function RuntimeConfigConnectorCreateDialog(props: {
         submitLabel={props.submitLabel}
         onCreated={props.onCreated}
         onCancel={close}
-        onSavingChange={(value) => { saving.current = value; }}
+        onSavingChange={onSavingChange}
         testIdPrefix="runtime-connector-create"
         connectedProviders={props.connectedProviders}
       />

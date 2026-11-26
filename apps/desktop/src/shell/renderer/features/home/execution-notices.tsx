@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useIsMutating, useMutation, useMutationState, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { AppCardSurface, Button, InlineAlert, OverlayShell, ScrollShell, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
+import { AppCardSurface, Button, InlineAlert, OverlayShell, ScrollShell, StatusBadge, Toggle, Tooltip } from '@nimiplatform/kit/ui';
 import { ArrowRight, BellRing, ChevronDown, History, PanelRightClose, Trash2 } from 'lucide-react';
 import { hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { SYSTEM_ENTRY_HOME_COMMANDS } from '../../../shared/system-entry-types.js';
@@ -200,33 +200,15 @@ export function ExecutionNotificationSetting() {
   const change = (value: ExecutionNotificationPreferenceChange) => { void update(value).catch(() => undefined); };
   const systemEnabled = confirmed && query.data!.preferences.systemEnabled;
   return <section className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4" aria-label={t('Notifications.execution.title')}>
-    <label className="flex cursor-pointer items-center justify-between gap-4">
+    <div className="flex items-center justify-between gap-4">
       <span className="font-medium text-[var(--nimi-text-primary)]">{t('Notifications.execution.title')}</span>
-      <span className="relative inline-flex shrink-0 items-center">
-        <input
-          type="checkbox"
-          className="peer sr-only"
-          aria-label={t('Notifications.execution.title')}
-          checked={systemEnabled}
-          disabled={!canChange}
-          onChange={event => change({ kind: 'system', enabled: event.target.checked })}
-        />
-        <span
-          aria-hidden="true"
-          className={`relative inline-flex h-6 w-11 items-center rounded-full border transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--nimi-focus-ring-color)] peer-disabled:opacity-50 ${
-            systemEnabled
-              ? 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)]'
-              : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]'
-          }`}
-        >
-          <span
-            className={`inline-block size-5 rounded-full bg-white shadow-sm transition-transform ${
-              systemEnabled ? 'translate-x-[21px]' : 'translate-x-[1px]'
-            }`}
-          />
-        </span>
-      </span>
-    </label>
+      <Toggle
+        checked={systemEnabled}
+        disabled={!canChange}
+        ariaLabel={t('Notifications.execution.title')}
+        onValueChange={(enabled) => change({ kind: 'system', enabled })}
+      />
+    </div>
     <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">{t('Notifications.execution.description')}</p>
     <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">{t('Notifications.execution.osLimit')}</p>
     <p className="mt-3 text-sm text-[var(--nimi-text-secondary)]">{t('Notifications.execution.ordinaryScope')}</p>

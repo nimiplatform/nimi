@@ -2,7 +2,7 @@
 
 export function MetaMaskIcon({ className = '' }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg className={className} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <rect width="40" height="40" rx="8" fill="#F6851B" fillOpacity="0.1"/>
       <g transform="translate(3 4) scale(0.24)">
         <path fill="#FF5C16" d="M132.682,132.192l-30.583-9.106l-23.063,13.787l-16.092-0.007l-23.077-13.78l-30.569,9.106L0,100.801l9.299-34.839L0,36.507L9.299,0l47.766,28.538h27.85L132.682,0l9.299,36.507l-9.299,29.455l9.299,34.839L132.682,132.192z"/>
@@ -19,7 +19,7 @@ export function MetaMaskIcon({ className = '' }: { className?: string }) {
 
 export function BinanceIcon({ className = '' }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg className={className} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <rect width="40" height="40" rx="8" fill="#F0B90B" fillOpacity="0.1"/>
       <g transform="translate(6 6) scale(0.2917)">
         <circle fill="#F0B90B" r="48" cy="48" cx="48"/>
@@ -31,7 +31,7 @@ export function BinanceIcon({ className = '' }: { className?: string }) {
 
 export function OKXIcon({ className = '' }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 100 100" role="img" aria-label="OKX Wallet">
+    <svg className={className} viewBox="0 0 100 100" aria-hidden="true">
       <rect width="100" height="100" rx="20" fill="#A6F41F"/>
       <rect x="18" y="18" width="22" height="22" rx="2" fill="#000"/>
       <rect x="60" y="18" width="22" height="22" rx="2" fill="#000"/>

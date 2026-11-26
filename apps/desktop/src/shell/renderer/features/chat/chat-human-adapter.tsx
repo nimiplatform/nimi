@@ -239,12 +239,12 @@ export function useHumanConversationModeHost(
         busy: Boolean(canonicalSurface.rightSidebarAutoOpenKey),
       },
       theme: {
-        roomSurface: 'linear-gradient(180deg, rgba(250,252,252,0.98), rgba(244,247,248,0.96))',
-        roomAura: 'linear-gradient(135deg,rgba(255,255,255,0.9),rgba(250,245,230,0.82))',
-        accentSoft: 'rgba(251,191,36,0.18)',
-        accentStrong: '#f59e0b',
-        border: 'rgba(251,191,36,0.28)',
-        text: '#92400e',
+        roomSurface: 'var(--nimi-surface-canvas)',
+        roomAura: 'var(--nimi-surface-card)',
+        accentSoft: 'color-mix(in srgb, var(--nimi-action-primary-bg) 14%, transparent)',
+        accentStrong: 'var(--nimi-action-primary-bg)',
+        border: 'var(--nimi-border-subtle)',
+        text: 'var(--nimi-text-primary)',
       },
     },
     onSelectThread: (threadId: string) => {

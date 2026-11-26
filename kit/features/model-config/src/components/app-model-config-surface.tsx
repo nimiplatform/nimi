@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { NimiAppScope } from '@nimiplatform/kit/core/app-session';
 import type { NimiAIConfigSnapshot, NimiAIConfigRecordEdit, NimiAIConfigOptionsQuery, NimiAIConfigOverwriteInput } from '@nimiplatform/kit/core/sdk-contract';
-import { Button, SelectField } from '@nimiplatform/kit/ui';
+import { Button, Checkbox, SelectField, TextField } from '@nimiplatform/kit/ui';
 import { ModelConfigAIConfigSurface, type ModelConfigAIConfigSurfaceProps } from './model-config-ai-config-surface.js';
 
 type Props = Pick<ModelConfigAIConfigSurfaceProps, 'capabilityContracts' | 'language' | 'onOpenOwnerConfiguration' | 'copy'> & {
@@ -129,15 +129,17 @@ export function AIConfigRecordControls({snapshot, selectedRef, busy, readPending
           <Button tone="ghost" disabled={editsDisabled} onClick={() => setEditing('delete')}>{text('Delete','删除')}</Button></>}
       </>}
       {editing && <div className="flex w-full flex-wrap items-center gap-2">
-        {editing === 'delete' ? <span>{text('Sessions using this configuration will need to select another one.', '使用此配置的会话需要重新选择配置。')}</span>
-          : <label>{text('Configuration name','配置名称')} <input value={name} maxLength={128} onChange={e=>setName(e.currentTarget.value)} /></label>}
+        {editing === 'delete' ? <span className="text-xs text-[var(--nimi-text-secondary)]">{text('Sessions using this configuration will need to select another one.', '使用此配置的会话需要重新选择配置。')}</span>
+          : <label className="flex items-center gap-2 text-xs font-medium text-[var(--nimi-text-secondary)]"><span>{text('Configuration name','配置名称')}</span><TextField value={name} maxLength={128} onChange={e=>setName(e.currentTarget.value)} className="min-w-[180px]" /></label>}
         {editing === 'create' && Boolean(snapshot.config?.capabilities.length) && (
-          <label className="inline-flex items-center gap-2">
-            <input type="checkbox" checked={copyCapabilities} disabled={editsDisabled} onChange={event => setCopyCapabilities(event.currentTarget.checked)} />
-            {text('Copy current capability settings', '复制当前能力设置')}
-          </label>
+          <Checkbox
+            checked={copyCapabilities}
+            disabled={editsDisabled}
+            onChange={event => setCopyCapabilities(event.currentTarget.checked)}
+            label={text('Copy current capability settings', '复制当前能力设置')}
+          />
         )}
-        <Button disabled={editsDisabled || (editing !== 'delete' && !name.trim())} onClick={() => {
+        <Button tone={editing === 'delete' ? 'danger' : 'primary'} disabled={editsDisabled || (editing !== 'delete' && !name.trim())} onClick={() => {
           if (editing === 'create') void change({action:'create', name:name.trim()});
           if (current && editing === 'rename') void change({action:'rename',configRef:current.configRef,name:name.trim()});
           if (current && editing === 'delete') void change({action:'delete',configRef:current.configRef});

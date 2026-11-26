@@ -142,7 +142,8 @@ test('surface, button, field, and status primitives render', () => {
   expect(hasClass(html, 'nimi-surface--interactive')).toBe(true);
   expect(hasClass(html, 'nimi-surface--active')).toBe(true);
   expect(hasClass(html, 'nimi-surface--transparency-reduced')).toBe(true);
-  expect(hasClass(html, 'nimi-material-glass-regular')).toBe(true);
+  expect(hasClass(html, 'nimi-material-glass-chrome')).toBe(true);
+  expect(hasClass(html, 'nimi-material-solid')).toBe(true);
   expect(hasClass(html, 'nimi-action')).toBe(true);
   expect(hasClass(html, 'nimi-action--primary')).toBe(true);
   expect(hasClass(html, 'nimi-action--ghost')).toBe(true);
@@ -240,12 +241,25 @@ test('pill tabs render sliding-indicator slots, radiogroup roles, and active sta
   expect(html).toMatch(/正畸治疗/);
 });
 
-test('surface material transparency downgrade is deterministic', () => {
-  expect(downgradeSurfaceMaterial('glass-chrome', 'reduced')).toBe('glass-thick');
-  expect(downgradeSurfaceMaterial('glass-thick', 'reduced')).toBe('glass-regular');
-  expect(downgradeSurfaceMaterial('glass-regular', 'reduced')).toBe('glass-thin');
-  expect(downgradeSurfaceMaterial('glass-thin', 'reduced')).toBe('glass-thin');
+test('surface material transparency downgrade converges toward solid deterministically', () => {
+  expect(downgradeSurfaceMaterial('glass-thin', 'reduced')).toBe('glass-regular');
+  expect(downgradeSurfaceMaterial('glass-regular', 'reduced')).toBe('glass-thick');
+  expect(downgradeSurfaceMaterial('glass-thick', 'reduced')).toBe('glass-chrome');
+  expect(downgradeSurfaceMaterial('glass-chrome', 'reduced')).toBe('solid');
+  expect(downgradeSurfaceMaterial('solid', 'reduced')).toBe('solid');
   expect(downgradeSurfaceMaterial('glass-chrome', 'solid')).toBe('solid');
+  expect(downgradeSurfaceMaterial('glass-regular', 'default')).toBe('glass-regular');
+});
+
+test('EmptyState and SettingsCard default to solid material and ScrollArea supports fadeEdges', () => {
+  const emptyHtml = renderToStaticMarkup(<EmptyState title="Empty" />);
+  expect(emptyHtml).toMatch(/data-nimi-material="solid"/);
+  const glassEmptyHtml = renderToStaticMarkup(<EmptyState title="Empty" material="glass-thin" />);
+  expect(glassEmptyHtml).toMatch(/data-nimi-material="glass-thin"/);
+  const settingsHtml = renderToStaticMarkup(<SettingsCard>card</SettingsCard>);
+  expect(settingsHtml).toMatch(/data-nimi-material="solid"/);
+  const scrollHtml = renderToStaticMarkup(<ScrollArea fadeEdges="bottom">content</ScrollArea>);
+  expect(scrollHtml).toMatch(/data-fade-edges="bottom"/);
 });
 
 test('text field danger tone applies danger chrome and auto-sets aria-invalid', async () => {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@nimiplatform/kit/ui';
 import { Button, Input, RuntimeSelect } from './runtime-config-primitives';
@@ -38,6 +38,7 @@ export function ExternalAgentIssueTokenForm(props: ExternalAgentIssueTokenFormPr
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
   const [copiedToken, setCopiedToken] = useState(false);
+  const modeSelectId = useId();
   const clearCopiedCancelRef = useRef<(() => void) | null>(null);
   useEffect(() => () => {
     clearCopiedCancelRef.current?.();
@@ -72,10 +73,11 @@ export function ExternalAgentIssueTokenForm(props: ExternalAgentIssueTokenFormPr
           placeholder={t('runtimeConfig.eaa.subjectAccountPlaceholder', { defaultValue: 'user_123 / external_456' })}
         />
         <div>
-          <label className={cn('mb-1.5 block text-sm font-medium', TOKEN_TEXT_SECONDARY)}>
+          <label htmlFor={modeSelectId} className={cn('mb-1.5 block text-sm font-medium', TOKEN_TEXT_SECONDARY)}>
             {t('runtimeConfig.runtime.mode', { defaultValue: 'Mode' })}
           </label>
           <RuntimeSelect
+            id={modeSelectId}
             value={props.mode}
             onChange={(nextMode) => props.onModeChange(nextMode === 'autonomous' ? 'autonomous' : 'delegated')}
             className="w-full"
@@ -113,12 +115,11 @@ export function ExternalAgentIssueTokenForm(props: ExternalAgentIssueTokenFormPr
         <Button
           variant="primary"
           size="sm"
-          disabled={props.busy || !props.canIssue || !props.ttlIsPositiveInteger}
+          loading={props.busy}
+          disabled={!props.canIssue || !props.ttlIsPositiveInteger}
           onClick={props.onIssueToken}
         >
-          {props.busy
-            ? t('runtimeConfig.eaa.issuing', { defaultValue: 'Issuing...' })
-            : t('runtimeConfig.eaa.issueToken', { defaultValue: 'Issue token' })}
+          {t('runtimeConfig.eaa.issueToken', { defaultValue: 'Issue token' })}
         </Button>
       </div>
 
@@ -143,7 +144,7 @@ export function ExternalAgentIssueTokenForm(props: ExternalAgentIssueTokenFormPr
                 type="button"
                 onClick={onCopyIssuedToken}
                 className={cn(
-                  'inline-flex items-center gap-1 rounded-md border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2 py-1 text-[length:var(--nimi-type-caption-size)] font-medium transition-colors hover:border-[var(--nimi-border-strong)]',
+                  'inline-flex items-center gap-1 rounded-md border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2 py-1 text-[length:var(--nimi-type-caption-size)] font-medium transition-colors hover:border-[var(--nimi-border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]',
                   copiedToken ? 'text-[var(--nimi-status-success)]' : TOKEN_TEXT_SECONDARY,
                 )}
                 aria-label={copiedToken
@@ -163,7 +164,7 @@ export function ExternalAgentIssueTokenForm(props: ExternalAgentIssueTokenFormPr
       ) : null}
 
       {props.errorMessage ? (
-        <p className="mt-3 text-xs text-[var(--nimi-status-danger)]">{props.errorMessage}</p>
+        <p role="alert" className="mt-3 text-xs text-[var(--nimi-status-danger)]">{props.errorMessage}</p>
       ) : null}
     </div>
   );

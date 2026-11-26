@@ -1,6 +1,7 @@
 import { createElement, type ComponentPropsWithoutRef, type ElementType, type ReactNode } from 'react';
 import { cva } from 'class-variance-authority';
 import { cn, type SurfaceElevation, type SurfaceMaterial, type SurfaceMaterialTransparency, type SurfaceTone } from '../design-tokens.js';
+import { FOCUS_RING_CLASS_NAME } from '../a11y/focus.js';
 import { downgradeSurfaceMaterial } from '../glass/material.js';
 
 type SurfacePadding = 'none' | 'sm' | 'md' | 'lg';
@@ -98,7 +99,7 @@ export function Surface<T extends ElementType = 'div'>(props: SurfaceProps<T>) {
       'data-nimi-tone': tone,
       className: cn(
         surfaceVariants({ tone, elevation, padding, material: resolvedMaterial, transparency }),
-        interactive && 'nimi-surface--interactive cursor-pointer hover:border-[var(--nimi-border-strong)] hover:shadow-[var(--nimi-elevation-raised)] active:scale-[var(--nimi-motion-pressed-scale)]',
+        interactive && cn('nimi-surface--interactive cursor-pointer hover:border-[var(--nimi-border-strong)] hover:shadow-[var(--nimi-elevation-raised)] active:scale-[var(--nimi-motion-pressed-scale)]', FOCUS_RING_CLASS_NAME),
         active && 'nimi-surface--active border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-surface-active)]',
         className,
       ),

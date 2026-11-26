@@ -21,6 +21,7 @@ import { StoryExperience } from './story-experience.js';
 import { StoryLink } from './story-shared.js';
 import { useStoryHeroMotion, useStoryMotion } from './story-motion.js';
 import { PublicSiteFooter, PublicSiteHeader, PublicSiteLink } from '../../../pages/public-site-shell.js';
+import { preventDecorativeDragStart } from '../../../prevent-decorative-drag.js';
 
 // @nimi-authority: rule.nimi.platform.core-protocol.p-arch-001a
 // @nimi-authority: rule.nimi.platform.governance-release.p-gov-026-positioning
@@ -154,7 +155,7 @@ export function StoryPage({
       className="story-site"
       id="top"
       lang={locale === 'zh' ? 'zh-CN' : 'en'}
-      onDragStart={(event) => event.preventDefault()}
+      onDragStart={preventDecorativeDragStart}
     >
       <a className="skip-link" href="#main-content">
         {t('common.skip')}
@@ -261,17 +262,17 @@ export function StoryPage({
           <header className="story-heading story-container">
             <h2 id="runtime-heading">{t('runtime.title')}</h2>
             <p>{t('runtime.description')}</p>
-            <div className="story-runtime-pills" aria-hidden="true">
+            <div className="story-runtime-pills">
               <span className="is-live">
-                <Laptop size={14} />
+                <Laptop size={14} aria-hidden="true" />
                 {locale === 'zh' ? 'Mac & Windows 桌面端 · 现已开放' : 'Mac & Windows Desktop · Available Now'}
               </span>
               <span>
-                <Globe size={14} />
+                <Globe size={14} aria-hidden="true" />
                 {locale === 'zh' ? '独立网页应用 · 授权直连' : 'Approved Web Apps · Direct Link'}
               </span>
               <span>
-                <Smartphone size={14} />
+                <Smartphone size={14} aria-hidden="true" />
                 {locale === 'zh' ? '手机客户端 · 筹备中' : 'Mobile Apps · In Progress'}
               </span>
             </div>

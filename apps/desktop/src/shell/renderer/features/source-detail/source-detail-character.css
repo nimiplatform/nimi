@@ -12,7 +12,7 @@
   font-family: 'Source Han Serif SC', Georgia, serif;
   font-weight: 600;
   font-synthesis: none;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.015em;
   text-wrap: balance;
 }
 
@@ -47,4 +47,8 @@
   .char-voice-wave-bar {
     animation: none !important;
   }
+}
+
+:root[data-nimi-reduced-motion="true"] .char-voice-wave-bar {
+  animation: none !important;
 }

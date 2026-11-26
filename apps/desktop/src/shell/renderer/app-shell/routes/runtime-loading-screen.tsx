@@ -46,7 +46,7 @@ export function RuntimeLoadingScreen(props: { slowAfterMs?: number; slowActions?
             className="h-[104px] w-[104px] object-contain"
           />
 
-          <h1 className="-mt-0.5 text-[24px] font-medium leading-none">
+          <h1 className="-mt-0.5 text-2xl font-medium leading-none">
             Nimi
           </h1>
 

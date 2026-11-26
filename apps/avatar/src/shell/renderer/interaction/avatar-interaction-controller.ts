@@ -8,6 +8,15 @@ import {
 
 export type AvatarPointerButton = 'left' | 'middle' | 'right';
 
+export type AvatarLongPressFeedbackState =
+  | { readonly active: false }
+  | {
+      readonly active: true;
+      readonly clientX: number;
+      readonly clientY: number;
+      readonly durationMs: number;
+    };
+
 export type AvatarInteractionControllerDeps = {
   getHitRegionSnapshot(): AvatarHitRegionSnapshot | null;
   emit(event: AppOriginEvent): void;
@@ -17,6 +26,7 @@ export type AvatarInteractionControllerDeps = {
   nowMs(): number;
   hasHostRuntime(): boolean;
   isClickThroughLocked?(): boolean;
+  onLongPressFeedbackChange?(state: AvatarLongPressFeedbackState): void;
   setTimer?(callback: () => void, delayMs: number): ReturnType<typeof setTimeout>;
   clearTimer?(timer: ReturnType<typeof setTimeout>): void;
 };
@@ -41,9 +51,9 @@ type PendingDrag = {
   dragStartFailed: boolean;
 };
 
-export const AVATAR_DRAG_THRESHOLD_PX = 4;
+export const AVATAR_DRAG_THRESHOLD_PX = 8;
 const DRAG_MOVE_INTERVAL_MS = 33;
-const LONG_PRESS_THRESHOLD_MS = 1000;
+export const LONG_PRESS_THRESHOLD_MS = 480;
 const DOUBLE_CLICK_MS = 350;
 const DOUBLE_CLICK_DISTANCE_PX = 8;
 
@@ -54,6 +64,7 @@ export class AvatarInteractionController {
   private lastClick: { atMs: number; clientX: number; clientY: number } | null = null;
   private clickThrough = false;
   private clickThroughInFlight: boolean | null = null;
+  private longPressFeedbackActive = false;
 
   constructor(private readonly deps: AvatarInteractionControllerDeps) {}
 
@@ -102,6 +113,7 @@ export class AvatarInteractionController {
     this.deps.setPointerInside(false);
     this.setClickThrough(true);
     if (!this.pending?.dragging) {
+      this.clearPendingLongPressTimer(this.pending);
       this.deps.setPointerContact(false);
     }
   }
@@ -122,6 +134,7 @@ export class AvatarInteractionController {
 
     const button = pointerButton(event.button);
     if (button === 'right') {
+      this.clearPendingLongPressTimer(this.pending);
       this.deps.emit({
         name: 'avatar.user.right_click',
         detail: {
@@ -138,6 +151,7 @@ export class AvatarInteractionController {
       return;
     }
 
+    this.clearPendingLongPressTimer(this.pending);
     const pending: PendingDrag = {
       pointerId: event.pointerId ?? null,
       startedAtMs: this.deps.nowMs(),
@@ -155,6 +169,7 @@ export class AvatarInteractionController {
     pending.longPressTimer = this.setTimer(() => {
       this.fireLongPress(pending);
     }, LONG_PRESS_THRESHOLD_MS);
+    this.startLongPressFeedback(event.clientX, event.clientY);
     this.deps.setPointerContact(true);
   }
 
@@ -249,6 +264,7 @@ export class AvatarInteractionController {
     if (this.pending !== pending || pending.dragging || pending.dragStartFailed) return;
     pending.longPressTimer = null;
     this.pending = null;
+    this.clearLongPressFeedback();
     this.deps.setPointerContact(false);
     this.deps.emit({
       name: 'avatar.user.long_press',
@@ -258,6 +274,22 @@ export class AvatarInteractionController {
         client_y: Math.round(pending.startClientY),
       },
     });
+  }
+
+  private startLongPressFeedback(clientX: number, clientY: number): void {
+    this.longPressFeedbackActive = true;
+    this.deps.onLongPressFeedbackChange?.({
+      active: true,
+      clientX: Math.round(clientX),
+      clientY: Math.round(clientY),
+      durationMs: LONG_PRESS_THRESHOLD_MS,
+    });
+  }
+
+  private clearLongPressFeedback(): void {
+    if (!this.longPressFeedbackActive) return;
+    this.longPressFeedbackActive = false;
+    this.deps.onLongPressFeedbackChange?.({ active: false });
   }
 
   private setTimer(callback: () => void, delayMs: number): ReturnType<typeof setTimeout> {
@@ -275,9 +307,11 @@ export class AvatarInteractionController {
   }
 
   private clearPendingLongPressTimer(pending: PendingDrag | null): void {
-    if (!pending?.longPressTimer) return;
-    this.clearTimer(pending.longPressTimer);
-    pending.longPressTimer = null;
+    if (pending?.longPressTimer) {
+      this.clearTimer(pending.longPressTimer);
+      pending.longPressTimer = null;
+    }
+    this.clearLongPressFeedback();
   }
 
   private emitDragEvent(name: string, event: AvatarPointerEventLike, hit: AvatarHitTestResult, delta: { dx: number; dy: number }): void {

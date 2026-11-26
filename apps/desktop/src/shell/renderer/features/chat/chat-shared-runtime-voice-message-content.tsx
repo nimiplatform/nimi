@@ -167,15 +167,16 @@ export function RuntimeVoiceMessageContent(props: {
   }
 
   return (
-    <div className="space-y-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_80%,white)] p-3">
+    <div className="space-y-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_86%,var(--nimi-surface-panel))] p-3">
       <div className="flex items-center justify-between gap-3">
         <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
           {props.voiceLabel}
         </div>
         <button
           type="button"
+          aria-expanded={transcriptVisible}
           onClick={toggleTranscript}
-          className="rounded-full border border-[var(--nimi-border-subtle)] px-3 py-1 text-[11px] font-medium text-[var(--nimi-text-secondary)] transition hover:bg-[var(--nimi-surface-card)]"
+          className="rounded-full border border-[var(--nimi-border-subtle)] px-3 py-1 text-[11px] font-medium text-[var(--nimi-text-secondary)] transition-[background-color,transform] hover:bg-[var(--nimi-surface-card)] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1"
         >
           {transcriptVisible ? props.hideTranscriptLabel : props.showTranscriptLabel}
         </button>

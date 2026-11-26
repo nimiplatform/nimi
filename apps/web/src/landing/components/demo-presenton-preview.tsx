@@ -1,6 +1,6 @@
 import type { PreviewTranslate } from '../i18n/preview-messages.js';
 import { useAppPreviewLocale } from '../i18n/app-preview-locale.js';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -49,6 +49,28 @@ export function DemoPresentonPreview({ content }: { content: RemainingPreviewMet
   const [settings, setSettings] = useState(true);
   const [exportOpen, setExportOpen] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (!presenting) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        setPresenting(false);
+        return;
+      }
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        setSelected((current) => Math.max(0, current - 1));
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        setSelected((current) => Math.min(slides.length - 1, current + 1));
+      }
+    };
+    document.addEventListener('keydown', onKey, { capture: true });
+    return () => document.removeEventListener('keydown', onKey, { capture: true });
+  }, [presenting, slides.length]);
+
   const slide = slides[selected]!;
   const update = (field: 'title' | 'body' | 'notes', value: string) => {
     setSlides((v) => v.map((s, i) => (i === selected ? { ...s, [field]: value } : s)));
@@ -133,7 +155,7 @@ export function DemoPresentonPreview({ content }: { content: RemainingPreviewMet
                 </button>
               ))}
             </aside>
-            <main className="pn-main">
+            <div role="region" aria-label={content.name} className="pn-main">
               <div className="pn-toolbar">
                 <span>
                   {t('presenton.main.slide')}
@@ -185,7 +207,7 @@ export function DemoPresentonPreview({ content }: { content: RemainingPreviewMet
                   }}
                 />
               </label>
-            </main>
+            </div>
             {settings && (
               <aside className="pn-settings">
                 <h2>
@@ -248,6 +270,7 @@ export function DemoPresentonPreview({ content }: { content: RemainingPreviewMet
       {presenting && (
         <section
           className="pn-presentation"
+          data-demo-nested-dialog="true"
           aria-label={t('presenton.presentation.presentationMode')}
         >
           <header>

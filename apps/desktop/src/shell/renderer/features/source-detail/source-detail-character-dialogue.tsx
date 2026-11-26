@@ -33,7 +33,7 @@ export function CharacterDialogue({ source, includeGreeting = true, showTitle = 
   >
     {showTitle || samples.length > 1 ? (
       <div className="flex flex-wrap items-baseline justify-between gap-4 border-b border-[var(--nimi-border-subtle)]">
-        {showTitle ? <h2 className="pb-2.5 text-[16px] font-semibold tracking-[-0.01em] text-[var(--nimi-text-primary)]">{t('SourceDetail.worldCharacter.dialogueTitle')}</h2> : <span />}
+        {showTitle ? <h2 className="pb-2.5 text-base font-semibold tracking-[-0.01em] text-[var(--nimi-text-primary)]">{t('SourceDetail.worldCharacter.dialogueTitle')}</h2> : <span />}
         {samples.length > 1 ? <div role="tablist" aria-label={t('SourceDetail.worldCharacter.dialogueTitle')}
           data-testid="world-character-dialogue-tabs" className="flex max-w-full items-center gap-4 overflow-x-auto"
           onKeyDown={event => {
@@ -48,7 +48,7 @@ export function CharacterDialogue({ source, includeGreeting = true, showTitle = 
           {samples.map((item, ordinal) => <button key={`${item.id}-${ordinal}`} id={`${id}-tab-${ordinal}`} type="button" role="tab"
             aria-selected={ordinal === selected} aria-controls={`${id}-panel`} tabIndex={ordinal === selected ? 0 : -1}
             onClick={() => setIndex(ordinal)}
-            className={`-mb-px shrink-0 border-b-2 pb-2.5 text-[13px] transition-colors focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${ordinal === selected ? 'border-[var(--nimi-text-primary)] font-semibold text-[var(--nimi-text-primary)]' : 'border-transparent font-medium text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-primary)]'}`}>
+            className={`-mb-px shrink-0 border-b-2 pb-2.5 text-[0.8125rem] transition-colors focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${ordinal === selected ? 'border-[var(--nimi-text-primary)] font-semibold text-[var(--nimi-text-primary)]' : 'border-transparent font-medium text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-primary)]'}`}>
             {item.label}
           </button>)}
         </div> : null}
@@ -70,9 +70,9 @@ export function CharacterDialogueExchange({ source, user, character }: {
   const { t } = useTranslation();
   return <>
       {user ? <div data-testid="world-character-dialogue-user" className="flex min-w-0 flex-col items-end gap-1">
-        <span className="text-[11px] font-medium text-[var(--nimi-text-muted)]">{t('SourceDetail.worldCharacter.dialogueYou')}</span>
+        <span className="text-[0.6875rem] font-medium text-[var(--nimi-text-muted)]">{t('SourceDetail.worldCharacter.dialogueYou')}</span>
         <div className="char-dialogue-bubble-user max-w-[84%] rounded-[14px] rounded-tr-[4px] px-4 py-2.5">
-          <CharacterProfileText text={user} lines={4} textClassName="text-[14px] leading-[1.72] text-[var(--nimi-text-primary)]" />
+          <CharacterProfileText text={user} lines={4} textClassName="text-sm leading-[1.72] text-[var(--nimi-text-primary)]" />
         </div>
       </div> : null}
       <div data-testid="world-character-dialogue-character" className="flex min-w-0 items-start gap-2.5">
@@ -80,9 +80,9 @@ export function CharacterDialogueExchange({ source, user, character }: {
           sizeClassName="mt-1 h-8 w-8 shrink-0" radiusClassName="rounded-full"
           fallbackClassName="bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)]" textClassName="text-xs font-semibold" />
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-medium text-[var(--nimi-text-muted)]">{source.displayName}</p>
+          <p className="text-[0.6875rem] font-medium text-[var(--nimi-text-muted)]">{source.displayName}</p>
           <div className="char-dialogue-bubble-character mt-1 rounded-[14px] rounded-tl-[4px] px-4 py-3">
-            <CharacterProfileText testId="world-character-opening-line" text={character} lines={5} textClassName="text-[14.5px] leading-[1.76] text-[var(--nimi-text-primary)]" />
+            <CharacterProfileText testId="world-character-opening-line" text={character} lines={5} textClassName="text-[0.90625rem] leading-[1.76] text-[var(--nimi-text-primary)]" />
           </div>
         </div>
       </div>

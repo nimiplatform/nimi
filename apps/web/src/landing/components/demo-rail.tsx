@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion, nimiOverlayPanelMotion, useNimiReducedMotion } from '@nimiplatform/kit/ui';
 import {
   Bell,
   Cloud,
@@ -33,6 +34,37 @@ export function DemoRail({
   onSelect: (next: HeroDemoSurface, target?: string) => void;
 }) {
   const [menu, setMenu] = useState(false);
+  const menuWrapRef = useRef<HTMLDivElement>(null);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  const reducedMotion = useNimiReducedMotion();
+  const menuMotion = nimiOverlayPanelMotion({
+    kind: 'popover',
+    side: 'top',
+    align: 'start',
+    reducedMotion,
+  });
+
+  useEffect(() => {
+    if (!menu) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!(event.target instanceof Node)) return;
+      if (menuWrapRef.current?.contains(event.target)) return;
+      setMenu(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      setMenu(false);
+      menuTriggerRef.current?.focus({ preventScroll: true });
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown, { capture: true });
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown, { capture: true });
+    };
+  }, [menu]);
   return (
     <nav
       aria-label={demo.windowTitle}
@@ -86,29 +118,32 @@ export function DemoRail({
         >
           <Bell size={20} />
         </button>
-        <div className="relative">
+        <div className="relative" ref={menuWrapRef}>
           <button
+            ref={menuTriggerRef}
             type="button"
             className="demo-account-avatar"
             aria-label={demo.appPreview.locale === 'zh' ? '账户菜单' : 'Account menu'}
+            aria-haspopup="menu"
             aria-expanded={menu}
             onClick={() => setMenu(!menu)}
           >
             <img src={demo.chat.self.avatarUrl} alt="" className="h-full w-full rounded-full" />
           </button>
-          {menu && (
-            <>
-              <button
-                type="button"
-                className="demo-menu-dismiss"
-                aria-label={demo.home.close}
-                onClick={() => setMenu(false)}
-              />
-              <div className="demo-account-menu">
+          <AnimatePresence>
+            {menu && (
+              <motion.div
+                role="menu"
+                data-demo-nested-dialog="true"
+                className="demo-account-menu"
+                {...menuMotion}
+                style={{ ...menuMotion.style, transformOrigin: 'bottom left' }}
+              >
                 <strong>Halliday</strong>
                 <small>{demo.home.badge}</small>
                 <button
                   type="button"
+                  role="menuitem"
                   onClick={() => {
                     onSelect('settings', 'profile');
                     setMenu(false);
@@ -119,6 +154,7 @@ export function DemoRail({
                 </button>
                 <button
                   type="button"
+                  role="menuitem"
                   onClick={() => {
                     onSelect('settings');
                     setMenu(false);
@@ -129,6 +165,7 @@ export function DemoRail({
                 </button>
                 <button
                   type="button"
+                  role="menuitem"
                   onClick={() => {
                     onSelect('settings', 'troubleshooting');
                     setMenu(false);
@@ -137,9 +174,9 @@ export function DemoRail({
                   <Wrench size={16} />
                   {demo.home.settingsGroups[3]!.items[0]!.label}
                 </button>
-              </div>
-            </>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </nav>

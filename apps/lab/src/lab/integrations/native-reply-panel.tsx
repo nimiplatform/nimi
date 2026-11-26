@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { NimiIntegrationCall, NimiIntegrationTarget } from '@nimiplatform/sdk/app';
-import { Button, InlineAlert } from '@nimiplatform/kit/ui';
+import { Button, Checkbox, InlineAlert, TextareaField } from '@nimiplatform/kit/ui';
 import { useLabRendererHost } from '../../renderer/context.js';
 import { requireLabNativeClient } from '../../shell/local-app-runtime-platform.js';
 import { subscribeLabLocalAppSessionLoss } from '../../shell/auth/session-loss.js';
@@ -71,7 +71,7 @@ export function NativeReplyPanel({ target, event, externalBusy, setBusy, recordA
     {event ? <p className="mt-2 break-all text-sm">{event.conversation.kind}:{event.conversation.id} · {event.messageId || event.eventId}</p> : <p className="mt-2 text-sm">{t('Integrations.selectReceived')}</p>}
     {event ? <NativeMessageContent event={event} mediaDisabled/> : null}
     {event && !hasText ? <InlineAlert tone="info">{t('Integrations.replyAI.textRequired')}</InlineAlert> : null}
-    <label className="mt-3 flex items-start gap-2 text-sm"><input type="checkbox" checked={saveBodies} disabled={busy || externalBusy} onChange={event => setSaveBodies(event.target.checked)}/>{t('Integrations.replyAI.saveBodies')}</label>
+    <Checkbox className="mt-3" checked={saveBodies} disabled={busy || externalBusy} label={t('Integrations.replyAI.saveBodies')} onChange={event => setSaveBodies(event.target.checked)} />
     <div className="mt-3 flex flex-wrap gap-2">
       <Button disabled={busy || externalBusy || !hasText || !available || state.scopeEnded} onClick={() => { void controller.current?.generate(saveBodies); }}>{t('Integrations.replyAI.generate')}</Button>
       <Button tone="secondary" disabled={externalBusy || (!busy && state.phase !== 'draft')} onClick={() => controller.current?.stop()}>{t('Integrations.replyAI.stop')}</Button>
@@ -79,7 +79,7 @@ export function NativeReplyPanel({ target, event, externalBusy, setBusy, recordA
     {state.phase !== 'idle' ? <p className="mt-3 text-sm" role="status">{t(`Integrations.replyAI.phases.${state.phase}`)}</p> : null}
     {state.error ? <InlineAlert tone="warning">{t(`Integrations.errors.${state.error}`, { defaultValue: state.error })}</InlineAlert> : null}
     {state.phase === 'draft' ? <>
-      <label className="mt-3 block text-sm">{t('Integrations.replyAI.review')}<textarea className="mt-1 min-h-28 w-full rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-sm" value={state.draft} maxLength={32768} disabled={externalBusy} onChange={event => controller.current?.editDraft(event.target.value)}/></label>
+      <label className="mt-3 block text-sm">{t('Integrations.replyAI.review')}<TextareaField className="mt-1" textareaClassName="min-h-28" value={state.draft} maxLength={32768} disabled={externalBusy} onChange={event => controller.current?.editDraft(event.target.value)}/></label>
       <Button className="mt-3" disabled={externalBusy || !available || !state.draft.trim()} onClick={() => { void controller.current?.send(); }}>{t('Integrations.replyAI.send')}</Button>
     </> : null}
     {state.aiRecord ? <p className="mt-3 break-all text-xs">{t('Integrations.replyAI.aiFact', { id: state.aiRecord.id, status: state.aiRecord.status, trace: state.aiRecord.runConfig?.traceId || '' })}</p> : null}

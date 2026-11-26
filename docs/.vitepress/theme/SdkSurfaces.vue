@@ -77,7 +77,7 @@ const current = computed(() => surfaces[active.value])
 
 const copy = computed(() =>
   isZh.value
-    ? { tagline: 'Open-source AI runtime for apps.', cta: '查看 SDK 参考' }
+    ? { tagline: '面向应用的开源 AI 运行时。', cta: '查看 SDK 参考' }
     : { tagline: 'Open-source AI runtime for apps.', cta: 'View SDK reference' },
 )
 
@@ -91,27 +91,28 @@ function tier(s: Surface) {
 
 <template>
   <section class="sdk-surfaces">
-    <ul class="sdk-list" role="tablist">
+    <ul class="sdk-list">
       <li
         v-for="(s, i) in surfaces"
         :key="s.slug"
         class="sdk-item"
         :class="{ 'is-active': i === active }"
-        role="tab"
-        :aria-selected="i === active"
-        tabindex="0"
         @mouseenter="active = i"
-        @focus="active = i"
-        @click="active = i"
       >
-        <a class="sdk-item-link" :href="base + s.slug">
+        <a
+          class="sdk-item-link"
+          :href="base + s.slug"
+          :aria-current="i === active ? 'true' : undefined"
+          @focus="active = i"
+          @click="active = i"
+        >
           <span class="sdk-item-title">{{ tx(s).title }}</span>
           <span class="sdk-item-desc">{{ tx(s).desc }}</span>
         </a>
       </li>
     </ul>
 
-    <div class="sdk-showcase">
+    <div class="sdk-showcase" aria-live="polite">
       <div class="sdk-card">
         <div class="sdk-card-brand">
           <span class="sdk-card-mark">Nimi</span>
@@ -169,9 +170,14 @@ function tier(s: Surface) {
 .sdk-item-link {
   display: block;
   padding: 14px 18px 14px 20px;
+  border-radius: 12px;
   text-decoration: none;
   color: inherit;
   font-weight: inherit;
+}
+.sdk-item-link:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 2px;
 }
 .sdk-item-title {
   display: block;
@@ -186,7 +192,7 @@ function tier(s: Surface) {
   margin-top: 6px;
   font-size: 13.5px;
   line-height: 1.6;
-  color: var(--vp-c-text-3);
+  color: var(--vp-c-text-2);
 }
 .sdk-item:hover .sdk-item-title,
 .sdk-item.is-active .sdk-item-title {
@@ -320,6 +326,30 @@ function tier(s: Surface) {
   }
   .sdk-card-brand {
     padding: 40px 20px 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sdk-item,
+  .sdk-item-title,
+  .sdk-card-cta,
+  .sdk-card-cta span {
+    transition: none;
+  }
+  .sdk-card-cta:hover span {
+    transform: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .sdk-card {
+    border-color: rgba(255, 255, 255, 0.55);
+  }
+  .sdk-card-brand {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.32);
+  }
+  .sdk-item.is-active {
+    border-color: var(--vp-c-text-1);
   }
 }
 </style>

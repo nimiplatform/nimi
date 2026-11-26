@@ -142,11 +142,11 @@ export function SidebarSearch({
             />
           </Tooltip>
         ) : (
-          <div className="nimi-sidebar-search flex min-w-0 flex-1 items-center px-2">
+          <div className="nimi-sidebar-search flex min-w-0 flex-1 items-center rounded-[var(--nimi-radius-full)] border border-[var(--nimi-field-border)] bg-[var(--nimi-sidebar-search)] px-2.5 py-1 transition-colors duration-[var(--nimi-motion-fast)] focus-within:border-[var(--nimi-field-focus)] focus-within:ring-[length:var(--nimi-focus-ring-width)] focus-within:ring-[var(--nimi-focus-ring-color)]">
             <span className="shrink-0 text-[var(--nimi-text-muted)]">{SEARCH_ICON}</span>
             <input
               ref={inputRef}
-              className="nimi-sidebar-search__field ml-1 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--nimi-field-placeholder)]"
+              className="nimi-sidebar-search__field ml-1.5 min-w-0 flex-1 bg-transparent text-[length:var(--nimi-type-body-size)] outline-none placeholder:text-[var(--nimi-field-placeholder)]"
               value={value}
               onChange={(event) => {
                 if (onValueChange) {
@@ -256,7 +256,8 @@ export function SidebarResizeHandle({
       aria-label={ariaLabel}
       tabIndex={tabIndex}
       className={cn(
-        'nimi-sidebar-resize-handle absolute inset-y-0 right-0 z-10 w-2 translate-x-1/2 cursor-col-resize hover:bg-[var(--nimi-sidebar-resize-handle)]',
+        'nimi-sidebar-resize-handle absolute inset-y-0 right-0 z-10 w-2 translate-x-1/2 cursor-col-resize transition-colors duration-[var(--nimi-motion-fast)] hover:bg-[var(--nimi-sidebar-resize-handle)] focus-visible:bg-[var(--nimi-focus-ring-color)]',
+        FOCUS_RING_CLASS_NAME,
         className,
       )}
       {...rest}

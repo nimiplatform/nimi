@@ -319,7 +319,7 @@ export function RecommendPage(props: RecommendPageProps) {
                 type="button"
                 aria-pressed={selected}
                 onClick={() => setCategory(value)}
-                className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-xs font-medium transition-colors ${selected
+                className={`inline-flex min-h-8 items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)] ${selected
                   ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[var(--nimi-elevation-base)]'
                   : 'text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]'}`}
               >
@@ -516,7 +516,7 @@ function SearchResultCard(props: {
   const { t } = useTranslation();
   const { result } = props;
   return (
-    <button type="button" onClick={props.onOpen} className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 text-left shadow-[var(--nimi-elevation-base)] hover:border-[var(--nimi-border-strong)]">
+    <button type="button" onClick={props.onOpen} className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 text-left shadow-[var(--nimi-elevation-base)] transition-colors hover:border-[var(--nimi-border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -548,7 +548,7 @@ function CandidateCard(props: {
   // wrapped line instead of tail-truncating the quant suffix away.
   const variantTitle = candidate.variantLabel || candidate.title;
   return (
-    <button type="button" data-community-candidate={candidate.offerRef} onClick={props.onOpen} className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 text-left shadow-[var(--nimi-elevation-base)] hover:border-[var(--nimi-border-strong)]">
+    <button type="button" data-community-candidate={candidate.offerRef} onClick={props.onOpen} className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 text-left shadow-[var(--nimi-elevation-base)] transition-colors hover:border-[var(--nimi-border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -915,16 +915,14 @@ export function ModelInstallAction(props: {
   }
   if (props.plan) {
     return (
-      <Button size="sm" tone="primary" disabled={props.busy || props.runtimeWritesDisabled || !props.plan.installAvailable} onClick={props.onInstall}>
+      <Button size="sm" tone="primary" loading={props.busy} disabled={props.runtimeWritesDisabled || !props.plan.installAvailable} onClick={props.onInstall}>
         {t('runtimeConfig.recommend.startInstall', { defaultValue: 'Download and install' })}
       </Button>
     );
   }
   return (
-    <Button size="sm" tone="primary" disabled={props.busy} onClick={props.onReview}>
-      {props.busy
-        ? t('runtimeConfig.recommend.reviewingPlan', { defaultValue: 'Reviewing…' })
-        : t('runtimeConfig.recommend.reviewInstallPlan', { defaultValue: 'Review install' })}
+    <Button size="sm" tone="primary" loading={props.busy} onClick={props.onReview}>
+      {t('runtimeConfig.recommend.reviewInstallPlan', { defaultValue: 'Review install' })}
     </Button>
   );
 }
@@ -983,7 +981,7 @@ export function InstallPlanPanel(props: {
                 {t('runtimeConfig.recommend.planFileList', { count: plan.files.length, defaultValue: '{{count}} files' })}
               </summary>
               <ScrollShell className="mt-1.5 max-h-44">
-                <ul className="space-y-0.5 font-mono text-[11px] text-[var(--nimi-text-muted)]">
+                <ul className="space-y-0.5 font-mono text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
                   {plan.files.map((file) => (
                     <li key={file} className="break-all">{file}</li>
                   ))}
@@ -1024,7 +1022,7 @@ function PlanRow(props: {
   return (
     <div className="flex items-baseline justify-between gap-3">
       <dt className="shrink-0 text-[var(--nimi-text-muted)]">{props.label}</dt>
-      <dd className={`min-w-0 break-all text-right ${props.mono ? 'font-mono text-[11px]' : 'font-medium'}`}>{props.value}</dd>
+      <dd className={`min-w-0 break-all text-right ${props.mono ? 'font-mono text-[length:var(--nimi-type-caption-size)]' : 'font-medium'}`}>{props.value}</dd>
     </div>
   );
 }

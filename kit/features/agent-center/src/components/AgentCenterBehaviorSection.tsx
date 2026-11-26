@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { Button, InlineAlert, Toggle } from '@nimiplatform/kit/ui';
+import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
 import { translateAgentCenter } from '../i18n.js';
 import { getAgentCenterMessage } from '../locales/index.js';
 import type { AgentCenterAutonomyMutationInput, AgentCenterAutonomyState, AgentCenterI18n, AgentCenterPlacementActions, AgentCenterSession, AgentCenterSnapshot } from '../types.js';
@@ -172,9 +174,12 @@ export function AgentCenterBehaviorSection({ session, snapshot, i18n, placementA
         </Card>
         <Card>
           <details ref={budgetDetails} className="group">
-            <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 p-4 [&::-webkit-details-marker]:hidden">
+            <summary className={cnAgentCenter('flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 rounded-[var(--nimi-radius-lg)] p-4 [&::-webkit-details-marker]:hidden', FOCUS_RING_CLASS_NAME)}>
               <span className="text-[length:var(--nimi-type-body-sm-size)] font-semibold">{text('budget')}</span>
-              <span className="text-[length:var(--nimi-type-caption-size)] tabular-nums text-[var(--nimi-text-secondary)]">{text('used')} · {used} / {allowance}</span>
+              <span className="inline-flex items-center gap-2 text-[length:var(--nimi-type-caption-size)] tabular-nums text-[var(--nimi-text-secondary)]">
+                <span>{text('used')} · {used} / {allowance}</span>
+                <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 text-[var(--nimi-text-muted)] transition-transform duration-[var(--nimi-motion-fast)] group-open:rotate-180" />
+              </span>
             </summary>
             <div className="grid gap-3 border-t border-[var(--nimi-border-subtle)] p-4">
               <p className={helpClass}>{text('budgetHelp')}</p>

@@ -117,16 +117,16 @@ describe('WebAccountAuthPage entry action semantics', () => {
     expect(email?.getAttribute('aria-label')).toBe('Auth.emailPlaceholder');
     expect(container.querySelector('button[type="submit"]')?.getAttribute('aria-label')).toBe('Continue');
     const alternatives = container.querySelector<HTMLButtonElement>('button[aria-label="Auth.alternative"]');
-    const google = container.querySelector<HTMLButtonElement>('button[aria-label="Google"]');
-    const register = [...container.querySelectorAll('button')].find(button => button.textContent === 'Auth.confirmRegister');
-    expect(google?.closest('[hidden]')).not.toBeNull();
-    expect(register?.closest('[hidden]')).not.toBeNull();
+    const google = () => container.querySelector<HTMLButtonElement>('button[aria-label="Google"]');
+    const register = () => [...container.querySelectorAll('button')].find(button => button.textContent === 'Auth.confirmRegister');
+    expect(google()).toBeNull();
+    expect(register()).toBeUndefined();
     expect(alternatives?.getAttribute('aria-expanded')).toBe('false');
     act(() => alternatives?.click());
-    expect(google?.closest('[hidden]')).toBeNull();
+    expect(google()).not.toBeNull();
     expect(alternatives?.getAttribute('aria-expanded')).toBe('true');
     act(() => alternatives?.click());
-    expect(google?.closest('[hidden]')).not.toBeNull();
+    expect(google()).toBeNull();
 
     act(() => logoControl()?.click());
     expect(onEntryAction).toHaveBeenCalledTimes(1);
@@ -371,7 +371,7 @@ describe('WebAccountAuthPage entry action semantics', () => {
       expect(altPanel).not.toBeNull();
       expect(altPanel?.hidden).toBe(false);
       expect(altPanel?.classList.contains('absolute')).toBe(false);
-      expect(registerButton()?.closest('[hidden]')).not.toBeNull();
+      expect(registerButton()).toBeUndefined();
     } finally {
       act(() => root.unmount());
       container.remove();

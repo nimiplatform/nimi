@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import {
   resolveWorldLandmarks,
   type WorldScenicLandmark,
@@ -59,7 +60,12 @@ function LandmarkGlyph(props: { readonly kind: WorldScenicLandmark['glyph'] }) {
 export function WorldSceneryLayer(props: {
   readonly habitatId: string;
   readonly selectedLandmarkId: string | null;
-  readonly projectPercent?: (xPercent: number, yPercent: number) => { left: string; top: string };
+  readonly projectPercent?: (
+    xPercent: number,
+    yPercent: number,
+    offsetX?: string,
+    offsetY?: string,
+  ) => CSSProperties;
   readonly onSelectLandmark: (landmark: WorldScenicLandmark) => void;
 }) {
   const {

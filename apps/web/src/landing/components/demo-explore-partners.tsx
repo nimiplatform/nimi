@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion, nimiOverlayPanelMotion, useNimiReducedMotion } from '@nimiplatform/kit/ui';
 import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Ellipsis } from 'lucide-react';
 import { Button, SearchField } from '@nimiplatform/kit/ui';
 import type { HeroDemo } from '../content/landing-content.js';
@@ -43,36 +44,90 @@ export function DemoExplorePartners({
   ).slice();
   if (sort === 'name') visible.sort((a, b) => a.name.localeCompare(b.name, demo.chat.dateLocale));
   if (sort === 'oldest') visible.reverse();
+  const menuWrapRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const menuTriggerRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const reducedMotion = useNimiReducedMotion();
+  const menuMotion = nimiOverlayPanelMotion({
+    kind: 'popover',
+    side: 'bottom',
+    align: 'end',
+    reducedMotion,
+  });
+
+  useEffect(() => {
+    if (!menu) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!(event.target instanceof Node)) return;
+      const wrap = menuWrapRefs.current.get(menu);
+      if (wrap?.contains(event.target)) return;
+      setMenu(null);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      const trigger = menuTriggerRefs.current.get(menu);
+      setMenu(null);
+      trigger?.focus({ preventScroll: true });
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown, { capture: true });
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown, { capture: true });
+    };
+  }, [menu]);
+
   const openMenu = (person: ExploreCharacter) => (
-    <div className="demo-explore-partner-menu-wrap">
+    <div
+      className="demo-explore-partner-menu-wrap"
+      ref={(el) => {
+        if (el) menuWrapRefs.current.set(person.id, el);
+        else menuWrapRefs.current.delete(person.id);
+      }}
+    >
       <button
+        ref={(el) => {
+          if (el) menuTriggerRefs.current.set(person.id, el);
+          else menuTriggerRefs.current.delete(person.id);
+        }}
         type="button"
         className="demo-explore-partner-more"
         aria-label={t(`${person.name}的更多操作`, `More actions for ${person.name}`)}
+        aria-haspopup="menu"
         aria-expanded={menu === person.id}
         onClick={() => setMenu(menu === person.id ? null : person.id)}
       >
         <Ellipsis size={18} />
       </button>
-      {menu === person.id && (
-        <div className="demo-explore-partner-action-list">
-          <button
-            type="button"
-            onClick={() => {
-              setMenu(null);
-              onSelect(person.id);
-            }}
+      <AnimatePresence>
+        {menu === person.id && (
+          <motion.div
+            role="menu"
+            data-demo-nested-dialog="true"
+            className="demo-explore-partner-action-list"
+            {...menuMotion}
+            style={{ ...menuMotion.style, transformOrigin: 'top right' }}
           >
-            {t('查看详情', 'View details')}
-          </button>
-          <button type="button" onClick={() => onChat(person)}>
-            {t('开始聊天', 'Start chatting')}
-          </button>
-          <button type="button" onClick={() => onWorld(person.worldId)}>
-            {t('查看所在世界', 'View world')}
-          </button>
-        </div>
-      )}
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setMenu(null);
+                onSelect(person.id);
+              }}
+            >
+              {t('查看详情', 'View details')}
+            </button>
+            <button type="button" role="menuitem" onClick={() => { setMenu(null); onChat(person); }}>
+              {t('开始聊天', 'Start chatting')}
+            </button>
+            <button type="button" role="menuitem" onClick={() => { setMenu(null); onWorld(person.worldId); }}>
+              {t('查看所在世界', 'View world')}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
   return (

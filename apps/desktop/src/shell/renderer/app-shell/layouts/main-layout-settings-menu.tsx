@@ -1,10 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { ScrollArea, Surface, Tooltip } from '@nimiplatform/kit/ui';
-import { motion } from 'motion/react';
 import { EntityAvatar } from '../../components/entity-avatar.js';
 import { SHELL_CHROME_MENU_ITEM_BASE_CLASS, SHELL_CHROME_OVERLAY_CLASS } from './shell-chrome-classes';
 import { renderShellNavIcon } from './navigation-config';
-import { useDesktopInteractiveMotion } from '../../ui/motion/desktop-motion';
 
 export type SettingsSubmenuItemId =
   | 'profile'
@@ -45,7 +43,7 @@ type MainLayoutSettingsMenuProps = {
 
 function MenuChevron() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[color-mix(in_srgb,var(--nimi-text-secondary)_45%,white)]">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-[var(--nimi-text-muted)]">
       <path d="m9 18 6-6-6-6" />
     </svg>
   );
@@ -53,7 +51,6 @@ function MenuChevron() {
 
 export function MainLayoutSettingsMenu(props: MainLayoutSettingsMenuProps) {
   const { t } = useTranslation();
-  const interactiveMotion = useDesktopInteractiveMotion();
   const items = SETTINGS_SUBMENU_ITEMS.filter((item) => (
     item.id !== 'logout'
     && item.id !== 'profile'
@@ -69,85 +66,70 @@ export function MainLayoutSettingsMenu(props: MainLayoutSettingsMenuProps) {
             {props.userEmail ? <p className="truncate text-xs text-[var(--nimi-text-secondary)]">{props.userEmail}</p> : null}
           </div>
           <Tooltip content={t('Layout.editProfile', { defaultValue: 'Edit Profile' })} placement="top">
-            <motion.button
+            <button
               type="button"
               onClick={props.onEditProfile}
-              whileHover={interactiveMotion.whileHover}
-              whileTap={interactiveMotion.whileTap}
-              transition={interactiveMotion.transition}
-              className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--nimi-text-secondary)] transition hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-action-primary-bg)]"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--nimi-text-secondary)] transition-[transform,background-color,color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-action-primary-bg)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
               aria-label={t('Layout.editProfile', { defaultValue: 'Edit Profile' })}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M12 20h9" />
                 <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
               </svg>
-            </motion.button>
+            </button>
           </Tooltip>
         </div>
-        <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,white)] to-transparent" />
+        <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-[var(--nimi-border-subtle)] to-transparent" />
         <ScrollArea className="flex-1">
           <div className="px-2">
-            <motion.button
+            <button
               type="button"
               onClick={() => props.onOpenItem('profile')}
-              whileHover={interactiveMotion.whileHover}
-              whileTap={interactiveMotion.whileTap}
-              transition={interactiveMotion.transition}
-              className={`${SHELL_CHROME_MENU_ITEM_BASE_CLASS} ${props.isItemActive('profile') ? 'bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-primary)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,white)]'}`}
+              className={`${SHELL_CHROME_MENU_ITEM_BASE_CLASS} ${props.isItemActive('profile') ? 'bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-primary)] hover:bg-[var(--nimi-action-ghost-hover)]'}`}
             >
               <span className={`w-4 shrink-0 ${props.isItemActive('profile') ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-secondary)]'}`}>{renderShellNavIcon('profile')}</span>
               <span className="min-w-0 flex-1 text-left font-medium">{t(SETTINGS_SUBMENU_I18N_KEYS.profile, 'Profile')}</span>
               <MenuChevron />
-            </motion.button>
+            </button>
             {items.map((item) => {
               const active = props.isItemActive(item.id);
               return (
-                <motion.button
+                <button
                   key={item.id}
                   type="button"
                   data-testid={`desktop-account-menu-item:${item.id}`}
                   onClick={() => props.onOpenItem(item.id)}
-                  whileHover={interactiveMotion.whileHover}
-                  whileTap={interactiveMotion.whileTap}
-                  transition={interactiveMotion.transition}
-                  className={`${SHELL_CHROME_MENU_ITEM_BASE_CLASS} ${active ? 'bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-primary)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,white)]'}`}
+                  className={`${SHELL_CHROME_MENU_ITEM_BASE_CLASS} ${active ? 'bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-primary)] hover:bg-[var(--nimi-action-ghost-hover)]'}`}
                 >
                   <span className={`w-4 shrink-0 ${active ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-secondary)]'}`}>{renderShellNavIcon(item.icon)}</span>
                   <span className="min-w-0 flex-1 text-left font-medium">{t(SETTINGS_SUBMENU_I18N_KEYS[item.id], item.label)}</span>
                   <MenuChevron />
-                </motion.button>
+                </button>
               );
             })}
           </div>
-          <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-[color-mix(in_srgb,var(--nimi-text-secondary)_14%,white)] to-transparent" />
+          <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-[var(--nimi-border-subtle)] to-transparent" />
           <div className="px-2 pb-2">
-            <motion.button
+            <button
               type="button"
               data-testid="desktop-account-switch"
               onClick={props.onSwitchAccount}
-              whileHover={interactiveMotion.whileHover}
-              whileTap={interactiveMotion.whileTap}
-              transition={interactiveMotion.transition}
-              className={`${SHELL_CHROME_MENU_ITEM_BASE_CLASS} text-[var(--nimi-text-primary)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,white)]`}
+              className={`${SHELL_CHROME_MENU_ITEM_BASE_CLASS} text-[var(--nimi-text-primary)] hover:bg-[var(--nimi-action-ghost-hover)]`}
             >
               <span className="w-4 shrink-0 text-[var(--nimi-text-secondary)]">{renderShellNavIcon('switch-account')}</span>
               <span className="min-w-0 flex-1 text-left font-medium">{t('Menu.switchAccount', 'Switch account')}</span>
               <MenuChevron />
-            </motion.button>
-            <motion.button
+            </button>
+            <button
               type="button"
               data-testid="desktop-account-logout"
               onClick={props.onLogout}
-              whileHover={interactiveMotion.whileHover}
-              whileTap={interactiveMotion.whileTap}
-              transition={interactiveMotion.transition}
-              className={`${SHELL_CHROME_MENU_ITEM_BASE_CLASS} text-[var(--nimi-text-primary)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,white)]`}
+              className={`${SHELL_CHROME_MENU_ITEM_BASE_CLASS} text-[var(--nimi-text-primary)] hover:bg-[var(--nimi-status-danger-soft-bg)] hover:text-[var(--nimi-status-danger-soft-text)]`}
             >
-              <span className="w-4 shrink-0 text-[var(--nimi-text-secondary)]">{renderShellNavIcon('logout')}</span>
+              <span className="w-4 shrink-0 text-current opacity-80">{renderShellNavIcon('logout')}</span>
               <span className="min-w-0 flex-1 text-left font-medium">{t('Menu.logout', 'Log out')}</span>
               <MenuChevron />
-            </motion.button>
+            </button>
           </div>
         </ScrollArea>
       </Surface>

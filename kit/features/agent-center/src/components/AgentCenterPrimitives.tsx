@@ -62,7 +62,7 @@ export function StatusPill(props: {
   // The pre-adapter checking pill pulsed its dot; StatusBadge's dot is static,
   // so the transient checking tone keeps its pulse at this adapter layer.
   return props.tone === 'checking'
-    ? <span className="inline-flex max-w-full animate-pulse">{badge}</span>
+    ? <span className="inline-flex max-w-full animate-pulse motion-reduce:animate-none">{badge}</span>
     : badge;
 }
 
@@ -106,7 +106,7 @@ export function Card(props: {
   readonly className?: string;
 }) {
   return (
-    <div className={cn('min-w-0 overflow-hidden rounded-[14px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]', props.className)}>
+    <div className={cn('min-w-0 overflow-hidden rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]', props.className)}>
       {props.children}
     </div>
   );
@@ -170,7 +170,7 @@ export function ChecklistItem(props: {
   return (
     <button
       className={cn(
-        'flex w-full cursor-pointer items-center gap-3.5 border-t border-[var(--nimi-border-subtle)] px-4 py-4 text-left transition-colors first:border-t-0 hover:bg-[var(--nimi-action-ghost-hover)]',
+        'flex w-full cursor-pointer items-center gap-3.5 border-t border-[var(--nimi-border-subtle)] px-4 py-4 text-left transition-colors duration-[var(--nimi-motion-fast)] first:border-t-0 hover:bg-[var(--nimi-action-ghost-hover)] active:bg-[var(--nimi-surface-active)]',
         FOCUS_RING_CLASS_NAME,
       )}
       onClick={props.onClick}

@@ -61,12 +61,12 @@ export function WorkbenchCore<TViewId extends string>({
   children,
 }: WorkbenchCoreProps<TViewId>) {
   return (
-    <main className="workbench" data-testid={rootTestId} data-navigation-presentation={navigationPresentation} data-sidebar-visible={sidebarVisible}>
+    <div className="workbench" data-testid={rootTestId} data-navigation-presentation={navigationPresentation} data-sidebar-visible={sidebarVisible}>
       <div className="workbench__body">
         {sidebarVisible ? <aside className="workbench-side-nav" aria-label={navigationLabel}>
           {navigationPresentation === 'catalog' && navigationTitle ? (
             <div className="workbench-side-nav__heading">
-              <h1>{navigationTitle}</h1>
+              <p className="workbench-side-nav__title">{navigationTitle}</p>
               {navigationDescription ? <p>{navigationDescription}</p> : null}
               {navigationToolbar}
             </div>
@@ -119,11 +119,11 @@ export function WorkbenchCore<TViewId extends string>({
             </div>
           ) : null}
         </aside> : null}
-        <div className="workbench__main">
+        <main className="workbench__main">
           <div className="workbench__content">{children}</div>
-        </div>
+        </main>
       </div>
-    </main>
+    </div>
   );
 }
 

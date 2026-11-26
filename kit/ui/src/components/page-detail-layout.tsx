@@ -2,6 +2,7 @@ import { forwardRef, type AnchorHTMLAttributes, type ReactNode } from 'react';
 import { Slot, Slottable } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../design-tokens.js';
+import { FOCUS_RING_CLASS_NAME } from '../a11y/focus.js';
 import { NimiText } from './typography.js';
 
 const layoutVariants = cva(
@@ -77,7 +78,8 @@ export const BackLink = forwardRef<HTMLAnchorElement, BackLinkProps>(function Ba
     <Comp
       ref={ref}
       className={cn(
-        'nimi-back-link inline-flex items-center gap-1.5 text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-muted)] hover:underline',
+        'nimi-back-link inline-flex items-center gap-1.5 rounded-[var(--nimi-radius-sm)] text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-muted)] transition-colors duration-[var(--nimi-motion-fast)] hover:text-[var(--nimi-text-primary)] hover:underline',
+        FOCUS_RING_CLASS_NAME,
         className,
       )}
       {...rest}

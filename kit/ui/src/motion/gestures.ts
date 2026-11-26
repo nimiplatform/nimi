@@ -79,15 +79,31 @@ export function shouldCommitGesture({
   releaseVelocityPxPerSec: number;
   velocityThresholdPxPerSec?: number;
 }): boolean {
-  const towardTarget = Math.sign(targetValue - currentValue);
-  if (towardTarget === 0) return true;
+  const pathDirection = Math.sign(targetValue - originValue);
+  if (pathDirection === 0) return true;
   const velocityDirection = Math.sign(releaseVelocityPxPerSec);
   if (Math.abs(releaseVelocityPxPerSec) >= velocityThresholdPxPerSec && velocityDirection !== 0) {
-    return velocityDirection === towardTarget;
+    return velocityDirection === pathDirection;
   }
   // Below the flick threshold, fall back to the projected resting side.
   // Both endpoints are explicit: an implicit zero origin would make this
   // helper incorrect for translated or reversed coordinate systems.
   const projected = currentValue + projectMomentum(releaseVelocityPxPerSec);
   return Math.abs(targetValue - projected) <= Math.abs(projected - originValue);
+}
+
+/**
+ * Progressive boundary resistance (rubber-banding). The further past a bound
+ * the pointer moves, the less the element follows — signaling a responsive
+ * boundary rather than a frozen hard stop.
+ */
+export function rubberband(
+  overshootPx: number,
+  dimensionPx: number,
+  constant = 0.55,
+): number {
+  if (!Number.isFinite(overshootPx) || !Number.isFinite(dimensionPx) || dimensionPx <= 0 || overshootPx === 0) {
+    return 0;
+  }
+  return (overshootPx * dimensionPx * constant) / (dimensionPx + constant * Math.abs(overshootPx));
 }

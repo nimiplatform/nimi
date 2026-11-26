@@ -49,7 +49,7 @@ function useDesktopMotionContext(): DesktopMotionContextValue {
 }
 
 export function useDesktopAppReducedMotionPreference(): boolean {
-  return useDesktopMotionContext().appReducedMotion;
+  return useContext(DesktopMotionContext)?.appReducedMotion ?? false;
 }
 
 export function useSetDesktopAppReducedMotionPreference(): (value: boolean) => void {

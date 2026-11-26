@@ -229,25 +229,133 @@ test('the ownership bar fills across a chapter and rewinds with scroll', async (
   assert.equal(getOwnershipChapterProgress(-200, 200), 0.5);
 });
 
-test('hero screen paging moves cleanly between the hero, full-screen demo stage, and next section', async () => {
-  const { resolveHeroScreenTarget } = await import('../src/landing/components/story/story-motion.js');
-  const anchors = { heroTop: 0, demoScreen: 420, nextScreen: 1260 };
+test('hero and platform stages drive progression from native scroll without wheel hijacking', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const { computeHeroScrollReveal } = await import('../src/landing/components/story/story-motion.js');
+  const {
+    computePlatformStageProgress,
+    resolvePlatformStageStep,
+  } = await import('../src/pages/platform-stack-stage.js');
 
-  // Downward: first screen -> full-screen demo -> next section -> native free scroll
-  assert.equal(resolveHeroScreenTarget(0, 100, anchors), 420);
-  assert.equal(resolveHeroScreenTarget(200, 100, anchors), 420);
-  assert.equal(resolveHeroScreenTarget(420, 100, anchors), 1260);
-  assert.equal(resolveHeroScreenTarget(800, 100, anchors), 1260);
-  assert.equal(resolveHeroScreenTarget(1260, 100, anchors), null);
-  assert.equal(resolveHeroScreenTarget(1800, 100, anchors), null);
+  // Native hero scroll reveal eases smoothly from top to arrival and settles cleanly
+  assert.deepEqual(computeHeroScrollReveal(0, 420), {
+    remaining: 1,
+    depth: 1,
+    copyOpacity: 1,
+    settled: false,
+  });
+  const halfway = computeHeroScrollReveal(210, 420);
+  assert.equal(halfway.remaining, 0.5);
+  assert.equal(halfway.depth, 0.25);
+  assert.equal(halfway.settled, false);
+  assert.deepEqual(computeHeroScrollReveal(420, 420), {
+    remaining: 0,
+    depth: 0,
+    copyOpacity: 0,
+    settled: true,
+  });
 
-  // Upward: deep in page stays native; top of next section -> full-screen demo -> first screen
-  assert.equal(resolveHeroScreenTarget(1800, -100, anchors), null);
-  assert.equal(resolveHeroScreenTarget(1260, -100, anchors), 420);
-  assert.equal(resolveHeroScreenTarget(800, -100, anchors), 420);
-  assert.equal(resolveHeroScreenTarget(420, -100, anchors), 0);
-  assert.equal(resolveHeroScreenTarget(200, -100, anchors), 0);
-  assert.equal(resolveHeroScreenTarget(0, -100, anchors), null);
+  // Native platform sticky scroll progress maps smoothly across 4 canonical steps
+  assert.equal(computePlatformStageProgress(200, 82, 1600), 0);
+  assert.equal(computePlatformStageProgress(82, 82, 1600), 0);
+  assert.equal(computePlatformStageProgress(82 - 800, 82, 1600), 0.5);
+  assert.equal(computePlatformStageProgress(82 - 1600, 82, 1600), 1);
+  assert.equal(computePlatformStageProgress(82 - 2000, 82, 1600), 1);
+  assert.equal(resolvePlatformStageStep(0), 0);
+  assert.equal(resolvePlatformStageStep(0.34), 1);
+  assert.equal(resolvePlatformStageStep(0.68), 2);
+  assert.equal(resolvePlatformStageStep(1), 3);
+
+  // Neither hero motion nor platform stack stage registers non-passive wheel/touch interceptors
+  const storyMotionSrc = await readFile(new URL('../src/landing/components/story/story-motion.ts', import.meta.url), 'utf8');
+  const platformStageSrc = await readFile(new URL('../src/pages/platform-stack-stage.tsx', import.meta.url), 'utf8');
+  assert.doesNotMatch(storyMotionSrc, /addEventListener\(\s*['"]wheel['"]/);
+  assert.doesNotMatch(platformStageSrc, /addEventListener\(\s*['"](?:wheel|touchmove)['"]/);
+});
+
+test('decorative drag suppression scopes to media elements and preserves text dragging', async () => {
+  const { preventDecorativeDragStart } = await import('../src/prevent-decorative-drag.js');
+  const OriginalElement = globalThis.Element;
+  class FakeElement {
+    private readonly selectorMatch: boolean;
+    constructor(matches: boolean) {
+      this.selectorMatch = matches;
+    }
+    closest() {
+      return this.selectorMatch ? this : null;
+    }
+  }
+  globalThis.Element = FakeElement as unknown as typeof Element;
+  try {
+    let mediaPrevented = false;
+    preventDecorativeDragStart({
+      target: new FakeElement(true),
+      preventDefault() { mediaPrevented = true; },
+    } as never);
+    assert.equal(mediaPrevented, true);
+
+    let textPrevented = false;
+    preventDecorativeDragStart({
+      target: new FakeElement(false),
+      preventDefault() { textPrevented = true; },
+    } as never);
+    assert.equal(textPrevented, false);
+
+    let textNodePrevented = false;
+    preventDecorativeDragStart({
+      target: { nodeType: 3 },
+      preventDefault() { textNodePrevented = true; },
+    } as never);
+    assert.equal(textNodePrevented, false);
+  } finally {
+    globalThis.Element = OriginalElement;
+  }
+});
+
+test('web color scheme helper and auth palette support system dark-mode parity', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const { applyWebColorScheme, resolvePreferredWebColorScheme } = await import('../src/theme-scheme.js');
+  const { webHomeAuthPalette } = await import('../src/auth/web-auth-appearance.js');
+
+  assert.equal(resolvePreferredWebColorScheme(() => ({ matches: true })), 'dark');
+  assert.equal(resolvePreferredWebColorScheme(() => ({ matches: false })), 'light');
+
+  const toggled: Array<[string, boolean]> = [];
+  const fakeRoot = {
+    dataset: {} as DOMStringMap,
+    classList: {
+      toggle(name: string, force?: boolean) {
+        toggled.push([name, Boolean(force)]);
+        return Boolean(force);
+      },
+    },
+  } as unknown as HTMLElement;
+  applyWebColorScheme('dark', fakeRoot);
+  assert.equal(fakeRoot.dataset.nimiScheme, 'dark');
+  assert.deepEqual(toggled.at(-1), ['dark', true]);
+  applyWebColorScheme('light', fakeRoot);
+  assert.equal(fakeRoot.dataset.nimiScheme, 'light');
+  assert.deepEqual(toggled.at(-1), ['dark', false]);
+
+  assert.match(String((webHomeAuthPalette as Record<string, string>)['--nimi-text-primary']), /^var\(--web-auth-text-primary,/);
+
+  const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(indexHtml, /prefers-color-scheme:\s*dark/);
+  assert.match(indexHtml, /classList\.toggle\(\s*['"]dark['"]/);
+});
+
+test('ShiJing preview wires all previously dead action buttons', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const previewSrc = await readFile(new URL('../src/landing/components/demo-shijing-preview.tsx', import.meta.url), 'utf8');
+  const askSrc = await readFile(new URL('../src/landing/components/demo-shijing-ask.tsx', import.meta.url), 'utf8');
+  const mingjingSrc = await readFile(new URL('../src/landing/components/demo-shijing-mingjing.tsx', import.meta.url), 'utf8');
+
+  assert.match(previewSrc, /className="shijing-import-to-consultation"[\s\S]{0,80}onClick=\{onAskInShijing\}/);
+  assert.match(previewSrc, /className="shijing-rijing__lens-manage"[\s\S]{0,80}onClick=\{onDesktopOnly\}/);
+  assert.match(previewSrc, /className="shijing-intake-hero__action"[\s\S]{0,80}onClick=\{onDesktopOnly\}/);
+  assert.match(previewSrc, /showDesktopOnlyNotice\(\)/);
+  assert.match(askSrc, /className="shijing-ctx__manage"[\s\S]{0,80}onClick=\{onDesktopOnly\}/);
+  assert.match(mingjingSrc, /className="shijing-mj-footer-cta"[\s\S]{0,80}onClick=\{onDesktopOnly\}/);
 });
 
 test('hero full-screen guide advances naturally from Nimi Home overview through Zhiyu sync and Nimi Home chat', async () => {
@@ -350,4 +458,46 @@ test('in-context hero guide anchors to canvas targets and never overlaps the win
   });
   assert.equal(nearTop.placement, 'below');
   assert.ok(nearTop.top >= 52);
+});
+
+test('StoryWorlds release velocity ignores stale samples after a stationary hold while preserving fast flicks', async () => {
+  const { computeGalleryReleaseVelocity, galleryDragSelection } = await import('../src/landing/content/story-model.js');
+
+  // Immediate fast flick left: strong negative velocity commits to the next card.
+  const flickVelocity = computeGalleryReleaseVelocity(
+    [{ x: 500, t: 1000 }, { x: 440, t: 1020 }],
+    1025,
+    440,
+  );
+  assert.ok(flickVelocity < -1500, `expected strong negative velocity, got ${flickVelocity}`);
+
+  // Fast drag followed by an 850ms stationary pause before pointerup: velocity decays to 0, staying on current card!
+  const pausedVelocity = computeGalleryReleaseVelocity(
+    [{ x: 500, t: 1000 }, { x: 440, t: 1020 }],
+    1870,
+    440,
+  );
+  assert.equal(pausedVelocity, 0);
+  assert.equal(galleryDragSelection(6, -60, 1000, 9), 6);
+
+  // Reverse flick right yields positive velocity.
+  const reverseVelocity = computeGalleryReleaseVelocity(
+    [{ x: 400, t: 2000 }, { x: 465, t: 2025 }],
+    2030,
+    465,
+  );
+  assert.ok(reverseVelocity > 1500, `expected strong positive velocity, got ${reverseVelocity}`);
+});
+
+test('standalone app preview header isolates light text tokens in dark mode and platform stage removes invisible controls from Tab order', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const storyCss = await readFile(new URL('../src/landing/story.css', import.meta.url), 'utf8');
+  const demoHomeCss = await readFile(new URL('../src/landing/demo-home.css', import.meta.url), 'utf8');
+  const platformStage = await readFile(new URL('../src/pages/platform-stack-stage.tsx', import.meta.url), 'utf8');
+
+  assert.match(storyCss, /:is\(\[data-nimi-scheme="dark"\], \.dark\) \[data-testid="demo-app-preview"\]/);
+  assert.match(demoHomeCss, /\.demo-window-title\s*\{[^}]*color:\s*var\(--nimi-text-primary/);
+  assert.match(platformStage, /tabIndex=\{isInteractive \? 0 : -1\}/);
+  assert.match(platformStage, /disabled=\{!isInteractive\}/);
+  assert.match(platformStage, /tabIndex=\{isDockInteractive && isCompute \? 0 : -1\}/);
 });

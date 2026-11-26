@@ -15,7 +15,7 @@ import {
 } from './runtime-config-global-audit-view-model.js';
 
 const FILTER_INPUT_CLASS =
-  'h-8 rounded-lg border border-[var(--nimi-border-subtle)] bg-transparent px-2.5 text-xs text-[var(--nimi-text-primary)] outline-none transition-colors focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]';
+  'min-h-8 rounded-lg border border-[var(--nimi-border-subtle)] bg-transparent px-2.5 py-1 text-xs text-[var(--nimi-text-primary)] outline-none transition-colors focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]';
 
 function StatCard({
   label,
@@ -103,14 +103,14 @@ export function UsageStatsSection({
           {t('runtimeConfig.runtime.usageStatistics', { defaultValue: 'Usage Statistics' })}
         </h3>
         <IconButton
-          icon={<RefreshIcon className={loading ? 'animate-spin' : ''} />}
+          icon={<RefreshIcon className={loading ? 'animate-spin motion-reduce:animate-none' : ''} />}
           title={t('runtimeConfig.runtime.refresh', { defaultValue: 'Refresh' })}
           disabled={loading}
           onClick={onRefresh}
         />
       </div>
 
-      {error ? <p className="mt-2 text-xs text-[var(--nimi-status-danger)]">{error}</p> : null}
+      {error ? <p role="alert" className="mt-2 text-xs text-[var(--nimi-status-danger)]">{error}</p> : null}
 
       {/* Filters */}
       <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -119,7 +119,7 @@ export function UsageStatsSection({
           ariaLabel={t('runtimeConfig.runtime.usageStatistics', { defaultValue: 'Usage Statistics' })}
           items={[UsageWindow.MINUTE, UsageWindow.HOUR, UsageWindow.DAY].map((w) => ({
             value: String(w),
-            label: usageWindowLabel(w),
+            label: usageWindowLabel(w, t),
           }))}
           value={String(filters.window)}
           onValueChange={(value) => onUpdateFilters({ window: Number(value) })}
@@ -128,12 +128,14 @@ export function UsageStatsSection({
           value={filters.capability}
           onChange={(e) => onUpdateFilters({ capability: e.target.value })}
           placeholder={t('runtimeConfig.runtime.capabilityPlaceholder', { defaultValue: 'Capability…' })}
+          aria-label={t('runtimeConfig.runtime.capability', { defaultValue: 'Capability' })}
           className={cn(FILTER_INPUT_CLASS, 'w-36')}
         />
         <input
           value={filters.modelId}
           onChange={(e) => onUpdateFilters({ modelId: e.target.value })}
           placeholder={t('runtimeConfig.runtime.modelIdPlaceholder', { defaultValue: 'Model ID…' })}
+          aria-label={t('runtimeConfig.runtime.model', { defaultValue: 'Model' })}
           className={cn(FILTER_INPUT_CLASS, 'w-48')}
         />
       </div>
@@ -206,7 +208,7 @@ export function UsageStatsSection({
             <tbody>
               {records.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-10 text-center">
+                  <td colSpan={9} className="px-4 py-6 text-center">
                     <p className={cn('text-sm font-medium', TOKEN_TEXT_SECONDARY)}>
                       {loading
                         ? t('runtimeConfig.runtime.loadingUsageStats', { defaultValue: 'Loading usage stats…' })
@@ -265,10 +267,8 @@ export function UsageStatsSection({
       {/* Load More */}
       {hasNextPage ? (
         <div className="mt-3 flex justify-center">
-          <Button variant="secondary" size="sm" disabled={loading} onClick={onLoadMore}>
-            {loading
-              ? t('runtimeConfig.runtime.loading', { defaultValue: 'Loading…' })
-              : t('runtimeConfig.runtime.loadMore', { defaultValue: 'Load more' })}
+          <Button variant="secondary" size="sm" loading={loading} onClick={onLoadMore}>
+            {t('runtimeConfig.runtime.loadMore', { defaultValue: 'Load more' })}
           </Button>
         </div>
       ) : null}

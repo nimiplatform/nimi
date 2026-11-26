@@ -664,7 +664,7 @@ function TextStudioShell({
           <header className="studio__head">
             <div className="studio__heading">
               <div className="studio__title">
-                <h2>{t(capability.labelKey)}</h2>
+                <h1>{t(capability.labelKey)}</h1>
                 {capability.capabilityContract ? <code>{capability.capabilityContract}</code> : null}
               </div>
               <div className="studio__status" role="status">
@@ -728,7 +728,7 @@ function TextStudioShell({
             </div>
             {draftError ? <InlineAlert className="studio__head-alert" tone="warning">{draftError}</InlineAlert> : null}
           </header>
-          <main className="studio__stage">
+          <div className="studio__stage">
             {hasActiveRun && displayedRun ? (
               <TextStudioResultState
                 registration={registration}
@@ -775,7 +775,7 @@ function TextStudioShell({
                 onSelectHistoryRun={selectHistoryRecord}
               />
             ) : null}
-          </main>
+          </div>
         </div>
         <CapabilityRunHistory
           history={history}

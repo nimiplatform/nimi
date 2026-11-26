@@ -33,7 +33,7 @@ export function CompactWorldCard({
       material="solid"
       elevation="base"
       padding="sm"
-      className="relative min-h-[112px] min-w-0 max-w-full rounded-[20px] transition duration-200 hover:-translate-y-0.5"
+      className="relative min-h-[112px] min-w-0 max-w-full rounded-[20px] transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none"
       style={{
         ...WORLD_EXPLORER_THEME.card,
         boxShadow: WORLD_EXPLORER_SHADOWS.card,
@@ -64,7 +64,7 @@ export function CompactWorldCard({
       ) : null}
       <button
         type="button"
-        className="grid w-full min-w-0 cursor-pointer items-center gap-4 border-0 bg-transparent p-0 pr-8 text-left"
+        className="grid w-full min-w-0 cursor-pointer items-center gap-4 rounded-[14px] border-0 bg-transparent p-0 pr-8 text-left transition-transform duration-150 active:scale-[0.985] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1"
         style={{ gridTemplateColumns: listMode ? '86px minmax(0,1fr)' : '86px minmax(0,1fr)' }}
         onClick={onOpen}
       >

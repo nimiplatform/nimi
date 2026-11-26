@@ -82,23 +82,17 @@ export function PersonaSourceCard({
   return (
     <AppCardSurface
       kind="promoted-glass"
-      className="group relative flex h-full w-full min-w-0 cursor-pointer flex-col gap-3.5 overflow-hidden p-4 transition-all duration-200"
+      className="group relative flex h-full w-full min-w-0 flex-col gap-3.5 overflow-hidden p-4 shadow-[var(--nimi-elevation-base)] transition-[transform,box-shadow,border-color] duration-150 hover:-translate-y-0.5 hover:border-[var(--nimi-border-strong)] hover:shadow-[var(--nimi-elevation-raised)] has-[>[data-card-trigger]:active]:scale-[0.98] motion-reduce:transform-none motion-reduce:transition-none"
       style={{ background: palette.background }}
       data-testid={E2E_IDS.explorePersonaSourceCard(source.id)}
-      onClick={() => onOpen?.()}
-      onMouseEnter={(e) => {
-        const el = e.currentTarget as HTMLElement;
-        el.style.transform = 'translateY(-2px)';
-        el.style.boxShadow = 'var(--nimi-elevation-raised)';
-        el.style.borderColor = 'var(--nimi-border-strong)';
-      }}
-      onMouseLeave={(e) => {
-        const el = e.currentTarget as HTMLElement;
-        el.style.transform = 'translateY(0)';
-        el.style.boxShadow = 'var(--nimi-elevation-base)';
-        el.style.borderColor = 'var(--nimi-border-subtle)';
-      }}
     >
+      <button
+        type="button"
+        data-card-trigger=""
+        aria-label={source.name}
+        onClick={() => onOpen?.()}
+        className="absolute inset-0 z-0 cursor-pointer rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--nimi-focus-ring-color)]"
+      />
       {/* Aurora wash tied to source palette */}
       <div
         aria-hidden
@@ -106,7 +100,7 @@ export function PersonaSourceCard({
         style={{ background: palette.ring, opacity: 0.14, filter: 'blur(32px)' }}
       />
       {/* Glyph tile + name + role + public pill */}
-      <div className="relative flex items-start gap-3">
+      <div className="pointer-events-none relative z-10 flex items-start gap-3">
         {source.avatarMedia || source.avatarUrl ? (
           <div
             className="shrink-0 overflow-hidden"
@@ -160,16 +154,18 @@ export function PersonaSourceCard({
               {source.name}
             </span>
             {isPublic && (
-              <Tooltip content={i18n.t('SourceDetail.publicBadge', { defaultValue: 'Public' })} placement="top">
-                <span
-                  aria-label={i18n.t('SourceDetail.publicBadge', { defaultValue: 'Public' })}
-                  className="inline-flex h-1.5 w-1.5 shrink-0 rounded-full"
-                  style={{
-                    background: 'var(--nimi-accent)',
-                    boxShadow: '0 0 0 3px var(--nimi-accent-soft)',
-                  }}
-                />
-              </Tooltip>
+              <span className="pointer-events-auto relative z-20 inline-flex">
+                <Tooltip content={i18n.t('SourceDetail.publicBadge', { defaultValue: 'Public' })} placement="top">
+                  <span
+                    aria-label={i18n.t('SourceDetail.publicBadge', { defaultValue: 'Public' })}
+                    className="inline-flex h-1.5 w-1.5 shrink-0 rounded-full"
+                    style={{
+                      background: 'var(--nimi-accent)',
+                      boxShadow: '0 0 0 3px var(--nimi-accent-soft)',
+                    }}
+                  />
+                </Tooltip>
+              </span>
             )}
           </div>
           <div
@@ -186,7 +182,7 @@ export function PersonaSourceCard({
         </div>
       </div>
       {/* World and ownership meta row */}
-      <div className="relative flex items-baseline justify-between gap-2">
+      <div className="pointer-events-none relative z-10 flex items-baseline justify-between gap-2">
         <span
           style={{
             fontFamily: 'var(--nimi-font-mono)',
@@ -211,7 +207,7 @@ export function PersonaSourceCard({
       </div>
       {/* Footer: real server count when present + source action */}
       <div
-        className="relative mt-auto flex items-center justify-between border-t pt-3"
+        className="pointer-events-none relative z-10 mt-auto flex items-center justify-between border-t pt-3"
         style={{ borderColor: 'var(--nimi-border-subtle)' }}
       >
         <button
@@ -221,7 +217,7 @@ export function PersonaSourceCard({
           data-testid={E2E_IDS.explorePersonaSourcePrimaryAction(source.id)}
           data-source-state={sourceState}
           data-primary-action={source.materializationActionState === 'refresh' ? 'refresh_partner' : primaryAction.action}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-full border px-3 py-1 transition-colors disabled:cursor-default"
+          className="pointer-events-auto relative z-20 ml-auto inline-flex items-center gap-1.5 rounded-full border px-3 py-1 transition-[colors,transform] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1 disabled:cursor-default"
           style={{
             fontFamily: 'var(--nimi-font-sans)',
             fontSize: 11,

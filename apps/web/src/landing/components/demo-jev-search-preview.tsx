@@ -16,11 +16,11 @@ export function DemoJevSearchPreview({ content }: { content: JevSearchPreviewCon
   const { previewLang, t } = useAppPreviewLocale();
   const [query, setQuery] = useState<string>(() => content.query);
   const [searched, setSearched] = useState(false);
-  const [source, setSource] = useState('All sources');
+  const [source, setSource] = useState('all');
   const [settings, setSettings] = useState(false);
   const [range, setRange] = useState('Past month');
   const results = content.results.filter(
-    (result) => source === 'All sources' || result.source === source,
+    (result) => source === 'all' || result.source === source,
   );
   return (
     <div className="tp-preview jev-search-preview" data-demo-jev-search-root lang={previewLang}>
@@ -36,7 +36,11 @@ export function DemoJevSearchPreview({ content }: { content: JevSearchPreviewCon
           <Settings2 size={17} />
         </PreviewButton>
       </header>
-      <main className={`jev-search-main${searched ? ' jev-search-main--results' : ''}`}>
+      <div
+        role="region"
+        aria-label={t('jevSearch.workspace.search')}
+        className={`jev-search-main${searched ? ' jev-search-main--results' : ''}`}
+      >
         {settings ? (
           <section className="jev-settings">
             <h2>{t('jevSearch.settings.searchSettings')}</h2>
@@ -118,9 +122,13 @@ export function DemoJevSearchPreview({ content }: { content: JevSearchPreviewCon
                   <label>
                     <span className="tp-sr-only">{t('jevSearch.workspace.source')}</span>
                     <select value={source} onChange={(event) => setSource(event.target.value)}>
-                      {['All sources', 'Hacker News', 'Google'].map((item) => (
-                        <option value={item} key={item}>
-                          {item}
+                      {[
+                        { value: 'all', label: t('jevSearch.workspace.allSources') },
+                        { value: 'Hacker News', label: t('jevSearch.workspace.hackerNews') },
+                        { value: 'Google', label: t('jevSearch.workspace.google') },
+                      ].map((item) => (
+                        <option value={item.value} key={item.value}>
+                          {item.label}
                         </option>
                       ))}
                     </select>
@@ -175,7 +183,7 @@ export function DemoJevSearchPreview({ content }: { content: JevSearchPreviewCon
             )}
           </>
         )}
-      </main>
+      </div>
       <PreviewCredits />
     </div>
   );

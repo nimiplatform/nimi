@@ -58,7 +58,7 @@ export function DemoInscapePreview({ content }: { content: RemainingPreviewMeta 
             </>
           }
         />
-        <main className="rp-main">
+        <div role="region" aria-label={content.name} className="rp-main">
           <div className="is-breadcrumb">
             {t('inscape.main.mySpace')}
             {nav.find((x) => x.id === view)?.label}
@@ -276,7 +276,7 @@ export function DemoInscapePreview({ content }: { content: RemainingPreviewMeta 
               {t('inscape.main.inscapeHelpsYouExploreNotDefineYourself')}
             </p>
           </div>
-        </main>
+        </div>
       </div>
     </RemainingPreview>
   );

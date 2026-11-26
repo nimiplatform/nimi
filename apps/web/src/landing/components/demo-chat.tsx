@@ -412,7 +412,11 @@ export function DemoChatSurface({
         }
       }}
     >
-      <main className={`demo-chat-main ${panel ? 'has-panel' : ''}`}>
+      <div
+        role="region"
+        aria-label={mode === 'ai' ? 'Nimi' : (profileTarget?.name ?? chat.greeting)}
+        className={`demo-chat-main ${panel ? 'has-panel' : ''}`}
+      >
         {human && !target ? (
           <DemoChatContacts
             key={targetId}
@@ -505,7 +509,7 @@ export function DemoChatSurface({
             </button>
           </div>
         )}
-      </main>
+      </div>
       {panel === 'agent-center' && target && client ? (
         <DemoChatAgentCenter
           key={targetId}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Button, InlineAlert, LoadingSkeleton, SelectField, Surface } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, LoadingSkeleton, nimiToast, SelectField, Surface, TextareaField } from '@nimiplatform/kit/ui';
 import { Cable, RefreshCw } from 'lucide-react';
 import { openDesktopIntent } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { NimiIntegrationCall, NimiIntegrationTarget } from '@nimiplatform/sdk/app';
@@ -17,7 +17,6 @@ import { subscribeLabLocalAppSessionLoss } from '../../shell/auth/session-loss.j
 import type { StudioRunHistoryRecord } from '../../ai-studio-core/history.js';
 import type { StudioTextExportResult } from '../../ai-studio-core/host-context.js';
 
-const field = 'w-full rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-sm';
 type Waiting = { controller: AbortController };
 type ReceivedBatch = { target:NimiIntegrationTarget; input:string; call:NimiIntegrationCall };
 
@@ -52,6 +51,13 @@ export function LabIntegrationsPanel({ recordAI }: { recordAI: (record: StudioRu
   const active = useRef(true); const waiting = useRef<Waiting | null>(null);
   const receiving = useRef<Waiting|null>(null); const viewVersion = useRef(0);
   const pending = useRef(new Set<Promise<void>>());
+  const historyRef = useRef<readonly LabIntegrationHistoryRecord[]>(history); historyRef.current = history;
+  const pendingRemovedIds = useRef(new Set<string>());
+  const undoToastIds = useRef(new Set<string>());
+  const dismissUndoToasts = () => { for (const id of undoToastIds.current) nimiToast.dismiss(id); undoToastIds.current.clear(); };
+  const filterPendingRemoved = (rows: readonly LabIntegrationHistoryRecord[]) => (
+    pendingRemovedIds.current.size === 0 ? rows : rows.filter(item => !pendingRemovedIds.current.has(item.id))
+  );
   const historyWork=integrationHistoryWork(host);const [historyBusy,setHistoryBusy] = useState<readonly string[]>(historyWork.ids());
   // View generation is only a publication guard, never platform admission.
   const currentHost=useRef(host); const scopeVersion=useRef(0);
@@ -77,17 +83,17 @@ export function LabIntegrationsPanel({ recordAI }: { recordAI: (record: StudioRu
     ]);
   };
   useEffect(()=>{
-    active.current=true;displayVersion.current++;exportBusy.current=false;setExported(null);setExporting(false);setExportError('');receivedBatches.current.clear();setHistoryBusy(historyWork.ids());setEvents([]);setReceivedCount(0);setCall(null);setReceiveCall(null);setHistory([]);setTargets([]);setTargetRef('');setOperation('');setInput('{}');setSavedRecordId('');setCallInput('');setBusy(false);setReceivingBusy(false);setAssetBusy(false);setError('');setNotice('');setReceiveError('');setReceiveNotice('');setRefreshError('');setHistoryError('');void refresh();
+    active.current=true;displayVersion.current++;exportBusy.current=false;pendingRemovedIds.current.clear();dismissUndoToasts();setExported(null);setExporting(false);setExportError('');receivedBatches.current.clear();setHistoryBusy(historyWork.ids());setEvents([]);setReceivedCount(0);setCall(null);setReceiveCall(null);setHistory([]);setTargets([]);setTargetRef('');setOperation('');setInput('{}');setSavedRecordId('');setCallInput('');setBusy(false);setReceivingBusy(false);setAssetBusy(false);setError('');setNotice('');setReceiveError('');setReceiveNotice('');setRefreshError('');setHistoryError('');void refresh();
     const unsubscribe=subscribeLabLocalAppSessionLoss(()=>{
       if(currentHost.current!==host)return;
-      scopeVersion.current++;displayVersion.current++;exportBusy.current=false;setExported(null);setExporting(false);setExportError('');waiting.current?.controller.abort();receiving.current?.controller.abort();waiting.current=null;receiving.current=null;
+      scopeVersion.current++;displayVersion.current++;exportBusy.current=false;pendingRemovedIds.current.clear();dismissUndoToasts();setExported(null);setExporting(false);setExportError('');waiting.current?.controller.abort();receiving.current?.controller.abort();waiting.current=null;receiving.current=null;
       if(!active.current)return;
       setConnectionsLoading(false);
       setBusy(false);setReceivingBusy(false);setAssetBusy(false);receivedBatches.current.clear();
       historyWork.invalidate();setHistoryBusy([]);
       setEvents([]);setReceivedCount(0);setCall(null);setReceiveCall(null);setReceiveNotice('');setReceiveError('');setCallInput('');setTargets([]);setTargetRef('');setOperation('');setInput('{}');setHistory([]);setSavedRecordId('');setError('');setNotice('');setRefreshError('');setHistoryError('');setScopeNotice(true);
     });
-    return ()=>{active.current=false;viewVersion.current++;waiting.current?.controller.abort();receiving.current?.controller.abort();void Promise.allSettled([...pending.current]).finally(unsubscribe);};
+    return ()=>{active.current=false;viewVersion.current++;pendingRemovedIds.current.clear();dismissUndoToasts();waiting.current?.controller.abort();receiving.current?.controller.abort();void Promise.allSettled([...pending.current]).finally(unsubscribe);};
   },[client,host]);
   const save = async (source:NimiIntegrationTarget,inputJson:string,next:NimiIntegrationCall,saveBody=false) => {
     if(!sameView())return;
@@ -169,12 +175,68 @@ export function LabIntegrationsPanel({ recordAI }: { recordAI: (record: StudioRu
     if(historyWork.busy(batch.call.callId))return;const release=holdHistory(batch.call.callId);
     try{await save(batch.target,batch.input,batch.call,true);if(active.current&&sameView())setNotice(t('Integrations.bodySaved'));}finally{release();}
   };
+  const reinsertHistoryRecord = (
+    rows: readonly LabIntegrationHistoryRecord[],
+    record: LabIntegrationHistoryRecord,
+    index: number,
+  ): readonly LabIntegrationHistoryRecord[] => {
+    const filtered = rows.filter(item => item.id !== record.id);
+    const boundedIndex = Math.max(0, Math.min(index, filtered.length));
+    return [...filtered.slice(0, boundedIndex), record, ...filtered.slice(boundedIndex)];
+  };
   const remove = async(record:LabIntegrationHistoryRecord)=>{
-    if(historyWork.busy(record.id))return;const release=holdHistory(record.id);
-    setError('');try{
-      if(!sameView())return;
-      const saved=await host.app.commands.removeIntegrationHistory(record.id);if(active.current&&sameView())setHistory(saved);
-    }catch(cause){report(cause);}finally{release();}
+    if(historyWork.busy(record.id) || !sameView())return;
+    const release=holdHistory(record.id);
+    const removedIndex=Math.max(0, historyRef.current.findIndex(item=>item.id===record.id));
+    let undone=false;
+    let toastId='';
+    pendingRemovedIds.current.add(record.id);
+    setError('');
+    setSavedRecordId(current=>current===record.id?'':current);
+    setHistory(current=>current.filter(item=>item.id!==record.id));
+    const removePromise=host.app.commands.removeIntegrationHistory(record.id);
+    const restore = async()=>{
+      if(undone || !sameView())return;
+      undone=true;
+      if(toastId)undoToastIds.current.delete(toastId);
+      pendingRemovedIds.current.delete(record.id);
+      if(active.current&&sameView())setHistory(current=>reinsertHistoryRecord(current,record,removedIndex));
+      const restoreRelease=holdHistory(record.id);
+      const restoreWork=(async()=>{
+        try{
+          await removePromise.catch(()=>undefined);
+          if(!sameView())return;
+          const restored=await host.app.commands.appendIntegrationHistory(record);
+          if(active.current&&sameView())setHistory(filterPendingRemoved(restored));
+        }catch(cause){
+          if(active.current&&sameView()){
+            report(cause);
+            nimiToast.danger(t('Integrations.historyRestoreFailed'));
+            void host.app.projection.integrationHistory().then(saved=>{if(active.current&&sameView())setHistory(filterPendingRemoved(saved));},()=>{});
+          }
+        }finally{restoreRelease();}
+      })();
+      pending.current.add(restoreWork);
+      try{await restoreWork;}finally{pending.current.delete(restoreWork);}
+    };
+    toastId=nimiToast.info(t('Integrations.historyRemoved'),{
+      durationMs:6000,
+      action:{label:t('Common.undo'),onClick:()=>{void restore();}},
+    });
+    undoToastIds.current.add(toastId);
+    try{
+      const saved=await removePromise;
+      pendingRemovedIds.current.delete(record.id);
+      if(!undone&&active.current&&sameView())setHistory(filterPendingRemoved(saved));
+    }catch(cause){
+      pendingRemovedIds.current.delete(record.id);
+      undoToastIds.current.delete(toastId);
+      nimiToast.dismiss(toastId);
+      if(!undone&&active.current&&sameView()){
+        setHistory(current=>reinsertHistoryRecord(current,record,removedIndex));
+        report(cause);
+      }
+    }finally{release();}
   };
   const exportHistory = async () => {
     if(exportBusy.current)return;exportBusy.current=true;setExporting(true);setExportError('');setExported(null);
@@ -225,7 +287,7 @@ export function LabIntegrationsPanel({ recordAI }: { recordAI: (record: StudioRu
       {target ? <details className="text-sm"><summary className="cursor-pointer">{t('Integrations.advancedOperations')}</summary>
       <label className="mt-3 block text-sm">{t('Integrations.operation')}<SelectField data-testid="integration-operation" placeholder={t('Integrations.selectOperation')} disabled={locked} value={operation} options={(target?.operations??[]).map(item=>({value:item.name,label:`${item.name} · ${t(`Integrations.effects.${item.effect}`)}`,disabled:!target?.permittedOperations.includes(item.name)}))} onValueChange={value=>{setOperation(value);setInput('{}');}}/></label>
       {descriptor?<><p className="text-sm">{descriptor.description}</p><details className="text-sm"><summary>{t('Integrations.inputSchema')}</summary><pre className="mt-2 overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(JSON.parse(descriptor.inputSchemaJson),null,2)}</pre></details></>:null}
-      <label className="text-sm">{t('Integrations.input')}<textarea className={`${field} min-h-40 font-mono`} value={input} maxLength={256*1024} disabled={locked} onChange={event=>setInput(event.target.value)}/></label>
+      <label className="mt-3 block text-sm">{t('Integrations.input')}<TextareaField className="mt-1" textareaClassName="min-h-40 font-mono" value={input} maxLength={256*1024} disabled={locked} onChange={event=>setInput(event.target.value)}/></label>
       <p className="text-xs text-[var(--nimi-text-secondary)]">{t('Integrations.noResend')}</p>
       <p className="text-xs text-[var(--nimi-text-secondary)]">{t('Integrations.bodyPrivacy')}</p>
       <Button className="mt-3" disabled={busy || !target?.available || !descriptor || !target.permittedOperations.includes(operation)} onClick={()=>void invoke()}>{t('Integrations.invoke')}</Button>

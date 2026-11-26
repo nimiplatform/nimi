@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, ArrowUpRight, Globe, MoreHorizontal, Pause, Play } from 'lucide-react';
+import { ActionMenu, IconButton, Popover, PopoverContent, PopoverTrigger, type NimiMenuItem } from '@nimiplatform/kit/ui';
 import { PartnerArtwork } from '../agents/partner-media.js';
 import type { resolveCurrentPartnerSource } from '../source-detail/data/realm-source-detail-data.js';
 
@@ -12,22 +13,63 @@ export function PartnerCardContent({ name, avatarUrl, profile, active, available
   onRetry: () => void; onOpen: (section?: 'cognition' | 'overview') => void; onWorld: () => void;
 }) {
   const { t } = useTranslation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => {
+    if (!active) setMenuOpen(false);
+  }, [active]);
   const topics = profile?.preview.topics?.slice(0, 2) ?? [];
   const role = profile?.preview.role?.trim();
   const summary = profile?.summary?.trim();
   // A short authored role is often the strongest introduction. Avoid repeating
   // the same role in a second, longer discovery summary.
   const introduction = role || summary;
+  const menuItems: NimiMenuItem[] = [
+    {
+      id: 'settings',
+      label: t('runtimeConfig.partners.settings'),
+      disabled: !available,
+      onSelect: () => {
+        setMenuOpen(false);
+        onOpen('overview');
+      },
+    },
+    ...(failed
+      ? [{
+          id: 'retry',
+          label: t('Common.retry'),
+          onSelect: () => {
+            setMenuOpen(false);
+            onRetry();
+          },
+        }]
+      : []),
+  ];
   return <div className="partner-preview-layout" data-testid="partner-preview-content">
     <div className="partner-preview-art"><PartnerArtwork source={profile} avatarUrl={avatarUrl || undefined} name={name} /></div>
     <div className="partner-preview-copy">
-      <details className="partner-preview-more">
-        <summary aria-label={t('Chat.partnerCard.more')}><MoreHorizontal aria-hidden size={19} /></summary>
-        <div className="partner-preview-menu">
-          <button type="button" disabled={!available} onClick={() => onOpen('overview')}>{t('runtimeConfig.partners.settings')}</button>
-          {failed ? <button type="button" onClick={onRetry}>{t('Common.retry')}</button> : null}
-        </div>
-      </details>
+      <div className="partner-preview-more">
+        <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+          <PopoverTrigger asChild>
+            <IconButton
+              tone="ghost"
+              size="sm"
+              icon={<MoreHorizontal aria-hidden size={19} />}
+              aria-label={t('Chat.partnerCard.more')}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+            />
+          </PopoverTrigger>
+          <PopoverContent align="end" sideOffset={6} className="p-1">
+            <div data-chat-avatar-submenu="">
+              <ActionMenu
+                ariaLabel={t('Chat.partnerCard.more')}
+                items={menuItems}
+                onRequestClose={() => setMenuOpen(false)}
+              />
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
       <h3>{name}</h3>
       {profile?.preview.species ? <p className="partner-preview-identity">{profile.preview.species}</p> : null}
       {profile?.preview.voice ? <PartnerVoicePreview key={profile.preview.voice.url} voice={profile.preview.voice} active={active} /> : null}

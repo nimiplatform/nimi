@@ -63,36 +63,75 @@ export function usePricingIndex(modelIds: string[]): PricingIndexState {
   const modelToProviderRef = useRef<Map<string, string> | null>(null);
   const cachedRef = useRef<Map<string, PricingEntry>>(new Map());
   const requestedRef = useRef<Set<string>>(new Set());
+  const inFlightCountRef = useRef(0);
 
   useEffect(() => {
-    if (modelIds.length === 0) return;
+    if (modelIds.length === 0) {
+      if (inFlightCountRef.current === 0) {
+        setState((prev) => (prev.loading ? { ...prev, loading: false } : prev));
+      }
+      return;
+    }
 
     const uncached = modelIds.filter((id) => !cachedRef.current.has(id) && !requestedRef.current.has(id));
-    if (uncached.length === 0) return;
+    if (uncached.length === 0) {
+      if (inFlightCountRef.current === 0) {
+        setState((prev) => (prev.loading ? { ...prev, loading: false } : prev));
+      }
+      return;
+    }
 
     for (const id of uncached) requestedRef.current.add(id);
 
     let canceled = false;
+    let settled = false;
+    inFlightCountRef.current += 1;
     setState((prev) => ({ ...prev, loading: true }));
+
+    const releaseInFlight = (rollbackUncached: boolean) => {
+      if (settled) return;
+      settled = true;
+      if (rollbackUncached) {
+        for (const id of uncached) {
+          if (!cachedRef.current.has(id)) {
+            requestedRef.current.delete(id);
+          }
+        }
+      }
+      inFlightCountRef.current = Math.max(0, inFlightCountRef.current - 1);
+    };
 
     (async () => {
       if (!modelToProviderRef.current) {
         modelToProviderRef.current = await buildModelToProviderMap(catalog);
       }
-      if (canceled) return;
+      if (canceled) {
+        releaseInFlight(true);
+        return;
+      }
 
       const fetched = await fetchPricingForModels(uncached, modelToProviderRef.current, catalog);
-      if (canceled) return;
+      if (canceled) {
+        releaseInFlight(true);
+        return;
+      }
 
       for (const [id, entry] of fetched) {
         cachedRef.current.set(id, entry);
       }
-      setState({ index: new Map(cachedRef.current), loading: false });
+      releaseInFlight(false);
+      setState({ index: new Map(cachedRef.current), loading: inFlightCountRef.current > 0 });
     })().catch(() => {
-      if (!canceled) setState((prev) => ({ ...prev, loading: false }));
+      releaseInFlight(true);
+      if (!canceled) {
+        setState((prev) => ({ ...prev, loading: inFlightCountRef.current > 0 }));
+      }
     });
 
-    return () => { canceled = true; };
+    return () => {
+      canceled = true;
+      releaseInFlight(true);
+    };
   }, [catalog, modelIds.join(',')]);
 
   return state;

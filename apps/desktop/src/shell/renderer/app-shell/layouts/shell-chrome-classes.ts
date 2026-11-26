@@ -22,7 +22,7 @@ export const SHELL_CHROME_ACTION_CELL_CLASS =
 export const SHELL_CHROME_TOOLTIP_CLASS = 'whitespace-nowrap';
 
 export const SHELL_CHROME_MENU_ITEM_BASE_CLASS =
-  'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all';
+  'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-[transform,opacity,background-color,border-color,color] duration-150 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]';
 
 // Single home for the page width shared by Home, Downloads and Notifications,
 // so the three pages keep the same left and right edges.

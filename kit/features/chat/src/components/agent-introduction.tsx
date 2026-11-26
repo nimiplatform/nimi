@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronRight, Play, Square } from 'lucide-react';
 import { Avatar, Tooltip } from '@nimiplatform/kit/ui';
+import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
 import type { NimiLocalAppAgentIntroduction } from '@nimiplatform/kit/core/sdk-contract';
 import { agentIntroductionDisplayText, agentIntroductionQuestions, agentIntroductionSubtitle } from '../agent-introduction.js';
 
@@ -26,16 +27,16 @@ export function AgentIntroduction({ introduction, displayName, avatarUrl, locale
     <div className="flex w-full min-w-0 flex-col items-center gap-6 text-center [overflow-wrap:anywhere]" data-agent-introduction="true">
       <div className="flex w-full min-w-0 flex-col items-center gap-2">
         {!imageUrl ? <Avatar src={avatarUrl ?? null} alt={displayName} size="lg" className="h-14 w-14" /> : null}
-        <h2 className={`max-w-full ${rich ? 'text-[length:var(--nimi-type-hero-title-size)] font-[var(--nimi-type-hero-title-weight)] leading-tight text-[var(--nimi-text-primary)]' : 'text-sm font-medium text-[var(--nimi-text-secondary)]'}`}>{displayName}</h2>
+        <h2 className={`max-w-full ${rich ? 'text-[length:var(--nimi-type-hero-title-size)] font-[var(--nimi-type-hero-title-weight)] leading-tight tracking-[var(--nimi-type-hero-title-letter-spacing)] text-[var(--nimi-text-primary)]' : 'text-sm font-medium text-[var(--nimi-text-secondary)]'}`}>{displayName}</h2>
         {subtitle ? <p className="max-w-full text-sm text-[var(--nimi-text-muted)]">{subtitle}</p> : null}
         {!rich ? <>
-          <p className="mt-1 text-[length:var(--nimi-type-page-title-size)] font-semibold text-[var(--nimi-text-primary)]">{zh ? '开始一段对话' : 'Start a conversation'}</p>
+          <p className="mt-1 text-[length:var(--nimi-type-page-title-size)] font-semibold tracking-[var(--nimi-type-page-title-letter-spacing)] text-[var(--nimi-text-primary)]">{zh ? '开始一段对话' : 'Start a conversation'}</p>
           <p className="max-w-xl text-sm leading-7 text-[var(--nimi-text-secondary)]">{zh ? '提个问题、分享想法，或者告诉这个伙伴你想探索什么。' : 'Ask a question, share an idea, or tell this agent what you want to explore.'}</p>
         </> : null}
       </div>
       {unavailable ? <p role="status" className="text-sm text-[var(--nimi-text-muted)]">
         {zh ? '人物介绍暂时无法加载。仍可直接发消息开始对话。' : 'The introduction could not be loaded. You can still send a message to start chatting.'}
-        {onRetry ? <button type="button" className="ml-2 underline underline-offset-4" onClick={onRetry}>{zh ? '重试' : 'Retry'}</button> : null}
+        {onRetry ? <button type="button" className={`ml-2 rounded-sm underline underline-offset-4 ${FOCUS_RING_CLASS_NAME}`} onClick={onRetry}>{zh ? '重试' : 'Retry'}</button> : null}
       </p> : null}
       {rich ? <div className="flex w-full max-w-[420px] flex-col items-center">
         {imageUrl ? <div className="relative aspect-square w-full overflow-hidden rounded-[var(--nimi-radius-xl)] bg-[var(--nimi-surface-panel)] shadow-[var(--nimi-elevation-raised)]" style={{ maxWidth: imageMaxSize }} data-agent-empty-character-image="true">
@@ -46,7 +47,7 @@ export function AgentIntroduction({ introduction, displayName, avatarUrl, locale
         {!imageUrl && introduction?.voicePreviewUrl ? <div className="mt-3"><IntroductionVoice src={introduction.voicePreviewUrl} duration={introduction.voiceSampleDurationSec} locale={locale} /></div> : null}
       </div> : null}
       {questionsEnabled && onPrefill ? <div className="flex flex-wrap justify-center gap-2.5" data-agent-empty-suggestions="true">
-        {agentIntroductionQuestions(introduction, locale).map(question => <button key={question} type="button" onClick={() => onPrefill(question)} className="inline-flex min-h-9 max-w-full items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-2 text-sm text-[var(--nimi-text-secondary)] transition-colors hover:border-[var(--nimi-action-primary-bg)] hover:text-[var(--nimi-text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]">
+        {agentIntroductionQuestions(introduction, locale).map(question => <button key={question} type="button" onClick={() => onPrefill(question)} className="inline-flex min-h-9 max-w-full items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-2 text-sm text-[var(--nimi-text-secondary)] transition-[border-color,color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:border-[var(--nimi-action-primary-bg)] hover:text-[var(--nimi-text-primary)] active:scale-[var(--nimi-motion-pressed-scale)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]">
           {question}<ChevronRight size={14} className="shrink-0" aria-hidden="true" />
         </button>)}
       </div> : null}
@@ -67,7 +68,7 @@ function IntroductionVoice({ src, duration, locale }: { src: string; duration: n
   return <>
     <audio ref={audioRef} src={src} preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} />
     <Tooltip content={duration ? `${label} · ${Math.round(duration)}s` : label} placement="top">
-      <button type="button" aria-label={label} aria-pressed={playing} data-agent-empty-character-voice="true" className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-raised)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]" onClick={() => {
+      <button type="button" aria-label={label} aria-pressed={playing} data-agent-empty-character-voice="true" className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-raised)] transition-transform duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)]" onClick={() => {
         const audio = audioRef.current;
         if (!audio) return;
         if (!audio.paused) { audio.pause(); audio.currentTime = 0; } else { void audio.play().catch(() => setPlaying(false)); }

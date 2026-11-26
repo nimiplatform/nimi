@@ -93,19 +93,21 @@ export function DemoExploreSurface({
   );
   const nav = (
     <nav className="demo-explore-tabs" aria-label={t('探索分区', 'Explore sections')}>
-      <button type="button" role="tab" aria-selected={!partners} onClick={() => onNavigate('explore')}>
-        <Globe size={16} />
-        {t('世界', 'Worlds')}
-      </button>
-      <button
-        type="button"
-        role="tab"
-        aria-selected={Boolean(partners)}
-        onClick={() => onNavigate('explore', 'partners')}
-      >
-        <Users size={16} />
-        {t('我的伙伴', 'My companions')}
-      </button>
+      <div role="tablist" aria-label={t('探索分区', 'Explore sections')} className="contents">
+        <button type="button" role="tab" aria-selected={!partners} onClick={() => onNavigate('explore')}>
+          <Globe size={16} />
+          {t('世界', 'Worlds')}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={Boolean(partners)}
+          onClick={() => onNavigate('explore', 'partners')}
+        >
+          <Users size={16} />
+          {t('我的伙伴', 'My companions')}
+        </button>
+      </div>
     </nav>
   );
   const back = (action: () => void) => (

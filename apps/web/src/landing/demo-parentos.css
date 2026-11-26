@@ -207,6 +207,14 @@
   border-radius: var(--nimi-radius-xl);
   background: var(--nimi-material-glass-regular-bg);
   box-shadow: var(--nimi-elevation-raised);
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.advisor-composer-box:focus-within {
+  border-color: var(--nimi-action-primary-bg);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--nimi-action-primary-bg) 42%, transparent),
+    var(--nimi-elevation-raised);
 }
 
 .advisor-composer-textarea {
@@ -291,6 +299,28 @@
   color: var(--nimi-text-primary);
   font-size: 11px;
   font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .advisor-thinking-dot,
+  .demo-parentos-root form[style*="customTodoSlideDown"] {
+    animation: none !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .advisor-composer-box,
+  .demo-parentos-notice {
+    background: var(--nimi-surface-card);
+  }
+}
+
+@media (prefers-contrast: more) {
+  .advisor-composer-box,
+  .demo-parentos-notice {
+    border-width: 1.5px;
+    border-color: var(--nimi-text-primary);
+  }
 }
 
 }

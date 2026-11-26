@@ -103,7 +103,11 @@ export function DemoMoneyPrinterPreview({ content }: { content: MoneyPrinterPrev
           </header>
           {view === '创作' ? (
             <div className="mpt-workspace">
-              <main className="mpt-editor">
+              <div
+                role="region"
+                aria-label={navigationLabels[view] ?? view}
+                className="mpt-editor"
+              >
                 <section>
                   <h2>
                     <FileText size={18} />
@@ -215,7 +219,7 @@ export function DemoMoneyPrinterPreview({ content }: { content: MoneyPrinterPrev
                     {t('moneyPrinter.editor.enableSubtitles')}
                   </label>
                 </section>
-              </main>
+              </div>
               <aside className="mpt-result">
                 <h2>{t('moneyPrinter.result.productionAndPreview')}</h2>
                 <PreviewSteps steps={content.stages} active={stage} onSelect={setStage} />
@@ -254,7 +258,11 @@ export function DemoMoneyPrinterPreview({ content }: { content: MoneyPrinterPrev
               </aside>
             </div>
           ) : view === '制作记录' ? (
-            <main className="mpt-simple">
+            <div
+              role="region"
+              aria-label={t('moneyPrinter.simple.savedTasks')}
+              className="mpt-simple"
+            >
               <h2>{t('moneyPrinter.simple.savedTasks')}</h2>
               <button
                 type="button"
@@ -273,9 +281,13 @@ export function DemoMoneyPrinterPreview({ content }: { content: MoneyPrinterPrev
                 <Check size={17} />
                 {t('moneyPrinter.simple.view')}
               </button>
-            </main>
+            </div>
           ) : (
-            <main className="mpt-simple">
+            <div
+              role="region"
+              aria-label={navigationLabels[view] ?? view}
+              className="mpt-simple"
+            >
               <h2>{navigationLabels[view]}</h2>
               <p>
                 {view === 'AI 配置'
@@ -292,7 +304,7 @@ export function DemoMoneyPrinterPreview({ content }: { content: MoneyPrinterPrev
               <PreviewButton onClick={() => setView('创作')}>
                 {t('moneyPrinter.simple.backToCreation')}
               </PreviewButton>
-            </main>
+            </div>
           )}
         </div>
       </div>

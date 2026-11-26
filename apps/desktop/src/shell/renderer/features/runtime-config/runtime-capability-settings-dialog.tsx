@@ -65,7 +65,7 @@ export function RuntimeCapabilitySettingsDialog(props: {
             </InlineAlert>
           ) : <RuntimeCapabilityCustomize key={props.selected?.loadoutId ?? 'new'} selected={props.selected} recipe={props.recipe!} catalog={props.catalog} assets={props.assets}
             disabled={props.disabled || modelSetupUnavailable(props.recipe, props.selected)} onStateChange={onStateChange} onApply={props.onApply}
-            onCancel={props.onClose} applyLabel={t(props.current ? 'runtimeConfig.product.customization.apply' : 'runtimeConfig.product.settings.applyAndSelect')} />}
+            onCancel={close} applyLabel={t(props.current ? 'runtimeConfig.product.customization.apply' : 'runtimeConfig.product.settings.applyAndSelect')} />}
           </>}
         </ScrollShell>
         <IconButton size="sm" aria-label={t('Common.close')} icon={<X size={16} />} disabled={applying} onClick={close}

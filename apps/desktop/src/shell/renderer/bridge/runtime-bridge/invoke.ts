@@ -7,10 +7,13 @@ import {
 } from '@nimiplatform/kit/shell/renderer/bridge';
 import { emitRendererLog, resolveRendererSessionTraceId, toRendererLogMessage } from '@nimiplatform/kit/telemetry';
 import { SYSTEM_ENTRY_HOME_COMMANDS } from '../../../shared/system-entry-types.js';
+import { i18n } from '../../i18n/index.js';
 
 function translateBridgeMessage(key: string, defaultValue: string): string {
-  void key;
-  return defaultValue;
+  if (!i18n.isInitialized) {
+    return defaultValue;
+  }
+  return i18n.t(key, { defaultValue });
 }
 
 export function toBridgeUserMessage(error: unknown): string {

@@ -290,7 +290,7 @@ describe('App body interaction and partner menu', () => {
         .toBe('ready');
     });
     const stage = await readyEmbodimentStage();
-    vi.useFakeTimers();
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
     fireEvent.pointerDown(stage, {
       button: 0,
       buttons: 1,
@@ -300,9 +300,11 @@ describe('App body interaction and partner menu', () => {
       screenX: 160,
       screenY: 260,
     });
+    expect(screen.getByTestId('avatar-long-press-indicator')).toBeTruthy();
     await act(async () => {
-      vi.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(480);
     });
+    expect(screen.queryByTestId('avatar-long-press-indicator')).toBeNull();
     const menu = screen.getByTestId('avatar-context-menu');
     vi.useRealTimers();
     return menu;
@@ -346,7 +348,7 @@ describe('App body interaction and partner menu', () => {
     expect(handle.sendConversationText).not.toHaveBeenCalled();
   });
 
-  it('opens the same partner menu from stationary 1s press', async () => {
+  it('opens the same partner menu from stationary 480ms press', async () => {
     const handle = createBootstrapHandle();
     bootstrapAvatarMock.mockResolvedValue(handle);
 
@@ -368,7 +370,7 @@ describe('App body interaction and partner menu', () => {
     );
   });
 
-  it('does not open the partner menu after movement starts drag', async () => {
+  it('does not open the partner menu after movement starts drag and cancels hold indicator', async () => {
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
 
     render(<App />);
@@ -378,7 +380,7 @@ describe('App body interaction and partner menu', () => {
     });
 
     const stage = await readyEmbodimentStage();
-    vi.useFakeTimers();
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
     fireEvent.pointerDown(stage, {
       button: 0,
       buttons: 1,
@@ -388,6 +390,7 @@ describe('App body interaction and partner menu', () => {
       screenX: 160,
       screenY: 260,
     });
+    expect(screen.getByTestId('avatar-long-press-indicator')).toBeTruthy();
     fireEvent.pointerMove(stage, {
       button: 0,
       buttons: 1,
@@ -397,8 +400,9 @@ describe('App body interaction and partner menu', () => {
       screenX: 168,
       screenY: 260,
     });
+    expect(screen.queryByTestId('avatar-long-press-indicator')).toBeNull();
     await act(async () => {
-      vi.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(480);
     });
     vi.useRealTimers();
     fireEvent.pointerUp(stage, {
@@ -432,6 +436,34 @@ describe('App per-avatar scale', () => {
     });
 
     expect(readAvatarInstanceScale('avatar:avatar-instance-01')).toBe(1.05);
+  });
+
+  it('ignores horizontal trackpad swipes (deltaY === 0) and scales micro-deltas proportionally', async () => {
+    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
+
+    render(<App />);
+
+    act(() => {
+      seedReadyState();
+    });
+
+    const stage = await readyEmbodimentStage();
+    fireEvent.wheel(stage, {
+      deltaX: 40,
+      deltaY: 0,
+      clientX: 180,
+      clientY: 260,
+    });
+    expect(readAvatarInstanceScale('avatar:avatar-instance-01')).toBe(AVATAR_SCALE_DEFAULT);
+
+    for (let i = 0; i < 10; i += 1) {
+      fireEvent.wheel(stage, {
+        deltaY: -2,
+        clientX: 180,
+        clientY: 260,
+      });
+    }
+    expect(readAvatarInstanceScale('avatar:avatar-instance-01')).toBe(1.01);
   });
 
   it('resets per-avatar scale from the context menu', async () => {

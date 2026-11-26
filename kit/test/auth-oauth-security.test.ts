@@ -123,7 +123,7 @@ describe('auth error rendering', () => {
 
   it('surfaces RuntimeAccountService availability failures for desktop browser auth', () => {
     expect(toDesktopBrowserAuthErrorMessage(new Error('Runtime account login could not start: electron-runtime-endpoint-unavailable')))
-      .toBe('Runtime account service is unavailable. Start or connect the external Runtime daemon and try again.');
+      .toBe('本机账号服务暂时不可用，请确认 Nimi 服务已启动后重试。');
   });
 });
 

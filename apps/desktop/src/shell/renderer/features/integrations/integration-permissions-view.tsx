@@ -152,7 +152,13 @@ export function IntegrationPermissionsView({
                             {t('Integrations.editPermissions')}
                           </Button>
                         ) : null}
-                        <Button tone="ghost" size="sm" disabled={busy} onClick={() => onRevoke(permission)}>
+                        <Button
+                          tone="ghost"
+                          size="sm"
+                          className="text-[var(--nimi-status-danger)]"
+                          disabled={busy}
+                          onClick={() => onRevoke(permission)}
+                        >
                           {t('Integrations.revoke')}
                         </Button>
                       </div>

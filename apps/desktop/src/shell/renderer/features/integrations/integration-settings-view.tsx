@@ -109,7 +109,7 @@ export function IntegrationSettingsView({
         </section>
       ) : null}
       <details key={target.targetRef} className="border-t border-[var(--nimi-border-subtle)] pt-4 text-xs text-[var(--nimi-text-muted)]">
-        <summary className="cursor-pointer">{t('Integrations.technicalDetails')}</summary>
+        <summary className="cursor-pointer rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1">{t('Integrations.technicalDetails')}</summary>
         <dl className="mt-3 grid gap-x-6 gap-y-2 sm:grid-cols-[140px_minmax(0,1fr)]">
           <dt>{t('Integrations.connectionReference')}</dt>
           <dd className="break-all">{target.targetRef}</dd>

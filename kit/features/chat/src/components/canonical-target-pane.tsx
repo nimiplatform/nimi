@@ -8,6 +8,8 @@ import {
   type ReactNode,
 } from 'react';
 import { cn, EmptyState } from '@nimiplatform/kit/ui';
+import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
+import { useNimiReducedMotion } from '@nimiplatform/kit/ui/motion';
 import type {
   ConversationSourceFilter,
   ConversationSourceKind,
@@ -64,7 +66,8 @@ function SourceFilterPills(props: {
           type="button"
           onClick={() => props.onChange?.(filter)}
           className={cn(
-            'rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
+            'rounded-full px-3 py-1.5 text-xs font-semibold transition-[background-color,color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)]',
+            FOCUS_RING_CLASS_NAME,
             props.activeFilter === filter
               ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[0_10px_24px_color-mix(in_srgb,var(--nimi-action-primary-bg)_22%,transparent)]'
               : 'bg-transparent text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-active)_90%,transparent)]',
@@ -211,20 +214,16 @@ export type CanonicalTargetPaneProps = {
 
 export function CanonicalTargetPane(props: CanonicalTargetPaneProps) {
   const copy = resolveChatCopy(props.copy);
-  const [transitioningTargetId, setTransitioningTargetId] = useState<string | null>(null);
-  const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reducedMotion = useNimiReducedMotion();
+  const reducedMotionRef = useRef(reducedMotion);
+  reducedMotionRef.current = reducedMotion;
   const stageViewportRef = useRef<HTMLDivElement | null>(null);
   const mousePosRef = useRef<{ x: number; y: number } | null>(null);
   const hoveredIdRef = useRef<string | null>(null);
-  const transitioningIdRef = useRef<string | null>(null);
   const mousePosRafRef = useRef(0);
   const [stageWidth, setStageWidth] = useState(1280);
 
   useEffect(() => () => {
-    if (transitionTimerRef.current) {
-      clearTimeout(transitionTimerRef.current);
-      transitionTimerRef.current = null;
-    }
     if (mousePosRafRef.current) {
       cancelAnimationFrame(mousePosRafRef.current);
     }
@@ -260,10 +259,22 @@ export function CanonicalTargetPane(props: CanonicalTargetPaneProps) {
       return;
     }
     const items = bubbleLayoutRef.current.items;
+    const outers = viewport.querySelectorAll<HTMLElement>('[data-bubble-id]');
+    if (reducedMotionRef.current) {
+      outers.forEach((outerEl) => {
+        const id = outerEl.dataset.bubbleId || '';
+        const innerEl = outerEl.firstElementChild as HTMLElement | null;
+        if (!innerEl || !items[id]) {
+          return;
+        }
+        innerEl.style.transform = `scale(${FISHEYE_IDLE_SCALE})`;
+        innerEl.style.opacity = '1';
+        outerEl.style.zIndex = String(items[id].zIndex);
+      });
+      return;
+    }
     const mousePos = mousePosRef.current;
     const hoveredId = hoveredIdRef.current;
-    const transitioningId = transitioningIdRef.current;
-    const outers = viewport.querySelectorAll<HTMLElement>('[data-bubble-id]');
     outers.forEach((outerEl) => {
       const id = outerEl.dataset.bubbleId || '';
       const innerEl = outerEl.firstElementChild as HTMLElement | null;
@@ -272,8 +283,6 @@ export function CanonicalTargetPane(props: CanonicalTargetPaneProps) {
       }
       const item = items[id];
       const isHovered = hoveredId === id;
-      const isTransitioning = transitioningId === id;
-      const isMuted = Boolean(transitioningId && !isTransitioning);
       const cx = item.left + item.size / 2;
       const cy = item.top + item.size / 2;
       let fisheyeScale: number;
@@ -303,22 +312,18 @@ export function CanonicalTargetPane(props: CanonicalTargetPaneProps) {
           }
         }
       }
-      const scale = isTransitioning
-        ? 1.06
-        : isHovered
-          ? fisheyeScale * HOVER_SCALE
-          : isMuted
-            ? fisheyeScale * 0.92 * scaleBoost
-            : fisheyeScale * scaleBoost;
+      const scale = isHovered
+        ? fisheyeScale * HOVER_SCALE
+        : fisheyeScale * scaleBoost;
       const translate = (tx !== 0 || ty !== 0) ? `translate(${tx.toFixed(1)}px,${ty.toFixed(1)}px) ` : '';
       innerEl.style.transform = `${translate}scale(${scale.toFixed(3)})`;
-      innerEl.style.opacity = isMuted ? '0' : '1';
-      outerEl.style.zIndex = String(isHovered ? item.zIndex + 30 : isTransitioning ? item.zIndex + 20 : item.zIndex);
+      innerEl.style.opacity = '1';
+      outerEl.style.zIndex = String(isHovered ? item.zIndex + 30 : item.zIndex);
     });
   }, []);
 
   const handleStageMouseMove = useCallback((event: MouseEvent<HTMLDivElement>) => {
-    if (mousePosRafRef.current) {
+    if (reducedMotionRef.current || mousePosRafRef.current) {
       return;
     }
     mousePosRafRef.current = requestAnimationFrame(() => {
@@ -358,34 +363,21 @@ export function CanonicalTargetPane(props: CanonicalTargetPaneProps) {
   }, [applyFisheyeTransforms]);
 
   useEffect(() => {
-    transitioningIdRef.current = transitioningTargetId;
     applyFisheyeTransforms();
-  }, [applyFisheyeTransforms, transitioningTargetId]);
-
-  useEffect(() => {
-    applyFisheyeTransforms();
-  }, [applyFisheyeTransforms, bubbleLayout]);
+  }, [applyFisheyeTransforms, bubbleLayout, reducedMotion]);
 
   const handleSelectTarget = useCallback((targetId: string) => {
-    if (!targetId || transitioningTargetId) {
+    if (!targetId) {
       return;
     }
-    setTransitioningTargetId(targetId);
-    transitionTimerRef.current = setTimeout(() => {
-      props.onSelectTarget(targetId);
-      setTransitioningTargetId(null);
-      transitionTimerRef.current = null;
-    }, 220);
-  }, [props.onSelectTarget, transitioningTargetId]);
+    props.onSelectTarget(targetId);
+  }, [props.onSelectTarget]);
 
   return (
     <section className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_color-mix(in_srgb,var(--nimi-ambient-mesh-color-1)_60%,transparent),_transparent_30%),radial-gradient(circle_at_bottom_right,_color-mix(in_srgb,var(--nimi-ambient-mesh-color-2)_50%,transparent),_transparent_28%),linear-gradient(180deg,_var(--nimi-ambient-mesh-base-start),_var(--nimi-ambient-mesh-base-end))]" />
 
-      <div className={cn(
-        'relative z-10 flex min-h-0 flex-1 flex-col px-6 pb-6 pt-6 transition-opacity duration-[var(--nimi-motion-base)]',
-        transitioningTargetId ? 'opacity-0' : 'opacity-100',
-      )}>
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col px-6 pb-6 pt-6">
         <div className="relative min-h-0 flex-1 overflow-hidden rounded-[var(--nimi-radius-xl)] border border-[color-mix(in_srgb,var(--nimi-border-subtle)_80%,transparent)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_44%,transparent)] shadow-[0_8px_28px_color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)]">
           <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-24 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--nimi-surface-card)_42%,transparent),transparent)]" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-20 bg-[linear-gradient(0deg,color-mix(in_srgb,var(--nimi-surface-card)_42%,transparent),transparent)]" />
@@ -451,14 +443,18 @@ export function CanonicalTargetPane(props: CanonicalTargetPaneProps) {
                         className="h-full w-full"
                         style={{
                           transform: `scale(${FISHEYE_IDLE_SCALE})`,
-                          transition: 'transform var(--nimi-motion-base) var(--nimi-motion-ease-emphasized), opacity var(--nimi-motion-base) var(--nimi-motion-ease-standard)',
-                          willChange: 'transform',
+                          transition: reducedMotion
+                            ? 'none'
+                            : 'transform var(--nimi-motion-base) var(--nimi-motion-ease-emphasized), opacity var(--nimi-motion-base) var(--nimi-motion-ease-standard)',
                         }}
                       >
                         <button
                           type="button"
                           onClick={() => handleSelectTarget(target.id)}
-                          className="group relative flex items-center justify-center rounded-full outline-none focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--nimi-focus-ring-color)_60%,transparent)]"
+                          className={cn(
+                            'group relative flex items-center justify-center rounded-full transition-transform duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)]',
+                            FOCUS_RING_CLASS_NAME,
+                          )}
                           style={{
                             width: `${layout.size}px`,
                             height: `${layout.size}px`,
@@ -474,8 +470,8 @@ export function CanonicalTargetPane(props: CanonicalTargetPaneProps) {
                           />
                           <span
                             className={cn(
-                              'pointer-events-none absolute inset-[-3px] rounded-full border transition-[opacity,transform,box-shadow] duration-[var(--nimi-motion-base)] ease-out',
-                              unreadBadge ? 'animate-pulse' : '',
+                              'pointer-events-none absolute inset-[-3px] rounded-full border transition-[opacity,transform] duration-[var(--nimi-motion-base)] ease-out',
+                              unreadBadge ? 'animate-pulse motion-reduce:animate-none' : '',
                             )}
                             style={{
                               borderColor: palette.border,

@@ -64,6 +64,71 @@ export function formatProjectionValue(value: string | null | undefined): string 
   return value;
 }
 
+export function formatActionHintLabel(actionHint: string): string {
+  const normalized = actionHint.trim();
+  if (!normalized || normalized === 'none') {
+    return '无需额外操作';
+  }
+  if (/[\u4e00-\u9fff]/.test(normalized)) {
+    return normalized;
+  }
+  const exactMap: Record<string, string> = {
+    all_required_runtime_surfaces_ready: '所有必需的本地服务均已就绪',
+    probe_runtime_status: '检查本地服务连接状态',
+    probe_runtime_account_status: '检查账户登录状态',
+    await_admitted_runtime_source_projection: '等待角色资料同步',
+    list_runtime_local_agents: '刷新本地伙伴列表',
+    probe_local_agent_discovery: '查找可用的本地伙伴',
+    open_runtime_conversation_anchor: '打开当前伙伴会话',
+    probe_runtime_agent_state_projection: '同步伙伴当前状态',
+    connect_platform_proposal_intake: '等待能力申请入口就绪',
+    probe_avatar_facade_projection: '检查伙伴形象连接状态',
+    send_runtime_agent_turn: '可直接发送消息',
+    enter_runtime_agent_turn_text: '输入内容后即可发送',
+    reselect_local_partner: '请重新选择当前伙伴',
+    admit_identity_floor_projection: '身份保护信息尚未开放',
+    admit_identity_floor_conflict_projection: '身份冲突记录尚未开放',
+    consume_platform_identity_floor_contract: '由平台保护身份边界',
+    probe_runtime_delegation_control_surface: '等待委托控制开放',
+    select_runtime_delegation_approval: '查看需要确认的委托',
+    inspect_runtime_delegation_approval: '查看委托审批状态',
+    admit_zhiyu_delegation_capability: '委托控制暂未开放',
+    start_external_runtime_daemon: '请先启动 Nimi 本地服务',
+    restart_zhiyu_electron_shell: '请重新启动织羽应用',
+    restart_desktop_supervised_zhiyu: '请在 Nimi Home 中重新打开织羽',
+    restart_desktop_supervised_app: '请在 Nimi Home 中重新打开应用',
+    check_desktop_runtime_bridge: '请检查 Nimi Home 连接状态',
+    wait_for_desktop_partners: '等待本地伙伴列表同步',
+    retry_avatar_host_handoff: '请稍后重试打开伙伴形象',
+    check_avatar_host_handoff: '请检查伙伴形象连接状态',
+    inspect_avatar_window: '伙伴形象窗口已打开',
+    keep_current_companion: '已保留当前桌面伙伴',
+    refresh_runtime_local_agent_inventory: '刷新本地伙伴列表后重试',
+    wait_runtime_agent_turn_terminal: '等待当前回复完成',
+    continue_runtime_agent_conversation: '可以继续当前对话',
+    retry_zhiyu_resource_pack_placement: '请重试应用外观资源包',
+  };
+  if (exactMap[normalized]) {
+    return exactMap[normalized];
+  }
+  if (/runtime|daemon|bridge/i.test(normalized)) {
+    return '请检查本地服务状态后重试';
+  }
+  if (/account|auth|login/i.test(normalized)) {
+    return '请检查账户登录状态';
+  }
+  if (/avatar/i.test(normalized)) {
+    return '请检查伙伴形象设置后重试';
+  }
+  if (/agent|partner|source/i.test(normalized)) {
+    return '请刷新或重新选择本地伙伴';
+  }
+  if (/conversation|turn/i.test(normalized)) {
+    return '请重新打开伙伴会话后重试';
+  }
+  return '请检查当前状态后重试';
+}
+
 export function formatReasonLabel(ready: boolean, reasonCode: string): string {
   if (ready) {
     return '已就绪';
@@ -107,7 +172,7 @@ export function CompanionEmotionStatus({ companion }: { readonly companion: Zhiy
       </StatusBadge>
       {companion.statusText && !companion.currentEmotionId && !companion.emotionViolation ? (
         <span
-          className="max-w-[180px] truncate text-[11px] text-[var(--nimi-text-secondary)]"
+          className="max-w-[180px] truncate text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]"
           data-nimi-semantic-id="zhiyu-companion-status"
           title={companion.statusText}
         >
@@ -131,7 +196,7 @@ export function AvatarPresenceSection({
   const resourceState = avatar.ready ? 'avatar-host-target-ready' : 'blocked';
   const avatarStatusLabel = avatar.ready ? '伙伴形象可启动' : '等待当前会话';
   const avatarMessage = avatar.ready
-    ? '可以通过桌面 Host 启动或聚焦当前伙伴形象。'
+    ? '可以通过 Nimi Home 启动或聚焦当前伙伴形象。'
     : '打开当前伙伴会话后即可启动形象。';
   return (
     <Surface
@@ -254,7 +319,9 @@ export function IdentityFloorSection({
           </span>
         ))}
       </div>
-      <p className="zhiyu-home__action-hint">{identityFloor.actionHint}</p>
+      <p className="zhiyu-home__action-hint" data-zhiyu-identity-action-hint={identityFloor.actionHint}>
+        {formatActionHintLabel(identityFloor.actionHint)}
+      </p>
     </Surface>
   );
 }
@@ -326,16 +393,20 @@ export function DiagnosticSurface({ diagnostics }: { readonly diagnostics: Zhiyu
         <span>{diagnostics.errorCount} 项错误</span>
       </div>
       {primary ? (
-        <div className="zhiyu-home__diagnostic-primary">
+        <div
+          className="zhiyu-home__diagnostic-primary"
+          data-zhiyu-diagnostic-primary-reason={primary.reasonCode}
+          data-zhiyu-diagnostic-primary-action={primary.actionHint}
+        >
           <span>主要问题</span>
-          <strong>{primary.reasonCode}</strong>
-          <small>{primary.actionHint}</small>
+          <strong>{formatReasonLabel(false, primary.reasonCode)}</strong>
+          <small>{formatActionHintLabel(primary.actionHint)}</small>
         </div>
       ) : (
-        <div className="zhiyu-home__diagnostic-primary">
+        <div className="zhiyu-home__diagnostic-primary" data-zhiyu-diagnostic-primary-action="all_required_runtime_surfaces_ready">
           <span>主要问题</span>
           <strong>无</strong>
-          <small>all_required_runtime_surfaces_ready</small>
+          <small>所有必需的本地服务均已就绪</small>
         </div>
       )}
       <div className="zhiyu-home__diagnostic-list" aria-label="诊断问题列表">
@@ -360,10 +431,10 @@ function DiagnosticRow({ item }: { readonly item: ZhiyuDiagnosticItem }) {
     >
       <div>
         <strong>{item.title}</strong>
-        <small>{item.reasonCode}</small>
+        <small>{formatReasonLabel(item.severity === 'ready', item.reasonCode)}</small>
       </div>
       <StatusBadge tone={toneForDiagnosticSeverity(item.severity)} shape="dot">
-        {item.actionHint}
+        {formatActionHintLabel(item.actionHint)}
       </StatusBadge>
     </div>
   );

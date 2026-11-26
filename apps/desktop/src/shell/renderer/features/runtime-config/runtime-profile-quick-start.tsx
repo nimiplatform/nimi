@@ -766,7 +766,7 @@ function ReadyCapabilitiesOverview(props: {
                 label: (
                   <span className="inline-flex items-center gap-1.5">
                     <span>{t('runtimeConfig.quickStart.allGroups')}</span>
-                    <span className="text-[11px] tabular-nums opacity-75">{props.ready.length}</span>
+                    <span className="text-[length:var(--nimi-type-caption-size)] tabular-nums opacity-75">{props.ready.length}</span>
                   </span>
                 ),
               },
@@ -775,7 +775,7 @@ function ReadyCapabilitiesOverview(props: {
                 label: (
                   <span className="inline-flex items-center gap-1.5">
                     <span>{t(`runtimeConfig.capabilities.group.${group}`)}</span>
-                    <span className="text-[11px] tabular-nums opacity-75">{entries.length}</span>
+                    <span className="text-[length:var(--nimi-type-caption-size)] tabular-nums opacity-75">{entries.length}</span>
                   </span>
                 ),
               })),
@@ -795,7 +795,7 @@ function ReadyCapabilitiesOverview(props: {
                 <h3 className="text-xs font-medium text-[var(--nimi-text-muted)]">
                   {t(`runtimeConfig.capabilities.group.${group}`)}
                 </h3>
-                <span className="text-[11px] tabular-nums text-[var(--nimi-text-muted)] opacity-75">
+                <span className="text-[length:var(--nimi-type-caption-size)] tabular-nums text-[var(--nimi-text-muted)] opacity-75">
                   {entries.length}
                 </span>
               </div>

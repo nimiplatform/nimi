@@ -1,5 +1,6 @@
 @import "@nimiplatform/kit/ui/styles.css";
 @import "@nimiplatform/kit/ui/themes/light.css";
+@import "@nimiplatform/kit/ui/themes/dark.css";
 @import "@nimiplatform/kit/auth/styles.css";
 @import "tailwindcss";
 @import "./landing/styles.css";
@@ -7,10 +8,51 @@
 @import "./landing/story.css";
 
 :root {
+  font-optical-sizing: auto;
   --nimi-landing-hero-background:
     radial-gradient(ellipse at 9% 65%, #bceeed 0%, #bceeed00 62%),
     radial-gradient(ellipse at 88% 22%, #b9e0fe 0%, #b9e0fe00 72%),
     linear-gradient(155deg, #bbe8f0 12%, #bfe6f7 55%, #cbe9ff 100%);
+}
+
+:root[data-nimi-scheme="dark"],
+.dark {
+  color-scheme: dark;
+  --nimi-landing-hero-background:
+    radial-gradient(ellipse at 12% 62%, rgba(20, 184, 166, 0.16) 0%, rgba(20, 184, 166, 0) 60%),
+    radial-gradient(ellipse at 88% 20%, rgba(56, 189, 248, 0.16) 0%, rgba(56, 189, 248, 0) 68%),
+    linear-gradient(155deg, #0b1220 12%, #0f172a 55%, #111c30 100%);
+  --web-auth-text-primary: #f8fafc;
+  --web-auth-text-secondary: #cbd5e1;
+  --web-auth-text-muted: #94a3b8;
+  --web-auth-field-bg: rgba(15, 23, 42, 0.86);
+  --web-auth-field-border: rgba(148, 163, 184, 0.30);
+  --web-auth-border-subtle: rgba(148, 163, 184, 0.22);
+  --web-auth-elevation-base: 0 8px 24px rgba(0, 0, 0, 0.40);
+  --web-auth-elevation-raised: 0 14px 32px rgba(0, 0, 0, 0.50);
+  --web-auth-elevation-floating: 0 22px 48px rgba(0, 0, 0, 0.60);
+}
+
+body {
+  font-optical-sizing: auto;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  [data-nimi-material^="glass-"] {
+    background-color: var(--nimi-surface-overlay, #ffffff) !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --nimi-border-subtle: rgba(15, 23, 42, 0.35);
+    --nimi-border-strong: rgba(15, 23, 42, 0.65);
+  }
+  :root[data-nimi-scheme="dark"],
+  .dark {
+    --nimi-border-subtle: rgba(226, 232, 240, 0.42);
+    --nimi-border-strong: rgba(248, 250, 252, 0.72);
+  }
 }
 
 /*

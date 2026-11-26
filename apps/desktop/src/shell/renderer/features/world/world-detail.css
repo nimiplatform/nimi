@@ -25,7 +25,7 @@
   font-weight: 600;
   font-synthesis: none;
   letter-spacing: 0;
-  color: #202a36;
+  color: var(--nimi-text-primary);
   text-align: left;
   white-space: normal;
   word-break: auto-phrase;
@@ -313,6 +313,11 @@
   .world-hero-bookmark.world-hero-bookmark--overlay[aria-pressed="true"] {
     background: rgba(15, 23, 42, 0.94);
   }
+
+  .world-reader-header,
+  .world-reader-footer {
+    background: var(--world-reader-bg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -332,6 +337,25 @@
   .world-hero-read-cta:is(:hover, :focus-visible) .world-hero-read-cta__arrow {
     transform: none;
   }
+}
+
+:root[data-nimi-reduced-motion="true"] .world-hero-bookmark,
+:root[data-nimi-reduced-motion="true"] .world-hero-bookmark__icon,
+:root[data-nimi-reduced-motion="true"] .world-hero-read-cta,
+:root[data-nimi-reduced-motion="true"] .world-hero-read-cta__book,
+:root[data-nimi-reduced-motion="true"] .world-hero-read-cta__arrow,
+:root[data-nimi-reduced-motion="true"] .world-reader-outline-row,
+:root[data-nimi-reduced-motion="true"] .world-reader-next {
+  transition: none;
+}
+
+:root[data-nimi-reduced-motion="true"] .world-hero-bookmark[data-bookmark-motion] .world-hero-bookmark__icon,
+:root[data-nimi-reduced-motion="true"] .world-hero-bookmark[data-bookmark-motion]::after {
+  animation: none;
+}
+
+:root[data-nimi-reduced-motion="true"] .world-hero-read-cta:is(:hover, :focus-visible) .world-hero-read-cta__arrow {
+  transform: none;
 }
 
 .world-detail-story {
@@ -636,7 +660,6 @@
   z-index: 10;
   padding: 10px 28px;
   background: color-mix(in srgb, var(--world-reader-bg) 90%, transparent);
-  backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--world-reader-rule);
 }
 
@@ -1087,7 +1110,6 @@
   bottom: 0;
   z-index: 5;
   background: color-mix(in srgb, var(--world-reader-bg) 92%, transparent);
-  backdrop-filter: blur(8px);
   border-top: 1px solid var(--world-reader-rule);
 }
 

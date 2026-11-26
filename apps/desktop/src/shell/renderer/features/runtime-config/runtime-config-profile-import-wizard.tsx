@@ -158,8 +158,8 @@ export function ProfileImportWizard(props: ProfileImportWizardProps) {
       data-testid="runtime-portable-profile-wizard"
       footer={reviewing ? (
         <div className="flex justify-end">
-          <Button ref={focusStepAction} tone="primary" disabled={busy} onClick={() => { void save(); }} data-testid="runtime-profile-import-save">
-            {busy ? t('Common.saving', { defaultValue: 'Saving…' }) : t('runtimeConfig.profiles.importLibrarySave', { defaultValue: 'Save to library' })}
+          <Button ref={focusStepAction} tone="primary" loading={busy} onClick={() => { void save(); }} data-testid="runtime-profile-import-save">
+            {t('runtimeConfig.profiles.importLibrarySave', { defaultValue: 'Save to library' })}
           </Button>
         </div>
       ) : undefined}

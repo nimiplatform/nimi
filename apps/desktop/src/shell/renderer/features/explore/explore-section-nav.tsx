@@ -1,19 +1,28 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { UsersRound } from 'lucide-react';
 import { SearchField } from '@nimiplatform/kit/ui';
 import { E2E_IDS } from '../../testability/e2e-ids';
 
 // Authority: .nimi/spec/desktop/product-surfaces.authority.yaml
-// (rule.nimi.desktop.product-surfaces.r002). Keep this closed UI vocabulary
-// aligned with the nearest owner behavior tests.
+// (rule.nimi.desktop.product-surfaces.r002). Explore retains Worlds with
+// explicit worlds or characters discovery; Runtime LocalAgent Partners
+// management remains in Contacts & Conversations.
 export type ExploreSectionId = 'worlds';
 
 export const EXPLORE_SECTION_IDS: readonly ExploreSectionId[] = [
   'worlds',
 ] as const;
 
+export type ExploreDiscoveryViewId = 'worlds' | 'characters';
+
+export const EXPLORE_DISCOVERY_VIEW_IDS: readonly ExploreDiscoveryViewId[] = [
+  'worlds',
+  'characters',
+] as const;
+
 type SectionMeta = {
-  id: ExploreSectionId;
+  id: ExploreDiscoveryViewId;
   labelKey: string;
   icon: ReactNode;
 };
@@ -26,11 +35,18 @@ const ICON_WORLDS = (
   </svg>
 );
 
-const SECTION_META: Record<ExploreSectionId, SectionMeta> = {
+const ICON_CHARACTERS = <UsersRound size={16} aria-hidden="true" />;
+
+const SECTION_META: Record<ExploreDiscoveryViewId, SectionMeta> = {
   worlds: {
     id: 'worlds',
     labelKey: 'Explore.sectionWorlds',
     icon: ICON_WORLDS,
+  },
+  characters: {
+    id: 'characters',
+    labelKey: 'runtimeConfig.partners.discoverPartners',
+    icon: ICON_CHARACTERS,
   },
 };
 
@@ -40,43 +56,69 @@ export function ExploreSectionNav({
   trailing,
   variant = 'panel',
 }: {
-  active: ExploreSectionId;
-  onSelect: (section: ExploreSectionId) => void;
+  active: ExploreDiscoveryViewId | null;
+  onSelect: (section: ExploreDiscoveryViewId) => void;
   trailing?: ReactNode;
   variant?: 'panel' | 'topbar';
 }) {
   const { t } = useTranslation();
+  const navLabel = t('Explore.sectionNavLabel', { defaultValue: 'Explore sections' });
+  const activeIndex = active === null ? -1 : EXPLORE_DISCOVERY_VIEW_IDS.indexOf(active);
   return (
     <div className={variant === 'topbar' ? 'flex min-w-0 shrink-0 items-center gap-4 sm:gap-8' : 'flex min-w-0 items-center gap-2'}>
       <nav
-        aria-label={t('Explore.sectionNavLabel', { defaultValue: 'Explore sections' })}
-        className={variant === 'topbar' ? 'flex min-w-0 items-center gap-4 sm:gap-8' : 'flex min-w-0 items-center gap-7'}
+        aria-label={navLabel}
+        className="flex min-w-0 items-center"
         data-testid="explore-section-nav"
       >
-        {EXPLORE_SECTION_IDS.map((id) => {
-          const meta = SECTION_META[id];
-          const isActive = id === active;
-          return (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              data-testid={E2E_IDS.exploreSectionTab(id)}
-              data-titlebar-interactive="true"
-              onClick={() => onSelect(id)}
-              className={variant === 'topbar'
-                ? `inline-flex h-10 shrink-0 items-center text-[15px] transition-colors duration-200 ease-out hover:text-[color:var(--nimi-fg-1)] ${isActive ? 'font-semibold text-[color:var(--nimi-accent)]' : 'font-medium text-[color:var(--nimi-fg-2)]'}`
-                : `relative inline-flex h-12 shrink-0 items-center gap-2 text-[15px] transition-colors duration-200 ease-out after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:transition-colors hover:text-[color:var(--nimi-fg-1)] ${isActive ? 'font-semibold text-[color:var(--nimi-accent)] after:bg-[color:var(--nimi-accent)]' : 'font-medium text-[color:var(--nimi-fg-2)] after:bg-transparent'}`}
-              style={{ fontFamily: 'var(--nimi-font-sans)', background: 'transparent' }}
-            >
-              {variant === 'topbar' ? null : (
-                <span aria-hidden className="shrink-0">{meta.icon}</span>
-              )}
-              {t(meta.labelKey)}
-            </button>
-          );
-        })}
+        <div
+          role="tablist"
+          aria-label={navLabel}
+          className={variant === 'topbar' ? 'flex min-w-0 items-center gap-4 sm:gap-8' : 'flex min-w-0 items-center gap-7'}
+          onKeyDown={(event) => {
+            if (EXPLORE_DISCOVERY_VIEW_IDS.length <= 1) return;
+            const current = activeIndex >= 0 ? activeIndex : 0;
+            const next = event.key === 'ArrowRight'
+              ? (current + 1) % EXPLORE_DISCOVERY_VIEW_IDS.length
+              : event.key === 'ArrowLeft'
+                ? (current + EXPLORE_DISCOVERY_VIEW_IDS.length - 1) % EXPLORE_DISCOVERY_VIEW_IDS.length
+                : event.key === 'Home'
+                  ? 0
+                  : event.key === 'End'
+                    ? EXPLORE_DISCOVERY_VIEW_IDS.length - 1
+                    : null;
+            if (next === null) return;
+            event.preventDefault();
+            onSelect(EXPLORE_DISCOVERY_VIEW_IDS[next]!);
+            event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus();
+          }}
+        >
+          {EXPLORE_DISCOVERY_VIEW_IDS.map((id, index) => {
+            const meta = SECTION_META[id];
+            const isActive = id === active;
+            return (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                tabIndex={isActive || (activeIndex < 0 && index === 0) ? 0 : -1}
+                data-testid={E2E_IDS.exploreSectionTab(id)}
+                data-titlebar-interactive="true"
+                onClick={() => onSelect(id)}
+                className={variant === 'topbar'
+                  ? `inline-flex h-10 shrink-0 items-center rounded-md text-[15px] transition-[color,transform] duration-200 ease-out hover:text-[color:var(--nimi-fg-1)] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1 ${isActive ? 'font-semibold text-[color:var(--nimi-accent)]' : 'font-medium text-[color:var(--nimi-fg-2)]'}`
+                  : `relative inline-flex h-12 shrink-0 items-center gap-2 rounded-md text-[15px] transition-[color,transform] duration-200 ease-out after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:transition-colors hover:text-[color:var(--nimi-fg-1)] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1 ${isActive ? 'font-semibold text-[color:var(--nimi-accent)] after:bg-[color:var(--nimi-accent)]' : 'font-medium text-[color:var(--nimi-fg-2)] after:bg-transparent'}`}
+                style={{ fontFamily: 'var(--nimi-font-sans)', background: 'transparent' }}
+              >
+                {variant === 'topbar' ? null : (
+                  <span aria-hidden className="shrink-0">{meta.icon}</span>
+                )}
+                {t(meta.labelKey)}
+              </button>
+            );
+          })}
+        </div>
       </nav>
       {trailing && (
         <div className={variant === 'topbar' ? 'min-w-[260px] flex-1' : 'ml-auto w-full min-w-[220px] sm:w-[300px] sm:flex-none'}>
@@ -113,7 +155,7 @@ export function ExploreSearchField({
   );
 }
 
-export function ExploreSectionHeader({ section }: { section: ExploreSectionId }) {
+export function ExploreSectionHeader({ section }: { section: ExploreDiscoveryViewId }) {
   const { t } = useTranslation();
   const meta = SECTION_META[section];
   return (

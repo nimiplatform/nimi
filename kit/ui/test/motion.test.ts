@@ -11,6 +11,7 @@ import {
   nimiSpring,
   normalizeReleaseVelocity,
   projectMomentum,
+  rubberband,
   shouldCommitGesture,
 } from '../src/motion/index.js';
 
@@ -58,6 +59,20 @@ test('commit decision uses velocity sign before position', () => {
   // than an implicit zero coordinate.
   expect(shouldCommitGesture({ originValue: 100, currentValue: 140, targetValue: 200, releaseVelocityPxPerSec: 0 })).toBe(false);
   expect(shouldCommitGesture({ originValue: 100, currentValue: 160, targetValue: 200, releaseVelocityPxPerSec: 0 })).toBe(true);
+  // overshoot past target + onward flick still commits; strong reverse flick at target reverses
+  expect(shouldCommitGesture({ originValue: 0, currentValue: 340, targetValue: 300, releaseVelocityPxPerSec: 500 })).toBe(true);
+  expect(shouldCommitGesture({ originValue: 0, currentValue: 300, targetValue: 300, releaseVelocityPxPerSec: -500 })).toBe(false);
+});
+
+test('rubberband applies progressive diminishing resistance past boundaries', () => {
+  expect(rubberband(0, 400)).toBe(0);
+  const small = rubberband(40, 400);
+  const large = rubberband(400, 400);
+  expect(small).toBeGreaterThan(0);
+  expect(small).toBeLessThan(40);
+  expect(large).toBeGreaterThan(small);
+  expect(large).toBeLessThan(400);
+  expect(rubberband(-100, 400)).toBeCloseTo(-rubberband(100, 400));
 });
 
 test('overlay panel motion is spring-based and symmetric', () => {

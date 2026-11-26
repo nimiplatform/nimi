@@ -205,7 +205,7 @@ export function LoadoutSlotModelPickerBody(props: {
         data-testid={`loadout-model-picker:installed:${asset.modelAssetId}`}
         data-selected={selected}
         onClick={() => props.onSelectAsset(asset.modelAssetId)}
-        className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition hover:bg-[var(--nimi-action-ghost-hover)] ${selected ? 'border-[var(--nimi-action-primary-bg)]' : 'border-[var(--nimi-border-subtle)]'}`}
+        className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-colors hover:bg-[var(--nimi-action-ghost-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)] ${selected ? 'border-[var(--nimi-action-primary-bg)]' : 'border-[var(--nimi-border-subtle)]'}`}
       >
         <span className="min-w-0">
           <span className="block truncate text-sm font-medium text-[var(--nimi-text-primary)]" title={presentation.headline}>{presentation.headline}</span>
@@ -242,7 +242,7 @@ export function LoadoutSlotModelPickerBody(props: {
                   data-testid="loadout-model-picker:clear"
                   data-selected={!props.selectedOfferRef && props.selectedAssetId === ''}
                   onClick={() => props.onSelectAsset('')}
-                  className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition hover:bg-[var(--nimi-action-ghost-hover)] ${!props.selectedOfferRef && props.selectedAssetId === '' ? 'border-[var(--nimi-action-primary-bg)]' : 'border-[var(--nimi-border-subtle)]'}`}
+                  className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-colors hover:bg-[var(--nimi-action-ghost-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)] ${!props.selectedOfferRef && props.selectedAssetId === '' ? 'border-[var(--nimi-action-primary-bg)]' : 'border-[var(--nimi-border-subtle)]'}`}
                 >
                   <span className="text-sm text-[var(--nimi-text-muted)]">{props.clearLabel ?? t('runtimeConfig.loadouts.unresolved')}</span>
                   {!props.selectedOfferRef && props.selectedAssetId === '' ? <StatusBadge tone="info" shape="soft">{t('runtimeConfig.loadouts.picker.current')}</StatusBadge> : null}
@@ -358,7 +358,7 @@ export function LoadoutSlotModelPickerBody(props: {
                 type="button"
                 aria-expanded={showIncompatible}
                 onClick={() => setShowIncompatible((current) => !current)}
-                className="flex w-fit items-center gap-1.5 text-left text-xs font-medium text-[var(--nimi-text-muted)] transition hover:text-[var(--nimi-text-primary)]"
+                className="flex w-fit items-center gap-1.5 rounded px-1 py-0.5 text-left text-xs font-medium text-[var(--nimi-text-muted)] transition-colors hover:text-[var(--nimi-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]"
                 data-testid="loadout-model-picker:incompatible-toggle"
               >
                 <span aria-hidden="true" className={`inline-block transition-transform ${showIncompatible ? 'rotate-90' : ''}`}>▸</span>

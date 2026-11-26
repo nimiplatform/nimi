@@ -7,6 +7,7 @@ import {
   completeTikTokAccountOAuth,
 } from './web-provider-link.js';
 import { readValidatedOauthNext } from './oauth-continuation.js';
+import './account-center.css';
 
 type PendingTwoFactor = { tempToken: string; oauthNext?: string };
 
@@ -25,6 +26,7 @@ export function ProviderLinkCallbackPage() {
   const [error, setError] = useState<string | null>(null);
   const [twoFactor, setTwoFactor] = useState<PendingTwoFactor | null>(null);
   const [code, setCode] = useState('');
+  const [pending, setPending] = useState(false);
   useEffect(() => {
     let active = true;
     void completeTikTokAccountOAuth(window.location.search, t('Account.oauthAccountUnavailable')).then((result) => {
@@ -51,7 +53,8 @@ export function ProviderLinkCallbackPage() {
   }, [t]);
   const verifyTwoFactor = (event: FormEvent) => {
     event.preventDefault();
-    if (!twoFactor || code.length !== 6) return;
+    if (!twoFactor || code.length !== 6 || pending) return;
+    setPending(true);
     setError(null);
     void runWebBrowserSessionLogin(async realm => {
       const response = await realm.auth.verify2Fa({
@@ -68,19 +71,48 @@ export function ProviderLinkCallbackPage() {
       }
     }, '').then(() => {
       finishLogin(twoFactor.oauthNext, t('Account.oauthContinuationExpired'));
-    }).catch((reason) => setError(reason instanceof Error ? reason.message : String(reason || t('Account.twoFaFailed'))));
+    }).catch((reason) => {
+      setError(reason instanceof Error ? reason.message : String(reason || t('Account.twoFaFailed')));
+    }).finally(() => {
+      setPending(false);
+    });
   };
 
   return (
-    <main className="web-account-status" role={error ? 'alert' : 'status'}>
-      <h1>{error ? t('Account.oauthFailedTitle') : twoFactor ? t('Account.enterTwoFaCode') : t('Account.completingOauth')}</h1>
-      {twoFactor ? (
-        <form onSubmit={verifyTwoFactor} className="web-account-form">
-          <input inputMode="numeric" value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder={t('Account.sixDigitCodePlaceholder')} />
-          <button type="submit" disabled={code.length !== 6}>{t('Account.continue')}</button>
-        </form>
-      ) : null}
-      {error ? <><p>{error}</p><Link to="/login">{t('Account.backToLogin')}</Link></> : null}
+    <main className="web-account-status ac-entry" role={error ? 'alert' : 'status'}>
+      <Link to="/" className="web-wordmark ac-brand">
+        <img src="/logo.svg" alt="" width={28} height={28} />
+        <span>Nimi</span>
+      </Link>
+      <section className="web-account-form ac-section">
+        <h1>{error ? t('Account.oauthFailedTitle') : twoFactor ? t('Account.enterTwoFaCode') : t('Account.completingOauth')}</h1>
+        {twoFactor ? (
+          <form onSubmit={verifyTwoFactor}>
+            <label className="ac-field">
+              <span>{t('Account.sixDigitCodePlaceholder')}</span>
+              <input
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                autoFocus
+                required
+                disabled={pending}
+                value={code}
+                onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder={t('Account.sixDigitCodePlaceholder')}
+              />
+            </label>
+            <button type="submit" className="ac-button" disabled={pending || code.length !== 6}>
+              {pending ? t('Account.pleaseWait') : t('Account.continue')}
+            </button>
+          </form>
+        ) : null}
+        {error ? (
+          <>
+            <p className="ac-feedback ac-feedback--error">{error}</p>
+            <Link className="ac-text-link" to="/login">{t('Account.backToLogin')}</Link>
+          </>
+        ) : null}
+      </section>
     </main>
   );
 }

@@ -1,8 +1,10 @@
 import { MediaImage } from '@nimiplatform/kit/features/media';
+import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, ChevronLeft, ChevronRight, Globe2, UsersRound } from 'lucide-react';
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
+import { useDesktopReducedMotion } from '../../ui/motion/desktop-motion.js';
 import type { WorldListItem } from './world-list-model.js';
 import { observeDiscoveryCover } from './world-cover-viewport.js';
 
@@ -57,7 +59,7 @@ export function WorldAlbumCard({ world, viewKey, topics = [] }: {
   const topicLabels = resolveTopicLabels(world, topics, i18n.language.startsWith('zh'), 2);
   const totalSources = world.characterCount + world.personaCharacterCount;
   return <article className="world-album-card" data-testid="world-discovery-card">
-    <button data-view-key={viewKey ?? `world:${world.id}`} className="world-album-link" aria-label={t('WorldDetail.discovery.enterNamedWorld', { name: world.name })} onClick={() => void navigation.push({ id: 'world-detail', worldId: world.id })}>
+    <button type="button" data-view-key={viewKey ?? `world:${world.id}`} className="world-album-link" aria-label={t('WorldDetail.discovery.enterNamedWorld', { name: world.name })} onClick={() => void navigation.push({ id: 'world-detail', worldId: world.id })}>
       <WorldAtlasImage world={world} purpose="hero" />
       <div className="world-album-caption">
         {topicLabels.length > 0 || totalSources > 0 ? <div className="world-card-meta">
@@ -81,7 +83,7 @@ export function WorldDiscoveryCard({ world, topics = [] }: {
   const topicLabels = resolveTopicLabels(world, topics, i18n.language.startsWith('zh'), 2);
   const totalSources = world.characterCount + world.personaCharacterCount;
   return <article className="world-discovery-card" data-testid="world-discovery-card">
-    <button className="world-discovery-link" data-view-key={`all:${world.id}`} aria-label={t('WorldDetail.discovery.enterNamedWorld', { name: world.name })} onClick={() => void navigation.push({ id: 'world-detail', worldId: world.id })}>
+    <button type="button" className="world-discovery-link" data-view-key={`all:${world.id}`} aria-label={t('WorldDetail.discovery.enterNamedWorld', { name: world.name })} onClick={() => void navigation.push({ id: 'world-detail', worldId: world.id })}>
       <WorldAtlasImage world={world} purpose="hero" prioritizeVisible />
       <div className="world-discovery-caption">
         <div className="world-discovery-copy">
@@ -104,6 +106,7 @@ export function WorldAtlasHero({ worlds, topics = [] }: {
 }) {
   const { t, i18n } = useTranslation();
   const navigation = useHomeNavigation();
+  const reducedMotion = useDesktopReducedMotion();
   const [activeWorldId, setActiveWorldId] = useState<string | null>(() => worlds[0]?.id ?? null);
   const position = Math.max(0, worlds.findIndex((world) => world.id === activeWorldId));
   const world = worlds[position];
@@ -117,27 +120,60 @@ export function WorldAtlasHero({ worlds, topics = [] }: {
   const openLabel = t('World.album.showWorld', { name: world.name });
   const topicLabels = resolveTopicLabels(world, topics, i18n.language.startsWith('zh'), 2);
   const totalSources = world.characterCount + world.personaCharacterCount;
+  const artTransition = reducedMotion
+    ? { duration: 0 }
+    : { duration: 0.3, ease: [0.22, 1, 0.36, 1] as const };
+  const copyTransition = reducedMotion
+    ? { duration: 0 }
+    : { duration: 0.2, ease: [0.2, 0, 0, 1] as const };
   return <section className="world-atlas-hero" data-world-id={world.id} aria-label={t('World.album.spotlight')} aria-roledescription={t('World.album.carousel')}>
-    <div className="world-atlas-hero-art"><button className="world-atlas-hero-open" aria-label={openLabel} onClick={openWorld}><WorldAtlasImage key={world.id} world={world} eager /></button>
-      <div className="world-atlas-hero-progress"><span>{String(position + 1).padStart(2, '0')} / {String(worlds.length).padStart(2, '0')}</span>
-        <div className="world-atlas-hero-dots">{worlds.map((item, itemIndex) => <button key={item.id} aria-label={t('World.album.showWorld', { name: item.name })} aria-current={position === itemIndex ? 'true' : undefined} onClick={() => setActiveWorldId(item.id)}><span /></button>)}</div>
+    <div className="world-atlas-hero-art">
+      <AnimatePresence initial={false}>
+        <motion.button
+          key={world.id}
+          type="button"
+          className="world-atlas-hero-open"
+          aria-label={openLabel}
+          onClick={openWorld}
+          initial={reducedMotion ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={reducedMotion ? undefined : { opacity: 0 }}
+          transition={artTransition}
+        >
+          <WorldAtlasImage world={world} eager />
+        </motion.button>
+      </AnimatePresence>
+      <div className="world-atlas-hero-progress z-10"><span>{String(position + 1).padStart(2, '0')} / {String(worlds.length).padStart(2, '0')}</span>
+        <div className="world-atlas-hero-dots">{worlds.map((item, itemIndex) => <button key={item.id} type="button" aria-label={t('World.album.showWorld', { name: item.name })} aria-current={position === itemIndex ? 'true' : undefined} onClick={() => setActiveWorldId(item.id)}><span /></button>)}</div>
       </div>
     </div>
     <div className="world-atlas-hero-copy" aria-live="polite">
-      <button className="world-atlas-hero-copy-open" aria-label={openLabel} onClick={openWorld}>
-        {topicLabels.length > 0 || totalSources > 0 ? <div className="world-atlas-hero-meta">
-          {topicLabels.map((label) => <span key={label} className="world-card-topic-pill">{label}</span>)}
-          {totalSources > 0 ? <span className="world-card-stat"><UsersRound size={13} aria-hidden />{t('World.atlas.sourceCount', { value: totalSources })}</span> : null}
-        </div> : null}
-        <h2 title={world.name}>{world.name}</h2>
-        {world.tagline || world.description ? <p className="world-atlas-description">{world.tagline || world.description}</p> : null}
-      </button>
+      <AnimatePresence initial={false} mode="wait">
+        <motion.button
+          key={world.id}
+          type="button"
+          className="world-atlas-hero-copy-open"
+          aria-label={openLabel}
+          onClick={openWorld}
+          initial={reducedMotion ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={reducedMotion ? undefined : { opacity: 0 }}
+          transition={copyTransition}
+        >
+          {topicLabels.length > 0 || totalSources > 0 ? <div className="world-atlas-hero-meta">
+            {topicLabels.map((label) => <span key={label} className="world-card-topic-pill">{label}</span>)}
+            {totalSources > 0 ? <span className="world-card-stat"><UsersRound size={13} aria-hidden />{t('World.atlas.sourceCount', { value: totalSources })}</span> : null}
+          </div> : null}
+          <h2 title={world.name}>{world.name}</h2>
+          {world.tagline || world.description ? <p className="world-atlas-description">{world.tagline || world.description}</p> : null}
+        </motion.button>
+      </AnimatePresence>
       <div className="world-atlas-hero-actions">
         <button type="button" className="world-atlas-hero-cta" onClick={openWorld} data-testid="world-atlas-hero-cta">
           <span>{t('WorldDetail.discovery.enterWorld')}</span>
           <ArrowRight size={16} aria-hidden />
         </button>
-        {worlds.length > 1 ? <div className="world-atlas-arrows"><button aria-label={t('World.album.previous')} onClick={() => setActiveWorldId(worlds[(position + worlds.length - 1) % worlds.length]!.id)}><ChevronLeft size={20} /></button><button aria-label={t('World.album.next')} onClick={() => setActiveWorldId(worlds[(position + 1) % worlds.length]!.id)}><ChevronRight size={20} /></button></div> : null}
+        {worlds.length > 1 ? <div className="world-atlas-arrows"><button type="button" aria-label={t('World.album.previous')} onClick={() => setActiveWorldId(worlds[(position + worlds.length - 1) % worlds.length]!.id)}><ChevronLeft size={20} /></button><button type="button" aria-label={t('World.album.next')} onClick={() => setActiveWorldId(worlds[(position + 1) % worlds.length]!.id)}><ChevronRight size={20} /></button></div> : null}
       </div>
     </div>
   </section>;

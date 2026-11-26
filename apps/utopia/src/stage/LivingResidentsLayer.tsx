@@ -428,7 +428,12 @@ export function LivingResidentsLayer(props: {
   readonly chibiWardrobe?: ChibiWardrobeMap;
   readonly bindingsByHandle?: Readonly<Record<string, string>>;
   readonly liveCoordsRef?: { current: Map<string, Point2D> };
-  readonly projectPercent?: (xPercent: number, yPercent: number) => { left: string; top: string };
+  readonly projectPercent?: (
+    xPercent: number,
+    yPercent: number,
+    offsetX?: string,
+    offsetY?: string,
+  ) => React.CSSProperties;
   readonly onSelectResident: (resident: NimiUtopiaResident, currentCoords?: Point2D) => void;
 }) {
   const {
@@ -615,12 +620,12 @@ export function LivingResidentsLayer(props: {
         const appearance = resolveChibiAppearance(resident.agentHandle, chibiWardrobe, bindingsByHandle);
         const depthZ = 54 + Math.round(y);
 
-        const actorPos = projectPercent
-          ? projectPercent(x, y)
+        const actorPos: React.CSSProperties = projectPercent
+          ? projectPercent(x, y, '-50%', '-86%')
           : { left: `${x.toFixed(2)}%`, top: `${y.toFixed(2)}%` };
-        const duoPos = slot.sharedDuoBanner
+        const duoPos: React.CSSProperties | null = slot.sharedDuoBanner
           ? (projectPercent
-            ? projectPercent(slot.sharedDuoBanner.midX, slot.sharedDuoBanner.midY)
+            ? projectPercent(slot.sharedDuoBanner.midX, slot.sharedDuoBanner.midY, '-50%', '-74px')
             : { left: `${slot.sharedDuoBanner.midX.toFixed(2)}%`, top: `${slot.sharedDuoBanner.midY.toFixed(2)}%` })
           : null;
 
@@ -630,8 +635,7 @@ export function LivingResidentsLayer(props: {
               <div
                 className="utopia-shared-duo-cloud"
                 style={{
-                  left: duoPos.left,
-                  top: duoPos.top,
+                  ...duoPos,
                   zIndex: depthZ + 4,
                 }}
               >
@@ -654,8 +658,7 @@ export function LivingResidentsLayer(props: {
                 isReacting ? 'is-reacting' : '',
               ].filter(Boolean).join(' ')}
               style={{
-                left: actorPos.left,
-                top: actorPos.top,
+                ...actorPos,
                 zIndex: isSelected ? 160 : depthZ,
                 '--chibi-delay': `${(index * 0.37).toFixed(2)}s`,
               } as React.CSSProperties}

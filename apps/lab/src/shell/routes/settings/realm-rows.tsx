@@ -9,7 +9,7 @@ import { useTranslation } from '../../i18n/index.js';
 import type { SettingsRouteViewProps } from './view.js';
 
 const liveRowClassName = 'flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]';
-const liveBadgeClassName = 'mr-2 rounded border border-[var(--nimi-border-subtle)] px-1.5 py-0.5 text-[10px] font-semibold uppercase text-[var(--nimi-text-muted)]';
+const liveBadgeClassName = 'mr-2 rounded border border-[var(--nimi-border-subtle)] px-1.5 py-0.5 text-[length:var(--nimi-type-overline-size)] font-semibold uppercase text-[var(--nimi-text-muted)]';
 
 export function SettingsRealmRows(props: SettingsRouteViewProps) {
   const { t } = useTranslation();

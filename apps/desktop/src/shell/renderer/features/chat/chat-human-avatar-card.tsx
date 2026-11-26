@@ -2,6 +2,7 @@ import { useState, type ReactElement } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, MapPin, Languages, MoreHorizontal } from 'lucide-react';
+import { ActionMenu, IconButton, Popover, PopoverContent, PopoverTrigger, type NimiMenuItem } from '@nimiplatform/kit/ui';
 import { RealmHumanAvatar } from './realm-human-avatar.js';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useAppStore, useAppStoreApi, useHomeNavigation } from '../../app-shell/providers/app-store.js';
@@ -37,6 +38,7 @@ function HumanAvatarCard({ person, placement, onSelect, children }: Props) {
   const navigation = useHomeNavigation();
   const cache = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const admission = useHumanContactAdmission(open && !self ? person.id : null, person.deleted);
   const profileQuery = useQuery({
     queryKey: ['human-profile-preview', realm, environment, viewerId, auth.authorizationRevision, person.id],
@@ -60,15 +62,23 @@ function HumanAvatarCard({ person, placement, onSelect, children }: Props) {
   const actions = useHumanProfileActions(authenticated && !self && !person.deleted ? {
     id: person.id, displayName: name, relationshipId: admission.relationship?.relationshipId, relationship: admission.relationship,
   } : null);
-  const act = (action: (() => void) | undefined) => { if (action) { action(); setOpen(false); } };
-  const menu = [
-    { id: 'cancel', label: t('Chat.humanCard.cancelRequest'), action: actions.props.onCancelRequest },
-    { id: 'reject', label: t('Chat.humanCard.reject'), action: actions.props.onRejectRequest },
-    { id: 'remove', label: t('Profile.removeFriend'), action: actions.props.onRemove },
-    { id: 'block', label: t('Profile.blockUser'), action: actions.props.onBlock },
-    { id: 'unblock', label: t('Profile.unblock'), action: actions.props.onUnblock },
-    { id: 'report', label: t('Relationship.report.action'), action: actions.props.onReport },
-  ].filter(item => item.action);
+  const act = (action: (() => void) | undefined) => { if (action) { setMenuOpen(false); action(); setOpen(false); } };
+  const menuItems: NimiMenuItem[] = [
+    { id: 'cancel', label: t('Chat.humanCard.cancelRequest'), action: actions.props.onCancelRequest, tone: 'default' as const },
+    { id: 'reject', label: t('Chat.humanCard.reject'), action: actions.props.onRejectRequest, tone: 'default' as const },
+    { id: 'remove', label: t('Profile.removeFriend'), action: actions.props.onRemove, tone: 'danger' as const },
+    { id: 'block', label: t('Profile.blockUser'), action: actions.props.onBlock, tone: 'danger' as const },
+    { id: 'unblock', label: t('Profile.unblock'), action: actions.props.onUnblock, tone: 'default' as const },
+    { id: 'report', label: t('Relationship.report.action'), action: actions.props.onReport, tone: 'danger' as const },
+  ]
+    .filter((item) => Boolean(item.action))
+    .map((item) => ({
+      id: item.id,
+      label: item.label,
+      tone: item.tone,
+      disabled: actions.props.actionsPending,
+      onSelect: () => act(item.action),
+    }));
   const regionNames = new Intl.DisplayNames([i18n.resolvedLanguage || 'en'], { type: 'region' });
   const languageNames = new Intl.DisplayNames([i18n.resolvedLanguage || 'en'], { type: 'language' });
   const readable = (names: Intl.DisplayNames, value: string) => { try { return names.of(value) || value; } catch { return value; } };
@@ -79,15 +89,37 @@ function HumanAvatarCard({ person, placement, onSelect, children }: Props) {
     setOpen(false); void navigation.push({ id: navigation.getSnapshot().current.destination.id === 'contacts' ? 'contacts' : 'profile', profileId: person.id });
   };
   return <>
-    <ChatAvatarPopover open={open && !person.deleted} onOpenChange={setOpen} placement={placement} onSelect={onSelect}
+    <ChatAvatarPopover open={open && !person.deleted} onOpenChange={(next) => { if (!next) setMenuOpen(false); setOpen(next); }} placement={placement} onSelect={onSelect}
       label={name} testId="chat-human-profile-card" className="human-profile-preview" trigger={children}>
       <div className="human-profile-preview-body">
         <div className="human-profile-preview-identity">
           <RealmHumanAvatar accountId={person.id} name={name} imageUrl={profile ? profile.avatarUrl : person.avatarUrl} media={profile ? profile.avatarMedia : person.avatarMedia} resourceId={profile ? profile.avatarResourceId : person.avatarResourceId} className="h-16 w-16 shrink-0 text-xl font-semibold" />
           <div className="min-w-0 flex-1"><h3>{name}</h3>{handle ? <p>@{handle.replace(/^@+/, '')}</p> : null}</div>
-          {menu.length ? <details className="human-profile-preview-more"><summary aria-label={t('Chat.humanCard.more')}><MoreHorizontal aria-hidden size={19} /></summary>
-            <div role="group" aria-label={t('Relationship.contacts.personActions', { name })}>{menu.map(item => <button key={item.id} type="button" disabled={actions.props.actionsPending} onClick={() => act(item.action)}>{item.label}</button>)}</div>
-          </details> : null}
+          {menuItems.length ? (
+            <div className="human-profile-preview-more">
+              <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+                <PopoverTrigger asChild>
+                  <IconButton
+                    tone="ghost"
+                    size="sm"
+                    icon={<MoreHorizontal aria-hidden size={19} />}
+                    aria-label={t('Chat.humanCard.more')}
+                    aria-haspopup="menu"
+                    aria-expanded={menuOpen}
+                  />
+                </PopoverTrigger>
+                <PopoverContent align="end" sideOffset={6} className="p-1">
+                  <div data-chat-avatar-submenu="">
+                    <ActionMenu
+                      ariaLabel={t('Relationship.contacts.personActions', { name })}
+                      items={menuItems}
+                      onRequestClose={() => setMenuOpen(false)}
+                    />
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          ) : null}
         </div>
         {profile?.accessState === 'restricted' ? <p className="human-profile-preview-note">{t('Chat.humanCard.restricted')}</p> : <>
           {profile?.bio ? <p className="human-profile-preview-bio">{profile.bio}</p> : null}

@@ -757,6 +757,12 @@ function AppsPageInner({
                 type="search"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape' && searchQuery) {
+                    event.preventDefault();
+                    setSearchQuery('');
+                  }
+                }}
                 placeholder={ecosystemCopy.searchPlaceholder}
                 aria-label={ecosystemCopy.searchAriaLabel}
               />

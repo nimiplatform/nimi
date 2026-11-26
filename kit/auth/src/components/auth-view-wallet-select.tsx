@@ -13,10 +13,7 @@ export function AuthViewWalletSelect(props: {
 
   return (
     <div className="flex flex-col items-center">
-      <p
-        className="mb-5 text-center text-[13px] text-[var(--nimi-text-muted)]"
-        style={{ fontFamily: 'var(--font-ui)' }}
-      >
+      <p className="mb-5 text-center text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
         {t('Auth.selectWalletHint')}
       </p>
 
@@ -31,19 +28,14 @@ export function AuthViewWalletSelect(props: {
         >
           <div className="flex items-center gap-3">
             <MetaMaskIcon className="h-5 w-5" />
-            <span
-              className="text-[15px] font-medium"
-              style={{ color: 'var(--nimi-text-primary)', fontFamily: 'var(--font-ui)' }}
-            >
+            <span className="text-[length:var(--nimi-type-body-md-size)] font-medium text-[var(--nimi-text-primary)]">
               MetaMask
             </span>
           </div>
           <span
-            className="rounded-full px-2 py-1 text-[12px] font-normal tracking-wide"
+            className="rounded-full px-2 py-1 text-[length:var(--nimi-type-caption-size)] font-normal tracking-wide text-[var(--nimi-text-secondary)]"
             style={{
               backgroundColor: 'color-mix(in srgb, var(--nimi-text-muted) 12%, transparent)',
-              color: 'var(--nimi-text-secondary)',
-              fontFamily: 'var(--font-ui)',
             }}
           >
             Multichain
@@ -60,19 +52,14 @@ export function AuthViewWalletSelect(props: {
         >
           <div className="flex items-center gap-3">
             <BinanceIcon className="h-5 w-5" />
-            <span
-              className="text-[15px] font-medium"
-              style={{ color: 'var(--nimi-text-primary)', fontFamily: 'var(--font-ui)' }}
-            >
+            <span className="text-[length:var(--nimi-type-body-md-size)] font-medium text-[var(--nimi-text-primary)]">
               Binance Wallet
             </span>
           </div>
           <span
-            className="rounded-full px-2 py-1 text-[12px] font-normal tracking-wide"
+            className="rounded-full px-2 py-1 text-[length:var(--nimi-type-caption-size)] font-normal tracking-wide text-[var(--nimi-text-secondary)]"
             style={{
               backgroundColor: 'color-mix(in srgb, var(--nimi-text-muted) 12%, transparent)',
-              color: 'var(--nimi-text-secondary)',
-              fontFamily: 'var(--font-ui)',
             }}
           >
             Multichain
@@ -89,19 +76,14 @@ export function AuthViewWalletSelect(props: {
         >
           <div className="flex items-center gap-3">
             <OKXIcon className="h-5 w-5" />
-            <span
-              className="text-[15px] font-medium"
-              style={{ color: 'var(--nimi-text-primary)', fontFamily: 'var(--font-ui)' }}
-            >
+            <span className="text-[length:var(--nimi-type-body-md-size)] font-medium text-[var(--nimi-text-primary)]">
               OKX Wallet
             </span>
           </div>
           <span
-            className="rounded-full px-2 py-1 text-[12px] font-normal tracking-wide"
+            className="rounded-full px-2 py-1 text-[length:var(--nimi-type-caption-size)] font-normal tracking-wide text-[var(--nimi-text-secondary)]"
             style={{
               backgroundColor: 'color-mix(in srgb, var(--nimi-text-muted) 12%, transparent)',
-              color: 'var(--nimi-text-secondary)',
-              fontFamily: 'var(--font-ui)',
             }}
           >
             Multichain

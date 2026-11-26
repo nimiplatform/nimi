@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '@nimiplatform/kit/ui';
+import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
 
 export type ModelSelectorTriggerProps = {
   readonly label: string | null;
@@ -50,7 +51,8 @@ export function ModelSelectorTrigger({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        'flex min-h-10 w-full min-w-0 items-center gap-2.5 overflow-hidden rounded-[var(--nimi-radius-md)] border px-3 py-2.5 text-left transition-colors',
+        'flex min-h-10 w-full min-w-0 items-center gap-2.5 overflow-hidden rounded-[var(--nimi-radius-md)] border px-3 py-2.5 text-left transition-[background-color,border-color,color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)] disabled:active:scale-100',
+        FOCUS_RING_CLASS_NAME,
         hasModel
           ? cn(
             'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]',

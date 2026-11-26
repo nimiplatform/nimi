@@ -158,17 +158,21 @@ function MingJingInfo({ label, children }: { label: string; children: ReactNode 
   const ref = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     if (!open) return undefined;
-    const onDown = (event: MouseEvent) => {
+    const onDown = (event: PointerEvent) => {
       if (!ref.current?.contains(event.target as Node)) setOpen(false);
     };
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        setOpen(false);
+      }
     };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey, { capture: true });
     return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey, { capture: true });
     };
   }, [open]);
   return (
@@ -197,7 +201,7 @@ function MingJingInfo({ label, children }: { label: string; children: ReactNode 
         </svg>
       </button>
       {open ? (
-        <span className="shijing-mingjing-info__bubble" role="tooltip">
+        <span className="shijing-mingjing-info__bubble" role="tooltip" data-demo-nested-dialog="true">
           {children}
         </span>
       ) : null}
@@ -271,10 +275,12 @@ function BaziRoute({
   content,
   tendency,
   readingCopy,
+  onDesktopOnly,
 }: {
   content: HeroDemoShijingBaziRoute;
   tendency: Record<HeroDemoShijingTone, string>;
   readingCopy: HeroDemoShijingMingjing['reading'];
+  onDesktopOnly?: () => void;
 }) {
   const { t } = useAppPreviewLocale();
   const stagesRef = useRef<HTMLDivElement>(null);
@@ -284,9 +290,10 @@ function BaziRoute({
       <BaziHero
         content={content.hero}
         tendency={tendency}
-        onSeeStages={() =>
-          stagesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        }
+        onSeeStages={() => {
+          const reduced = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          stagesRef.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+        }}
       />
       <div className="shijing-mingjing__panels" data-mingjing-route="bazi_ziping_v1">
         <BaziPaipan content={content.paipan} />
@@ -302,7 +309,11 @@ function BaziRoute({
         />
         <BaziReading content={content.reading} readingCopy={readingCopy} />
       </div>
-      <button type="button" className="shijing-mj-footer-cta">
+      <button
+        type="button"
+        className="shijing-mj-footer-cta"
+        onClick={onDesktopOnly}
+      >
         {content.rectifyEntry}
       </button>
     </>
@@ -493,7 +504,9 @@ function BaziPaipan({ content }: { content: HeroDemoShijingBaziRoute['paipan'] }
               <span className="shijing-mingjing-five__count">{five.count[el]}</span>
               <span
                 className="shijing-mingjing-five__value"
-                style={{ height: `${Math.round((five.count[el] / max) * 100)}%` }}
+                style={{
+                  transform: `scaleY(${Math.max(0.34, Math.min(1, five.count[el] / max)).toFixed(3)})`,
+                }}
               />
               <span className="shijing-mingjing-five__label">{five.labels[el]}</span>
             </div>
@@ -1485,7 +1498,7 @@ function QizhengGlossaryProvider({
   );
 
   useEffect(() => {
-    const onDocClick = (event: MouseEvent) => {
+    const onDocDown = (event: PointerEvent) => {
       if (!pinnedRef.current) return;
       const target = event.target as Element | null;
       if (!target?.closest('[data-gloss-term]') && !target?.closest('[data-gloss-pop]')) {
@@ -1493,16 +1506,26 @@ function QizhengGlossaryProvider({
         setActive(null);
       }
     };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (!pinnedRef.current && !active) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setPinned(false);
+      setActive(null);
+    };
     const onScroll = () => {
       if (!pinnedRef.current) setActive(null);
     };
-    document.addEventListener('click', onDocClick, true);
+    document.addEventListener('pointerdown', onDocDown, true);
+    document.addEventListener('keydown', onKeyDown, true);
     window.addEventListener('scroll', onScroll, true);
     return () => {
-      document.removeEventListener('click', onDocClick, true);
+      document.removeEventListener('pointerdown', onDocDown, true);
+      document.removeEventListener('keydown', onKeyDown, true);
       window.removeEventListener('scroll', onScroll, true);
     };
-  }, []);
+  }, [active]);
 
   const value = useMemo<GlossaryContextValue>(
     () => ({ has, show, hide, pin }),
@@ -1515,6 +1538,7 @@ function QizhengGlossaryProvider({
       {active && text ? (
         <div
           data-gloss-pop
+          data-demo-nested-dialog="true"
           className="shijing-qz-pop"
           style={{ left: `${active.x}px`, top: `${active.y - 10}px` }}
           role="tooltip"
@@ -1576,6 +1600,10 @@ function GlossTerm({
         if (ref.current) ctx.show(termKey, ref.current);
       }}
       onMouseLeave={() => ctx.hide()}
+      onFocus={() => {
+        if (ref.current) ctx.show(termKey, ref.current);
+      }}
+      onBlur={() => ctx.hide()}
       onClick={(event) => {
         event.stopPropagation();
         if (ref.current) ctx.pin(termKey, ref.current);
@@ -1633,7 +1661,8 @@ function QizhengRoute({
   const goPalace = (houseName: string) => {
     const target = content.palaces.find((p) => p.name === houseName);
     if (target) setSelectedIndex(target.index);
-    chartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const reduced = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    chartRef.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
   };
 
   return (
@@ -1879,9 +1908,20 @@ function QizhengChart({
               return (
                 <path
                   key={palace.name}
+                  className="shijing-qz-wheel-slice"
                   d={segmentPath(palace.index)}
                   style={style}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={palaceLabels(t)[palace.name] ?? palace.name}
+                  aria-pressed={isSel}
                   onClick={() => onSelect(palace.index)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      onSelect(palace.index);
+                    }
+                  }}
                 />
               );
             })}
@@ -2028,51 +2068,42 @@ function QizhengStars({
               className="shijing-qz-star"
               data-expanded={expanded ? '' : undefined}
             >
-              <button
-                type="button"
-                className="shijing-qz-star__head"
-                aria-expanded={expanded}
-                onClick={() => setOpen((prev) => ({ ...prev, [star.key]: !prev[star.key] }))}
-              >
-                <span className="shijing-qz-glyph" style={{ color: star.color }}>
-                  <span className="shijing-qz-glyph__swatch" style={{ background: star.bg }}>
-                    {glyphHead}
-                  </span>
-                  {glyphTail ? <span className="shijing-qz-glyph__tail">{glyphTail}</span> : null}
-                </span>
-                <span className="shijing-qz-star__body">
-                  <span className="shijing-qz-star__title">
-                    <b>{star.label}</b>
-                    <span className="shijing-qz-star__planet">{star.planet}</span>
-                  </span>
-                  <span className="shijing-qz-star__meaning">{star.essence}</span>
-                  <span className="shijing-qz-star__chips">
-                    <span
-                      className="shijing-qz-chip shijing-qz-chip--go"
-                      role="button"
-                      tabIndex={0}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onGoPalace(star.houseName);
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.stopPropagation();
-                          event.preventDefault();
-                          onGoPalace(star.houseName);
-                        }
-                      }}
-                    >
-                      {x.starGoPalace} {star.houseName} {' ↗'}
+              <div className="shijing-qz-star__head-row">
+                <button
+                  type="button"
+                  className="shijing-qz-star__head"
+                  aria-expanded={expanded}
+                  onClick={() => setOpen((prev) => ({ ...prev, [star.key]: !prev[star.key] }))}
+                >
+                  <span className="shijing-qz-glyph" style={{ color: star.color }}>
+                    <span className="shijing-qz-glyph__swatch" style={{ background: star.bg }}>
+                      {glyphHead}
                     </span>
-                    <span className="shijing-qz-chip" data-strength={star.strength}>
-                      {star.strengthLabel}
-                    </span>
-                    <span className="shijing-qz-chip shijing-qz-chip--mono">{star.degree}</span>
+                    {glyphTail ? <span className="shijing-qz-glyph__tail">{glyphTail}</span> : null}
                   </span>
-                </span>
-                <ChevronIcon className="shijing-qz-star__chevron" />
-              </button>
+                  <span className="shijing-qz-star__body">
+                    <span className="shijing-qz-star__title">
+                      <b>{star.label}</b>
+                      <span className="shijing-qz-star__planet">{star.planet}</span>
+                    </span>
+                    <span className="shijing-qz-star__meaning">{star.essence}</span>
+                    <span className="shijing-qz-star__chips">
+                      <span className="shijing-qz-chip" data-strength={star.strength}>
+                        {star.strengthLabel}
+                      </span>
+                      <span className="shijing-qz-chip shijing-qz-chip--mono">{star.degree}</span>
+                    </span>
+                  </span>
+                  <ChevronIcon className="shijing-qz-star__chevron" />
+                </button>
+                <button
+                  type="button"
+                  className="shijing-qz-chip shijing-qz-chip--go"
+                  onClick={() => onGoPalace(star.houseName)}
+                >
+                  {x.starGoPalace} {star.houseName} {' ↗'}
+                </button>
+              </div>
               {expanded ? (
                 <div className="shijing-qz-star__detail">
                   <div className="shijing-qz-star__deep">
@@ -2235,9 +2266,11 @@ function QizhengDataView({ content }: { content: HeroDemoShijingQizhengRoute }) 
 export function DemoShijingMingJing({
   content,
   methodProfile,
+  onDesktopOnly,
 }: {
   content: HeroDemoShijingMingjing;
   methodProfile: HeroDemoShijingMethodId;
+  onDesktopOnly?: () => void;
 }) {
   const { t } = useAppPreviewLocale();
   return (
@@ -2257,6 +2290,7 @@ export function DemoShijingMingJing({
           content={content.bazi}
           tendency={content.tendencyLabels}
           readingCopy={content.reading}
+          onDesktopOnly={onDesktopOnly}
         />
       ) : methodProfile === 'ziwei_sanhe_v1' ? (
         <ZiweiRoute key="ziwei" content={content.ziwei} readingCopy={content.reading} />

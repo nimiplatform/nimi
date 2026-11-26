@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   ArrowRight,
   AudioLines,
@@ -148,6 +148,92 @@ function useAudioTrack() {
   return { playingUrl, progress, currentTime, duration, toggle, playUrl, stop, seek };
 }
 
+interface AudioScrubBarProps {
+  className: string;
+  ariaLabel: string;
+  progress: number;
+  isPlaying: boolean;
+  onSeek: (fraction: number) => void;
+  onTogglePlay: () => void;
+  children: ReactNode;
+}
+
+function AudioScrubBar({
+  className,
+  ariaLabel,
+  progress,
+  isPlaying,
+  onSeek,
+  onTogglePlay,
+  children,
+}: AudioScrubBarProps) {
+  const [dragging, setDragging] = useState(false);
+  const trackRef = useRef<HTMLDivElement>(null);
+
+  const seekFromClientX = (clientX: number) => {
+    const rect = trackRef.current?.getBoundingClientRect();
+    if (!rect || rect.width <= 0) return;
+    const frac = Math.max(0, Math.min(0.99, (clientX - rect.left) / rect.width));
+    onSeek(frac);
+  };
+
+  return (
+    <div
+      ref={trackRef}
+      className={className}
+      role="slider"
+      tabIndex={0}
+      aria-label={ariaLabel}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={Math.round((isPlaying ? progress : 0) * 100)}
+      onPointerDown={(e) => {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        setDragging(true);
+        seekFromClientX(e.clientX);
+      }}
+      onPointerMove={(e) => {
+        if (!dragging) return;
+        seekFromClientX(e.clientX);
+      }}
+      onPointerUp={(e) => {
+        if (!dragging) return;
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+        setDragging(false);
+      }}
+      onPointerCancel={(e) => {
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+        setDragging(false);
+      }}
+      onKeyDown={(e) => {
+        const base = isPlaying ? progress : 0;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          onSeek(Math.min(0.99, base + 0.05));
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          onSeek(Math.max(0, base - 0.05));
+        } else if (e.key === 'Home') {
+          e.preventDefault();
+          onSeek(0);
+        } else if (e.key === 'End') {
+          e.preventDefault();
+          onSeek(0.99);
+        } else if (e.key === ' ') {
+          e.preventDefault();
+          onTogglePlay();
+        }
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 /* ==========================================================================
    12. audio.synthesize — Expressive Voice Synthesis Studio (3 Real Voices)
    ========================================================================== */
@@ -211,6 +297,7 @@ function AudioSynthesizeStage({ locale }: { locale: LandingLocale }) {
             <button
               key={voice.id}
               type="button"
+              aria-pressed={idx === voiceIdx}
               className={idx === voiceIdx ? 'is-active' : undefined}
               onClick={() => handleSelectVoice(idx)}
             >
@@ -232,18 +319,13 @@ function AudioSynthesizeStage({ locale }: { locale: LandingLocale }) {
           {isPlaying ? <Pause size={18} aria-hidden="true" /> : <Play size={18} aria-hidden="true" />}
         </button>
 
-        <div
+        <AudioScrubBar
           className={`platform-audio-waveform${isPlaying ? ' is-playing' : ''}`}
-          role="slider"
-          tabIndex={0}
-          aria-label={isZh ? '音频播放进度' : 'Audio playback progress'}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={Math.round(player.progress * 100)}
-          onClick={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            player.seek((e.clientX - rect.left) / rect.width, active.url);
-          }}
+          ariaLabel={isZh ? '音频播放进度' : 'Audio playback progress'}
+          progress={player.progress}
+          isPlaying={isPlaying}
+          onSeek={(frac) => player.seek(frac, active.url)}
+          onTogglePlay={() => player.toggle(active.url)}
         >
           {SPECTRUM_HEIGHTS.map((h, idx) => {
             const barPos = (idx + 0.5) / SPECTRUM_HEIGHTS.length;
@@ -256,7 +338,7 @@ function AudioSynthesizeStage({ locale }: { locale: LandingLocale }) {
               />
             );
           })}
-        </div>
+        </AudioScrubBar>
 
         <code className="platform-audio-tc">
           {formatSeconds(isPlaying ? player.currentTime : 0)} / {formatSeconds(totalDur)}
@@ -330,12 +412,13 @@ function AudioTranscribeStage({ locale }: { locale: LandingLocale }) {
           {isPlaying ? <Pause size={17} aria-hidden="true" /> : <Play size={17} aria-hidden="true" />}
         </button>
 
-        <div
+        <AudioScrubBar
           className={`platform-audio-waveform is-compact${isPlaying ? ' is-playing' : ''}`}
-          onClick={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            player.seek((e.clientX - rect.left) / rect.width, TRANSCRIBE_URL);
-          }}
+          ariaLabel={isZh ? '转写录音播放进度' : 'Transcription recording progress'}
+          progress={player.progress}
+          isPlaying={isPlaying}
+          onSeek={(frac) => player.seek(frac, TRANSCRIBE_URL)}
+          onTogglePlay={() => player.toggle(TRANSCRIBE_URL)}
         >
           {SPECTRUM_HEIGHTS.map((h, idx) => {
             const barPos = (idx + 0.5) / SPECTRUM_HEIGHTS.length;
@@ -348,7 +431,7 @@ function AudioTranscribeStage({ locale }: { locale: LandingLocale }) {
               />
             );
           })}
-        </div>
+        </AudioScrubBar>
 
         <code className="platform-audio-tc">
           {formatSeconds(isPlaying ? player.currentTime : 0)} / {formatSeconds(totalDur)}
@@ -420,12 +503,13 @@ function VoiceCreateStage({ locale }: { locale: LandingLocale }) {
         </div>
 
         <div className="platform-voice-wave-row">
-          <div
+          <AudioScrubBar
             className={`platform-audio-waveform is-mini is-ref${playingRef ? ' is-playing' : ''}`}
-            onClick={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect();
-              player.seek((e.clientX - rect.left) / rect.width, VOICE_CREATE_REF);
-            }}
+            ariaLabel={isZh ? '参考声线播放进度' : 'Reference sample playback progress'}
+            progress={player.progress}
+            isPlaying={playingRef}
+            onSeek={(frac) => player.seek(frac, VOICE_CREATE_REF)}
+            onTogglePlay={() => player.toggle(VOICE_CREATE_REF)}
           >
             {VOICE_CREATE_REF_BARS.map((h, idx) => (
               <span
@@ -434,7 +518,7 @@ function VoiceCreateStage({ locale }: { locale: LandingLocale }) {
                 style={{ '--bar-h': `${h}%`, animationDelay: `${idx * -0.06}s` } as React.CSSProperties}
               />
             ))}
-          </div>
+          </AudioScrubBar>
           <code className="platform-voice-tc">
             {formatSeconds(playingRef ? player.currentTime : 0)} / {formatSeconds(refDur)}
           </code>
@@ -486,12 +570,13 @@ function VoiceCreateStage({ locale }: { locale: LandingLocale }) {
         </div>
 
         <div className="platform-voice-wave-row">
-          <div
+          <AudioScrubBar
             className={`platform-audio-waveform is-mini is-emerald${playingOut ? ' is-playing' : ''}`}
-            onClick={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect();
-              player.seek((e.clientX - rect.left) / rect.width, VOICE_CREATE_OUT);
-            }}
+            ariaLabel={isZh ? '克隆声线播放进度' : 'Cloned voice playback progress'}
+            progress={player.progress}
+            isPlaying={playingOut}
+            onSeek={(frac) => player.seek(frac, VOICE_CREATE_OUT)}
+            onTogglePlay={() => player.toggle(VOICE_CREATE_OUT)}
           >
             {VOICE_CREATE_OUT_BARS.map((h, idx) => (
               <span
@@ -500,7 +585,7 @@ function VoiceCreateStage({ locale }: { locale: LandingLocale }) {
                 style={{ '--bar-h': `${h}%`, animationDelay: `${idx * -0.07}s` } as React.CSSProperties}
               />
             ))}
-          </div>
+          </AudioScrubBar>
           <code className="platform-voice-tc">
             {formatSeconds(playingOut ? player.currentTime : 0)} / {formatSeconds(outDur)}
           </code>
@@ -749,18 +834,18 @@ function AudioSeparateStage({ locale }: { locale: LandingLocale }) {
         <div className="platform-separate-meta">
           <strong>{isPlaying ? (isZh ? '四轨同步播放中 · 随时点击开关静音' : '4-Stem Synced Playback · Toggle Live') : (isZh ? '点击播放，实时开关任意音轨试听分离效果' : 'Press play and mute/solo any stem live')}</strong>
           <div className="platform-separate-progress" aria-hidden="true">
-            <i style={{ width: `${Math.round(progress * 100)}%` }} />
+            <i style={{ transform: `scaleX(${progress})` }} />
           </div>
         </div>
 
         <div className="platform-embed-presets" role="group" aria-label={isZh ? '快速切换分轨预设' : 'Quick stem presets'}>
-          <button type="button" className={isFull ? 'is-active' : undefined} onClick={() => applyPreset('full')}>
+          <button type="button" aria-pressed={isFull} className={isFull ? 'is-active' : undefined} onClick={() => applyPreset('full')}>
             {isZh ? '完整混音' : 'Full Mix'}
           </button>
-          <button type="button" className={isVocalsOnly ? 'is-active' : undefined} onClick={() => applyPreset('vocals')}>
+          <button type="button" aria-pressed={isVocalsOnly} className={isVocalsOnly ? 'is-active' : undefined} onClick={() => applyPreset('vocals')}>
             {isZh ? '仅纯人声' : 'Vocals Only'}
           </button>
-          <button type="button" className={isKaraoke ? 'is-active' : undefined} onClick={() => applyPreset('karaoke')}>
+          <button type="button" aria-pressed={isKaraoke} className={isKaraoke ? 'is-active' : undefined} onClick={() => applyPreset('karaoke')}>
             {isZh ? '纯伴奏' : 'No Vocals'}
           </button>
         </div>
@@ -831,6 +916,7 @@ function AudioVoiceConvertStage({ locale }: { locale: LandingLocale }) {
         <div className="platform-audio-pills" role="group" aria-label={isZh ? '切换原声与转换后音色' : 'Switch original vs converted timbre'}>
           <button
             type="button"
+            aria-pressed={mode === 'orig'}
             className={mode === 'orig' ? 'is-active' : undefined}
             onClick={() => switchTrack('orig', pitch)}
           >
@@ -839,6 +925,7 @@ function AudioVoiceConvertStage({ locale }: { locale: LandingLocale }) {
           </button>
           <button
             type="button"
+            aria-pressed={mode === 'converted'}
             className={mode === 'converted' ? 'is-active' : undefined}
             onClick={() => switchTrack('converted', pitch)}
           >
@@ -850,6 +937,7 @@ function AudioVoiceConvertStage({ locale }: { locale: LandingLocale }) {
         <div className="platform-embed-presets" role="group" aria-label={isZh ? '选择升降半音' : 'Select pitch shift'}>
           <button
             type="button"
+            aria-pressed={mode === 'converted' && pitch === 'dn2'}
             className={mode === 'converted' && pitch === 'dn2' ? 'is-active' : undefined}
             onClick={() => switchTrack('converted', 'dn2')}
           >
@@ -857,6 +945,7 @@ function AudioVoiceConvertStage({ locale }: { locale: LandingLocale }) {
           </button>
           <button
             type="button"
+            aria-pressed={mode === 'converted' && pitch === 'zero'}
             className={mode === 'converted' && pitch === 'zero' ? 'is-active' : undefined}
             onClick={() => switchTrack('converted', 'zero')}
           >
@@ -864,6 +953,7 @@ function AudioVoiceConvertStage({ locale }: { locale: LandingLocale }) {
           </button>
           <button
             type="button"
+            aria-pressed={mode === 'converted' && pitch === 'up2'}
             className={mode === 'converted' && pitch === 'up2' ? 'is-active' : undefined}
             onClick={() => switchTrack('converted', 'up2')}
           >
@@ -882,12 +972,13 @@ function AudioVoiceConvertStage({ locale }: { locale: LandingLocale }) {
           {isPlaying ? <Pause size={18} aria-hidden="true" /> : <Play size={18} aria-hidden="true" />}
         </button>
 
-        <div
+        <AudioScrubBar
           className={`platform-audio-waveform${mode === 'converted' ? ' is-emerald' : ''}${isPlaying ? ' is-playing' : ''}`}
-          onClick={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            player.seek((e.clientX - rect.left) / rect.width, activeUrl);
-          }}
+          ariaLabel={isZh ? '声音转换播放进度' : 'Voice conversion playback progress'}
+          progress={player.progress}
+          isPlaying={isPlaying}
+          onSeek={(frac) => player.seek(frac, activeUrl)}
+          onTogglePlay={() => player.toggle(activeUrl)}
         >
           {SPECTRUM_HEIGHTS.map((h, idx) => (
             <span
@@ -896,7 +987,7 @@ function AudioVoiceConvertStage({ locale }: { locale: LandingLocale }) {
               style={{ '--bar-h': `${h}%`, animationDelay: `${idx * -0.06}s` } as React.CSSProperties}
             />
           ))}
-        </div>
+        </AudioScrubBar>
 
         <code className="platform-audio-tc">
           {formatSeconds(isPlaying ? player.currentTime : 0)} / {formatSeconds(totalDur)}
@@ -953,12 +1044,13 @@ function MusicGenerateStage({ locale }: { locale: LandingLocale }) {
           {isPlaying ? <Pause size={20} aria-hidden="true" /> : <Play size={20} aria-hidden="true" />}
         </button>
 
-        <div
+        <AudioScrubBar
           className={`platform-music-bars${isPlaying ? ' is-playing' : ''}`}
-          onClick={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            player.seek((e.clientX - rect.left) / rect.width, MUSIC_GEN_URL);
-          }}
+          ariaLabel={isZh ? '原创配乐播放进度' : 'Soundtrack playback progress'}
+          progress={player.progress}
+          isPlaying={isPlaying}
+          onSeek={(frac) => player.seek(frac, MUSIC_GEN_URL)}
+          onTogglePlay={() => player.toggle(MUSIC_GEN_URL)}
         >
           {SPECTRUM_HEIGHTS.map((h, idx) => {
             const isPast = isPlaying && (idx + 0.5) / SPECTRUM_HEIGHTS.length <= player.progress;
@@ -970,7 +1062,7 @@ function MusicGenerateStage({ locale }: { locale: LandingLocale }) {
               />
             );
           })}
-        </div>
+        </AudioScrubBar>
 
         <code className="platform-music-tc">
           {formatSeconds(isPlaying ? player.currentTime : 0)} / {formatSeconds(totalDur)}
@@ -1064,10 +1156,10 @@ function MusicTranscribeStage({ locale }: { locale: LandingLocale }) {
         </button>
 
         <div className="platform-embed-presets" role="group" aria-label={isZh ? '切换原录音或 MIDI 回放' : 'Switch acoustic recording vs MIDI playback'}>
-          <button type="button" className={sourceMode === 'piano' ? 'is-active' : undefined} onClick={() => switchMode('piano')}>
+          <button type="button" aria-pressed={sourceMode === 'piano'} className={sourceMode === 'piano' ? 'is-active' : undefined} onClick={() => switchMode('piano')}>
             {isZh ? '原钢琴录音' : 'Acoustic Piano'}
           </button>
-          <button type="button" className={sourceMode === 'midi' ? 'is-active' : undefined} onClick={() => switchMode('midi')}>
+          <button type="button" aria-pressed={sourceMode === 'midi'} className={sourceMode === 'midi' ? 'is-active' : undefined} onClick={() => switchMode('midi')}>
             {isZh ? '提取 MIDI 回放' : 'Extracted MIDI'}
           </button>
         </div>
@@ -1095,12 +1187,13 @@ function MusicTranscribeStage({ locale }: { locale: LandingLocale }) {
             ))}
           </div>
 
-          <div
+          <AudioScrubBar
             className="platform-pianoroll-canvas"
-            onClick={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect();
-              player.seek((e.clientX - rect.left) / rect.width, activeUrl);
-            }}
+            ariaLabel={isZh ? '钢琴卷帘播放进度' : 'Piano roll playback progress'}
+            progress={player.progress}
+            isPlaying={isPlaying}
+            onSeek={(frac) => player.seek(frac, activeUrl)}
+            onTogglePlay={() => player.toggle(activeUrl)}
           >
             {PIANO_ROLL_NOTES.map((note, idx) => {
               const row = PIANO_KEY_ROW[note.name] ?? 3;
@@ -1119,11 +1212,13 @@ function MusicTranscribeStage({ locale }: { locale: LandingLocale }) {
               );
             })}
             <span
-              className={`platform-pianoroll-head${isPlaying ? ' is-playing' : ''}`}
-              style={{ left: `${(isPlaying ? player.progress : 0.12) * 100}%` }}
+              className="platform-pianoroll-head-track"
+              style={{ transform: `translate3d(${(isPlaying ? player.progress : 0.12) * 100}%, 0, 0)` }}
               aria-hidden="true"
-            />
-          </div>
+            >
+              <span className={`platform-pianoroll-head${isPlaying ? ' is-playing' : ''}`} />
+            </span>
+          </AudioScrubBar>
         </div>
       </div>
     </div>

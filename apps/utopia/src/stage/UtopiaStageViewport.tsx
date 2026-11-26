@@ -1,4 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  animate,
+  nimiSpring,
+  projectMomentum,
+  rubberband,
+  shouldCommitGesture,
+} from '@nimiplatform/kit/ui';
 import type {
   HabitatDaypart,
   HabitatPlaceArchetype,
@@ -105,6 +112,7 @@ type ClickRipple = Readonly<{
 
 const STREET_DEFAULT_ZOOM = 1.34;
 const MAX_STAGE_ZOOM = 2.5;
+const DRAG_HYSTERESIS_PX = 10;
 
 export function UtopiaStageViewport(props: {
   readonly snapshot: NimiUtopiaSnapshot;
@@ -192,6 +200,7 @@ export function UtopiaStageViewport(props: {
   });
   const liveResidentCoordsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   const rippleSeqRef = useRef(0);
+  const panSpringControlsRef = useRef<Array<{ stop: () => void }>>([]);
   const dragStateRef = useRef<{
     pointerId: number;
     startX: number;
@@ -199,6 +208,7 @@ export function UtopiaStageViewport(props: {
     startPanX: number;
     startPanY: number;
     moved: boolean;
+    samples: Array<{ x: number; y: number; t: number }>;
   } | null>(null);
 
   const targetCamera = cameraView.target;
@@ -210,27 +220,63 @@ export function UtopiaStageViewport(props: {
       window.cancelAnimationFrame(eng.rafId);
       eng.rafId = 0;
     }
+    if (panSpringControlsRef.current.length > 0) {
+      for (const ctrl of panSpringControlsRef.current) {
+        ctrl.stop();
+      }
+      panSpringControlsRef.current = [];
+    }
   }, []);
 
   useEffect(() => stopCameraGlide, [stopCameraGlide]);
 
-  const clampCamera = useCallback((nextZoom: number, rawPanX: number, rawPanY: number): StageCameraState => {
-    const z = Math.max(1, Math.min(MAX_STAGE_ZOOM, Number(nextZoom.toFixed(4))));
+  const getPanBounds = useCallback((zoom: number) => {
     const viewEl = viewportRef.current;
     const vw = viewEl?.clientWidth ?? viewportSize.vw;
     const vh = viewEl?.clientHeight ?? viewportSize.vh;
     if (vw <= 0 || vh <= 0) {
-      return { zoom: z, panX: 0, panY: 0 };
+      return { maxPanX: 0, maxPanY: 0, vw: 1, vh: 1, measured: false };
     }
     const { baseW, baseH } = computeCoverDimensions(vw, vh, aspectNum, aspectDen);
-    const maxPanX = Math.max(0, (baseW * z - vw) / 2);
-    const maxPanY = Math.max(0, (baseH * z - vh) / 2);
+    return {
+      maxPanX: Math.max(0, (baseW * zoom - vw) / 2),
+      maxPanY: Math.max(0, (baseH * zoom - vh) / 2),
+      vw,
+      vh,
+      measured: true,
+    };
+  }, [viewportSize.vw, viewportSize.vh, aspectNum, aspectDen]);
+
+  const clampCamera = useCallback((nextZoom: number, rawPanX: number, rawPanY: number): StageCameraState => {
+    const z = Math.max(1, Math.min(MAX_STAGE_ZOOM, Number(nextZoom.toFixed(4))));
+    const { maxPanX, maxPanY, measured } = getPanBounds(z);
+    if (!measured) {
+      return { zoom: z, panX: 0, panY: 0 };
+    }
     return {
       zoom: z,
       panX: Math.max(-maxPanX, Math.min(maxPanX, rawPanX)),
       panY: Math.max(-maxPanY, Math.min(maxPanY, rawPanY)),
     };
-  }, [viewportSize.vw, viewportSize.vh, aspectNum, aspectDen]);
+  }, [getPanBounds]);
+
+  const rubberbandCamera = useCallback((nextZoom: number, rawPanX: number, rawPanY: number): StageCameraState => {
+    const z = Math.max(1, Math.min(MAX_STAGE_ZOOM, Number(nextZoom.toFixed(4))));
+    const { maxPanX, maxPanY, vw, vh, measured } = getPanBounds(z);
+    if (!measured) {
+      return { zoom: z, panX: 0, panY: 0 };
+    }
+    const resist = (val: number, maxBound: number, dim: number) => {
+      if (val > maxBound) return maxBound + rubberband(val - maxBound, dim);
+      if (val < -maxBound) return -maxBound - rubberband(-maxBound - val, dim);
+      return val;
+    };
+    return {
+      zoom: z,
+      panX: resist(rawPanX, maxPanX, vw),
+      panY: resist(rawPanY, maxPanY, vh),
+    };
+  }, [getPanBounds]);
 
   const commitCameraImmediate = useCallback((next: StageCameraState) => {
     stopCameraGlide();
@@ -575,10 +621,20 @@ export function UtopiaStageViewport(props: {
     : null;
 
   const projectWorldPercent = coverDims
-    ? (xPercent: number, yPercent: number) => ({
-        left: `${(viewportSize.vw / 2 + renderCamera.panX + (xPercent / 100 - 0.5) * coverDims.baseW * renderCamera.zoom).toFixed(1)}px`,
-        top: `${(viewportSize.vh / 2 + renderCamera.panY + (yPercent / 100 - 0.5) * coverDims.baseH * renderCamera.zoom).toFixed(1)}px`,
-      })
+    ? (
+        xPercent: number,
+        yPercent: number,
+        offsetX = '-50%',
+        offsetY = '-50%',
+      ): React.CSSProperties => {
+        const px = (viewportSize.vw / 2 + renderCamera.panX + (xPercent / 100 - 0.5) * coverDims.baseW * renderCamera.zoom).toFixed(1);
+        const py = (viewportSize.vh / 2 + renderCamera.panY + (yPercent / 100 - 0.5) * coverDims.baseH * renderCamera.zoom).toFixed(1);
+        return {
+          left: '0px',
+          top: '0px',
+          transform: `translate3d(${px}px, ${py}px, 0) translate(${offsetX}, ${offsetY})`,
+        };
+      }
     : undefined;
 
   const computeViewportBox = (): MiniMapViewportBox => {
@@ -640,6 +696,7 @@ export function UtopiaStageViewport(props: {
       startPanX: currentCam.panX,
       startPanY: currentCam.panY,
       moved: false,
+      samples: [{ x: e.clientX, y: e.clientY, t: performance.now() }],
     };
     e.currentTarget.setPointerCapture(e.pointerId);
   };
@@ -657,23 +714,31 @@ export function UtopiaStageViewport(props: {
     }
 
     if (drag.pointerId !== e.pointerId) return;
+    const now = performance.now();
     const rawDx = e.clientX - drag.startX;
     const rawDy = e.clientY - drag.startY;
     if (!drag.moved) {
-      if (Math.hypot(rawDx, rawDy) <= 3.5) return;
+      if (Math.hypot(rawDx, rawDy) < DRAG_HYSTERESIS_PX) return;
       drag.moved = true;
       drag.startX = e.clientX;
       drag.startY = e.clientY;
       drag.startPanX = cameraEngineRef.current.cur.panX;
       drag.startPanY = cameraEngineRef.current.cur.panY;
+      drag.samples = [{ x: e.clientX, y: e.clientY, t: now }];
       setIsDragging(true);
       return;
+    }
+
+    drag.samples.push({ x: e.clientX, y: e.clientY, t: now });
+    const cutoff = now - 100;
+    while (drag.samples.length > 2 && drag.samples[0]!.t < cutoff) {
+      drag.samples.shift();
     }
 
     const dx = e.clientX - drag.startX;
     const dy = e.clientY - drag.startY;
     const curZoom = cameraEngineRef.current.cur.zoom;
-    commitCameraImmediate(clampCamera(curZoom, drag.startPanX + dx, drag.startPanY + dy));
+    commitCameraImmediate(rubberbandCamera(curZoom, drag.startPanX + dx, drag.startPanY + dy));
   };
 
   const handlePointerUpOrCancel = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -685,6 +750,93 @@ export function UtopiaStageViewport(props: {
     }
     if (drag.moved) {
       setIsDragging(false);
+      const cur = cameraEngineRef.current.cur;
+      const { maxPanX, maxPanY } = getPanBounds(cur.zoom);
+      const outOfBounds = Math.abs(cur.panX) > maxPanX + 0.5 || Math.abs(cur.panY) > maxPanY + 0.5;
+
+      if (reducedMotion || frozen || e.type === 'pointercancel') {
+        commitCameraImmediate(clampCamera(cur.zoom, cur.panX, cur.panY));
+        return;
+      }
+
+      // Compute release velocity (px/s) from recent pointermove samples
+      let vx = 0;
+      let vy = 0;
+      const samples = drag.samples;
+      const now = performance.now();
+      if (samples.length >= 2) {
+        const last = samples[samples.length - 1]!;
+        const first = samples[0]!;
+        const dtSec = (last.t - first.t) / 1000;
+        if (now - last.t < 80 && dtSec > 0.004) {
+          vx = (last.x - first.x) / dtSec;
+          vy = (last.y - first.y) / dtSec;
+        }
+      }
+
+      const projDx = outOfBounds ? 0 : projectMomentum(vx, 0.992);
+      const projDy = outOfBounds ? 0 : projectMomentum(vy, 0.992);
+      const commitX = !outOfBounds && shouldCommitGesture({
+        originValue: drag.startPanX,
+        currentValue: cur.panX,
+        targetValue: cur.panX + projDx,
+        releaseVelocityPxPerSec: vx,
+      });
+      const commitY = !outOfBounds && shouldCommitGesture({
+        originValue: drag.startPanY,
+        currentValue: cur.panY,
+        targetValue: cur.panY + projDy,
+        releaseVelocityPxPerSec: vy,
+      });
+      const clampedTarget = clampCamera(
+        cur.zoom,
+        commitX ? cur.panX + projDx : cur.panX,
+        commitY ? cur.panY + projDy : cur.panY,
+      );
+
+      if (outOfBounds || Math.hypot(clampedTarget.panX - cur.panX, clampedTarget.panY - cur.panY) > 0.5) {
+        stopCameraGlide();
+        const spring = nimiSpring(outOfBounds ? 'default' : 'momentum');
+        const eng = cameraEngineRef.current;
+        eng.target = clampedTarget;
+        const controls: Array<{ stop: () => void }> = [];
+
+        if (Math.abs(clampedTarget.panX - cur.panX) > 0.25) {
+          controls.push(
+            animate(cur.panX, clampedTarget.panX, {
+              ...spring,
+              velocity: outOfBounds ? 0 : vx,
+              onUpdate: (nextPanX) => {
+                const nextCam: StageCameraState = {
+                  zoom: eng.cur.zoom,
+                  panX: nextPanX,
+                  panY: eng.cur.panY,
+                };
+                eng.cur = nextCam;
+                setCameraView({ cur: nextCam, target: clampedTarget });
+              },
+            }),
+          );
+        }
+        if (Math.abs(clampedTarget.panY - cur.panY) > 0.25) {
+          controls.push(
+            animate(cur.panY, clampedTarget.panY, {
+              ...spring,
+              velocity: outOfBounds ? 0 : vy,
+              onUpdate: (nextPanY) => {
+                const nextCam: StageCameraState = {
+                  zoom: eng.cur.zoom,
+                  panX: eng.cur.panX,
+                  panY: nextPanY,
+                };
+                eng.cur = nextCam;
+                setCameraView({ cur: nextCam, target: clampedTarget });
+              },
+            }),
+          );
+        }
+        panSpringControlsRef.current = controls;
+      }
     } else {
       spawnClickRipple(e.clientX, e.clientY);
       setSelectedLandmarkId(null);

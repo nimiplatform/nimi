@@ -45,10 +45,10 @@ export function AccountConnect({ accountId, displayName }: { accountId: string; 
     {source && request && <section className="ac-section">
       <h2>{source.displayName}</h2>
       <p>{source.origin}</p>
-      {source.kind !== 'web' && <p>Android · {source.androidPackageName}{source.kind === 'android-dev-scheme' ? ' · 本机开发' : ''}</p>}
+      {source.kind !== 'web' && <p>Android · {source.androidPackageName}{source.kind === 'android-dev-scheme' ? ` · ${c('localDevelopment')}` : ''}</p>}
       <p>{c('connectIdentity')} <strong>{displayName}</strong></p>
       <p>{c(source.role === 'official_manager' ? 'connectManager' : 'connectConsumer')}</p>
-      <form className="ac-actions" method="post" action={runtimeClientConfirmationUrl(webRealmOrigin())} onSubmit={() => setBusy(true)}>
+      <form className="ac-actions ac-connect-actions" method="post" action={runtimeClientConfirmationUrl(webRealmOrigin())} onSubmit={() => setBusy(true)}>
         {Object.entries({ ...request, expectedAccountId: accountId }).map(([name, value]) => (
           <input key={name} type="hidden" name={name} value={value} />
         ))}

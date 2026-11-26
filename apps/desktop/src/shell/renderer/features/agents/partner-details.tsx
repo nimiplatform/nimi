@@ -191,7 +191,7 @@ export function PartnerDetails({ localAgentRef, accountId, scopeKey }: { localAg
     /> : showFallbackCard ? <header data-testid="partner-fallback-header" className="rounded-[20px] bg-[var(--nimi-surface-card)] p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-4"><Avatar alt={partner.displayName} size="lg" src={reference.data?.reference?.avatarUrl || undefined} fallback={partner.displayName.slice(0, 1)} />
-          <div><h2 className="break-words text-2xl font-semibold">{partner.displayName || t(`${P}.unnamed`)}</h2>
+          <div><h2 className="break-words text-2xl font-semibold tracking-[-0.02em]">{partner.displayName || t(`${P}.unnamed`)}</h2>
             <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">
               {partner.createdAt ? t(`${P}.created`, { time: new Date(partner.createdAt).toLocaleString() }) : t(`${P}.creationUnknown`)}
               {active ? ` · ${t(`${P}.lifecycle.${partner.lifecycle}`, { defaultValue: t(`${P}.lifecycle.0`) })}` : null}

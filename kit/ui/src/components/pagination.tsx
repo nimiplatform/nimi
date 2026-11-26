@@ -45,11 +45,11 @@ export function Pagination({
         const needsGap = previous && candidate - previous > 1;
         return (
           <span key={candidate} className="inline-flex items-center gap-1">
-            {needsGap ? <span className="nimi-pagination__ellipsis px-1 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]" aria-hidden="true">...</span> : null}
+            {needsGap ? <span className="nimi-pagination__ellipsis px-1 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]" aria-hidden="true">…</span> : null}
             <button
               type="button"
               className={cn(
-                'nimi-pagination__page grid h-8 min-w-8 place-items-center rounded-[var(--nimi-radius-sm)] border px-2 text-[length:var(--nimi-type-body-size)] font-semibold transition-colors duration-[var(--nimi-motion-fast)]',
+                'nimi-pagination__page grid h-8 min-w-8 place-items-center rounded-[var(--nimi-radius-sm)] border px-2 tabular-nums text-[length:var(--nimi-type-body-size)] font-semibold transition-[background-color,border-color,color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)]',
                 FOCUS_RING_CLASS_NAME,
                 candidate === current
                   ? 'nimi-pagination__page--active border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-surface-active)] text-[var(--nimi-text-primary)]'

@@ -98,10 +98,31 @@ function MotionTooltipBubble({
   onPresence?: () => () => void;
 }) {
   const reducedMotion = useNimiReducedMotion();
-  const panelMotion = nimiOverlayPanelMotion({ kind: 'popover', side, reducedMotion });
+  const [resolvedSide, setResolvedSide] = useState<TooltipPlacement>(side);
+  const bubbleRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    setResolvedSide(side);
+  }, [side]);
+  useEffect(() => {
+    const contentNode = bubbleRef.current?.parentElement;
+    if (!contentNode) return;
+    const syncSide = () => {
+      const attr = contentNode.getAttribute('data-side');
+      if (attr === 'top' || attr === 'right' || attr === 'bottom' || attr === 'left') {
+        setResolvedSide(attr);
+      }
+    };
+    syncSide();
+    if (typeof MutationObserver === 'undefined') return;
+    const observer = new MutationObserver(syncSide);
+    observer.observe(contentNode, { attributes: true, attributeFilter: ['data-side'] });
+    return () => observer.disconnect();
+  }, []);
+  const panelMotion = nimiOverlayPanelMotion({ kind: 'popover', side: resolvedSide, reducedMotion });
   useEffect(() => onPresence?.(), [onPresence]);
   return (
     <motion.div
+      ref={bubbleRef}
       className={cn(BUBBLE_CLASSES, className)}
       {...panelMotion}
       style={panelMotion.style}

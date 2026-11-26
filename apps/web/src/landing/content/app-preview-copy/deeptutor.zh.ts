@@ -54,6 +54,7 @@ export const deeptutorMessagesZh = {
   'deeptutor.main.sampleLesson': '示例课程',
   'deeptutor.quiz.checkYourUnderstanding': '检查你的理解',
   'deeptutor.quiz.whatDoesAFrequencySpectrumHelpYou': "频谱能帮你看出什么？",
+  'deeptutor.quiz.theTonesPresentInASignal': '信号中包含的不同频率成分',
   'deeptutor.quiz.onlyTheLengthOfARecording': '只有录音的时长',
   'deeptutor.quiz.theNameOfTheSpeaker': '说话人的姓名',
   'deeptutor.quiz.correctItShowsFrequencyContent': '答对了——频谱展示频率组成。',

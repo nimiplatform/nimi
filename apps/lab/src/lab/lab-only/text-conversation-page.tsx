@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import {
   Button,
+  ConfirmDialog,
   InlineAlert,
   LoadingSkeleton,
   OverlayShell,
@@ -57,6 +58,7 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
   const [reasoningValid, setReasoningValid] = useState(true);
   const [configOpen, setConfigOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
+  const [confirmStartOverOpen, setConfirmStartOverOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -133,6 +135,11 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
           placeholder={t('CapabilityTests.textConversation.placeholder')}
           aria-label={t('CapabilityTests.textConversation.composer')}
           onChange={(event) => setDraft(event.currentTarget.value)}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter' || !(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey || event.nativeEvent.isComposing) return;
+            event.preventDefault();
+            if (!event.repeat && draft.trim() && reasoningValid && !busy && conversation !== null && !loadError && runTarget.canDispatch) send();
+          }}
         />
         <div className="lab-realtime__row">
           <Button type="button" size="sm" tone="primary"
@@ -143,7 +150,10 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
           <Button type="button" size="sm" tone="secondary" disabled={!pending} onClick={() => session?.stop()}>
             {t('CapabilityTests.textConversation.stop')}
           </Button>
-          <Button type="button" size="sm" tone="ghost" disabled={conversation === null} onClick={() => void session?.startOver()}>
+          <Button type="button" size="sm" tone="ghost" disabled={conversation === null} onClick={() => {
+            if (displayed.length > 0 && !loadError) setConfirmStartOverOpen(true);
+            else void session?.startOver();
+          }}>
             {t('CapabilityTests.textConversation.startOver')}
           </Button>
         </div>
@@ -188,6 +198,19 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
           ) : null}
         </Suspense>
       </OverlayShell>
+      <ConfirmDialog
+        open={confirmStartOverOpen}
+        title={t('CapabilityTests.textConversation.confirmStartOverTitle')}
+        message={t('CapabilityTests.textConversation.confirmStartOverMessage')}
+        confirmLabel={t('CapabilityTests.textConversation.startOver')}
+        cancelLabel={t('Common.cancel')}
+        confirmTone="danger"
+        onConfirm={() => {
+          setConfirmStartOverOpen(false);
+          void session?.startOver();
+        }}
+        onClose={() => setConfirmStartOverOpen(false)}
+      />
     </div>
   );
 }

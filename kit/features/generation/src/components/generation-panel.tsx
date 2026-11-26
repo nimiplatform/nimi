@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { Button, Surface } from '@nimiplatform/kit/ui';
-import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
+import { X } from 'lucide-react';
+import { Button, IconButton, InlineAlert, Surface } from '@nimiplatform/kit/ui';
 import type { UseGenerationPanelResult } from '../hooks/use-generation-panel.js';
 import type { GenerationRunItem, GenerationRunStatus } from '../types.js';
 import { GenerationStatusList } from './generation-status-list.js';
@@ -53,25 +53,27 @@ export function GenerationPanel({
         {controls ? <div className="space-y-3">{controls}</div> : null}
 
         {warning ? (
-          <div className="rounded-[var(--nimi-radius-md)] border border-[color:var(--nimi-status-warning)]/25 bg-[color:var(--nimi-status-warning)]/8 px-3 py-2 text-xs text-[color:var(--nimi-status-warning)]">
+          <InlineAlert tone="warning" className="text-xs">
             {warning}
-          </div>
+          </InlineAlert>
         ) : null}
 
         {state.error ? (
-          <div className="rounded-[var(--nimi-radius-md)] border border-[color:var(--nimi-status-danger)]/25 bg-[color:var(--nimi-status-danger)]/8 px-3 py-2 text-xs text-[color:var(--nimi-status-danger)]">
-            <div className="flex items-start justify-between gap-3">
-              <span>{state.error}</span>
-              <button
-                type="button"
+          <InlineAlert
+            tone="danger"
+            className="text-xs"
+            action={(
+              <IconButton
+                size="sm"
+                tone="ghost"
                 onClick={state.clearError}
-                className={`shrink-0 text-[color:var(--nimi-text-muted)] transition hover:text-[color:var(--nimi-text-primary)] ${FOCUS_RING_CLASS_NAME}`}
                 aria-label={dismissErrorLabel}
-              >
-                ×
-              </button>
-            </div>
-          </div>
+                icon={<X size={14} aria-hidden="true" />}
+              />
+            )}
+          >
+            {state.error}
+          </InlineAlert>
         ) : null}
 
         <Button

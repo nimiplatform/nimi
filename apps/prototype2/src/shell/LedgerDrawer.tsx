@@ -1,3 +1,9 @@
+import {
+  AnimatePresence,
+  motion,
+  nimiOverlayPanelMotion,
+  useNimiReducedMotion,
+} from '@nimiplatform/kit/ui';
 import { useSim } from '../engine/SimContext';
 import type { LedgerEntry, LedgerKind, LedgerResult } from '../scenario/types';
 
@@ -54,14 +60,6 @@ function matchesFilter(e: LedgerEntry, filter: LedgerFilter): boolean {
     case 'uncommitted':
       return e.result === 'denied' || e.result === 'unsupported';
   }
-}
-
-function ChevronRight({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="9" height="14" viewBox="0 0 9 14" fill="none" aria-hidden="true">
-      <path d="M1.5 1.5 7 7l-5.5 5.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
 }
 
 function KindGlyph({ kind }: { kind: LedgerKind }) {
@@ -124,7 +122,6 @@ function LedgerEntryCard({ entry }: { entry: LedgerEntry }) {
         <span className="chip ledger-status" data-tone={RESULT_TONE[entry.result]}>
           <StatusIcon result={entry.result} />
           {RESULT_LABEL[entry.result]}
-          <ChevronRight />
         </span>
       </div>
       <div className="ledger-entry-main">
@@ -142,7 +139,6 @@ function LedgerEntryCard({ entry }: { entry: LedgerEntry }) {
             ))}
           </div>
         </div>
-        <ChevronRight className="ledger-entry-chevron" />
       </div>
     </article>
   );
@@ -158,8 +154,7 @@ export function LedgerDrawer({
   onFilterChange: (filter: LedgerFilter) => void;
 }) {
   const { state, toggleLedger } = useSim();
-
-  if (!state.ledgerOpen) return null;
+  const reducedMotion = useNimiReducedMotion();
 
   const visible = [...state.ledger].reverse().filter((e) => matchesFilter(e, filter));
   const today = visible.filter((e) => !e.history);
@@ -170,56 +165,62 @@ export function LedgerDrawer({
   ].filter((g) => g.entries.length > 0);
 
   return (
-    <aside
-      id="interaction-ledger-drawer"
-      className="ledger-drawer nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] backdrop-saturate-[var(--nimi-backdrop-saturate)]"
-      data-nimi-material="glass-thick"
-      data-nimi-tone="overlay"
-      aria-label="交互账本"
-    >
-      <div className="ledger-head">
-        <h2 className="ledger-title">交互账本</h2>
-        <button type="button" className="sys-btn small ledger-collapse" onClick={toggleLedger}>
-          收起
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-            <path d="M1.5 6.5 5 3l3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-      </div>
+    <AnimatePresence>
+      {state.ledgerOpen ? (
+        <motion.aside
+          key="interaction-ledger-drawer"
+          id="interaction-ledger-drawer"
+          className="ledger-drawer nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] backdrop-saturate-[var(--nimi-backdrop-saturate)]"
+          data-nimi-material="glass-thick"
+          data-nimi-tone="overlay"
+          aria-label="交互账本"
+          {...nimiOverlayPanelMotion({ kind: 'drawer', side: 'right', reducedMotion })}
+        >
+          <div className="ledger-head">
+            <h2 className="ledger-title">交互账本</h2>
+            <button type="button" className="sys-btn small ledger-collapse" onClick={toggleLedger}>
+              收起
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                <path d="M1.5 6.5 5 3l3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          </div>
 
-      <div className="ledger-tabs" role="tablist" aria-label="账本筛选">
-        {FILTERS.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            role="tab"
-            aria-selected={filter === f.id}
-            className="ledger-tab"
-            onClick={() => onFilterChange(f.id)}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+          <div className="ledger-tabs" role="tablist" aria-label="账本筛选">
+            {FILTERS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                role="tab"
+                aria-selected={filter === f.id}
+                className="ledger-tab"
+                onClick={() => onFilterChange(f.id)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
 
-      <div className="ledger-list">
-        {groups.length === 0 ? (
-          <p className="ledger-empty t-caption">该筛选下暂无条目</p>
-        ) : (
-          groups.map((g) => (
-            <section key={g.label} className="ledger-day">
-              <h3 className="ledger-day-label">{g.label}</h3>
-              <div className="ledger-track">
-                {g.entries.map((e) => (
-                  <LedgerEntryCard key={e.id} entry={e} />
-                ))}
-              </div>
-            </section>
-          ))
-        )}
-      </div>
+          <div className="ledger-list">
+            {groups.length === 0 ? (
+              <p className="ledger-empty t-caption">该筛选下暂无条目</p>
+            ) : (
+              groups.map((g) => (
+                <section key={g.label} className="ledger-day">
+                  <h3 className="ledger-day-label">{g.label}</h3>
+                  <div className="ledger-track">
+                    {g.entries.map((e) => (
+                      <LedgerEntryCard key={e.id} entry={e} />
+                    ))}
+                  </div>
+                </section>
+              ))
+            )}
+          </div>
 
-      <div className="ledger-foot t-caption">所有时间均为本地时间（GMT+8）</div>
-    </aside>
+          <div className="ledger-foot t-caption">所有时间均为本地时间（GMT+8）</div>
+        </motion.aside>
+      ) : null}
+    </AnimatePresence>
   );
 }

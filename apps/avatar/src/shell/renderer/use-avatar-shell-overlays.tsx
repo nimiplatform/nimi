@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import { AvatarOverlayPresence } from './avatar-overlay-presence.js';
 import type { BootstrapHandle } from './app-shell/app-bootstrap.js';
 import type { AvatarAppState } from './app-shell/app-store.js';
 import type { CompanionAnchorBinding } from './companion-state.js';
@@ -82,6 +83,15 @@ export function useAvatarShellOverlays(input: {
   const composerInstanceSequenceRef = useRef(0);
   const activeComposerInstanceRef = useRef<number | null>(null);
   const composerSendInFlightRef = useRef<number | null>(null);
+  const returnFocusTargetRef = useRef<HTMLElement | null>(null);
+
+  const captureReturnFocusTarget = useCallback((): void => {
+    if (typeof document === 'undefined') return;
+    const active = document.activeElement;
+    if (!(active instanceof HTMLElement)) return;
+    if (active.closest('[data-avatar-interactive-region="true"]')) return;
+    returnFocusTargetRef.current = active;
+  }, []);
 
   const dismissContextMenu = useCallback(
     (_reason: AvatarContextMenuDismissReason): void => {
@@ -95,6 +105,7 @@ export function useAvatarShellOverlays(input: {
 
   const openContextMenu = useCallback(
     (event: AppOriginEvent): void => {
+      captureReturnFocusTarget();
       const x = Number(event.detail['client_x']);
       const y = Number(event.detail['client_y']);
       const next = {
@@ -103,11 +114,12 @@ export function useAvatarShellOverlays(input: {
       };
       setContextMenu(next);
     },
-    [],
+    [captureReturnFocusTarget],
   );
 
   const openTransientComposer = useCallback(
     (nextInput: { x: number; y: number; source: 'context_menu' | 'capsule' }): void => {
+      captureReturnFocusTarget();
       const x = Number.isFinite(nextInput.x) ? nextInput.x : 24;
       const y = Number.isFinite(nextInput.y) ? nextInput.y : 24;
       if (activeComposerInstanceRef.current === null) {
@@ -122,7 +134,7 @@ export function useAvatarShellOverlays(input: {
         sendError: null,
       }));
     },
-    [],
+    [captureReturnFocusTarget],
   );
 
   const dismissTransientComposer = useCallback(
@@ -168,11 +180,12 @@ export function useAvatarShellOverlays(input: {
     (nextInput: { x: number; y: number }): void => {
       const modelManifest = bootstrapHandle?.carrier?.model ?? null;
       if (!modelManifest) return;
+      captureReturnFocusTarget();
       const x = Number.isFinite(nextInput.x) ? nextInput.x : 24;
       const y = Number.isFinite(nextInput.y) ? nextInput.y : 24;
       setAppearanceOverlay({ x, y });
     },
-    [bootstrapHandle?.carrier?.model],
+    [bootstrapHandle?.carrier?.model, captureReturnFocusTarget],
   );
 
   const submitTransientComposer = useCallback(
@@ -322,6 +335,7 @@ export function useAvatarShellOverlays(input: {
         );
       }
       if (action === 'settings') {
+        captureReturnFocusTarget();
         setSettingsOverlay({
           x: contextMenu?.x ?? 24,
           y: contextMenu?.y ?? 24,
@@ -346,6 +360,7 @@ export function useAvatarShellOverlays(input: {
       dismissContextMenu('action');
     },
     [
+      captureReturnFocusTarget,
       contextMenu?.x,
       contextMenu?.y,
       dismissContextMenu,
@@ -413,66 +428,82 @@ export function useAvatarShellOverlays(input: {
   const overlayNodes = useMemo(
     () => (
       <>
-        {contextMenu ? (
-          <AvatarContextMenu
-            x={contextMenu.x}
-            y={contextMenu.y}
-            alwaysOnTop={shellSettings.alwaysOnTop}
-            textInputEnabled={Boolean(bootstrapHandle && companionBinding)}
-            capsuleEnabled={Boolean(bootstrapHandle && companionBinding)}
-            appearanceEnabled={Boolean(bootstrapHandle?.carrier?.model)}
-            resetScaleEnabled={avatarScale !== AVATAR_SCALE_DEFAULT}
-            zoomInEnabled={avatarScale < AVATAR_SCALE_MAX}
-            zoomOutEnabled={avatarScale > AVATAR_SCALE_MIN}
-            quietActive={quietLatched}
-            settingsEnabled={true}
-            shellLifecycleEnabled={hasAvatarHostRuntime()}
-            onAction={handleContextMenuAction}
-            onDismiss={dismissContextMenu}
-          />
-        ) : null}
-        {settingsOverlay ? (
-          <AvatarSettingsOverlay
-            x={settingsOverlay.x}
-            y={settingsOverlay.y}
-            settings={shellSettings}
-            onSettingsChange={persistShellSettings}
-            onDismiss={dismissSettingsOverlay}
-          />
-        ) : null}
-        {appearanceOverlay && bootstrapHandle?.carrier?.model ? (
-          <AvatarAppearanceOverlay
-            x={appearanceOverlay.x}
-            y={appearanceOverlay.y}
-            modelManifest={bootstrapHandle.carrier.model}
-            sourceAuthority={appearanceSourceAuthority(consume.authority)}
-            scale={avatarScale}
-            onDismiss={dismissAppearanceOverlay}
-          />
-        ) : null}
-        {transientComposer ? (
-          <AvatarTransientComposer
-            x={transientComposer.x}
-            y={transientComposer.y}
-            draft={transientComposer.draft}
-            sendState={transientComposer.sendState}
-            sendError={transientComposer.sendError}
-            onDraftChange={(draft) => {
-              setTransientComposer((current) =>
-                current
-                  ? {
-                    ...current,
-                    draft,
-                    sendError: null,
-                    sendState: current.sendState === 'sending' ? 'sending' : 'idle',
-                  }
-                  : current,
-              );
-            }}
-            onSubmit={submitTransientComposer}
-            onDismiss={dismissTransientComposer}
-          />
-        ) : null}
+        <AvatarOverlayPresence open={Boolean(contextMenu)}>
+          {contextMenu ? (
+            <AvatarContextMenu
+              key="avatar-context-menu"
+              x={contextMenu.x}
+              y={contextMenu.y}
+              alwaysOnTop={shellSettings.alwaysOnTop}
+              textInputEnabled={Boolean(bootstrapHandle && companionBinding)}
+              capsuleEnabled={Boolean(bootstrapHandle && companionBinding)}
+              appearanceEnabled={Boolean(bootstrapHandle?.carrier?.model)}
+              resetScaleEnabled={avatarScale !== AVATAR_SCALE_DEFAULT}
+              zoomInEnabled={avatarScale < AVATAR_SCALE_MAX}
+              zoomOutEnabled={avatarScale > AVATAR_SCALE_MIN}
+              quietActive={quietLatched}
+              settingsEnabled={true}
+              shellLifecycleEnabled={hasAvatarHostRuntime()}
+              returnFocusTarget={returnFocusTargetRef.current}
+              onAction={handleContextMenuAction}
+              onDismiss={dismissContextMenu}
+            />
+          ) : null}
+        </AvatarOverlayPresence>
+        <AvatarOverlayPresence open={Boolean(settingsOverlay)}>
+          {settingsOverlay ? (
+            <AvatarSettingsOverlay
+              key="avatar-settings-overlay"
+              x={settingsOverlay.x}
+              y={settingsOverlay.y}
+              settings={shellSettings}
+              returnFocusTarget={returnFocusTargetRef.current}
+              onSettingsChange={persistShellSettings}
+              onDismiss={dismissSettingsOverlay}
+            />
+          ) : null}
+        </AvatarOverlayPresence>
+        <AvatarOverlayPresence open={Boolean(appearanceOverlay && bootstrapHandle?.carrier?.model)}>
+          {appearanceOverlay && bootstrapHandle?.carrier?.model ? (
+            <AvatarAppearanceOverlay
+              key="avatar-appearance-overlay"
+              x={appearanceOverlay.x}
+              y={appearanceOverlay.y}
+              modelManifest={bootstrapHandle.carrier.model}
+              sourceAuthority={appearanceSourceAuthority(consume.authority)}
+              scale={avatarScale}
+              returnFocusTarget={returnFocusTargetRef.current}
+              onDismiss={dismissAppearanceOverlay}
+            />
+          ) : null}
+        </AvatarOverlayPresence>
+        <AvatarOverlayPresence open={Boolean(transientComposer)}>
+          {transientComposer ? (
+            <AvatarTransientComposer
+              key="avatar-transient-composer"
+              x={transientComposer.x}
+              y={transientComposer.y}
+              draft={transientComposer.draft}
+              sendState={transientComposer.sendState}
+              sendError={transientComposer.sendError}
+              returnFocusTarget={returnFocusTargetRef.current}
+              onDraftChange={(draft) => {
+                setTransientComposer((current) =>
+                  current
+                    ? {
+                      ...current,
+                      draft,
+                      sendError: null,
+                      sendState: current.sendState === 'sending' ? 'sending' : 'idle',
+                    }
+                    : current,
+                );
+              }}
+              onSubmit={submitTransientComposer}
+              onDismiss={dismissTransientComposer}
+            />
+          ) : null}
+        </AvatarOverlayPresence>
       </>
     ),
     [
@@ -488,6 +519,7 @@ export function useAvatarShellOverlays(input: {
       dismissTransientComposer,
       handleContextMenuAction,
       persistShellSettings,
+      quietLatched,
       settingsOverlay,
       shellSettings,
       submitTransientComposer,
@@ -498,6 +530,7 @@ export function useAvatarShellOverlays(input: {
   return {
     handleAvatarOriginEvent,
     dismissTransientSurfaces,
+    getReturnFocusTarget: () => returnFocusTargetRef.current,
     openTextInputFromCapsule: () => {
       onOpenCapsule();
       openTransientComposer({

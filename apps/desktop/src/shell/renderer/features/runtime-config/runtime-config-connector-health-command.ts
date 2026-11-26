@@ -1,3 +1,4 @@
+import { i18n } from '../../i18n';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import type { RuntimeConfigStateUpdater } from './runtime-config-types';
@@ -23,9 +24,15 @@ export async function runLocalHealthCheckCommand(input: {
   }));
 
   if (health.status !== 'healthy') {
+    const message = i18n.isInitialized
+      ? i18n.t('runtimeConfig.local.healthStatusBanner', {
+        status: health.status,
+        defaultValue: 'Local Runtime health: {{status}}',
+      })
+      : `Local Runtime health: ${health.status}`;
     input.setStatusBanner({
       kind: 'warning',
-      message: `Local Runtime health: ${health.status}`,
+      message,
     });
   }
 }

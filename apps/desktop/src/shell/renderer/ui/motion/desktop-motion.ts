@@ -1,5 +1,7 @@
 import {
   NIMI_MOTION_DURATIONS_MS,
+  nimiReducedFade,
+  nimiSpring,
   usePrefersReducedMotion,
 } from '@nimiplatform/kit/ui/motion';
 import {
@@ -13,7 +15,6 @@ export {
 import type { TargetAndTransition, Transition, Variants } from 'motion/react';
 
 const EASE_STANDARD = [0.2, 0, 0, 1] as const;
-const EASE_EMPHASIZED = [0.05, 0.7, 0.1, 1] as const;
 
 function durationSeconds(durationMs: number, reduced: boolean): number {
   if (reduced) return 0;
@@ -57,12 +58,9 @@ export function useDesktopCardMotion(): {
 } {
   const reduced = useDesktopReducedMotion();
   return {
-    whileHover: reduced ? undefined : {
-      y: -2,
-      boxShadow: '0 16px 36px rgba(15, 23, 42, 0.08)',
-    },
+    whileHover: reduced ? undefined : { y: -2 },
     whileTap: reduced ? undefined : { y: 0, scale: 0.995 },
-    transition: timedTransition(NIMI_MOTION_DURATIONS_MS.fast, reduced),
+    transition: reduced ? nimiReducedFade() : nimiSpring('default'),
   };
 }
 
@@ -72,49 +70,46 @@ export function useDesktopPanelCustom(): boolean {
 
 export const DESKTOP_PANEL_VARIANTS: Variants = {
   initial: (reduced: boolean) => ({
-    opacity: reduced ? 1 : 0,
+    opacity: 0,
     y: reduced ? 0 : 8,
-    filter: reduced ? 'none' : 'blur(6px)',
   }),
   animate: (reduced: boolean) => ({
     opacity: 1,
     y: 0,
-    filter: 'none',
-    transition: timedTransition(NIMI_MOTION_DURATIONS_MS.base, reduced, EASE_EMPHASIZED),
+    transition: reduced ? nimiReducedFade() : nimiSpring('default'),
   }),
   exit: (reduced: boolean) => ({
-    opacity: reduced ? 1 : 0,
-    y: reduced ? 0 : -6,
-    filter: reduced ? 'none' : 'blur(4px)',
+    opacity: 0,
+    y: reduced ? 0 : 8,
     // Overlay the container instead of staying in the flex flow, so an
     // exiting panel never splits height with an already-visible panel
     // (e.g. the keep-alive runtime tab).
     position: 'absolute',
     inset: 0,
-    transition: timedTransition(NIMI_MOTION_DURATIONS_MS.fast, reduced),
+    transition: reduced ? nimiReducedFade() : nimiSpring('default'),
   }),
 };
 
 export const DESKTOP_MENU_VARIANTS: Variants = {
   initial: (reduced: boolean) => ({
-    opacity: reduced ? 1 : 0,
-    y: reduced ? 0 : -8,
-    scale: reduced ? 1 : 0.98,
+    opacity: 0,
+    y: reduced ? 0 : 8,
+    scale: reduced ? 1 : 0.96,
   }),
   animate: (reduced: boolean) => ({
     opacity: 1,
     y: 0,
     scale: 1,
-    transition: timedTransition(NIMI_MOTION_DURATIONS_MS.base, reduced, EASE_EMPHASIZED),
+    transition: reduced ? nimiReducedFade() : nimiSpring('default'),
   }),
   exit: (reduced: boolean) => ({
-    opacity: reduced ? 1 : 0,
-    y: reduced ? 0 : -6,
-    scale: reduced ? 1 : 0.985,
-    transition: timedTransition(NIMI_MOTION_DURATIONS_MS.fast, reduced),
+    opacity: 0,
+    y: reduced ? 0 : 8,
+    scale: reduced ? 1 : 0.96,
+    transition: reduced ? nimiReducedFade() : nimiSpring('default'),
   }),
 };
 
 export function desktopActiveIndicatorTransition(reduced: boolean): Transition {
-  return timedTransition(NIMI_MOTION_DURATIONS_MS.base, reduced, EASE_EMPHASIZED);
+  return reduced ? nimiReducedFade() : nimiSpring('default');
 }

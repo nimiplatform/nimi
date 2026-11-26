@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@nimiplatform/kit/ui';
 import { useNimiReducedMotion } from '@nimiplatform/kit/ui/motion';
+import { AvatarOverlayPresence } from './avatar-overlay-presence.js';
 import { bootstrapAvatar, type BootstrapHandle } from './app-shell/app-bootstrap.js';
 import { useAvatarStore } from './app-shell/app-store.js';
 import { setAlwaysOnTop } from './app-shell/avatar-window-commands.js';
@@ -745,6 +746,7 @@ export function App() {
   const {
     handleAvatarOriginEvent,
     dismissTransientSurfaces,
+    getReturnFocusTarget,
     openTextInputFromCapsule,
     overlayNodes,
   } = useAvatarShellOverlays({
@@ -959,27 +961,31 @@ export function App() {
         onPresentationRestart={restartPresentation}
         onSurfaceBoundsChange={handleBackendSurfaceBounds}
       />
-      {presentationReady && shouldMountCompanionSurface(voice) && !quietLatched ? (
-        <CompanionSurface
-          bootstrapHandle={bootstrapHandle}
-          binding={companionBinding}
-          anchorKey={companionAnchorKey}
-          voice={voice}
-          shellSettings={shellSettings}
-          compositionState={composition.state}
-          setVoice={setVoice}
-          voiceCaptureSessionRef={voiceCaptureSessionRef}
-          voiceSubmitAbortRef={voiceSubmitAbortRef}
-          beginVoiceOperation={beginVoiceOperation}
-          clearVoiceOperation={clearVoiceOperation}
-          isVoiceOperationCurrent={isVoiceOperationCurrent}
-          onExplicitEngage={engageCompanion}
-          onOpenTextInput={openTextInputFromCapsule}
-          onInterruptLocalCleanup={prepareRuntimeInterrupt}
-          onInterruptFailure={failRuntimeInterrupt}
-          onClose={onCloseVoiceMode}
-        />
-      ) : null}
+      <AvatarOverlayPresence open={Boolean(presentationReady && shouldMountCompanionSurface(voice) && !quietLatched)}>
+        {presentationReady && shouldMountCompanionSurface(voice) && !quietLatched ? (
+          <CompanionSurface
+            key="avatar-companion-surface"
+            bootstrapHandle={bootstrapHandle}
+            binding={companionBinding}
+            anchorKey={companionAnchorKey}
+            voice={voice}
+            shellSettings={shellSettings}
+            compositionState={composition.state}
+            setVoice={setVoice}
+            voiceCaptureSessionRef={voiceCaptureSessionRef}
+            voiceSubmitAbortRef={voiceSubmitAbortRef}
+            beginVoiceOperation={beginVoiceOperation}
+            clearVoiceOperation={clearVoiceOperation}
+            isVoiceOperationCurrent={isVoiceOperationCurrent}
+            onExplicitEngage={engageCompanion}
+            onOpenTextInput={openTextInputFromCapsule}
+            onInterruptLocalCleanup={prepareRuntimeInterrupt}
+            onInterruptFailure={failRuntimeInterrupt}
+            onClose={onCloseVoiceMode}
+            returnFocusTarget={getReturnFocusTarget()}
+          />
+        ) : null}
+      </AvatarOverlayPresence>
       <AvatarRuntimeStatusRegion status={runtimeStatus} />
       {overlayNodes}
     </div>

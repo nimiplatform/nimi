@@ -189,7 +189,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
 
   useEffect(() => {
     if (!panelState.hydrated || !runtimeTabActive) return;
-    void daemon.refreshRuntimeDaemonStatus();
+    void daemon.refreshRuntimeDaemonStatus({ silent: true });
     let active = true;
     let cancelScheduledRefresh: (() => void) | null = null;
     const scheduleRefresh = () => {
@@ -198,7 +198,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
         (result) => {
           cancelScheduledRefresh = null;
           if (!active || !result.ok) return;
-          void daemon.refreshRuntimeDaemonStatus();
+          void daemon.refreshRuntimeDaemonStatus({ silent: true });
           scheduleRefresh();
         },
       );

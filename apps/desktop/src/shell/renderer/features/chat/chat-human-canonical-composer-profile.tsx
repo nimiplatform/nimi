@@ -58,13 +58,15 @@ function HumanAttachmentStrip(props: {
             <button
               type="button"
               onClick={() => props.removeAttachment(index)}
-              className="absolute -right-1.5 -top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-white transition-colors hover:bg-black/85"
+              className="absolute -right-2 -top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full p-1 transition-transform active:scale-[0.92] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1"
               aria-label={t('TurnInput.removeAttachment')}
             >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-black/75 text-white transition-colors hover:bg-black/90">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </span>
             </button>
           </Tooltip>
         </div>

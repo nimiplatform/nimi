@@ -207,7 +207,7 @@ export function HomeAppsWorkbench({
                     disabled={zhiyuBusy}
                     onClick={() => void openZhiyu()}
                     aria-label={t('Apps.bundled.openZhiyu')}
-                    className="relative flex size-14 items-center justify-center rounded-2xl bg-[var(--nimi-home-porcelain-card)] shadow-[var(--nimi-home-porcelain-shadow)] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--nimi-home-porcelain-shadow-hover)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] disabled:opacity-60"
+                    className="relative flex size-14 items-center justify-center rounded-2xl bg-[var(--nimi-home-porcelain-card)] shadow-[var(--nimi-home-porcelain-shadow)] transition-[transform,opacity,background-color,border-color,color] duration-150 hover:shadow-[var(--nimi-home-porcelain-shadow-hover)] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] disabled:opacity-60"
                   >
                     <img
                       src={zhiyuIcon}
@@ -216,7 +216,7 @@ export function HomeAppsWorkbench({
                     />
                     {zhiyuBusy ? (
                       <span className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full bg-[var(--nimi-home-porcelain-card)] text-[var(--nimi-action-primary-bg)] shadow-[var(--nimi-elevation-base)]">
-                        <LoaderCircle size={12} className="animate-spin" aria-hidden="true" />
+                        <LoaderCircle size={12} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
                       </span>
                     ) : null}
                   </button>
@@ -258,7 +258,7 @@ export function HomeAppsWorkbench({
                   onClick={() => handleActivateApp(entry, running, starting)}
                   onContextMenu={(event) => handleContextMenu(event, group.appId, entry.identity.entryKey)}
                   data-testid={`home-app:${group.appId}`}
-                  className="relative flex size-14 items-center justify-center rounded-2xl bg-[var(--nimi-home-porcelain-card)] shadow-[var(--nimi-home-porcelain-shadow)] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--nimi-home-porcelain-shadow-hover)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] disabled:opacity-70"
+                  className="relative flex size-14 items-center justify-center rounded-2xl bg-[var(--nimi-home-porcelain-card)] shadow-[var(--nimi-home-porcelain-shadow)] transition-[transform,opacity,background-color,border-color,color] duration-150 hover:shadow-[var(--nimi-home-porcelain-shadow-hover)] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] disabled:opacity-70"
                 >
                   <AppArtworkIcon
                     appId={group.appId}
@@ -269,7 +269,7 @@ export function HomeAppsWorkbench({
                   />
                   {isBusy ? (
                     <span className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full bg-[var(--nimi-home-porcelain-card)] text-[var(--nimi-action-primary-bg)] shadow-[var(--nimi-elevation-base)]">
-                      <LoaderCircle size={12} className="animate-spin" aria-hidden="true" />
+                      <LoaderCircle size={12} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
                     </span>
                   ) : hasUpdate ? (
                     <span
@@ -336,7 +336,7 @@ export function HomeAppsWorkbench({
                 })}
                 data-testid="home-apps-overflow-tile"
                 data-overflow-count={dock.overflowCount}
-                className="flex size-14 items-center justify-center rounded-2xl border border-dashed border-[var(--nimi-border-strong)] bg-transparent font-semibold tabular-nums text-[var(--nimi-text-secondary)] transition-all duration-150 hover:-translate-y-0.5 hover:border-solid hover:border-[var(--nimi-action-primary-bg)]/40 hover:bg-[var(--nimi-home-porcelain-card)] hover:text-[var(--nimi-text-primary)] hover:shadow-[var(--nimi-home-porcelain-shadow)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+                className="flex size-14 items-center justify-center rounded-2xl border border-dashed border-[var(--nimi-border-strong)] bg-transparent font-semibold tabular-nums text-[var(--nimi-text-secondary)] transition-[transform,opacity,background-color,border-color,color] duration-150 hover:border-solid hover:border-[var(--nimi-action-primary-bg)]/40 hover:bg-[var(--nimi-home-porcelain-card)] hover:text-[var(--nimi-text-primary)] hover:shadow-[var(--nimi-home-porcelain-shadow)] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
               >
                 <span className={dock.overflowCount >= 100 ? 'text-xs' : 'text-sm'}>
                   +{dock.overflowCount}
@@ -353,7 +353,7 @@ export function HomeAppsWorkbench({
                 onClick={onOpenAllApps}
                 aria-label={t('runtimeConfig.overview.allApps')}
                 data-testid="home-apps-more-tile"
-                className="flex size-14 items-center justify-center rounded-2xl border border-dashed border-[var(--nimi-border-strong)] bg-transparent text-[var(--nimi-text-secondary)] transition-all duration-150 hover:-translate-y-0.5 hover:border-solid hover:border-[var(--nimi-action-primary-bg)]/40 hover:bg-[var(--nimi-home-porcelain-card)] hover:text-[var(--nimi-text-primary)] hover:shadow-[var(--nimi-home-porcelain-shadow)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+                className="flex size-14 items-center justify-center rounded-2xl border border-dashed border-[var(--nimi-border-strong)] bg-transparent text-[var(--nimi-text-secondary)] transition-[transform,opacity,background-color,border-color,color] duration-150 hover:border-solid hover:border-[var(--nimi-action-primary-bg)]/40 hover:bg-[var(--nimi-home-porcelain-card)] hover:text-[var(--nimi-text-primary)] hover:shadow-[var(--nimi-home-porcelain-shadow)] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
               >
                 <Plus size={20} aria-hidden="true" />
               </button>

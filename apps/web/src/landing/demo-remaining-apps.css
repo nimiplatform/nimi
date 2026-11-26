@@ -3439,3 +3439,21 @@
     padding-top: 25px;
   }
 }
+
+.rp-preview button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rp-preview *,
+  .rp-preview *::before,
+  .rp-preview *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  .rp-preview button:active:not(:disabled) {
+    transform: none;
+    opacity: 0.86;
+  }
+}

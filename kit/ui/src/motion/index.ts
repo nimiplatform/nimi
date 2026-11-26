@@ -38,6 +38,7 @@ export {
 export type {
   NimiOverlayMotionKind,
   NimiPopoverSide,
+  NimiPopoverAlign,
   NimiOverlayMotionProps,
 } from './overlay.js';
 export {
@@ -45,6 +46,7 @@ export {
   nearestSnapTarget,
   normalizeReleaseVelocity,
   shouldCommitGesture,
+  rubberband,
 } from './gestures.js';
 import { useContext } from 'react';
 import { MotionConfigContext } from 'motion/react';
@@ -70,4 +72,4 @@ export { NimiMotionProvider } from './provider.js';
 
 // Admitted substrate re-exports (motion contract §7). Governed surfaces
 // animate through these, never through a second animation library.
-export { animate, motion, AnimatePresence, useReducedMotion } from 'motion/react';
+export { animate, motion, AnimatePresence, useIsPresent, useReducedMotion } from 'motion/react';

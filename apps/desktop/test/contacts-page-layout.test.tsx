@@ -215,7 +215,7 @@ test('ContactsPage dynamically switches right rail to searchable Contacts panel 
     });
     await settle();
 
-    // 1. Default 0-conversation state renders compact right rail and quiet single-tone brand watermark without copy or CTA.
+    // 1. Default 0-conversation state renders compact right rail, brand watermark, and primary onboarding CTA to discover partners.
     assert.equal(
       dom.window.document.querySelector('[data-contacts-rail-state]')?.getAttribute('data-contacts-rail-state'),
       'compact',
@@ -225,8 +225,16 @@ test('ContactsPage dynamically switches right rail to searchable Contacts panel 
     assert.equal(dom.window.document.querySelector('[data-testid="contacts-empty-stage"]')?.getAttribute('data-empty-stage-mode'), 'zero-conversations');
     assert.equal(dom.window.document.querySelector('[data-testid="contacts-empty-stage"] .nimi-empty-state'), null);
     assert.ok(dom.window.document.querySelector('[data-testid="contacts-empty-stage"] [data-testid="contacts-watermark"]'));
-    assert.equal(dom.window.document.querySelector('[data-testid="contacts-empty-stage"]')?.textContent ?? '', '');
-    assert.equal(dom.window.document.querySelector('[data-testid="contacts-empty-stage"] button'), null);
+    const discoverCta = dom.window.document.querySelector<HTMLButtonElement>('[data-testid="contacts-empty-discover-cta"]');
+    assert.ok(discoverCta, 'zero-conversations renders primary discover partners CTA');
+    assert.equal(discoverCta.textContent?.trim(), 'Discover partners');
+
+    await act(async () => { discoverCta.click(); });
+    assert.equal(store.navigation.getSnapshot().current.destination.id, 'explore');
+    assert.equal(store.navigation.getSnapshot().current.destination.exploreSection, 'worlds');
+    assert.equal(store.navigation.getSnapshot().current.destination.exploreSearchKind, 'characters');
+    await act(async () => { await store.navigation.replace({ id: 'contacts' }); });
+    await settle();
 
     chatListUnavailable = true;
     await act(async () => { await client.invalidateQueries({ queryKey: ['chats'] }); });
@@ -239,7 +247,7 @@ test('ContactsPage dynamically switches right rail to searchable Contacts panel 
     await act(async () => retry.click());
     await settle();
     assert.equal(dom.window.document.querySelector('[data-testid="contacts-empty-stage"]')?.getAttribute('data-empty-stage-mode'), 'zero-conversations');
-    assert.equal(dom.window.document.querySelector('[data-testid="contacts-empty-stage"]')?.textContent ?? '', '');
+    assert.ok(dom.window.document.querySelector('[data-testid="contacts-empty-discover-cta"]'));
 
     // 2. Clicking the persistent bottom Contacts button morphs the same rail into expanded form and keeps center stage as quiet watermark.
     const contactsEntry = dom.window.document.querySelector<HTMLButtonElement>('[data-testid="human-contacts-entry"]');

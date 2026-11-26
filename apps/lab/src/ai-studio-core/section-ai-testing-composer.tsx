@@ -213,7 +213,7 @@ export function TextStudioComposer({
               id={queryInputId}
               tone="quiet"
               className="rounded-none focus-within:border-transparent focus-within:ring-0"
-              textareaClassName="resize-none px-0 py-0 text-[14px] font-normal leading-relaxed"
+              textareaClassName="resize-none px-0 py-0 text-[length:var(--nimi-type-body-size)] font-normal leading-relaxed"
               rows={compact ? 2 : 3}
               wrap="soft"
               maxLength={2000}
@@ -253,8 +253,7 @@ export function TextStudioComposer({
           <div className={contextOpen ? 'studio-context studio-context--open' : 'studio-context'}>
             <TextareaField
               tone="quiet"
-              className="rounded-none focus-within:border-transparent focus-within:ring-0"
-              textareaClassName="min-h-[56px] resize-none px-0 py-0 text-[15px] leading-[1.55]"
+              textareaClassName="min-h-[56px] resize-none px-2 py-1 text-[length:var(--nimi-type-body-size)] leading-[1.55]"
               rows={compact ? 2 : 3}
               wrap="soft"
               maxLength={1600}

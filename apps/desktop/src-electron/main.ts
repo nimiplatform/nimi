@@ -17,6 +17,7 @@ import { DesktopShutdownBlockedError, runDesktopProductShutdown, type DesktopShu
 import { createDesktopFinalExit } from './desktop-final-exit.js';
 import { createDesktopHomeCommandPolicy } from './home-host-policy.js';
 import { installDesktopPermissionPolicy } from './desktop-permission-policy.js';
+import { installNativeEditContextMenu } from './context-menu.js';
 import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -1821,6 +1822,7 @@ async function buildMainWindow(): Promise<BrowserWindow> {
     publishDesktopHomeVisibility();
   });
   secureDesktopWindow(window);
+  installNativeEditContextMenu(window, () => systemEntryLocale);
   if (process.platform === 'win32') window.show();
   await window.loadURL(rendererUrl || appOriginProtocol.rendererUrl('desktop'));
   return window;

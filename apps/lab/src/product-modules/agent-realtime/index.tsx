@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { NimiLocalAppClient } from '@nimiplatform/sdk/app';
 import {
   AgentRealtimeEntry,
@@ -13,9 +13,25 @@ const INPUT_AUDIO = Object.freeze({
   maximumFrameBytes: 640,
 });
 
+function useDocumentLocale(explicit?: string): string {
+  const [docLang, setDocLang] = useState(() => globalThis.document?.documentElement.lang || 'en');
+  useEffect(() => {
+    if (explicit) return undefined;
+    const root = globalThis.document?.documentElement;
+    if (!root || typeof MutationObserver === 'undefined') return undefined;
+    const sync = () => setDocLang(root.lang || 'en');
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(root, { attributes: true, attributeFilter: ['lang'] });
+    return () => observer.disconnect();
+  }, [explicit]);
+  return explicit || docLang;
+}
+
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-017
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-019c
-export function AgentRealtimeCapability(props: { readonly client: NimiLocalAppClient }) {
+export function AgentRealtimeCapability(props: { readonly client: NimiLocalAppClient; readonly locale?: string }) {
+  const locale = useDocumentLocale(props.locale);
   const host = useMemo(() => createBrowserAgentRealtimeHostMediaPort(), []);
   return (
     <AgentRealtimeEntry
@@ -23,7 +39,7 @@ export function AgentRealtimeCapability(props: { readonly client: NimiLocalAppCl
       inputAudio={INPUT_AUDIO}
       turnDetection="server-vad"
       host={host}
-      locale={globalThis.document?.documentElement.lang || 'en'}
+      locale={locale}
     />
   );
 }

@@ -1,4 +1,4 @@
-import { Button, IconButton, InlineAlert, LoadingSkeleton, Popover, PopoverContent, PopoverTrigger, ScrollArea, SearchField, Tooltip } from '@nimiplatform/kit/ui';
+import { Button, IconButton, InlineAlert, LoadingSkeleton, Popover, PopoverContent, PopoverTrigger, ScrollArea, SearchField, SelectField, Tooltip } from '@nimiplatform/kit/ui';
 import {
   DesktopAIExecutionRoute,
   DesktopAIExecutionState,
@@ -73,7 +73,7 @@ function Estimates({ estimates, emphasis = false, local = false }: {
   local?: boolean;
 }) {
   const { t } = useTranslation();
-  if (local && !estimates.length) return <div className={`${emphasis ? 'text-[40px] font-semibold leading-tight tracking-[-0.035em]' : 'text-right text-sm font-medium'} tabular-nums`}>0</div>;
+  if (local && !estimates.length) return <div className={`${emphasis ? 'text-2xl font-semibold leading-tight tracking-[-0.02em]' : 'text-right text-sm font-medium'} tabular-nums`}>0</div>;
   const valid = estimates.filter(value => /^[A-Z]{3,8}$/u.test(value.currency)
     && /^\d+(\.\d+)?$/u.test(value.estimatedAmount) && value.estimatedAmount.length <= 40);
   if (!valid.length) return <span className="text-sm text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.costUnknown`)}</span>;
@@ -81,7 +81,7 @@ function Estimates({ estimates, emphasis = false, local = false }: {
     {valid.map((estimate, index) => <li key={`${estimate.currency}:${index}`} className="min-w-0 tabular-nums">
       <div className={`flex min-w-0 flex-wrap items-baseline gap-x-2.5 ${emphasis ? '' : 'justify-end'}`}>
         <span className={`${emphasis ? 'text-xs uppercase tracking-[0.08em]' : 'text-xs'} font-medium text-[var(--nimi-text-secondary)]`}>{estimate.currency}</span>
-        <span className={`${emphasis ? 'text-[40px] font-semibold leading-tight tracking-[-0.035em]' : 'text-sm font-medium'} break-all`}>{estimate.estimatedAmount}</span>
+        <span className={`${emphasis ? 'text-2xl font-semibold leading-tight tracking-[-0.02em]' : 'text-sm font-medium'} break-all`}>{estimate.estimatedAmount}</span>
       </div>
     </li>)}
     {valid.length !== estimates.length ? <li className="text-sm text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.costUnknown`)}</li> : null}
@@ -106,7 +106,7 @@ function CurrentWorkSummary({ ai }: { ai: SystemEntryAIState | null }) {
   const work = currentWork(ai, i18n.resolvedLanguage ?? 'en');
   return <div className={PANEL_CLASS} data-testid="home-current-work-summary">
     <dt className="flex items-center gap-2 text-sm font-medium text-[var(--nimi-text-secondary)]"><span className="flex size-8 items-center justify-center rounded-xl bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info)]"><Activity size={17} aria-hidden="true" /></span>{t(`${PREFIX}.workTitle`)}</dt>
-    <dd className="mt-4 break-words text-[40px] font-semibold leading-tight tracking-[-0.035em] tabular-nums" aria-label={work?.workCount == null ? undefined : t(`${PREFIX}.workCount`, { value: work.workCount })}>
+    <dd className="mt-4 break-words text-2xl font-semibold leading-tight tracking-[-0.02em] tabular-nums" aria-label={work?.workCount == null ? undefined : t(`${PREFIX}.workCount`, { value: work.workCount })}>
       {work?.workCount ?? t(`${PREFIX}.unknown`)}{work?.workCount != null ? <span className="ml-2 text-sm font-normal tracking-normal text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.workUnit`)}</span> : null}
     </dd>
     <dd className="mt-2 text-xs leading-5 text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.${!ai || ai.activity.status === 'loading' ? 'workLoading' : work?.workCount == null ? 'workCountUnknown' : 'currentActivity'}`)}</dd>
@@ -182,10 +182,17 @@ function UsageNotice({ children, testId }: { children: ReactNode; testId: string
 }
 
 function UsageInfo({ children, label, testId }: { children: ReactNode; label: string; testId: string }) {
-  return <Tooltip content={<div className="space-y-2">{children}</div>} contentClassName="max-w-xs text-left">
-    <IconButton size="sm" className="size-6 shrink-0 text-[var(--nimi-text-secondary)]" aria-label={label} data-testid={testId}
-      icon={<Info size={15} aria-hidden="true" />} />
-  </Tooltip>;
+  return <Popover>
+    <Tooltip content={<div className="space-y-2">{children}</div>} contentClassName="max-w-xs text-left">
+      <PopoverTrigger asChild>
+        <IconButton size="sm" className="size-6 shrink-0 text-[var(--nimi-text-secondary)]" aria-label={label} data-testid={testId}
+          icon={<Info size={15} aria-hidden="true" />} />
+      </PopoverTrigger>
+    </Tooltip>
+    <PopoverContent align="start" sideOffset={8} className="max-w-xs space-y-2 p-3 text-left text-xs leading-5 text-[var(--nimi-text-secondary)]">
+      {children}
+    </PopoverContent>
+  </Popover>;
 }
 
 function UsageGroups({ groups, attempts, groupsComplete }: { groups: readonly DesktopAIUsageGroup[]; attempts: string | null; groupsComplete: boolean }) {
@@ -222,10 +229,19 @@ function UsageGroups({ groups, attempts, groupsComplete }: { groups: readonly De
         onClear={() => setQuery('')} clearLabel={t('Common.clear')}
         placeholder={t(`${PREFIX}.searchGroups`)} aria-label={t(`${PREFIX}.searchGroups`)} aria-controls="home-usage-group-list" className="min-w-0 flex-1 text-sm sm:max-w-sm" />
       <label className="sr-only" htmlFor="home-usage-route-filter">{t(`${PREFIX}.routeFilter`)}</label>
-      <select id="home-usage-route-filter" aria-label={t(`${PREFIX}.routeFilter`)} value={route} onChange={event => setRoute(event.target.value as UsageRouteFilter)}
-        className="min-h-[var(--nimi-sizing-field-md-height)] rounded-[var(--nimi-radius-field)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-3 text-sm text-[var(--nimi-field-text)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]">
-        <option value="all">{t(`${PREFIX}.allRoutes`)}</option><option value="local">{t(`${PREFIX}.local`)}</option><option value="cloud">{t(`${PREFIX}.cloud`)}</option>
-      </select>
+      <SelectField
+        id="home-usage-route-filter"
+        aria-label={t(`${PREFIX}.routeFilter`)}
+        value={route}
+        onValueChange={value => setRoute(value as UsageRouteFilter)}
+        className="w-auto min-w-[8.5rem]"
+        selectClassName="text-sm"
+        options={[
+          { value: 'all', label: t(`${PREFIX}.allRoutes`) },
+          { value: 'local', label: t(`${PREFIX}.local`) },
+          { value: 'cloud', label: t(`${PREFIX}.cloud`) },
+        ]}
+      />
       {filtered ? <Button tone="ghost" size="sm" onClick={clearFilters}>{t(`${PREFIX}.clearFilters`)}</Button> : null}
     </div> : null}
     {visible.length ? <div className="mt-4 overflow-x-auto rounded-xl border border-[var(--nimi-border-subtle)]" tabIndex={0} role="region" aria-labelledby="home-usage-detail-title">
@@ -245,7 +261,7 @@ function UsageGroups({ groups, attempts, groupsComplete }: { groups: readonly De
           <td className="px-4 py-3"><Estimates estimates={group.estimates} local={group.route === DesktopAIExecutionRoute.DESKTOP_AI_EXECUTION_ROUTE_LOCAL} /></td>
         </tr>)}</tbody>
       </table>
-    </div> : <div className="mt-5 rounded-2xl bg-[var(--nimi-surface-panel)] py-10 text-center" role="status">
+    </div> : <div className="mt-5 rounded-2xl bg-[var(--nimi-surface-panel)] py-6 text-center" role="status">
       <p className="text-sm text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.noMatchingGroups`)}</p>
       <Button tone="ghost" size="sm" className="mt-2" onClick={clearFilters}>{t(`${PREFIX}.clearFilters`)}</Button>
     </div>}
@@ -307,7 +323,7 @@ function UsageSummary({ ai }: { ai: SystemEntryAIState | null }) {
             {uncoveredSources.length ? <p className="text-xs">{t(`${PREFIX}.uncoveredUsageSources`, { sources: uncoveredSources.map(source => SOURCE_KEYS[source.source] ? t(`${PREFIX}.sources.${SOURCE_KEYS[source.source]}`) : source.source).join(' · ') })}</p> : null}
             {!summary.timeComplete && systemEntryTimestampIso(summary.coverageFrom) && systemEntryTimestampIso(summary.coverageTo) ? <p className="text-xs">{t(`${PREFIX}.recordedBounds`)} <RecordedTime value={summary.coverageFrom} timeZone={ai.range.timeZone} /> — <RecordedTime value={summary.coverageTo} timeZone={ai.range.timeZone} /></p> : null}
           </UsageInfo> : null}</dt>
-          <dd className="mt-4 break-words text-[40px] font-semibold leading-tight tracking-[-0.035em] tabular-nums">{display(projection.attempts)}<span className="ml-2 text-sm font-normal tracking-normal text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.executionUnit`)}</span></dd>
+          <dd className="mt-4 break-words text-2xl font-semibold leading-tight tracking-[-0.02em] tabular-nums">{display(projection.attempts)}<span className="ml-2 text-sm font-normal tracking-normal text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.executionUnit`)}</span></dd>
           <dd><UsageRouteSummary attempts={projection.attempts} localAttempts={projection.localAttempts} cloudAttempts={projection.cloudAttempts} /></dd>
         </div>
         <div className={PANEL_CLASS} data-testid="home-usage-cost-card">
@@ -368,7 +384,7 @@ export function SystemEntryDetailsView({ ai, onBack, onRefresh, refreshing = fal
           <Button tone="ghost" size="sm" className="-ml-2" onClick={onBack}><ArrowLeft size={16} aria-hidden="true" />{t('runtimeConfig.overview.back')}</Button>
         </div>
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex items-center gap-2"><h1 className="text-[28px] font-semibold tracking-[-0.035em]">{t(`${PREFIX}.activityUsageTitle`)}</h1><UsageDataDetails ai={ai} /></div>
+          <div className="flex items-center gap-2"><h1 className="text-xl font-semibold leading-tight tracking-[-0.02em]">{t(`${PREFIX}.activityUsageTitle`)}</h1><UsageDataDetails ai={ai} /></div>
           <Button tone="secondary" size="sm" className="rounded-full px-4" disabled={refreshing} aria-busy={refreshing} onClick={onRefresh}><RefreshCw size={15} className={refreshing ? 'motion-safe:animate-spin' : undefined} aria-hidden="true" />{t(refreshing ? 'Common.loading' : 'runtimeConfig.overview.refresh')}</Button>
         </div>
       </header>

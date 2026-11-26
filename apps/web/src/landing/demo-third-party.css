@@ -2363,9 +2363,21 @@ button.jev-wordmark {
     padding: 22px 17px;
   }
 }
+.tp-preview button:active:not(:disabled),
+.tp-button:active:not(:disabled) {
+  transform: scale(0.97);
+}
 @media (prefers-reduced-motion: reduce) {
-  .tp-preview * {
+  .tp-preview *,
+  .tp-preview *::before,
+  .tp-preview *::after {
+    animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
+  }
+  .tp-preview button:active:not(:disabled),
+  .tp-button:active:not(:disabled) {
+    transform: none;
+    opacity: 0.86;
   }
 }

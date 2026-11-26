@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   LogIn,
   Settings,
 } from 'lucide-react';
-import { AccountPanel, IconButton, Tooltip } from '@nimiplatform/kit/ui';
+import { AccountPanel, IconButton, Popover, PopoverContent, PopoverTrigger, Tooltip } from '@nimiplatform/kit/ui';
 import { useLabRendererHost } from '../../renderer/context.js';
 import { useTranslation } from '../i18n/index.js';
 
@@ -34,7 +34,6 @@ function toAccountStatusMessage(error: unknown, fallbackKey: string, translate: 
 export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) {
   const { t } = useTranslation();
   const rendererHost = useLabRendererHost();
-  const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [localAppSessionReady, setLocalAppSessionReady] = useState(false);
   const [remoteDisplayName, setRemoteDisplayName] = useState<string | null>(null);
@@ -65,19 +64,6 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
     };
   }, [refreshAccountUser, t]);
 
-  // Light-dismiss: the panel is not portaled, so neither the root blur handler
-  // nor Escape covers clicks on non-focusable canvas areas.
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    return () => document.removeEventListener('pointerdown', onPointerDown);
-  }, [open]);
-
   const displayName = remoteDisplayName || (localAppSessionReady
     ? t('Auth.account.displayReady')
     : (loadingUser ? t('Auth.account.displayChecking') : t('Auth.account.displayUnavailable')));
@@ -101,43 +87,36 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
   ];
 
   return (
-    <div
-      ref={rootRef}
-      className="lab-account-menu"
-      data-workbench-account-root=""
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
-      }}
-      onKeyDown={(event) => {
-        if (event.key === 'Escape') setOpen(false);
-      }}
-    >
-      <Tooltip content={displayName} placement="right" className="w-full">
-        <IconButton
-          type="button"
-          tone="ghost"
-          size="sm"
-          data-workbench-account-trigger=""
-          data-open={open ? 'true' : undefined}
-          aria-label={t('Auth.account.triggerAriaLabel')}
-          aria-expanded={open}
-          aria-haspopup="menu"
-          onClick={() => setOpen((value) => !value)}
-          className={open ? 'lab-account-menu__trigger lab-account-menu__trigger--open' : 'lab-account-menu__trigger'}
-          icon={localAppSessionReady ? <span className="lab-account-menu__avatar-glyph" aria-hidden="true">{fallback}</span> : <LogIn size={18} strokeWidth={1.9} aria-hidden="true" />}
-        />
-      </Tooltip>
-      {open ? (
-        <div className="lab-account-menu__panel" data-workbench-account-panel="">
-          <AccountPanel
-            user={{ displayName, fallback }}
-            items={items}
-            footerItems={[]}
-            ariaLabel={t('Auth.account.menuAriaLabel')}
-            statusMessage={statusMessage}
-          />
-        </div>
-      ) : null}
+    <div className="lab-account-menu" data-workbench-account-root="">
+      <Popover open={open} onOpenChange={setOpen}>
+        <Tooltip content={displayName} placement="right" open={open ? false : undefined} className="w-full">
+          <PopoverTrigger asChild>
+            <IconButton
+              type="button"
+              tone="ghost"
+              size="sm"
+              data-workbench-account-trigger=""
+              data-open={open ? 'true' : undefined}
+              aria-label={t('Auth.account.triggerAriaLabel')}
+              aria-expanded={open}
+              aria-haspopup="menu"
+              className={open ? 'lab-account-menu__trigger lab-account-menu__trigger--open' : 'lab-account-menu__trigger'}
+              icon={localAppSessionReady ? <span className="lab-account-menu__avatar-glyph" aria-hidden="true">{fallback}</span> : <LogIn size={18} strokeWidth={1.9} aria-hidden="true" />}
+            />
+          </PopoverTrigger>
+        </Tooltip>
+        <PopoverContent side="right" align="end" sideOffset={12} className="p-0 border-0 bg-transparent shadow-none">
+          <div className="lab-account-menu__panel" data-workbench-account-panel="">
+            <AccountPanel
+              user={{ displayName, fallback }}
+              items={items}
+              footerItems={[]}
+              ariaLabel={t('Auth.account.menuAriaLabel')}
+              statusMessage={statusMessage}
+            />
+          </div>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }

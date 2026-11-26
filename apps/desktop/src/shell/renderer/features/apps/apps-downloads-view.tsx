@@ -81,6 +81,8 @@ export function AppsDownloadsView({ downloads, entries, onViewApp, onRetry }: {
   const [actionErrors, setActionErrors] = useState<string[]>([]);
   const [sourceError, setSourceError] = useState('');
   const [hintDismissed, setHintDismissed] = useState(() => readDownloadsHintDismissed());
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
   const pageHeadingRef = useRef<HTMLHeadingElement>(null);
   const rowRefs = useRef(new Map<string, HTMLButtonElement>());
   const draggedJobId = useRef<string | null>(null);
@@ -184,12 +186,28 @@ export function AppsDownloadsView({ downloads, entries, onViewApp, onRetry }: {
     const catalog = catalogTargetMatchesJob(matchingEntry?.catalogTarget ?? null, job) ? matchingEntry?.catalogTarget : null;
     const hint = phaseHint(job);
     const showHint = hint && (!packageJobIsTerminal(job) || failedDownloadNeedsAttention(job, jobs) || expanded);
-    return <li key={id} data-testid={`app-download-job-${id}`} className="min-w-0 space-y-3 border-b border-[var(--nimi-border-subtle)] p-4 last:border-b-0"
-      draggable={order && !blocked} onDragStart={() => { draggedJobId.current = id; }} onDragEnd={() => { draggedJobId.current = null; }}
-      onDragOver={(event) => { if (order && !blocked) event.preventDefault(); }} onDrop={(event) => {
+    const isDragging = draggedId === id;
+    const isDropTarget = dragOverId === id && draggedId !== null && draggedId !== id;
+    return <li key={id} data-testid={`app-download-job-${id}`}
+      data-dragging={isDragging ? 'true' : undefined}
+      data-drop-target={isDropTarget ? 'true' : undefined}
+      className={`min-w-0 space-y-3 border-b border-[var(--nimi-border-subtle)] p-4 transition-[opacity,background-color,border-color] duration-150 last:border-b-0 ${order && !blocked ? 'cursor-grab active:cursor-grabbing' : ''} ${isDragging ? 'opacity-50' : ''} ${isDropTarget ? 'border-t-2 border-t-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,transparent)]' : ''}`}
+      draggable={order && !blocked}
+      onDragStart={() => { draggedJobId.current = id; setDraggedId(id); }}
+      onDragEnd={() => { draggedJobId.current = null; setDraggedId(null); setDragOverId(null); }}
+      onDragOver={(event) => {
+        if (order && !blocked) {
+          event.preventDefault();
+          if (dragOverId !== id) setDragOverId(id);
+        }
+      }}
+      onDragLeave={() => { if (dragOverId === id) setDragOverId(null); }}
+      onDrop={(event) => {
         event.preventDefault();
         const dragged = queued.find((candidate) => packageJobKey(candidate) === draggedJobId.current);
         draggedJobId.current = null;
+        setDraggedId(null);
+        setDragOverId(null);
         if (!blocked && order && dragged && packageJobKey(dragged) !== id) void execute('reorder', [dragged], job.jobId);
       }}>
       <div className="flex items-center gap-3">

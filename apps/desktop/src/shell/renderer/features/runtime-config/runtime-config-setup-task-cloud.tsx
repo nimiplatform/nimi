@@ -246,7 +246,7 @@ export function RuntimeSetupTaskCloudPanel(props: {
           ) : null}
         </InlineAlert>
       ) : null}
-      <section className="space-y-4 rounded-3xl bg-[var(--nimi-surface-card)] p-5 sm:p-6">
+      <section className="space-y-4 rounded-2xl bg-[var(--nimi-surface-card)] p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold">{t('runtimeConfig.setupTask.cloud.connectionLabel', { defaultValue: 'Cloud service' })}</h2>
           {!showCreateForm ? <Button tone="ghost" size="sm" disabled={busy} onClick={() => setShowCreateForm(true)} data-testid="runtime-setup-cloud-add-connector">
@@ -332,7 +332,7 @@ export function RuntimeSetupTaskCloudPanel(props: {
       ) : null}
       </section>
       {selectedConnectorRef && connectors !== null ? (
-        <section className="space-y-4 rounded-3xl bg-[var(--nimi-surface-card)] p-5 sm:p-6" data-testid="runtime-setup-cloud-targets">
+        <section className="space-y-4 rounded-2xl bg-[var(--nimi-surface-card)] p-5 sm:p-6" data-testid="runtime-setup-cloud-targets">
           <h2 className="text-sm font-semibold">{t('runtimeConfig.setupTask.cloud.targetLabel', { defaultValue: 'Choose a model' })}</h2>
           {targets === null && !targetsError ? <LoadingSkeleton className="h-16 w-full" /> : null}
           {targetsError ? (
@@ -420,14 +420,14 @@ export function RuntimeSetupTaskCloudPanel(props: {
         <Button
           tone="primary"
           className="max-w-full whitespace-normal text-center"
-          disabled={!selectedTargetReady || busy}
+          loading={busy}
+          disabled={!selectedTargetReady}
           onClick={onSave}
           data-testid="runtime-setup-cloud-save"
         >
-          {busy
-            ? t('runtimeConfig.setupTask.cloud.saving', { defaultValue: 'Saving…' })
-            : props.ownerLabel ? t('runtimeConfig.setupTask.cloud.saveForOwner', { defaultValue: 'Save for {{owner}}', owner: props.ownerLabel })
-              : t('runtimeConfig.setupTask.cloud.saveRoute', { defaultValue: 'Save and use this model' })}
+          {props.ownerLabel
+            ? t('runtimeConfig.setupTask.cloud.saveForOwner', { defaultValue: 'Save for {{owner}}', owner: props.ownerLabel })
+            : t('runtimeConfig.setupTask.cloud.saveRoute', { defaultValue: 'Save and use this model' })}
         </Button>
       ) : null}
       </div>

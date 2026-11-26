@@ -324,6 +324,7 @@ export const sidebarZh: DefaultTheme.Sidebar = {
         { text: '桌面端', link: '/zh/desktop/' },
         { text: 'Realm', link: '/zh/realm/' },
         { text: 'Avatar', link: '/zh/avatar/' },
+        { text: 'Cognition', link: '/zh/cognition/' },
         { text: 'Nimi Coding', link: '/zh/nimicoding/' },
       ],
     },

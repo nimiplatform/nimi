@@ -1,6 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Button,
+  ConfirmDialog,
   InlineAlert,
   LoadingSkeleton,
   OverlayShell,
@@ -76,6 +77,7 @@ function LabChatSessionSurface({ runtime }: { readonly runtime: StudioRuntimeIns
   const [configOpen, setConfigOpen] = useState(false);
   const [preparing, setPreparing] = useState(false);
   const [switching, setSwitching] = useState(false);
+  const [confirmStartOverOpen, setConfirmStartOverOpen] = useState(false);
   const contextStartRef = useRef(0);
   const requestRef = useRef<ReturnType<typeof labChatSessionInput> | null>(null);
   const activeRef = useRef(true);
@@ -251,6 +253,11 @@ function LabChatSessionSurface({ runtime }: { readonly runtime: StudioRuntimeIns
           placeholder={t('CapabilityTests.textConversation.placeholder')}
           aria-label={t('CapabilityTests.textConversation.composer')}
           onChange={(event) => setDraft(event.currentTarget.value)}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter' || !(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey || event.nativeEvent.isComposing) return;
+            event.preventDefault();
+            if (!event.repeat && draft.trim() && !busy && !blocked && runTarget.canDispatch) send();
+          }}
         />
         <div className="lab-realtime__row">
           <Button type="button" size="sm" tone="primary" disabled={!draft.trim() || busy || blocked || !runTarget.canDispatch} onClick={send}>
@@ -259,7 +266,10 @@ function LabChatSessionSurface({ runtime }: { readonly runtime: StudioRuntimeIns
           <Button type="button" size="sm" tone="secondary" disabled={!session.canCancel} onClick={session.cancelCurrent}>
             {t('CapabilityTests.textConversation.stop')}
           </Button>
-          <Button type="button" size="sm" tone="ghost" disabled={!loaded || preparing || switching} onClick={startOver}>
+          <Button type="button" size="sm" tone="ghost" disabled={!loaded || preparing || switching} onClick={() => {
+            if (displayed.length > 0 && !loadError) setConfirmStartOverOpen(true);
+            else startOver();
+          }}>
             {t('CapabilityTests.textConversation.startOver')}
           </Button>
         </div>
@@ -304,6 +314,19 @@ function LabChatSessionSurface({ runtime }: { readonly runtime: StudioRuntimeIns
           ) : null}
         </Suspense>
       </OverlayShell>
+      <ConfirmDialog
+        open={confirmStartOverOpen}
+        title={t('CapabilityTests.textConversation.confirmStartOverTitle')}
+        message={t('CapabilityTests.textConversation.confirmStartOverMessage')}
+        confirmLabel={t('CapabilityTests.textConversation.startOver')}
+        cancelLabel={t('Common.cancel')}
+        confirmTone="danger"
+        onConfirm={() => {
+          setConfirmStartOverOpen(false);
+          startOver();
+        }}
+        onClose={() => setConfirmStartOverOpen(false)}
+      />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState as useRecordState } from 'react';
 import { useHomeDestination, useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert } from '@nimiplatform/kit/ui';
 import { CANONICAL_CAPABILITY_IDS } from '@nimiplatform/kit/core/runtime-capabilities';
 import { type NimiAIConfigOverwriteResult } from '@nimiplatform/kit/core/sdk-contract';
 import { AIConfigRecordControls, ModelConfigAIConfigSurface, type ModelConfigCapabilitySection, type ModelConfigCopy } from '@nimiplatform/kit/features/model-config';
@@ -451,7 +451,7 @@ export function AppsAIConfigSection({
             setRecordRef(result.record?.configRef);return true;
           }catch(e){setRecordError(e instanceof Error?e.message:String(e));return false;}
         }} />}
-      {recordError && <p role="alert">{recordError}</p>}
+      {recordError ? <InlineAlert tone="danger" className="mb-3">{recordError}</InlineAlert> : null}
       <ModelConfigAIConfigSurface key={recordRef ?? 'default'}
         context={{ owner: 'app-ai-config', appId }}
         capabilityContracts={CANONICAL_CAPABILITY_IDS}

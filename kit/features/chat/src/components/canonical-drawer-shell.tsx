@@ -1,4 +1,6 @@
+import { motion } from 'motion/react';
 import { IconButton, SidebarShell, cn } from '@nimiplatform/kit/ui';
+import { NIMI_SPRING_DEFAULT, nimiReducedFade, useNimiReducedMotion } from '@nimiplatform/kit/ui/motion';
 import { useEffect, type ReactNode } from 'react';
 
 export type CanonicalDrawerShellProps = {
@@ -18,6 +20,8 @@ export function CanonicalDrawerShell({
   widthClassName = 'w-[360px] max-w-[92vw]',
   children,
 }: CanonicalDrawerShellProps) {
+  const reducedMotion = useNimiReducedMotion();
+
   useEffect(() => {
     if (!open) {
       return;
@@ -34,42 +38,53 @@ export function CanonicalDrawerShell({
   }, [open, onClose]);
 
   return (
-    <SidebarShell
-      as="div"
-      inert={!open}
-      className={cn(
-        'absolute inset-y-0 right-0 z-30 rounded-none border-y-0 border-r-0 bg-[var(--nimi-sidebar-canvas)] shadow-[var(--nimi-elevation-floating)] transition-transform duration-[var(--nimi-motion-slow)] ease-[var(--nimi-motion-ease-standard)]',
-        widthClassName,
-        open ? 'translate-x-0' : 'pointer-events-none translate-x-full',
-      )}
+    <motion.div
+      role="dialog"
+      aria-label={title}
       aria-hidden={!open}
+      inert={!open}
+      initial={false}
+      animate={reducedMotion
+        ? { opacity: open ? 1 : 0, x: 0 }
+        : { opacity: open ? 1 : 0, x: open ? '0%' : '100%' }}
+      transition={reducedMotion ? nimiReducedFade() : NIMI_SPRING_DEFAULT}
+      className={cn(
+        'absolute inset-y-0 right-0 z-30',
+        widthClassName,
+        open ? 'pointer-events-auto' : 'pointer-events-none',
+      )}
       data-canonical-drawer-shell="true"
     >
-      <div className="flex h-full min-h-0 flex-col overflow-hidden">
-        <div className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--nimi-border-subtle)] px-4" data-canonical-drawer-header="true">
-          <div>
-            <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">{title}</p>
-            {subtitle ? (
-              <p className="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{subtitle}</p>
-            ) : null}
+      <SidebarShell
+        as="div"
+        className="h-full w-full rounded-none border-y-0 border-r-0 bg-[var(--nimi-sidebar-canvas)] shadow-[var(--nimi-elevation-floating)]"
+      >
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+          <div className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--nimi-border-subtle)] px-4" data-canonical-drawer-header="true">
+            <div>
+              <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">{title}</p>
+              {subtitle ? (
+                <p className="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{subtitle}</p>
+              ) : null}
+            </div>
+            <IconButton
+              onClick={onClose}
+              className="h-8 w-8 rounded-[var(--nimi-radius-full)]"
+              aria-label={`Close ${title}`}
+              icon={(
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              )}
+            />
           </div>
-          <IconButton
-            onClick={onClose}
-            className="h-8 w-8 rounded-[var(--nimi-radius-full)]"
-            aria-label={`Close ${title}`}
-            icon={(
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            )}
-          />
-        </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4" style={{ willChange: 'transform' }} data-canonical-drawer-scroll="true">
-          {children}
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4" data-canonical-drawer-scroll="true">
+            {children}
+          </div>
         </div>
-      </div>
-    </SidebarShell>
+      </SidebarShell>
+    </motion.div>
   );
 }

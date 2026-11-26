@@ -228,7 +228,7 @@ export function HomeHostStatusCardView({
               data-testid="home-machine-runtime"
               data-state={runtime}
               aria-label={t(RUNTIME_LABEL_KEY[runtime])}
-              className="inline-flex size-4 shrink-0 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+              className="-m-1.5 inline-flex size-7 shrink-0 items-center justify-center rounded-full transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
             >
               <span className={`size-2 rounded-full ${RUNTIME_DOT[runtime]}`} />
             </button>

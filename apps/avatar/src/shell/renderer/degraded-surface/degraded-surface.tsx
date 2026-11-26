@@ -62,7 +62,7 @@ export function DegradedSurface(props: DegradedSurfaceProps) {
       tone="overlay"
       elevation="modal"
       padding="none"
-      className={cn('avatar-degraded-surface nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]', `avatar-degraded-surface--${tone}`)}
+      className={cn('avatar-degraded-surface', `avatar-degraded-surface--${tone}`)}
       data-testid="avatar-degraded-surface"
       data-composition-state={composition.state}
       role={liveRegionRole}

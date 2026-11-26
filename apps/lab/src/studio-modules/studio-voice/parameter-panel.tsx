@@ -86,7 +86,7 @@ function SpeechSynthesizeFields(props: StudioParameterPanelProps) {
             options={voices.map((voice) => ({ value: voice.voiceAssetId, label: `${voice.voiceAssetId} · ${voice.creationSource} · ${voice.status}` }))}
             onValueChange={(voiceAssetId) => update({ ...parameters, voiceAssetId })}
           />
-          {voiceError ? <small>{voiceError}</small> : null}
+          {voiceError ? <small role="alert">{voiceError}</small> : null}
         </StudioParameterField>
       ),
     }] : []),
@@ -264,7 +264,8 @@ function VoiceCreateFields(props: StudioParameterPanelProps) {
         field: 'referenceAudioFile',
         label: t('Studio.parameters.fields.referenceAudioFile'),
         render: (routeDisabled: boolean) => (
-          <StudioParameterField label={t('Studio.parameters.fields.referenceAudioFile')}>
+          <fieldset className="studio-parameters__field">
+            <legend className="studio-parameters__label">{t('Studio.parameters.fields.referenceAudioFile')}</legend>
             <input ref={inputRef} className="studio-parameters__file-input" type="file" accept="audio/*,.wav,.mp3,.m4a,.ogg,.webm,.flac" disabled={props.disabled || routeDisabled} onChange={(event) => void selectFile(event)} />
             <div className="studio-parameters__file-row">
               <Button type="button" tone="ghost" size="sm" disabled={props.disabled || routeDisabled} leadingIcon={<Upload size={14} aria-hidden="true" />} onClick={() => inputRef.current?.click()}>
@@ -273,8 +274,8 @@ function VoiceCreateFields(props: StudioParameterPanelProps) {
               {parameters.referenceAudioFile ? <span>{parameters.referenceAudioFile.name}</span> : null}
               {parameters.referenceAudioFile ? <Button type="button" tone="ghost" size="sm" disabled={props.disabled || routeDisabled} onClick={() => { const next = { ...parameters }; delete next.referenceAudioFile; update(next); }}>{t('Studio.parameters.removeFile')}</Button> : null}
             </div>
-            {fileError ? <small>{fileError}</small> : null}
-          </StudioParameterField>
+            {fileError ? <small role="alert">{fileError}</small> : null}
+          </fieldset>
         ),
       },
       textField('languageHints', t('Studio.parameters.fields.languageHints'), 'zh, en'),

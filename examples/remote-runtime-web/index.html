@@ -5,7 +5,7 @@
   <header><a href="/" class="brand">远程写作台</a><span>独立网站 · Nimi 接入示例</span></header>
   <main>
     <aside aria-label="账号和连接">
-      <section id="sign-in"><h1>登录写作台</h1><p>这是网站自己的账号。登录后，再关联你选择的 Nimi 账号。</p>
+      <section id="sign-in"><h2>登录写作台</h2><p>这是网站自己的账号。登录后，再关联你选择的 Nimi 账号。</p>
         <form id="credentials"><label>网站用户名<input name="username" autocomplete="username" required minlength="3" maxlength="40" pattern="[A-Za-z0-9_-]+"></label>
           <label>网站密码<input name="password" type="password" autocomplete="current-password" required minlength="12" maxlength="128"></label>
           <p class="help">用户名用字母、数字、下划线或短横线；密码至少 12 位。不要填写 Nimi 密码。</p>
@@ -46,7 +46,7 @@
       <p class="privacy">AI 输入和生成内容由浏览器与 PC 直接传输。写作台服务器只保存网站账号、Nimi 关联，并协调连接。</p>
     </article>
   </main>
-  <div id="notice" role="alert" hidden></div>
+  <div id="notice" role="alert" hidden><span id="notice-text"></span><button id="notice-dismiss" type="button" class="notice-dismiss" aria-label="关闭提示">×</button></div>
   <script type="module" src="/client.js"></script>
 </body>
 </html>

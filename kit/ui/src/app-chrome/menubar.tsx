@@ -2,14 +2,14 @@ import React, { Fragment, useId, useRef, useState, type KeyboardEvent } from 're
 import type { NimiAppCommandState, NimiAppMenu } from '@nimiplatform/kit/core/app-commands';
 import { Button } from '../components/button.js';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/popover.js';
-import { collectFocusableElements } from '../a11y/focus.js';
+import { collectFocusableElements, FOCUS_RING_CLASS_NAME } from '../a11y/focus.js';
 
 export type NimiMenubarCommand = { readonly id: string; readonly label: string; readonly menu: NimiAppMenu; readonly shortcut?: string; readonly order?: number; readonly group?: string; readonly state: NimiAppCommandState };
 const menus: readonly NimiAppMenu[] = ['file', 'edit', 'view', 'help'];
 const defaultCommandOrder = 50;
 const menuLabels = { en: { file: 'File', edit: 'Edit', view: 'View', help: 'Help', all: 'Menu' }, zh: { file: '文件', edit: '编辑', view: '视图', help: '帮助', all: '菜单' } };
 const panelClass = 'nimi-menubar__panel min-w-52 p-[var(--nimi-space-1)] max-h-[calc(100vh-var(--nimi-space-10))] max-w-[calc(100vw-var(--nimi-space-5))] overflow-y-auto [-webkit-app-region:no-drag]';
-const itemClass = 'nimi-menubar__item flex min-h-[var(--nimi-sizing-action-sm-height)] w-full items-center gap-[var(--nimi-space-3)] rounded-[var(--nimi-radius-sm)] px-[var(--nimi-space-3)] py-[var(--nimi-space-2)] text-[length:var(--nimi-type-body-sm-size)] leading-[var(--nimi-type-body-sm-line-height)] text-[var(--nimi-text-primary)] outline-none hover:bg-[var(--nimi-action-ghost-hover)] focus-visible:bg-[var(--nimi-action-ghost-hover)] focus-visible:ring-1 focus-visible:ring-[var(--nimi-border-focus)] disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]';
+const itemClass = `nimi-menubar__item flex min-h-[var(--nimi-sizing-action-sm-height)] w-full items-center gap-[var(--nimi-space-3)] rounded-[var(--nimi-radius-sm)] px-[var(--nimi-space-3)] py-[var(--nimi-space-2)] text-[length:var(--nimi-type-body-sm-size)] leading-[var(--nimi-type-body-sm-line-height)] text-[var(--nimi-text-primary)] transition-colors duration-[var(--nimi-motion-fast)] hover:bg-[var(--nimi-action-ghost-hover)] active:bg-[var(--nimi-surface-active)] focus-visible:bg-[var(--nimi-action-ghost-hover)] ${FOCUS_RING_CLASS_NAME} disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]`;
 const separatorClass = 'nimi-menubar__separator mx-[var(--nimi-space-2)] my-[var(--nimi-space-1)] h-px bg-[var(--nimi-border-subtle)]';
 
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-kit-app-chrome

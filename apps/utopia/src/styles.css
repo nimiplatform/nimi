@@ -30,6 +30,7 @@ body,
   overflow: hidden;
   background: #e9e2d2;
   color: var(--utopia-ink-strong);
+  font-optical-sizing: auto;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
@@ -105,7 +106,7 @@ body,
   border: 1.5px solid var(--utopia-parchment-border);
   background: var(--utopia-parchment-card);
   color: var(--utopia-ink-body);
-  font-size: 13.5px;
+  font-size: 0.84375rem;
   font-weight: 600;
   box-shadow: 0 8px 24px rgba(48, 35, 22, 0.12);
 }
@@ -138,7 +139,7 @@ body,
   box-shadow:
     0 8px 24px rgba(40, 28, 16, 0.14),
     inset 0 1px 0 rgba(255, 255, 255, 0.82);
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   flex-wrap: wrap;
   pointer-events: auto;
   transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease;
@@ -181,7 +182,7 @@ body,
 }
 
 .utopia-horizon-title {
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 800;
   letter-spacing: 0.01em;
   color: var(--utopia-ink-strong);
@@ -189,7 +190,7 @@ body,
 
 .utopia-horizon-theme,
 .utopia-horizon-loading {
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   font-weight: 600;
   padding: 1px 7px;
   border-radius: 999px;
@@ -201,19 +202,19 @@ body,
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  height: 28px;
-  padding: 0 10px;
+  min-height: 28px;
+  padding: 3px 10px;
   border-radius: 999px;
   border: 1.25px solid rgba(94, 72, 52, 0.22);
   background: var(--utopia-parchment-card);
   color: var(--utopia-ink-body);
-  font-size: 12px;
+  font-size: 0.75rem;
   white-space: nowrap;
   box-shadow: 0 1px 2px rgba(46, 34, 22, 0.06);
 }
 
 .utopia-horizon-pill .utopia-pill-kicker {
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: var(--utopia-ink-muted);
 }
 
@@ -264,7 +265,7 @@ body,
   align-items: center;
   padding: 1px 6px;
   border-radius: 999px;
-  font-size: 10.5px;
+  font-size: 0.6875rem;
   font-weight: 600;
   background: rgba(126, 98, 68, 0.12);
   color: #6b4e2e;
@@ -287,7 +288,7 @@ body,
   border: 1.25px solid rgba(186, 110, 34, 0.45);
   background: #fff9eb;
   color: #5c340b;
-  font-size: 12px;
+  font-size: 0.75rem;
   box-shadow: 0 3px 10px rgba(64, 42, 18, 0.08);
 }
 
@@ -304,7 +305,7 @@ body,
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px dashed rgba(126, 98, 68, 0.24);
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   line-height: 1.45;
   color: var(--utopia-ink-body);
   cursor: pointer;
@@ -324,7 +325,7 @@ body,
   border: 1px solid var(--nimi-status-warning-soft-border);
   background: var(--nimi-status-warning-soft-bg);
   color: var(--nimi-status-warning-soft-text);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 .utopia-horizon-actions {
@@ -398,11 +399,11 @@ body,
 }
 
 .utopia-ribbon-nav-group .utopia-toolbar-btn {
-  height: 28px;
+  min-height: 28px;
   border-color: transparent;
   background: transparent;
   box-shadow: none;
-  padding: 0 11px;
+  padding: 3px 11px;
 }
 
 .utopia-ribbon-nav-group .utopia-toolbar-btn:hover:not(:disabled) {
@@ -420,13 +421,13 @@ body,
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  height: 31px;
-  padding: 0 12px;
+  min-height: 31px;
+  padding: 4px 12px;
   border-radius: 999px;
   border: 1.25px solid rgba(94, 72, 52, 0.24);
   background: var(--utopia-parchment-card);
   color: var(--utopia-ink-strong);
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -488,6 +489,10 @@ body,
 .utopia-icebreaker-chip:focus-visible,
 .utopia-journal-card-trigger:focus-visible,
 .utopia-place-unlock-btn:focus-visible,
+.utopia-place-close-btn:focus-visible,
+.utopia-voice-btn:focus-visible,
+.utopia-postcard-resident-row:focus-visible,
+.utopia-mini-btn:focus-visible,
 .utopia-chibi-mini-btn:focus-visible,
 .utopia-wardrobe-action-btn:focus-visible,
 .utopia-wardrobe-pill:focus-visible,
@@ -499,6 +504,54 @@ body,
 .utopia-minimap-collapse-btn:focus-visible {
   outline: 2px solid #c88728;
   outline-offset: 2px;
+}
+
+.utopia-mini-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1.25px solid rgba(94, 72, 52, 0.28);
+  background: var(--utopia-parchment-card);
+  color: var(--utopia-ink-strong);
+  font-size: 0.71875rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 130ms ease, border-color 130ms ease, transform 120ms ease;
+}
+
+.utopia-mini-btn:hover:not(:disabled) {
+  border-color: #8c6432;
+  background: #fff8e5;
+}
+
+.utopia-toolbar-btn:active:not(:disabled),
+.utopia-horizon-pill.is-interactive:active:not(:disabled),
+.utopia-anchor-pin-btn:active:not(:disabled),
+.utopia-landmark-pin-btn:active:not(:disabled),
+.utopia-dock-resident-chip:active:not(:disabled),
+.utopia-resident-pill:active:not(:disabled),
+.utopia-mini-resident-btn:active:not(:disabled),
+.utopia-param-option-btn:active:not(:disabled),
+.utopia-tab-btn:active:not(:disabled),
+.utopia-drawer-close-btn:active:not(:disabled),
+.utopia-cam-btn:active:not(:disabled),
+.utopia-cam-reset-btn:active:not(:disabled),
+.utopia-icebreaker-chip:active:not(:disabled),
+.utopia-place-unlock-btn:active:not(:disabled),
+.utopia-place-close-btn:active:not(:disabled),
+.utopia-voice-btn:active:not(:disabled),
+.utopia-mini-btn:active:not(:disabled),
+.utopia-chibi-mini-btn:active:not(:disabled),
+.utopia-wardrobe-action-btn:active:not(:disabled),
+.utopia-wardrobe-pill:active:not(:disabled),
+.utopia-minimap-chip:active:not(:disabled),
+.utopia-minimap-toggle-pill:active:not(:disabled),
+.utopia-minimap-collapse-btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 /* ── Companion Portrait Avatar Medallion ── */
@@ -520,25 +573,25 @@ body,
 .utopia-companion-avatar.size-xs {
   width: 22px;
   height: 22px;
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 
 .utopia-companion-avatar.size-sm {
   width: 29px;
   height: 29px;
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 .utopia-companion-avatar.size-md {
   width: 36px;
   height: 36px;
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .utopia-companion-avatar.size-lg {
   width: 48px;
   height: 48px;
-  font-size: 18px;
+  font-size: 1.125rem;
 }
 
 .utopia-companion-avatar-img {
@@ -832,11 +885,11 @@ body,
 
 @keyframes utopiaBalloonBob {
   0%, 100% {
-    margin-top: 0;
+    transform: translateY(0);
     opacity: 0.75;
   }
   50% {
-    margin-top: -6px;
+    transform: translateY(-6px);
     opacity: 1;
   }
 }
@@ -890,7 +943,7 @@ body,
   position: absolute;
   transform: translate(-50%, -50%);
   pointer-events: auto;
-  transition: transform 150ms ease;
+  will-change: transform;
 }
 
 .utopia-landmark-node:hover,
@@ -907,7 +960,7 @@ body,
   border: 1.4px solid rgba(114, 84, 46, 0.76);
   background: rgba(255, 249, 235, 0.94);
   color: #4c3622;
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   font-weight: 700;
   letter-spacing: 0.01em;
   white-space: nowrap;
@@ -960,7 +1013,7 @@ body,
   flex-direction: column;
   align-items: center;
   pointer-events: auto;
-  transition: transform 160ms ease;
+  will-change: transform;
 }
 
 .utopia-anchor-node:hover {
@@ -976,7 +1029,7 @@ body,
   border: 1.65px solid var(--utopia-ink-outline);
   background: rgba(255, 253, 246, 0.96);
   color: var(--utopia-ink-strong);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.01em;
   box-shadow:
@@ -1038,14 +1091,14 @@ body,
   background: #f3b844;
   border: 1px solid #6f4f20;
   color: #3f2a0c;
-  font-size: 10px;
+  font-size: 0.6875rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
 
 .utopia-anchor-closed-label,
 .utopia-anchor-quarter-tag {
-  font-size: 10px;
+  font-size: 0.6875rem;
   font-weight: 700;
   padding: 1px 5px;
   border-radius: 999px;
@@ -1369,7 +1422,7 @@ body,
   border: 1.5px solid #4e3d2f;
   background: #fffdf6;
   color: #3c2f25;
-  font-size: 10.5px;
+  font-size: 0.6875rem;
   font-weight: 700;
   white-space: nowrap;
   box-shadow: 0 3px 8px rgba(36, 25, 14, 0.18);
@@ -1399,7 +1452,7 @@ body,
 
 .utopia-chibi-copresent-dot {
   font-style: normal;
-  font-size: 9.5px;
+  font-size: 0.6875rem;
   padding: 0 4px;
   border-radius: 999px;
   background: rgba(126, 98, 68, 0.14);
@@ -1408,7 +1461,7 @@ body,
 
 .utopia-chibi-thought-dot {
   padding: 2px 6.5px;
-  font-size: 11px;
+  font-size: 0.6875rem;
   animation: utopiaBubbleFloat 2.4s ease-in-out infinite;
 }
 
@@ -1424,7 +1477,7 @@ body,
 .utopia-chibi-sparkle-burst {
   position: absolute;
   top: -18px;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 800;
   color: #f59e0b;
   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.95);
@@ -1452,14 +1505,15 @@ body,
   align-items: center;
   gap: 2px;
   pointer-events: none;
-  animation: utopiaBubbleFloat 2.6s ease-in-out infinite;
+  will-change: transform;
 }
 
 .utopia-duo-notes {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   color: #d97706;
   text-shadow: 0 1px 0 #fffdf6;
+  animation: utopiaBubbleFloat 2.6s ease-in-out infinite;
 }
 
 .utopia-duo-cloud-pill {
@@ -1471,10 +1525,11 @@ body,
   border: 1.6px solid #6e4f20;
   background: #fff6dc;
   color: #4a310e;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   white-space: nowrap;
   box-shadow: 0 4px 10px rgba(42, 28, 12, 0.2);
+  animation: utopiaBubbleFloat 2.6s ease-in-out infinite;
 }
 
 /* Crisp Storybook Nameplate Under Boots */
@@ -1490,7 +1545,7 @@ body,
   border: 1.25px solid rgba(74, 58, 45, 0.36);
   background: rgba(255, 253, 246, 0.94);
   color: #382b21;
-  font-size: 10.5px;
+  font-size: 0.6875rem;
   font-weight: 700;
   line-height: 1.25;
   white-space: nowrap;
@@ -1523,11 +1578,12 @@ body,
   z-index: 76;
   max-width: min(372px, calc(100% - 28px));
   pointer-events: auto;
-  transition: top 240ms ease;
+  transform: translateY(0);
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .is-hud-hidden .utopia-place-floating-sheet {
-  top: 14px;
+  transform: translateY(-50px);
 }
 
 .utopia-place-caption-card {
@@ -1539,7 +1595,7 @@ body,
   border: 1.5px solid rgba(92, 71, 50, 0.28);
   background: rgba(255, 253, 246, 0.97);
   color: var(--utopia-ink-strong);
-  font-size: 12px;
+  font-size: 0.75rem;
   box-shadow: 0 12px 30px rgba(34, 24, 14, 0.22);
 }
 
@@ -1554,7 +1610,7 @@ body,
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13.5px;
+  font-size: 0.84375rem;
   color: var(--utopia-ink-strong);
 }
 
@@ -1565,7 +1621,7 @@ body,
 }
 
 .utopia-place-status-chip {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   padding: 1.5px 8px;
   border-radius: 999px;
@@ -1590,7 +1646,7 @@ body,
   border: 1px solid rgba(94, 72, 52, 0.22);
   background: #f5ede0;
   color: var(--utopia-ink-strong);
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1;
   cursor: pointer;
 }
@@ -1616,13 +1672,13 @@ body,
   background: #fff5db;
   border: 1px solid rgba(196, 136, 40, 0.3);
   color: #5c3d12;
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   font-weight: 600;
 }
 
 .utopia-place-activities-line {
   margin: 0;
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   color: var(--utopia-ink-muted);
 }
 
@@ -1637,7 +1693,7 @@ body,
 }
 
 .utopia-place-companions-kicker {
-  font-size: 10.5px;
+  font-size: 0.6875rem;
   font-weight: 800;
   color: #8b5b18;
   letter-spacing: 0.02em;
@@ -1649,7 +1705,7 @@ body,
   border-radius: 9px;
   background: rgba(126, 98, 68, 0.08);
   color: var(--utopia-ink-muted);
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   line-height: 1.45;
 }
 
@@ -1660,7 +1716,7 @@ body,
   gap: 8px;
   padding-top: 7px;
   border-top: 1px dashed rgba(94, 72, 52, 0.26);
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   color: var(--utopia-ink-body);
 }
 
@@ -1671,7 +1727,7 @@ body,
   border: 1.5px solid var(--utopia-gold-border);
   background: linear-gradient(180deg, var(--utopia-gold-top), var(--utopia-gold-bottom));
   color: #412b0d;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   cursor: pointer;
 }
@@ -1692,7 +1748,7 @@ body,
 }
 
 .utopia-landmark-honesty-note {
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: var(--utopia-ink-muted);
 }
 
@@ -1732,7 +1788,7 @@ body,
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   font-weight: 800;
   color: var(--utopia-ink-body);
   white-space: nowrap;
@@ -1751,7 +1807,7 @@ body,
   background: #f5e6c4;
   border: 1px solid rgba(111, 79, 32, 0.3);
   color: #4a3210;
-  font-size: 10.5px;
+  font-size: 0.6875rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
@@ -1805,12 +1861,12 @@ body,
 }
 
 .utopia-dock-resident-name {
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   font-weight: 700;
 }
 
 .utopia-dock-resident-state {
-  font-size: 10px;
+  font-size: 0.6875rem;
   color: var(--utopia-ink-muted);
   max-width: 118px;
   overflow: hidden;
@@ -1843,13 +1899,13 @@ body,
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  height: 30px;
-  padding: 0 11px;
+  min-height: 30px;
+  padding: 4px 11px;
   border-radius: 999px;
   border: 1.5px solid rgba(92, 71, 50, 0.28);
   background: rgba(253, 249, 240, 0.95);
   color: var(--utopia-ink-strong);
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   font-weight: 700;
   cursor: pointer;
   box-shadow:
@@ -1889,12 +1945,12 @@ body,
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   color: var(--utopia-ink-strong);
 }
 
 .utopia-minimap-title small {
-  font-size: 10px;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: var(--utopia-ink-muted);
 }
@@ -1905,7 +1961,7 @@ body,
   border: 1px solid rgba(94, 72, 52, 0.22);
   background: var(--utopia-parchment-subtle);
   color: var(--utopia-ink-body);
-  font-size: 10.5px;
+  font-size: 0.6875rem;
   font-weight: 700;
   cursor: pointer;
 }
@@ -2050,7 +2106,7 @@ body,
   border: 1px solid rgba(94, 72, 52, 0.22);
   background: var(--utopia-parchment-card);
   color: var(--utopia-ink-strong);
-  font-size: 10.5px;
+  font-size: 0.6875rem;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
@@ -2074,7 +2130,7 @@ body,
 
 .utopia-minimap-chip-count {
   font-style: normal;
-  font-size: 9.5px;
+  font-size: 0.6875rem;
   font-weight: 800;
   padding: 0 4px;
   border-radius: 999px;
@@ -2109,7 +2165,7 @@ body,
   border: 1px solid rgba(94, 72, 52, 0.22);
   background: var(--utopia-parchment-card);
   color: var(--utopia-ink-strong);
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
@@ -2132,20 +2188,20 @@ body,
 .utopia-cam-zoom-readout {
   min-width: 40px;
   text-align: center;
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--utopia-ink-body);
 }
 
 .utopia-cam-reset-btn {
-  height: 26px;
-  padding: 0 9px;
+  min-height: 26px;
+  padding: 3px 9px;
   border-radius: 999px;
   border: 1px solid rgba(94, 72, 52, 0.22);
   background: var(--utopia-parchment-card);
   color: var(--utopia-ink-strong);
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   font-weight: 700;
   cursor: pointer;
 }
@@ -2174,18 +2230,6 @@ body,
     0 20px 48px rgba(34, 24, 14, 0.24),
     inset 0 1px 0 rgba(255, 255, 255, 0.85);
   overflow: hidden;
-  animation: utopiaDrawerEnter 240ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-@keyframes utopiaDrawerEnter {
-  from {
-    transform: translateX(18px);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
 }
 
 .utopia-drawer-top-strip {
@@ -2206,15 +2250,16 @@ body,
 }
 
 .utopia-tab-btn {
-  height: 31px;
+  min-height: 31px;
+  padding: 4px 8px;
   border-radius: 999px;
   border: 1px solid transparent;
   background: transparent;
   color: var(--utopia-ink-body);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 130ms ease, color 130ms ease;
+  transition: background-color 130ms ease, color 130ms ease, transform 120ms ease;
 }
 
 .utopia-tab-btn:hover {
@@ -2236,7 +2281,7 @@ body,
   border: 1px solid rgba(94, 72, 52, 0.22);
   background: var(--utopia-parchment-card);
   color: var(--utopia-ink-strong);
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
@@ -2295,7 +2340,7 @@ body,
   border: 1.5px solid var(--utopia-stage-accent);
   background: var(--utopia-stage-badge-bg);
   color: var(--utopia-stage-badge-text);
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   box-shadow: 0 3px 10px rgba(10, 22, 36, 0.14);
 }
 
@@ -2318,7 +2363,7 @@ body,
 }
 
 .utopia-shared-act-tag {
-  font-size: 10.5px;
+  font-size: 0.6875rem;
   padding: 1px 6px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--utopia-stage-accent) 18%, transparent);
@@ -2334,7 +2379,7 @@ body,
   border: 1px solid color-mix(in srgb, var(--utopia-stage-accent) 32%, rgba(120, 136, 144, 0.36));
   background: var(--utopia-stage-badge-bg);
   color: var(--utopia-stage-badge-text);
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   box-shadow: 0 2px 6px rgba(10, 22, 36, 0.12);
   cursor: pointer;
 }
@@ -2349,7 +2394,7 @@ body,
 }
 
 .utopia-resident-sub {
-  font-size: 11px;
+  font-size: 0.6875rem;
   opacity: 0.82;
   max-width: 100px;
   overflow: hidden;
@@ -2360,7 +2405,7 @@ body,
 .utopia-solitary-chip,
 .utopia-copresent-chip,
 .utopia-overflow-chip {
-  font-size: 10.5px;
+  font-size: 0.6875rem;
   padding: 1px 5px;
   border-radius: 999px;
   background: rgba(120, 136, 144, 0.18);
@@ -2375,7 +2420,7 @@ body,
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--utopia-stage-accent) 36%, rgba(120, 136, 144, 0.3));
   background: color-mix(in srgb, var(--utopia-stage-accent) 12%, var(--utopia-stage-badge-bg));
-  font-size: 11.5px;
+  font-size: 0.71875rem;
 }
 
 .utopia-interaction-heading {
@@ -2440,7 +2485,7 @@ body,
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 600;
   padding: 2px 9px;
   border-radius: 999px;
@@ -2449,19 +2494,19 @@ body,
 }
 
 .utopia-journal-open-stat {
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   opacity: 0.75;
 }
 
 .utopia-journal-heading {
   margin: 2px 0 0;
-  font-size: 17px;
+  font-size: 1.0625rem;
   font-weight: 700;
 }
 
 .utopia-journal-summary {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.52;
   opacity: 0.9;
 }
@@ -2482,7 +2527,7 @@ body,
   padding: 2px 8px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--utopia-stage-accent) 14%, transparent);
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   font-weight: 500;
 }
 
@@ -2538,18 +2583,18 @@ body,
 
 .utopia-journal-title {
   font-weight: 600;
-  font-size: 13.5px;
+  font-size: 0.84375rem;
 }
 
 .utopia-journal-meta {
   margin-left: auto;
-  font-size: 11px;
+  font-size: 0.6875rem;
   opacity: 0.78;
 }
 
 .utopia-journal-traits {
   margin: 0;
-  font-size: 12px;
+  font-size: 0.75rem;
   line-height: 1.48;
   opacity: 0.88;
 }
@@ -2582,7 +2627,7 @@ body,
   border: 1px solid rgba(94, 72, 52, 0.18);
   background: var(--utopia-parchment-card);
   color: var(--utopia-ink-strong);
-  font-size: 13px;
+  font-size: 0.8125rem;
   box-shadow: 0 2px 6px rgba(42, 30, 18, 0.05);
 }
 
@@ -2606,14 +2651,14 @@ body,
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   font-weight: 700;
   color: #9a6216;
 }
 
 .utopia-postcard-summary {
   margin: 0;
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   line-height: 1.55;
   color: var(--utopia-ink-strong);
 }
@@ -2633,7 +2678,7 @@ body,
   border: 1px solid rgba(186, 128, 38, 0.36);
   background: #fff5d8;
   color: #5c3d12;
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   font-weight: 600;
 }
 
@@ -2664,7 +2709,7 @@ body,
 }
 
 .utopia-postcard-res-name {
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   font-weight: 700;
   color: var(--utopia-ink-strong);
   white-space: nowrap;
@@ -2682,7 +2727,7 @@ body,
 
 .utopia-postcard-res-state {
   margin-left: auto;
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   color: var(--utopia-ink-muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2699,7 +2744,7 @@ body,
 
 .utopia-section-header h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 700;
   color: var(--utopia-ink-strong);
 }
@@ -2711,14 +2756,14 @@ body,
 }
 
 .utopia-muted-caption {
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   color: var(--utopia-ink-muted);
 }
 
 .utopia-empty-hint,
 .utopia-causal-note {
   margin: 0;
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   line-height: 1.52;
   color: var(--utopia-ink-body);
 }
@@ -2814,7 +2859,7 @@ body,
 }
 
 .utopia-time-tag {
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   font-variant-numeric: tabular-nums;
   color: var(--utopia-ink-muted);
 }
@@ -2822,7 +2867,7 @@ body,
 .utopia-journal-item-body,
 .utopia-shared-item-sub {
   margin: 0;
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   line-height: 1.48;
   color: var(--utopia-ink-body);
 }
@@ -2852,7 +2897,7 @@ body,
 
 .utopia-warm-scene-prose {
   margin: 0;
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   line-height: 1.55;
   color: var(--utopia-ink-body);
 }
@@ -2863,7 +2908,7 @@ body,
   padding: 0;
   background: transparent;
   color: #9e6214;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
 }
@@ -2891,7 +2936,7 @@ body,
 }
 
 .utopia-agent-portrait-tag {
-  font-size: 9.5px;
+  font-size: 0.6875rem;
   font-weight: 700;
   line-height: 1.1;
   padding: 1px 6px;
@@ -2943,14 +2988,14 @@ body,
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--utopia-ink-strong);
 }
 
 .utopia-chibi-studio-title em {
   font-style: normal;
-  font-size: 10px;
+  font-size: 0.6875rem;
   font-weight: 700;
   padding: 0 5px;
   border-radius: 999px;
@@ -2960,7 +3005,7 @@ body,
 }
 
 .utopia-chibi-studio-copy small {
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: var(--utopia-ink-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -2975,13 +3020,13 @@ body,
 }
 
 .utopia-chibi-mini-btn {
-  height: 26px;
-  padding: 0 9px;
+  min-height: 26px;
+  padding: 3px 9px;
   border-radius: 999px;
   border: 1.25px solid rgba(94, 72, 52, 0.26);
   background: var(--utopia-parchment-card);
   color: var(--utopia-ink-strong);
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   font-weight: 700;
   cursor: pointer;
   transition: background-color 130ms ease, border-color 130ms ease, transform 120ms ease;
@@ -3061,11 +3106,11 @@ body,
 }
 
 .utopia-wardrobe-stage-copy strong {
-  font-size: 12.5px;
+  font-size: 0.78125rem;
 }
 
 .utopia-wardrobe-stage-copy small {
-  font-size: 11px;
+  font-size: 0.6875rem;
   line-height: 1.4;
   color: var(--utopia-ink-muted);
 }
@@ -3078,13 +3123,13 @@ body,
 }
 
 .utopia-wardrobe-action-btn {
-  height: 24px;
-  padding: 0 9px;
+  min-height: 24px;
+  padding: 2px 9px;
   border-radius: 999px;
   border: 1px solid rgba(94, 72, 52, 0.26);
   background: var(--utopia-parchment-subtle);
   color: var(--utopia-ink-strong);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   cursor: pointer;
 }
@@ -3107,7 +3152,7 @@ body,
 }
 
 .utopia-wardrobe-label {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   color: var(--utopia-ink-muted);
   padding-top: 3px;
@@ -3126,7 +3171,7 @@ body,
   border: 1px solid rgba(94, 72, 52, 0.2);
   background: var(--utopia-parchment-subtle);
   color: var(--utopia-ink-body);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 120ms ease, border-color 120ms ease;
@@ -3183,11 +3228,11 @@ body,
 }
 
 .utopia-spotlight-name-row strong {
-  font-size: 14.5px;
+  font-size: 0.90625rem;
 }
 
 .utopia-presence-pill {
-  font-size: 10.5px;
+  font-size: 0.6875rem;
   font-weight: 700;
   padding: 1px 7px;
   border-radius: 999px;
@@ -3210,13 +3255,13 @@ body,
 
 .utopia-spotlight-origin {
   margin: 0;
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   color: var(--utopia-ink-muted);
 }
 
 .utopia-spotlight-now {
   margin: 1px 0 0;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--utopia-ink-body);
 }
 
@@ -3224,13 +3269,13 @@ body,
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  height: 28px;
-  padding: 0 10px;
+  min-height: 28px;
+  padding: 3px 10px;
   border-radius: 999px;
   border: 1.25px solid rgba(94, 72, 52, 0.24);
   background: var(--utopia-parchment-subtle);
   color: var(--utopia-ink-strong);
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
@@ -3254,7 +3299,7 @@ body,
   border: 1px solid rgba(154, 98, 22, 0.3);
   background: #fff8e6;
   color: var(--utopia-ink-strong);
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   font-weight: 500;
   text-align: left;
   cursor: pointer;
@@ -3331,7 +3376,7 @@ body,
 }
 
 .utopia-resident-quick-now {
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: var(--utopia-ink-muted);
   max-width: 196px;
   white-space: nowrap;
@@ -3343,7 +3388,7 @@ body,
   margin: 0;
   display: grid;
   gap: 5px;
-  font-size: 12px;
+  font-size: 0.75rem;
   padding: 8px 9px;
   border-radius: 10px;
   background: var(--utopia-parchment-card);
@@ -3368,7 +3413,7 @@ body,
 
 .utopia-frame-dl dt {
   color: var(--utopia-ink-muted);
-  font-size: 11.5px;
+  font-size: 0.71875rem;
 }
 
 .utopia-frame-dl dd {
@@ -3389,12 +3434,12 @@ body,
 }
 
 .utopia-solitude-label {
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   font-weight: 600;
 }
 
 .utopia-solitude-copy small {
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   color: var(--utopia-ink-muted);
   line-height: 1.42;
 }
@@ -3432,7 +3477,7 @@ body,
   display: flex;
   align-items: flex-start;
   gap: 7px;
-  font-size: 12.5px;
+  font-size: 0.78125rem;
 }
 
 .utopia-chat-msg.is-user {
@@ -3456,7 +3501,7 @@ body,
 }
 
 .utopia-chat-role {
-  font-size: 10.5px;
+  font-size: 0.6875rem;
   font-weight: 700;
   color: var(--utopia-ink-muted);
 }
@@ -3533,13 +3578,13 @@ body,
 }
 
 .utopia-param-opt-summary {
-  font-size: 12px;
+  font-size: 0.75rem;
   line-height: 1.45;
   color: var(--utopia-ink-body);
 }
 
 .utopia-param-opt-causal {
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   font-weight: 700;
   color: #9e6214;
 }
@@ -3588,12 +3633,12 @@ body,
   display: flex;
   align-items: baseline;
   gap: 6px;
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   line-height: 1.48;
 }
 
 .utopia-preview-tag {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   padding: 1px 6px;
   border-radius: 5px;
@@ -3708,7 +3753,7 @@ body,
   border: 1px solid rgba(74, 58, 45, 0.35);
   background: rgba(255, 253, 246, 0.94);
   color: var(--utopia-ink-strong);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
 }
 
@@ -3727,7 +3772,7 @@ body,
 }
 
 .utopia-pack-place-chip {
-  font-size: 11px;
+  font-size: 0.6875rem;
   padding: 1px 7px;
   border-radius: 999px;
   border: 1px solid rgba(94, 72, 52, 0.2);
@@ -3781,14 +3826,102 @@ body,
   .utopia-kinetic-balloon-glint,
   .utopia-kinetic-bird-flock,
   .utopia-bird-svg,
+  .utopia-soundwave-bars i,
+  .utopia-chibi-focus-ring,
   .utopia-chibi-figure,
+  .utopia-chibi-arm,
+  .utopia-chibi-leg,
   .utopia-chibi-wings,
   .utopia-chibi-eyes,
   .utopia-chibi-thought-dot,
+  .utopia-chibi-sparkle-burst,
+  .utopia-map-click-ripple,
   .utopia-shared-duo-cloud,
+  .utopia-duo-notes,
+  .utopia-duo-cloud-pill,
   .utopia-pack-card,
   .utopia-pack-cover {
     transition: none !important;
     animation: none !important;
+  }
+
+  .utopia-horizon-bar,
+  .utopia-floating-bottom-left,
+  .utopia-floating-bottom-right-stack,
+  .utopia-floating-camera-dock,
+  .utopia-place-floating-sheet {
+    transition: opacity 160ms ease !important;
+  }
+
+  .utopia-horizon-bar.is-hud-hidden,
+  .utopia-floating-bottom-left.is-egressed {
+    transform: none !important;
+  }
+
+  .utopia-toolbar-btn:active:not(:disabled),
+  .utopia-horizon-pill.is-interactive:active:not(:disabled),
+  .utopia-anchor-pin-btn:active:not(:disabled),
+  .utopia-landmark-pin-btn:active:not(:disabled),
+  .utopia-dock-resident-chip:active:not(:disabled),
+  .utopia-resident-pill:active:not(:disabled),
+  .utopia-mini-resident-btn:active:not(:disabled),
+  .utopia-param-option-btn:active:not(:disabled),
+  .utopia-tab-btn:active:not(:disabled),
+  .utopia-drawer-close-btn:active:not(:disabled),
+  .utopia-cam-btn:active:not(:disabled),
+  .utopia-cam-reset-btn:active:not(:disabled),
+  .utopia-icebreaker-chip:active:not(:disabled),
+  .utopia-place-unlock-btn:active:not(:disabled),
+  .utopia-place-close-btn:active:not(:disabled),
+  .utopia-voice-btn:active:not(:disabled),
+  .utopia-mini-btn:active:not(:disabled),
+  .utopia-chibi-mini-btn:active:not(:disabled),
+  .utopia-wardrobe-action-btn:active:not(:disabled),
+  .utopia-wardrobe-pill:active:not(:disabled),
+  .utopia-minimap-chip:active:not(:disabled),
+  .utopia-minimap-toggle-pill:active:not(:disabled),
+  .utopia-minimap-collapse-btn:active:not(:disabled) {
+    transform: none !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .utopia-horizon-bar,
+  .utopia-presence-dock,
+  .utopia-minimap-card,
+  .utopia-minimap-toggle-pill,
+  .utopia-floating-camera-dock,
+  .utopia-place-caption-card,
+  .utopia-anchor-pin-btn,
+  .utopia-landmark-pin-btn,
+  .utopia-chibi-nameplate,
+  .utopia-pack-theme-pill {
+    background: var(--utopia-parchment-bg) !important;
+  }
+
+  .utopia-anchor-node.is-closed .utopia-anchor-pin-btn {
+    background: var(--utopia-parchment-subtle) !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --utopia-ink-strong: #1f160e;
+    --utopia-ink-body: #2f2217;
+    --utopia-ink-muted: #4a392b;
+    --utopia-parchment-border: rgba(48, 34, 20, 0.58);
+    --utopia-ink-outline: #241910;
+  }
+
+  .utopia-horizon-bar,
+  .utopia-presence-dock,
+  .utopia-minimap-card,
+  .utopia-minimap-toggle-pill,
+  .utopia-floating-camera-dock,
+  .utopia-floating-drawer,
+  .utopia-place-caption-card,
+  .utopia-toolbar-btn,
+  .utopia-horizon-pill {
+    border-color: var(--utopia-parchment-border);
   }
 }

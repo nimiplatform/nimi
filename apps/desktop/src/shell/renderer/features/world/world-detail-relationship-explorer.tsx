@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ArrowLeft } from 'lucide-react';
 import { EmptyState, SearchField } from '@nimiplatform/kit/ui';
 import {
   buildWorldRelationshipExplorerModel,
@@ -11,15 +12,11 @@ import { formatNum } from './world-detail-paper-model.js';
 import { WORLD_DETAIL_PAPER_CONTENT_PADDING } from './world-detail-layout.js';
 import {
   IconArrow,
-  IconChevron,
   PaperAvatar,
   PaperTag,
-  paperGhostButton,
-  paperPrimaryButton,
 } from './world-detail-paper-primitives.js';
 import { characterMeta } from './world-detail-template-model.js';
 import {
-  EXPLORER_PANEL_HEIGHT_PX,
   identityTags,
   panelStyle,
   softPanelStyle,
@@ -47,14 +44,20 @@ function CharacterMiniList({
   const { t } = useTranslation();
   return (
     <div style={{ minWidth: 0 }}>
-      <div style={{ marginBottom: 8, fontSize: 12, fontWeight: 900, color: 'var(--nimi-text-primary)' }}>{title}</div>
+      <div style={{ marginBottom: 8, fontSize: 12, fontWeight: 600, color: 'var(--nimi-text-primary)' }}>{title}</div>
       {characters.length > 0 ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 7 }}>
           {characters.map((character) => (
-            <button key={character.id} type="button" onClick={() => onSelect(character.id)} style={{ ...softPanelStyle(), padding: '9px 10px', display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}>
+            <button
+              key={character.id}
+              type="button"
+              onClick={() => onSelect(character.id)}
+              style={{ ...softPanelStyle(), fontFamily: 'inherit' }}
+              className="flex cursor-pointer items-center gap-2 px-2.5 py-[9px] text-left transition-[border-color,background-color,transform] duration-150 hover:border-[var(--nimi-action-primary-bg)] hover:bg-[var(--nimi-surface-active)] active:scale-[0.98] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1"
+            >
               <PaperAvatar name={character.name} imageUrl={character.avatarUrl} media={character.avatarMedia} size={30} />
               <span style={{ minWidth: 0 }}>
-                <span style={{ display: 'block', fontSize: 12.5, fontWeight: 900, color: 'var(--nimi-text-primary)' }}>{character.name}</span>
+                <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--nimi-text-primary)' }}>{character.name}</span>
                 <span style={{ display: 'block', marginTop: 2, fontSize: 11, color: 'var(--nimi-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{characterMeta(character)}</span>
               </span>
             </button>
@@ -98,30 +101,30 @@ function CharacterProfile({
         <PaperAvatar name={center.name} imageUrl={center.avatarUrl} media={center.avatarMedia} size={64} />
         <div style={{ minWidth: 0 }}>
           <PaperTag>{t('WorldDetail.paper.relationshipExplorer.profile.status')}</PaperTag>
-          <h3 style={{ margin: '10px 0 6px', fontSize: 24, fontWeight: 900, color: 'var(--nimi-text-primary)' }}>{center.name}</h3>
+          <h3 style={{ margin: '10px 0 6px', fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--nimi-text-primary)' }}>{center.name}</h3>
           {center.bio ? (
             <p style={{ margin: 0, maxWidth: 680, fontSize: 13.5, lineHeight: 1.75, color: 'var(--nimi-text-muted)' }}>{center.bio}</p>
           ) : null}
         </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: directions.length > 0 ? 'minmax(0,1.05fr) minmax(0,.95fr)' : 'minmax(0,1fr)', gap: 14 }}>
+      <div className={directions.length > 0 ? 'grid grid-cols-1 gap-3.5 md:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]' : 'grid grid-cols-1 gap-3.5'}>
         <div style={{ ...softPanelStyle(), padding: 15 }}>
           {tags.length > 0 ? (
             <>
-              <div style={{ marginBottom: 10, fontSize: 12, fontWeight: 900, color: 'var(--nimi-text-primary)' }}>{t('WorldDetail.paper.relationshipExplorer.profile.identity')}</div>
+              <div style={{ marginBottom: 10, fontSize: 12, fontWeight: 600, color: 'var(--nimi-text-primary)' }}>{t('WorldDetail.paper.relationshipExplorer.profile.identity')}</div>
               <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 14 }}>
                 {tags.map((tag) => <PaperTag key={tag} tone="neutral">{tag}</PaperTag>)}
               </div>
             </>
           ) : null}
-          <div style={{ marginBottom: 8, fontSize: 12, fontWeight: 900, color: 'var(--nimi-text-primary)' }}>{t('WorldDetail.paper.relationshipExplorer.profile.materials')}</div>
+          <div style={{ marginBottom: 8, fontSize: 12, fontWeight: 600, color: 'var(--nimi-text-primary)' }}>{t('WorldDetail.paper.relationshipExplorer.profile.materials')}</div>
           <ul style={{ margin: 0, paddingLeft: 16, color: 'var(--nimi-text-muted)', fontSize: 12.5, lineHeight: 1.7 }}>
             {(materials.length > 0 ? materials : [t('WorldDetail.paper.relationshipExplorer.profile.basicMaterial')]).map((item) => <li key={item}>{item}</li>)}
           </ul>
         </div>
         {directions.length > 0 ? (
           <div style={{ ...softPanelStyle(), padding: 15 }}>
-            <div style={{ marginBottom: 8, fontSize: 12, fontWeight: 900, color: 'var(--nimi-text-primary)' }}>{t('WorldDetail.paper.relationshipExplorer.profile.directions')}</div>
+            <div style={{ marginBottom: 8, fontSize: 12, fontWeight: 600, color: 'var(--nimi-text-primary)' }}>{t('WorldDetail.paper.relationshipExplorer.profile.directions')}</div>
             <ul style={{ margin: 0, paddingLeft: 16, color: 'var(--nimi-text-muted)', fontSize: 12.5, lineHeight: 1.7 }}>
               {directions.map((item) => <li key={item}>{item}</li>)}
             </ul>
@@ -132,7 +135,11 @@ function CharacterProfile({
         <CharacterMiniList title={t('WorldDetail.paper.relationshipExplorer.profile.sameIdentity')} characters={sameIdentityCharacters(center, characters)} onSelect={onSelect} />
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 16 }}>
-        <button type="button" onClick={() => onOpenProfile(center.id)} style={{ ...paperPrimaryButton, color: 'var(--nimi-action-primary-text)' }}>
+        <button
+          type="button"
+          onClick={() => onOpenProfile(center.id)}
+          className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-[var(--nimi-radius-action)] bg-[var(--nimi-action-primary-bg)] px-[15px] py-2 text-[length:var(--nimi-type-body-sm-size)] font-medium text-[var(--nimi-action-primary-text)] transition-[background-color,transform] duration-150 hover:bg-[var(--nimi-action-primary-bg-hover)] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1"
+        >
           {t('WorldDetail.paper.relationshipExplorer.profile.viewProfile')} <IconArrow size={13} />
         </button>
       </div>
@@ -153,12 +160,24 @@ function PeoplePanel({
 }) {
   const { t } = useTranslation();
   return (
-    <aside data-testid="world-relationship-people-panel" style={{ ...panelStyle(), display: 'flex', flexDirection: 'column', height: EXPLORER_PANEL_HEIGHT_PX, minHeight: EXPLORER_PANEL_HEIGHT_PX, boxSizing: 'border-box', position: 'sticky', top: 12, overflow: 'hidden' }}>
+    <aside
+      data-testid="world-relationship-people-panel"
+      style={{
+        ...panelStyle(),
+        display: 'flex',
+        flexDirection: 'column',
+        maxHeight: 'calc(100vh - 120px)',
+        boxSizing: 'border-box',
+        position: 'sticky',
+        top: 12,
+        overflow: 'hidden',
+      }}
+    >
       <div style={{ padding: '14px 14px 12px', borderBottom: '1px solid var(--nimi-border-subtle)' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
-          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 900, color: 'var(--nimi-text-primary)' }}>{t('WorldDetail.paper.relationshipExplorer.peopleList.title')}</h2>
+          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: 'var(--nimi-text-primary)' }}>{t('WorldDetail.paper.relationshipExplorer.peopleList.title')}</h2>
           {catalog.status === 'ready' ? (
-            <span style={{ fontSize: 12, color: 'var(--nimi-text-muted)', fontWeight: 700 }}>{people.length} / {catalog.totalCount}</span>
+            <span style={{ fontSize: 12, color: 'var(--nimi-text-muted)', fontWeight: 600 }}>{people.length} / {catalog.totalCount}</span>
           ) : null}
         </div>
         <SearchField
@@ -184,25 +203,16 @@ function PeoplePanel({
                   key={character.id}
                   type="button"
                   onClick={() => onSelect(character.id)}
-                  style={{
-                    width: '100%',
-                    boxSizing: 'border-box',
-                    padding: '9px 10px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    border: `1px solid ${selected ? 'var(--nimi-action-primary-bg)' : 'transparent'}`,
-                    borderRadius: 12,
-                    background: selected ? 'color-mix(in srgb, var(--nimi-action-primary-bg) 14%, transparent)' : 'transparent',
-                  }}
+                  className={`box-border flex w-full cursor-pointer items-center gap-2.5 rounded-xl border px-2.5 py-[9px] text-left transition-[background-color,border-color,transform] duration-150 active:scale-[0.985] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1 ${
+                    selected
+                      ? 'border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)]'
+                      : 'border-transparent bg-transparent hover:bg-[var(--nimi-surface-panel)]'
+                  }`}
                 >
                   <PaperAvatar name={character.name} imageUrl={character.avatarUrl} media={character.avatarMedia} size={38} />
                   <span style={{ minWidth: 0, flex: 1 }}>
                     <span data-testid="world-relationship-person-title-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, minWidth: 0 }}>
-                      <span style={{ minWidth: 0, fontSize: 13, fontWeight: 900, color: 'var(--nimi-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{character.name}</span>
+                      <span style={{ minWidth: 0, fontSize: 13, fontWeight: 600, color: 'var(--nimi-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{character.name}</span>
                     </span>
                     <span style={{ display: 'block', marginTop: 2, fontSize: 11, color: 'var(--nimi-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{characterMeta(character)}</span>
                   </span>
@@ -220,7 +230,7 @@ function PeoplePanel({
 function TopStat({ value, label }: { readonly value: string; readonly label: string }) {
   return (
     <div style={{ minWidth: 0 }}>
-      <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--nimi-text-primary)', lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--nimi-text-primary)', lineHeight: 1 }}>{value}</div>
       <div style={{ marginTop: 4, fontSize: 10.5, color: 'var(--nimi-text-muted)', whiteSpace: 'nowrap' }}>{label}</div>
     </div>
   );
@@ -265,11 +275,15 @@ export function WorldRelationshipExplorer({
       }}
     >
       <header data-testid="world-relationship-topbar" style={{ display: 'grid', gridTemplateColumns: 'minmax(170px,auto) minmax(0,1fr) auto', alignItems: 'center', gap: 18, padding: '9px 18px', minHeight: 58, background: 'transparent' }}>
-        <button type="button" onClick={onBack} style={{ ...paperGhostButton, border: 'none', background: 'transparent', padding: '4px 6px', color: 'var(--nimi-text-muted)', justifyContent: 'flex-start' }}>
-          <IconChevron size={14} color="var(--nimi-action-primary-bg)" /> {t('WorldDetail.paper.relationshipExplorer.back')}
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex cursor-pointer items-center justify-start gap-1.5 rounded-[var(--nimi-radius-action)] px-1.5 py-1 text-[length:var(--nimi-type-body-sm-size)] font-medium text-[var(--nimi-text-muted)] transition-[color,background-color,transform] duration-150 hover:bg-[var(--nimi-surface-panel)] hover:text-[var(--nimi-text-primary)] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1"
+        >
+          <ArrowLeft size={14} aria-hidden="true" className="shrink-0 text-[var(--nimi-action-primary-bg)]" /> {t('WorldDetail.paper.relationshipExplorer.back')}
         </button>
         <div style={{ minWidth: 0, textAlign: 'center' }}>
-          <div style={{ fontSize: 15.5, fontWeight: 900, color: 'var(--nimi-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{world.name}</div>
+          <div style={{ fontSize: 15.5, fontWeight: 700, color: 'var(--nimi-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{world.name}</div>
           <div style={{ marginTop: 3, fontSize: 11.5, color: 'var(--nimi-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('WorldDetail.paper.relationshipExplorer.topbar.current', { name: model.center?.name ?? '--' })}</div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 22, flexWrap: 'wrap' }}>
@@ -282,7 +296,7 @@ export function WorldRelationshipExplorer({
         </div>
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(212px,244px) minmax(0,1fr)', gap: 12, alignItems: 'stretch', paddingTop: 12, minHeight: EXPLORER_PANEL_HEIGHT_PX }}>
+      <div className="grid grid-cols-1 items-start gap-3 pt-3 lg:grid-cols-[minmax(220px,280px)_minmax(0,1fr)]">
         <PeoplePanel
           people={model.people}
           catalog={catalog}
@@ -300,7 +314,7 @@ export function WorldRelationshipExplorer({
             />
           ) : catalog.status === 'partial' ? null : (
             <div style={{ ...panelStyle(), padding: 24 }}>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: 'var(--nimi-text-primary)' }}>{t('WorldDetail.paper.relationshipExplorer.noCharactersTitle')}</h2>
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--nimi-text-primary)' }}>{t('WorldDetail.paper.relationshipExplorer.noCharactersTitle')}</h2>
               <p style={{ margin: '8px 0 0', fontSize: 12.5, lineHeight: 1.65, color: 'var(--nimi-text-muted)' }}>{t('WorldDetail.paper.relationshipExplorer.noCharactersDesc')}</p>
             </div>
           )}

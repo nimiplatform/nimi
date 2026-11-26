@@ -5,23 +5,34 @@ import { JSDOM } from 'jsdom';
 import { createInstance } from 'i18next';
 import { I18nextProvider } from 'react-i18next';
 import type { NimiRuntimeConnectorCatalogEntry } from '@nimiplatform/sdk/runtime';
-import { createAppStore } from '../src/shell/renderer/app-shell/providers/app-store-factory.js';
-import { AppStoreProvider } from '../src/shell/renderer/app-shell/providers/app-store.js';
-import { RuntimeConfigConnectorSdkProvider } from '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-context.js';
 import type { RuntimeConfigConnectorSdkService } from '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service.js';
-import { CloudConnectorCatalog } from '../src/shell/renderer/features/runtime-config/runtime-config-cloud-catalog.js';
-import { normalizeConnectorV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-state-types.js';
-import { DesktopMotionProvider } from '../src/shell/renderer/ui/motion/desktop-motion-context.js';
 
 test('catalog browsing searches translated capabilities, pages results, and rejects stale or failed reads independently of connection checks', async () => {
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://localhost', pretendToBeVisual: true });
-  const values = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
-    HTMLElement: dom.window.HTMLElement, HTMLInputElement: dom.window.HTMLInputElement, Element: dom.window.Element,
-    Node: dom.window.Node, MutationObserver: dom.window.MutationObserver, getComputedStyle: dom.window.getComputedStyle,
+  // Kit SelectField (Radix) calls pointer-capture and scroll APIs jsdom lacks.
+  dom.window.Element.prototype.scrollIntoView = () => {};
+  dom.window.HTMLElement.prototype.hasPointerCapture = () => false;
+  dom.window.HTMLElement.prototype.setPointerCapture = () => {};
+  dom.window.HTMLElement.prototype.releasePointerCapture = () => {};
+  class ResizeObserverStub { observe() {} unobserve() {} disconnect() {} }
+  const values: Record<string, unknown> = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
+    Element: dom.window.Element, Node: dom.window.Node, NodeFilter: dom.window.NodeFilter, DocumentFragment: dom.window.DocumentFragment,
+    MutationObserver: dom.window.MutationObserver, ResizeObserver: ResizeObserverStub, getComputedStyle: dom.window.getComputedStyle,
+    requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window),
+    cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window),
     React, IS_REACT_ACT_ENVIRONMENT: true };
+  for (const name of Object.getOwnPropertyNames(dom.window)) {
+    if (/^(?:HTML|SVG)\w*Element$|Event$/u.test(name) && !(name in values)) values[name] = (dom.window as unknown as Record<string, unknown>)[name];
+  }
   const previous = new Map(Object.keys(values).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   for (const [key, value] of Object.entries(values)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
   const { createRoot } = await import('react-dom/client');
+  const { createAppStore } = await import('../src/shell/renderer/app-shell/providers/app-store-factory.js');
+  const { AppStoreProvider } = await import('../src/shell/renderer/app-shell/providers/app-store.js');
+  const { RuntimeConfigConnectorSdkProvider } = await import('../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-context.js');
+  const { normalizeConnectorV11 } = await import('../src/shell/renderer/features/runtime-config/runtime-config-state-types.js');
+  const { DesktopMotionProvider } = await import('../src/shell/renderer/ui/motion/desktop-motion-context.js');
+  const { CloudConnectorCatalog } = await import('../src/shell/renderer/features/runtime-config/runtime-config-cloud-catalog.js');
   const root = createRoot(dom.window.document.getElementById('root')!);
   const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
   store.setState(state => ({ auth: { ...state.auth, status: 'authenticated', user: { id: 'account-a' } } }));
@@ -54,8 +65,19 @@ test('catalog browsing searches translated capabilities, pages results, and reje
     assert.equal(modelRows().length, 40);
     await act(async () => button('runtimeConfig.cloudWorkspace.loadMore').click());
     assert.equal(modelRows().length, 45, 'all models remain reachable without duplicates');
-    const capability = dom.window.document.querySelector('select')!;
-    await act(async () => { capability.value = 'image.generate'; capability.dispatchEvent(new dom.window.Event('change', { bubbles: true })); });
+    const capabilityTrigger = () => dom.window.document.querySelector<HTMLButtonElement>('button[aria-label="runtimeConfig.cloudWorkspace.filterCapability"]')!;
+    const selectCapability = async (label: string) => {
+      await act(async () => {
+        capabilityTrigger().click();
+      });
+      const option = [...dom.window.document.querySelectorAll<HTMLElement>('[role="option"]')].find(item => item.textContent === label);
+      assert.ok(option, label);
+      await act(async () => { option.click(); });
+      for (let i = 0; i < 40 && capabilityTrigger().getAttribute('aria-expanded') === 'true'; i++) {
+        await act(async () => { await new Promise((resolve) => setTimeout(resolve, 25)); });
+      }
+    };
+    await selectCapability('图像生成');
     assert.equal(modelRows().length, 20);
     assert.ok(modelRows().every(item => item.textContent?.includes('图像生成')));
     await act(async () => button('runtimeConfig.cloudWorkspace.clearFilters').click());
@@ -73,11 +95,11 @@ test('catalog browsing searches translated capabilities, pages results, and reje
     assert.equal(input.value, '');
     assert.equal(modelRows().length, 20, 'clearing search resets the expanded result limit');
     assert.equal(dom.window.document.activeElement, input);
-    await act(async () => { capability.value = 'image.generate'; capability.dispatchEvent(new dom.window.Event('change', { bubbles: true })); });
+    await selectCapability('图像生成');
     await type('model-43');
     assert.equal(modelRows().length, 1);
     await act(async () => dom.window.document.querySelector<HTMLButtonElement>('button[aria-label="Common.clear"]')!.click());
-    assert.equal(capability.value, 'image.generate', 'clearing search preserves the selected capability');
+    assert.match(capabilityTrigger().textContent ?? '', /图像生成/, 'clearing search preserves the selected capability');
     assert.equal(modelRows().length, 20);
     assert.ok(modelRows().every(item => item.textContent?.includes('图像生成')));
     await act(async () => button('runtimeConfig.cloudWorkspace.clearFilters').click());

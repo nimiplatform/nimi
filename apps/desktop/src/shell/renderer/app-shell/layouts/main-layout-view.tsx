@@ -39,6 +39,7 @@ import {
 } from './shell-chrome-classes';
 import {
   DESKTOP_MENU_VARIANTS,
+  desktopActiveIndicatorTransition,
   useDesktopInteractiveMotion,
   useDesktopReducedMotion,
 } from '../../ui/motion/desktop-motion';
@@ -183,7 +184,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     if (!settingsMenuOpen) {
       return;
     }
-    const onMouseDown = (event: globalThis.MouseEvent) => {
+    const onPointerDown = (event: globalThis.PointerEvent) => {
       const target = event.target as Node | null;
       if (!target) {
         return;
@@ -203,11 +204,11 @@ export function MainLayoutView(props: MainLayoutViewProps) {
         settingsTriggerRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
       }
     };
-    const unsubscribeMouseDown = bindings.app.events.subscribeDocumentMouseDown(onMouseDown);
+    const unsubscribePointerDown = bindings.app.events.subscribeDocumentPointerDown(onPointerDown);
     const unsubscribeKeyDown = bindings.app.events.subscribeWindowKeyDown(onKeyDown);
     return () => {
       unsubscribeKeyDown();
-      unsubscribeMouseDown();
+      unsubscribePointerDown();
     };
   }, [bindings, settingsMenuOpen]);
 
@@ -239,7 +240,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     <img
       src={logoImage}
       alt="Nimi"
-      className="relative z-10 h-5.5 w-5.5 shrink-0 object-contain mix-blend-multiply"
+      className="relative z-10 h-5.5 w-5.5 shrink-0 object-contain"
     />
   );
   const isSettingsMenuItemActive = (itemId: SettingsSubmenuItemId): boolean => {
@@ -323,9 +324,9 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                   whileHover={interactiveMotion.whileHover}
                   whileTap={interactiveMotion.whileTap}
                   transition={interactiveMotion.transition}
-                  className={`relative flex ${SHELL_CHROME_RAIL_ITEM_SIZE_CLASS} items-center justify-center transition-colors duration-150 ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} ${
+                  className={`relative flex ${SHELL_CHROME_RAIL_ITEM_SIZE_CLASS} items-center justify-center overflow-hidden transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--nimi-focus-ring-color)] ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} ${
                     homeRailActive
-                      ? SHELL_CHROME_RAIL_SELECTED_BG_CLASS
+                      ? ''
                       : 'hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)]'
                   }`}
                   aria-label={t('Navigation.home', { defaultValue: 'Home' })}
@@ -334,6 +335,14 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                     props.onNav('home');
                   }}
                 >
+                  {homeRailActive ? (
+                    <motion.span
+                      layoutId="desktop-shell-active-nav-indicator"
+                      className={`absolute inset-0 rounded-[inherit] ${SHELL_CHROME_RAIL_SELECTED_BG_CLASS}`}
+                      transition={desktopActiveIndicatorTransition(reducedMotion)}
+                      aria-hidden="true"
+                    />
+                  ) : null}
                   {nimiHomeNode}
                 </motion.button>
               </Tooltip>
@@ -392,7 +401,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                   whileHover={interactiveMotion.whileHover}
                   whileTap={interactiveMotion.whileTap}
                   transition={interactiveMotion.transition}
-                  className={`relative flex ${SHELL_CHROME_RAIL_ITEM_SIZE_CLASS} items-center justify-center transition-colors ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} ${
+                  className={`relative flex ${SHELL_CHROME_RAIL_ITEM_SIZE_CLASS} items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} ${
                     bellActive
                       ? `${SHELL_CHROME_RAIL_SELECTED_BG_CLASS} text-[var(--nimi-action-primary-bg)]`
                       : 'text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)] hover:text-[var(--nimi-text-primary)]'
@@ -430,7 +439,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                     whileHover={interactiveMotion.whileHover}
                     whileTap={interactiveMotion.whileTap}
                     transition={interactiveMotion.transition}
-                    className={`flex ${SHELL_CHROME_RAIL_ITEM_SIZE_CLASS} items-center justify-center p-0 text-[var(--nimi-text-primary)] transition-colors duration-150 ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} ${
+                    className={`flex ${SHELL_CHROME_RAIL_ITEM_SIZE_CLASS} items-center justify-center p-0 text-[var(--nimi-text-primary)] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} ${
                       settingsMenuOpen
                         ? SHELL_CHROME_RAIL_SELECTED_BG_CLASS
                         : 'hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)]'
@@ -477,7 +486,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             initial="initial"
             animate="animate"
             exit="exit"
-            className="fixed z-[var(--nimi-z-popover)]"
+            className="fixed z-[var(--nimi-z-popover)] origin-bottom-left"
             style={{
               bottom: settingsMenuPosition.bottom,
               left: settingsMenuPosition.left,

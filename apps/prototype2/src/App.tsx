@@ -74,7 +74,7 @@ function Stage() {
         ) : null}
         <WindowManager />
       </SpatialStage>
-      {appsOpen ? <AppsPage onClose={closeApps} /> : null}
+      <AppsPage open={appsOpen} onClose={closeApps} />
       <AppRail />
       <AgentLayer />
       <NimiToaster />
@@ -83,7 +83,15 @@ function Stage() {
       <Spine onOpenSkyPanel={openSkyPanel} skyPanelOpen={skyPanelOpen} />
       <Lens />
       <WakeScreen />
-      {tide ? <div className="tide-caption">The Tide · 滚轮聚焦 · Esc 返回</div> : null}
+      {tide ? (
+        <div
+          className="tide-caption nimi-material-glass-chrome backdrop-blur-[var(--nimi-backdrop-blur-chrome)] backdrop-saturate-[var(--nimi-backdrop-saturate)]"
+          data-nimi-material="glass-chrome"
+          data-nimi-tone="overlay"
+        >
+          The Tide · 滚轮聚焦 · Esc 返回
+        </div>
+      ) : null}
       <FieldMenu
         menu={menu}
         onClose={() => setMenu(null)}

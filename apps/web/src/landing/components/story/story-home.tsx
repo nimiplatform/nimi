@@ -106,8 +106,46 @@ export function StoryHome({
       clearMotion();
     };
   }, [modal, expanded]);
+  const closingRef = useRef(false);
+  const requestClose = useCallback(() => {
+    if (closingRef.current) return;
+    const reduced = typeof window !== 'undefined'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const panel = modal?.closest<HTMLElement>('.story-home-dialog');
+    const targetDock = dock?.getBoundingClientRect();
+    if (reduced || !panel || !targetDock || targetDock.width <= 0 || targetDock.height <= 0 || typeof panel.animate !== 'function') {
+      onExpanded(false);
+      return;
+    }
+    const from = panel.getBoundingClientRect();
+    if (from.width <= 0 || from.height <= 0) {
+      onExpanded(false);
+      return;
+    }
+    closingRef.current = true;
+    panel.dataset.storyFromDock = 'true';
+    const anim = panel.animate(
+      [
+        { translate: '-50% -50%', scale: '1', opacity: 1 },
+        {
+          translate: `calc(-50% + ${targetDock.x - from.x}px) calc(-50% + ${targetDock.y - from.y}px)`,
+          scale: `${targetDock.width / from.width} ${targetDock.height / from.height}`,
+          opacity: 0.72,
+        },
+      ],
+      { duration: 240, easing: 'cubic-bezier(.22,.75,.24,1)', fill: 'forwards' },
+    );
+    const finish = () => {
+      closingRef.current = false;
+      delete panel.dataset.storyFromDock;
+      onExpanded(false);
+    };
+    anim.onfinish = finish;
+    anim.oncancel = finish;
+  }, [dock, modal, onExpanded]);
+
   const windowTitle = t(layout === 'hero' ? 'hero.windowTitle' : 'hero.homeEyebrow');
-  const windowClose = docked ? undefined : { label: t('common.close'), onClose: () => onExpanded(false) };
+  const windowClose = docked ? undefined : { label: t('common.close'), onClose: requestClose };
   const prepareExpansion = (trigger: 'window' | 'mobile') => {
     restoreExpandFocus.current = trigger;
     if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -118,12 +156,12 @@ export function StoryHome({
     if (!expanded) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || event.defaultPrevented) return;
-      if (document.querySelector('[data-demo-nested-dialog], [data-testid="demo-app-preview"]')) return;
-      onExpanded(false);
+      if (document.querySelector('[data-demo-nested-dialog], [data-testid="demo-app-preview"], dialog[open]')) return;
+      requestClose();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [expanded, onExpanded]);
+  }, [expanded, requestClose]);
   const expandAction = docked ? (
     <DialogTrigger
       ref={expandButton}
@@ -157,10 +195,10 @@ export function StoryHome({
         <span className="story-home-laptop-base" aria-hidden="true"><span className="story-home-laptop-recess" /></span>
       </div>
     </div>}
-    <Dialog open={expanded} onOpenChange={onExpanded}>
+    <Dialog open={expanded} onOpenChange={(next) => (next ? onExpanded(true) : requestClose())}>
       {layout === 'devices' && <DialogTrigger ref={mobileExpandButton} className="story-button story-button-outline story-home-mobile-expand"
         onClick={() => prepareExpansion('mobile')}>{t('hero.expandHome')}<Expand size={14} aria-hidden="true" /></DialogTrigger>}
-      <DialogContent onClose={() => onExpanded(false)} className="demo-window-dialog story-home-dialog" data-testid="story-home-dialog">
+      <DialogContent onClose={requestClose} className="demo-window-dialog story-home-dialog" data-testid="story-home-dialog">
         <DialogTitle className="sr-only">Nimi Home</DialogTitle>
         <DialogBody className="story-home-dialog-body"><div ref={setModal} className="story-home-modal-slot" /></DialogBody>
       </DialogContent>

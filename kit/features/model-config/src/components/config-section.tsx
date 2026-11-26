@@ -20,7 +20,7 @@ export function ConfigAccordionSection(props: {
 }) {
   return (
     <section>
-      <button type="button" onClick={props.onToggle} className={cn('flex w-full items-center justify-between py-2.5', FOCUS_RING_CLASS_NAME)}>
+      <button type="button" aria-expanded={props.expanded} onClick={props.onToggle} className={cn('flex w-full items-center justify-between rounded-[var(--nimi-radius-sm)] py-2.5 transition-colors duration-[var(--nimi-motion-fast)] active:bg-[var(--nimi-surface-active)]', FOCUS_RING_CLASS_NAME)}>
         <h3 className="m-0 nimi-type-overline uppercase text-[var(--nimi-text-muted)]">{props.title}</h3>
         <svg aria-hidden="true" className={`h-3.5 w-3.5 text-[var(--nimi-text-muted)] transition-transform ${props.expanded ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg>
       </button>

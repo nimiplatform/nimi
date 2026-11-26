@@ -18,7 +18,7 @@ export function StoryLink({ href, children, primary = false }: { href: string; c
   return (
     <PublicSiteLink className={primary ? 'story-button' : 'story-link'} to={href}>
       {children}
-      {primary ? <ArrowRight size={17} /> : isInternal ? <ArrowRight size={16} /> : <ArrowUpRight size={16} />}
+      {primary ? <ArrowRight size={17} aria-hidden="true" /> : isInternal ? <ArrowRight size={16} aria-hidden="true" /> : <ArrowUpRight size={16} aria-hidden="true" />}
     </PublicSiteLink>
   );
 }

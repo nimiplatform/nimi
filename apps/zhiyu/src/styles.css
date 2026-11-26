@@ -11,11 +11,22 @@
 @source "./**/*.{ts,tsx}";
 
 :root {
+  color-scheme: light dark;
+}
+
+:root[data-nimi-scheme="light"] {
   color-scheme: light;
+}
+
+:root[data-nimi-scheme="dark"],
+:root.dark {
+  color-scheme: dark;
 }
 
 html,
 body {
   margin: 0;
   min-width: 320px;
+  background: var(--nimi-app-background);
+  color: var(--nimi-text-primary);
 }

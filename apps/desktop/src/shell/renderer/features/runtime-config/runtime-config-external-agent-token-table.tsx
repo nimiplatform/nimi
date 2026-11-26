@@ -32,7 +32,7 @@ export function ExternalAgentTokenTable(props: {
   return (
     <div className="mt-5">
       {props.filteredTokens.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[var(--nimi-border-subtle)] py-10 text-center">
+        <div className="flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[var(--nimi-border-subtle)] py-6 text-center">
           <p className={cn('text-sm', TOKEN_TEXT_SECONDARY)}>
             {props.tokenCount === 0
               ? t('runtimeConfig.eaa.noTokensIssued', { defaultValue: 'No tokens issued.' })
@@ -113,113 +113,113 @@ function ExternalAgentTokenRow(props: {
 
   return (
     <div className="group">
-      <button
-        type="button"
-        onClick={() => props.onExpandedChange(!props.expanded)}
-        className="grid w-full grid-cols-[1.4fr_0.8fr_2fr_0.9fr_0.9fr_0.6fr] items-center gap-3 rounded-lg px-2 py-3 text-left transition-colors hover:bg-[var(--nimi-surface-panel)]/50"
-      >
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span className={cn(
-            'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
-            isService
-              ? 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_14%,transparent)] text-[var(--nimi-text-secondary)]'
-              : 'bg-[color-mix(in_srgb,var(--nimi-status-info,var(--nimi-text-secondary))_14%,transparent)] text-[var(--nimi-text-secondary)]',
-          )}>
-            {isService ? <ServiceIcon /> : <UserIcon />}
-          </span>
-          <div className="min-w-0">
-            <p className={cn('truncate text-sm font-medium', TOKEN_TEXT_PRIMARY)}>
-              {token.principalId}
-            </p>
-            <p className={cn('truncate font-mono text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>
-              {token.subjectAccountId || '—'}
-            </p>
-          </div>
-        </div>
-
-        <div>
-          <span className={cn(
-            'inline-flex items-center rounded-md px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium',
-            token.mode === 'autonomous'
-              ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)] text-[var(--nimi-status-warning)]'
-              : 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_16%,transparent)] text-[var(--nimi-text-secondary)]',
-          )}>
-            {token.mode}
-          </span>
-        </div>
-
-        <div className="flex min-w-0 flex-wrap items-center gap-1">
-          {visibleScopes.length === 0 ? (
-            <span className={cn('font-mono text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>—</span>
-          ) : (
-            visibleScopes.map((scope) => (
-              <span
-                key={`${token.tokenId}-${scope}`}
-                className="rounded-md border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/70 px-1.5 py-0.5 font-mono text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]"
-              >
-                {scope}
-              </span>
-            ))
-          )}
-          {overflowCount > 0 ? (
-            <span className={cn('font-mono text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>
-              +{overflowCount}
-            </span>
-          ) : null}
-        </div>
-
-        <div>
-          {status === 'revoked' ? (
-            <span className="inline-flex items-center gap-1 rounded-md bg-[color-mix(in_srgb,var(--nimi-status-danger)_14%,transparent)] px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-status-danger)]">
-              {t('runtimeConfig.eaa.tokenStatusRevoked', { defaultValue: 'revoked' })}
-            </span>
-          ) : (
+      <div className="grid w-full grid-cols-[1.4fr_0.8fr_2fr_0.9fr_0.9fr_0.6fr] items-center gap-3 rounded-lg px-2 py-3 text-left transition-colors hover:bg-[var(--nimi-surface-panel)]/50">
+        <button
+          type="button"
+          aria-expanded={props.expanded}
+          onClick={() => props.onExpandedChange(!props.expanded)}
+          className="col-span-5 grid grid-cols-subgrid items-center rounded-md text-left transition-[transform,color] duration-150 active:scale-[var(--nimi-motion-pressed-scale)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+        >
+          <div className="flex min-w-0 items-center gap-2.5">
             <span className={cn(
-              'inline-flex items-center gap-1 text-[length:var(--nimi-type-caption-size)]',
-              tone === 'success' ? 'text-[var(--nimi-status-success)]' : 'text-[var(--nimi-status-warning)]',
+              'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+              isService
+                ? 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_14%,transparent)] text-[var(--nimi-text-secondary)]'
+                : 'bg-[color-mix(in_srgb,var(--nimi-status-info,var(--nimi-text-secondary))_14%,transparent)] text-[var(--nimi-text-secondary)]',
             )}>
-              <ClockIcon />
-              {expiresRel}
+              {isService ? <ServiceIcon /> : <UserIcon />}
             </span>
-          )}
-        </div>
+            <div className="min-w-0">
+              <p className={cn('truncate text-sm font-medium', TOKEN_TEXT_PRIMARY)}>
+                {token.principalId}
+              </p>
+              <p className={cn('truncate font-mono text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>
+                {token.subjectAccountId || '—'}
+              </p>
+            </div>
+          </div>
 
-        <div className={cn('text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>
-          {issuedRel}
-        </div>
+          <div>
+            <span className={cn(
+              'inline-flex items-center rounded-md px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium',
+              token.mode === 'autonomous'
+                ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)] text-[var(--nimi-status-warning)]'
+                : 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_16%,transparent)] text-[var(--nimi-text-secondary)]',
+            )}>
+              {token.mode}
+            </span>
+          </div>
+
+          <div className="flex min-w-0 flex-wrap items-center gap-1">
+            {visibleScopes.length === 0 ? (
+              <span className={cn('font-mono text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>—</span>
+            ) : (
+              visibleScopes.map((scope) => (
+                <span
+                  key={`${token.tokenId}-${scope}`}
+                  className="rounded-md border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/70 px-1.5 py-0.5 font-mono text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]"
+                >
+                  {scope}
+                </span>
+              ))
+            )}
+            {overflowCount > 0 ? (
+              <span className={cn('font-mono text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>
+                +{overflowCount}
+              </span>
+            ) : null}
+          </div>
+
+          <div>
+            {status === 'revoked' ? (
+              <span className="inline-flex items-center gap-1 rounded-md bg-[color-mix(in_srgb,var(--nimi-status-danger)_14%,transparent)] px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-status-danger)]">
+                {t('runtimeConfig.eaa.tokenStatusRevoked', { defaultValue: 'revoked' })}
+              </span>
+            ) : (
+              <span className={cn(
+                'inline-flex items-center gap-1 text-[length:var(--nimi-type-caption-size)]',
+                tone === 'success' ? 'text-[var(--nimi-status-success)]' : 'text-[var(--nimi-status-warning)]',
+              )}>
+                <ClockIcon />
+                {expiresRel}
+              </span>
+            )}
+          </div>
+
+          <div className={cn('text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>
+            {issuedRel}
+          </div>
+        </button>
 
         <div className="flex items-center justify-end gap-1.5">
           {status !== 'revoked' ? (
-            <span
-              role="button"
-              aria-disabled={revokeDisabled}
-              tabIndex={revokeDisabled ? -1 : 0}
-              onClick={(event) => {
-                event.stopPropagation();
-                invokeRevoke();
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  invokeRevoke();
-                }
-              }}
+            <button
+              type="button"
+              disabled={revokeDisabled}
+              onClick={invokeRevoke}
               className={cn(
-                'rounded-md px-2 py-1 text-[length:var(--nimi-type-caption-size)] font-medium transition-colors',
+                'rounded-md px-2 py-1 text-[length:var(--nimi-type-caption-size)] font-medium transition-[transform,background-color,color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]',
                 revokeDisabled
                   ? 'cursor-not-allowed text-[color-mix(in_srgb,var(--nimi-text-muted)_70%,transparent)]'
-                  : 'text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,transparent)] hover:text-[var(--nimi-status-danger)]',
+                  : 'text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,transparent)] hover:text-[var(--nimi-status-danger)] active:scale-[var(--nimi-motion-pressed-scale)]',
               )}
             >
               {t('runtimeConfig.eaa.revoke', { defaultValue: 'Revoke' })}
-            </span>
+            </button>
           ) : null}
-          <span className={cn('text-[var(--nimi-text-muted)] transition-colors group-hover:text-[var(--nimi-text-primary)]')}>
+          <button
+            type="button"
+            aria-expanded={props.expanded}
+            aria-label={props.expanded
+              ? t('runtimeConfig.runtime.clickToCollapse', { defaultValue: 'Collapse' })
+              : t('runtimeConfig.runtime.clickToExpand', { defaultValue: 'Expand' })}
+            onClick={() => props.onExpandedChange(!props.expanded)}
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--nimi-text-muted)] transition-[transform,background-color,color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] active:scale-[var(--nimi-motion-pressed-scale)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+          >
             <ChevronIcon expanded={props.expanded} />
-          </span>
+          </button>
         </div>
-      </button>
+      </div>
 
       {props.expanded ? (
         <ExternalAgentTokenExpandedDetails

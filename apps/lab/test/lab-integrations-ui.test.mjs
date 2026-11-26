@@ -19,14 +19,16 @@ async function panel(host, check) {
   const previous = new Map(Object.keys(values).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   for (const [key, value] of Object.entries(values)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
   const { createRoot } = await import('react-dom/client');
+  const { nimiToast } = await import('@nimiplatform/kit/ui');
   const { LabRendererProvider } = await importBehaviorModule('renderer/context.js');
   const { LabIntegrationsPanel } = await importBehaviorModule('lab/integrations/integrations-panel.js');
   const root = createRoot(dom.window.document.getElementById('root'));
+  nimiToast.clear();
   try {
     await act(async () => root.render(React.createElement(LabRendererProvider, { bindings: host }, React.createElement(LabIntegrationsPanel, { recordAI: async () => {} }))));
     await check(dom.window.document, dom, scrolled);
   } finally {
-    await act(async () => root.unmount()); dom.window.close();
+    await act(async () => root.unmount()); nimiToast.clear(); dom.window.close();
     for (const [key, descriptor] of previous) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else Reflect.deleteProperty(globalThis, key); }
   }
 }
@@ -126,6 +128,10 @@ test('old media history cannot preview, reveal or delete a legally rebuilt file;
     await click(button(files, 'Show owned asset in folder'));
     assert.ok(f.io.some(([operation, value]) => operation === 'reveal' && value === path));
     await click(button(files, 'Delete current file'));
+    assert.equal(f.files.has(path), true, 'current file deletion requires confirmation');
+    const confirmDialog = document.querySelector('[role=dialog]');
+    assert.ok(confirmDialog);
+    await click(button(confirmDialog, 'Delete current file'));
     assert.equal(f.files.has(path), false);
     assert.equal(f.records().some(row => row.id === 'new-Y'), true, 'explicit file management keeps call facts');
   });
@@ -165,5 +171,34 @@ test('export exposes fulfilled failure and retained file path; location retries 
     await click(button(result, 'Show owned asset in folder'));
     assert.equal(exports, 2); assert.equal(reveals, 2);
     assert.match(result.textContent, /exports\/owned\/history.json/u);
+  });
+});
+
+test('removing an integration history row updates optimistically and Undo restores it cleanly', async () => {
+  const { getNimiToastSnapshot } = await import('@nimiplatform/kit/ui');
+  const f = fixture([record('call-1'), record('call-2')]);
+  const pendingRemove = deferred();
+  const baseRemove = f.host.app.commands.removeIntegrationHistory;
+  f.host.app.commands.removeIntegrationHistory = async (id) => {
+    await pendingRemove.promise;
+    return baseRemove(id);
+  };
+  await panel(f.host, async (document) => {
+    assert.ok(rowFor(document, 'call-1'));
+    await click(button(rowFor(document, 'call-1'), 'Remove history record'));
+    assert.equal(rowFor(document, 'call-1'), undefined, 'row disappears immediately before persistence resolves');
+    const toasts = getNimiToastSnapshot();
+    assert.equal(toasts.length, 1);
+    assert.equal(toasts[0].action?.label, 'Undo');
+    await act(async () => {
+      toasts[0].action.onClick();
+    });
+    assert.ok(rowFor(document, 'call-1'), 'Undo restores row immediately in UI');
+    await act(async () => {
+      pendingRemove.resolve();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    assert.equal(f.records().some((item) => item.id === 'call-1'), true, 'Undo persists restored record after pending removal');
+    assert.ok(rowFor(document, 'call-1'));
   });
 });

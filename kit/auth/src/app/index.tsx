@@ -1,5 +1,6 @@
 import { createContext, useContext, useSyncExternalStore, type ReactNode } from 'react';
 import { Button, InlineAlert, Surface } from '@nimiplatform/kit/ui';
+import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
 import type { NimiAppSession, NimiAppSessionSnapshot, NimiAppScope } from '@nimiplatform/kit/core/app-session';
 
 const SessionContext = createContext<NimiAppSession | null>(null);
@@ -84,14 +85,14 @@ export function NimiAppAccessGate(props: GateProps) {
     ? sourceHelp[snapshot.issue.reasonCode]
     : snapshot.issue.area === 'runtime' && session.account.kind === 'app-session' ? text.connectionHelp : null);
   return <main className="m-auto flex max-w-xl flex-col gap-4 p-6"><Surface tone="panel" className="flex flex-col gap-4 p-6">
-    {props.title && <h1 className="text-2xl font-semibold">{props.title}</h1>}
+    {props.title && <h1 className="text-2xl font-semibold tracking-[var(--nimi-type-page-title-letter-spacing)]">{props.title}</h1>}
     <p role="status">{snapshot.identity.status === 'checking' ? text.checking : snapshot.identity.status === 'unavailable' ? text.unavailable
       : snapshot.identity.status === 'signed-out' ? text.signedOut : snapshot.runtime.status === 'connecting'
         ? (snapshot.runtime.stage === 'waiting-for-pc' ? text.waitingForPc : text.connecting)
         : snapshot.issue?.area === 'runtime' ? text.connectionFailed : text.disconnected}</p>
     {snapshot.issue && <InlineAlert tone="warning">
       <p>{issueHelp ?? snapshot.issue.message}</p>
-      <details className="mt-2"><summary>{text.details}</summary>
+      <details className="mt-2"><summary className={`cursor-pointer rounded-sm ${FOCUS_RING_CLASS_NAME}`}>{text.details}</summary>
         {issueHelp && <p className="mt-2 break-words">{snapshot.issue.message}</p>}
         <code className="block break-words">{snapshot.issue.reasonCode}</code>
         {snapshot.issue.actionHint && <code className="block break-words">{snapshot.issue.actionHint}</code>}

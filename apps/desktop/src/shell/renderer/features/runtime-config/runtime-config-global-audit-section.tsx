@@ -14,10 +14,10 @@ import {
 } from './runtime-config-global-audit-view-model.js';
 
 const FILTER_INPUT_CLASS =
-  'h-8 rounded-lg border border-[var(--nimi-border-subtle)] bg-transparent px-2.5 text-xs text-[var(--nimi-text-primary)] outline-none transition-colors focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]';
+  'min-h-8 rounded-lg border border-[var(--nimi-border-subtle)] bg-transparent px-2.5 py-1 text-xs text-[var(--nimi-text-primary)] outline-none transition-colors focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]';
 
 const DATE_TIME_TRIGGER_CLASS =
-  'group flex h-8 min-w-[12rem] max-w-full items-center justify-between gap-2 rounded-lg border border-[var(--nimi-field-border)] bg-[color-mix(in_srgb,var(--nimi-field-bg)_84%,transparent)] px-2.5 text-left text-xs text-[var(--nimi-field-text)] outline-none transition-all hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_34%,var(--nimi-border-subtle))] hover:bg-[var(--nimi-field-bg)] focus-visible:border-[var(--nimi-field-focus)] focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] data-[state=open]:border-[var(--nimi-field-focus)] data-[state=open]:ring-2 data-[state=open]:ring-[var(--nimi-focus-ring-color)]';
+  'group flex min-h-8 min-w-[12rem] max-w-full items-center justify-between gap-2 rounded-lg border border-[var(--nimi-field-border)] bg-[color-mix(in_srgb,var(--nimi-field-bg)_84%,transparent)] px-2.5 py-1 text-left text-xs text-[var(--nimi-field-text)] outline-none transition-colors hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_34%,var(--nimi-border-subtle))] hover:bg-[var(--nimi-field-bg)] focus-visible:border-[var(--nimi-field-focus)] focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)] data-[state=open]:border-[var(--nimi-field-focus)] data-[state=open]:ring-2 data-[state=open]:ring-[var(--nimi-focus-ring-color)]';
 
 const WEEKDAY_FORMATTER = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
 const MONTH_FORMATTER = new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'long' });
@@ -49,16 +49,6 @@ function reasonTone(reasonCode: unknown): ReasonTone {
     return 'warning';
   }
   return 'neutral';
-}
-
-function ExportIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="7 10 12 15 17 10" />
-      <line x1="12" y1="15" x2="12" y2="3" />
-    </svg>
-  );
 }
 
 function CalendarGlyph() {
@@ -213,7 +203,7 @@ function TimeColumn({
                 type="button"
                 onClick={() => onSelect(value)}
                 className={cn(
-                  'flex h-8 w-full items-center justify-center rounded-lg font-mono text-xs tabular-nums transition-all',
+                  'flex min-h-8 w-full items-center justify-center rounded-lg font-mono text-xs tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]',
                   active
                     ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[var(--nimi-elevation-base)]'
                     : 'text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]',
@@ -330,7 +320,7 @@ function AuditDateTimeField({
                 <button
                   type="button"
                   onClick={() => setVisibleMonth((prev) => addMonths(prev, -1))}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]"
                   aria-label={t('runtimeConfig.runtime.previousMonth', { defaultValue: 'Previous month' })}
                 >
                   <ChevronGlyph direction="left" />
@@ -341,7 +331,7 @@ function AuditDateTimeField({
                 <button
                   type="button"
                   onClick={() => setVisibleMonth((prev) => addMonths(prev, 1))}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]"
                   aria-label={t('runtimeConfig.runtime.nextMonth', { defaultValue: 'Next month' })}
                 >
                   <ChevronGlyph direction="right" />
@@ -365,7 +355,7 @@ function AuditDateTimeField({
                     type="button"
                     onClick={() => setDraft((prev) => ({ ...prev, date: cell.date }))}
                     className={cn(
-                      'relative flex aspect-square min-h-8 items-center justify-center rounded-xl text-xs font-semibold tabular-nums transition-all',
+                      'relative flex aspect-square min-h-8 items-center justify-center rounded-xl text-xs font-semibold tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]',
                       selected
                         ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[var(--nimi-elevation-base)]'
                         : cell.outside
@@ -383,7 +373,7 @@ function AuditDateTimeField({
           </div>
 
           <div className="border-t border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_58%,transparent)] px-3 py-3.5 sm:border-t-0 sm:border-l">
-            <div className="mb-3 flex h-8 items-center justify-center gap-1.5 text-xs font-semibold text-[var(--nimi-text-secondary)]">
+            <div className="mb-3 flex min-h-8 items-center justify-center gap-1.5 text-xs font-semibold text-[var(--nimi-text-secondary)]">
               <ClockGlyph />
               {t('runtimeConfig.runtime.time', { defaultValue: 'Time' })}
             </div>
@@ -408,7 +398,7 @@ function AuditDateTimeField({
           <button
             type="button"
             onClick={selectToday}
-            className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[var(--nimi-action-primary-bg)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
+            className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[var(--nimi-action-primary-bg)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]"
           >
             {t('runtimeConfig.runtime.today', { defaultValue: 'Today' })}
           </button>
@@ -420,7 +410,7 @@ function AuditDateTimeField({
                   onChange('');
                   setOpen(false);
                 }}
-                className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]"
+                className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]"
               >
                 {clearLabel}
               </button>
@@ -431,7 +421,7 @@ function AuditDateTimeField({
                 onChange(formatDateTimeValue(draft));
                 setOpen(false);
               }}
-              className="rounded-lg bg-[var(--nimi-action-primary-bg)] px-3.5 py-2 text-xs font-semibold text-[var(--nimi-action-primary-text)] shadow-[var(--nimi-elevation-base)] transition-all hover:bg-[var(--nimi-action-primary-bg-hover)] hover:-translate-y-px"
+              className="rounded-lg bg-[var(--nimi-action-primary-bg)] px-3.5 py-2 text-xs font-semibold text-[var(--nimi-action-primary-text)] shadow-[var(--nimi-elevation-base)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]"
             >
               {t('runtimeConfig.runtime.apply', { defaultValue: 'Apply' })}
             </button>
@@ -480,18 +470,10 @@ export function GlobalAuditSection({
         </h3>
         <div className="flex items-center gap-1">
           <IconButton
-            icon={<RefreshIcon className={loading ? 'animate-spin' : ''} />}
+            icon={<RefreshIcon className={loading ? 'animate-spin motion-reduce:animate-none' : ''} />}
             title={t('runtimeConfig.runtime.refresh', { defaultValue: 'Refresh' })}
             disabled={loading}
             onClick={onRefresh}
-          />
-          <IconButton
-            icon={<ExportIcon />}
-            title={t('runtimeConfig.runtime.auditExportUnavailable', {
-              defaultValue: 'Audit export is not available on Desktop',
-            })}
-            disabled
-            onClick={() => undefined}
           />
         </div>
       </div>
@@ -548,11 +530,11 @@ export function GlobalAuditSection({
       {/* Event List */}
       <div className="mt-4 min-w-0 overflow-hidden rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/40">
         <ScrollArea
-          className="min-w-0 max-h-[calc(100cqh-34rem)]"
-          viewportClassName="min-w-0 max-h-[calc(100cqh-34rem)]"
+          className="min-w-0 max-h-[max(12rem,calc(100cqh-34rem))]"
+          viewportClassName="min-w-0 max-h-[max(12rem,calc(100cqh-34rem))]"
         >
           {events.length === 0 ? (
-            <div className="flex flex-col items-center gap-1.5 px-6 py-10 text-center">
+            <div className="flex flex-col items-center gap-1.5 px-6 py-6 text-center">
               <p className={cn('text-sm font-medium', TOKEN_TEXT_SECONDARY)}>
                 {loading
                   ? t('runtimeConfig.runtime.loadingAuditEvents', { defaultValue: 'Loading audit events…' })
@@ -581,10 +563,8 @@ export function GlobalAuditSection({
       {/* Load More */}
       {hasNextPage ? (
         <div className="mt-3 flex justify-center">
-          <Button variant="secondary" size="sm" disabled={loading} onClick={onLoadMore}>
-            {loading
-              ? t('runtimeConfig.runtime.loading', { defaultValue: 'Loading…' })
-              : t('runtimeConfig.runtime.loadMore', { defaultValue: 'Load more' })}
+          <Button variant="secondary" size="sm" loading={loading} onClick={onLoadMore}>
+            {t('runtimeConfig.runtime.loadMore', { defaultValue: 'Load more' })}
           </Button>
         </div>
       ) : null}
@@ -599,6 +579,7 @@ function AuditEventRow({
   event: DesktopAuditEventProjection;
   formatRelativeTime: (value: unknown) => string;
 }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const ts = timestampToIso(event.timestamp);
   const reasonCodeText = event.reasonCode !== undefined && event.reasonCode !== null ? String(event.reasonCode) : '';
@@ -611,9 +592,9 @@ function AuditEventRow({
         type="button"
         onClick={() => setExpanded((p) => !p)}
         aria-expanded={expanded}
-        className="flex w-full min-w-0 items-center gap-2.5 px-4 py-2.5 text-left transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
+        className="flex w-full min-w-0 items-center gap-2.5 px-4 py-2.5 text-left transition-colors hover:bg-[var(--nimi-action-ghost-hover)] active:bg-[var(--nimi-surface-panel)]/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--nimi-focus-ring-color)]"
       >
-        <span className={cn('shrink-0 text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>{expanded ? '\u25BC' : '\u25B6'}</span>
+        <span aria-hidden="true" className={cn('shrink-0 text-[length:var(--nimi-type-caption-size)]', TOKEN_TEXT_MUTED)}>{expanded ? '\u25BC' : '\u25B6'}</span>
         <span className={cn('hidden w-16 shrink-0 truncate font-mono text-[length:var(--nimi-type-caption-size)] sm:block', TOKEN_TEXT_MUTED)}>
           {event.auditId ? `${event.auditId.slice(0, 8)}…` : '—'}
         </span>
@@ -630,7 +611,7 @@ function AuditEventRow({
           {event.operation || '—'}
         </span>
         <span className={cn('hidden shrink-0 text-[length:var(--nimi-type-caption-size)] md:inline', TOKEN_TEXT_MUTED)}>
-          {callerKindLabel(event.callerKind)}
+          {callerKindLabel(event.callerKind, t)}
         </span>
         {hasReason ? (
           <span
@@ -668,7 +649,7 @@ function ExpandedDetails({ event, timestampIso, reasonCodeText }: { event: Deskt
       <FieldGroup
         title={t('runtimeConfig.runtime.groupWho', { defaultValue: 'Who called' })}
         items={[
-          { label: t('runtimeConfig.runtime.callerKind', { defaultValue: 'Caller Kind' }), value: callerKindLabel(event.callerKind) },
+          { label: t('runtimeConfig.runtime.callerKind', { defaultValue: 'Caller Kind' }), value: callerKindLabel(event.callerKind, t) },
           { label: t('runtimeConfig.runtime.appId', { defaultValue: 'App ID' }), value: event.appId, mono: true },
         ]}
       />

@@ -8,7 +8,7 @@ export function SettingsCard({
   children,
   className,
   style,
-  material = 'glass-thin',
+  material = 'solid',
 }: {
   children: ReactNode;
   className?: string;

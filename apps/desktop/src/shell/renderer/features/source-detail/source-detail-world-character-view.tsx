@@ -71,7 +71,7 @@ function WorldCharacterWorksBlock({ source }: { source: SourceDetailData }) {
     <section data-testid="world-character-works-section" className="border-t border-[var(--nimi-border-subtle)] pt-10 pb-12">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-[18px] font-semibold tracking-[-0.01em] text-[var(--nimi-text-primary)]">
+          <h2 className="text-lg font-semibold tracking-[-0.01em] text-[var(--nimi-text-primary)]">
             {t('SourceDetail.works.title', { defaultValue: 'Works collections' })}
           </h2>
           {countText ? (
@@ -83,9 +83,9 @@ function WorldCharacterWorksBlock({ source }: { source: SourceDetailData }) {
       {introducedWorks.length > 0 ? (
         <div data-testid="world-character-works-grid" className="mt-5 grid gap-4 md:grid-cols-2">
           {introducedWorks.map((work) => (
-            <article key={work.id} className="rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-panel)] p-5 transition-colors hover:bg-[var(--nimi-surface-active)]">
+            <article key={work.id} className="rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-panel)] p-5">
               <div className="min-w-0">
-                <h3 className="text-[15px] font-semibold text-[var(--nimi-text-primary)] [overflow-wrap:anywhere]">{display(work.title)}</h3>
+                <h3 className="text-[0.9375rem] font-semibold text-[var(--nimi-text-primary)] [overflow-wrap:anywhere]">{display(work.title)}</h3>
                 {work.romanizedTitle ? (
                   <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">{display(work.romanizedTitle)}</p>
                 ) : null}
@@ -172,7 +172,7 @@ function WorldCharacterVoicePill({
         aria-label={label}
         aria-pressed={playing}
         onClick={onToggle}
-        className={`group inline-flex min-w-0 items-center gap-2 rounded-[10px] bg-[var(--nimi-surface-panel)] pl-1.5 pr-2.5 ring-1 ring-[var(--nimi-border-subtle)] transition-colors hover:bg-[var(--nimi-surface-active)] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${compact ? 'h-7' : 'h-8'}`}
+        className={`group inline-flex min-w-0 items-center gap-2 rounded-[10px] bg-[var(--nimi-surface-panel)] pl-1.5 pr-2.5 ring-1 ring-[var(--nimi-border-subtle)] transition-[background-color,transform] hover:bg-[var(--nimi-surface-active)] active:scale-[0.98] motion-reduce:transform-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${compact ? 'h-7' : 'h-8'}`}
       >
         <span
           className={`grid shrink-0 place-items-center rounded-[7px] bg-[var(--nimi-text-primary)] text-[var(--nimi-surface-card)] transition-opacity group-hover:opacity-90 ${compact ? 'h-5 w-5' : 'h-[22px] w-[22px]'}`}
@@ -211,7 +211,7 @@ function WorldCharacterVoicePill({
           </span>
         ) : null}
         {durationText ? (
-          <span className="shrink-0 text-[11px] font-medium leading-none tabular-nums text-[var(--nimi-text-muted)]">
+          <span className="shrink-0 text-[0.6875rem] font-medium leading-none tabular-nums text-[var(--nimi-text-muted)]">
             {durationText}
           </span>
         ) : null}
@@ -417,7 +417,7 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
                   type="button"
                   data-testid="world-character-world-pill"
                   onClick={props.onOpenWorld}
-                  className="absolute right-4 top-4 z-10 inline-flex max-w-[min(360px,68%)] items-center gap-1.5 rounded-[10px] bg-black/62 px-3 py-1.5 text-white transition-colors hover:bg-black/78 focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+                  className="absolute right-4 top-4 z-10 inline-flex max-w-[min(360px,68%)] items-center gap-1.5 rounded-[10px] bg-black/62 px-3 py-1.5 text-white transition-[background-color,transform] hover:bg-black/78 active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
                 >
                   <Globe aria-hidden className="h-3.5 w-3.5 shrink-0 text-white/75" />
                   <span className="shrink-0 text-xs text-white/75">{t('SourceDetail.worldCharacter.worldPill')}</span>
@@ -449,7 +449,7 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
 
               <div className="min-w-0 pt-4 max-[760px]:pt-2">
                 <div data-testid="world-character-hero-title-row" className="flex flex-wrap items-center gap-3">
-                  <h1 className={`char-display-serif break-words leading-[1.2] text-[var(--nimi-text-primary)] ${partner ? 'text-[28px]' : 'text-[36px] max-[720px]:text-[28px]'}`}>
+                  <h1 className={`char-display-serif break-words leading-[1.2] text-[var(--nimi-text-primary)] ${partner ? 'text-[1.75rem]' : 'text-[2.25rem] max-[720px]:text-[1.75rem]'}`}>
                     {displayName}
                   </h1>
                   {voiceSample ? (
@@ -463,13 +463,13 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
                 </div>
 
                 {heroRole ? (
-                  <p data-testid="world-character-hero-role" className="mt-1.5 max-w-[58ch] text-[15px] font-medium leading-6 text-[var(--nimi-text-primary)]">
+                  <p data-testid="world-character-hero-role" className="mt-1.5 max-w-[58ch] text-[0.9375rem] font-medium leading-6 text-[var(--nimi-text-primary)]">
                     {heroRole}
                   </p>
                 ) : null}
 
                 {heroTraits.length ? (
-                  <p data-testid="world-character-hero-traits" className="mt-1 text-[13px] leading-5 text-[var(--nimi-text-muted)]">
+                  <p data-testid="world-character-hero-traits" className="mt-1 text-[0.8125rem] leading-5 text-[var(--nimi-text-muted)]">
                     {heroTraits.join(' · ')}
                   </p>
                 ) : null}
@@ -478,7 +478,7 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
                   <p
                     data-testid="world-character-voice-transcript"
                     role="status"
-                    className="mt-2 max-w-[54ch] text-[13px] leading-6 text-[var(--nimi-text-secondary)]"
+                    className="mt-2 max-w-[54ch] text-[0.8125rem] leading-6 text-[var(--nimi-text-secondary)]"
                   >
                     “{voiceTranscript}”
                   </p>

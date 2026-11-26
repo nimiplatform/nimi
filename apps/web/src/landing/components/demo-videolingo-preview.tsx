@@ -42,14 +42,19 @@ export function DemoVideoLingoPreview({ content }: { content: VideoLingoPreviewC
             <h1>{t('videoLingo.demoHeader.videoLingo')}</h1>
             <span className="tp-chip">{t('videoLingo.demoHeader.sampleWorkspace')}</span>
           </div>
-          <PreviewButton onClick={() => setConfig(!config)}>
+          <PreviewButton aria-expanded={config} onClick={() => setConfig(!config)}>
             <SlidersHorizontal size={15} />
             {t('videoLingo.demoHeader.aiConfiguration')}
           </PreviewButton>
         </header>
         <nav className="vl-demo-navigation" aria-label={t('videoLingo.demoNavigation.workspaces')}>
           {['视频翻译', '批量处理'].map((item) => (
-            <PreviewButton key={item} primary={page === item} onClick={() => setPage(item)}>
+            <PreviewButton
+              key={item}
+              primary={page === item}
+              aria-pressed={page === item}
+              onClick={() => setPage(item)}
+            >
               {item === '批量处理'
                 ? t('videoLingo.navigation.batch')
                 : t('videoLingo.demoNavigation.videoTranslation')}
@@ -174,7 +179,11 @@ export function DemoVideoLingoPreview({ content }: { content: VideoLingoPreviewC
                 </p>
               </div>
             </aside>
-            <main className="vl-demo-main">
+            <div
+              role="region"
+              aria-label={t('videoLingo.demoHeader.videoLingo')}
+              className="vl-demo-main"
+            >
               <div className="vl-demo-project-title">
                 <div>
                   <h2>{title}</h2>
@@ -316,7 +325,7 @@ export function DemoVideoLingoPreview({ content }: { content: VideoLingoPreviewC
                   </PreviewButton>
                 </section>
               )}
-            </main>
+            </div>
           </div>
         )}
       </div>

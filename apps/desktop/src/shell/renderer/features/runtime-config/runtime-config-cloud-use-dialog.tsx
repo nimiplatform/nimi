@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, OverlayShell, InlineAlert, ScrollShell, TextField } from '@nimiplatform/kit/ui';
 import { ArrowRight, Bot, Cloud, Search } from 'lucide-react';
@@ -31,6 +31,7 @@ export function CloudConnectorUseDialog(props: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
   const [query, setQuery] = useState('');
+  const capabilitySelectId = useId();
   const pendingChoice = useRef<AbortController | null>(null);
   useEffect(() => () => pendingChoice.current?.abort(), []);
   const dismiss = () => {
@@ -77,7 +78,7 @@ export function CloudConnectorUseDialog(props: {
     open kind="dialog" size="md" onClose={dismiss}
     title={<span className="block text-xl font-semibold leading-snug tracking-tight">{t('runtimeConfig.cloudWorkspace.chooseOwner')}</span>}
     dataTestId="cloud-use-dialog"
-    panelClassName="flex max-h-[90vh] flex-col overflow-hidden rounded-3xl"
+    panelClassName="flex max-h-[90vh] flex-col overflow-hidden rounded-2xl"
     contentClassName="flex min-h-0 flex-1 flex-col gap-5 pb-5 pt-3"
   >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
@@ -87,7 +88,7 @@ export function CloudConnectorUseDialog(props: {
         </span>
         {capabilities.length === 1 ? <span className="text-[var(--nimi-text-secondary)]">{displayRuntimeConfigCapabilityLabel(capability, t)}</span> : null}
       </div>
-      {capabilities.length > 1 ? <div><label className="mb-1 block text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.cloudWorkspace.filterCapability')}</label><RuntimeSelect value={capability} onChange={value => { setCapability(value); setQuery(''); }} disabled={busy} options={capabilities.map(value => ({ value, label: displayRuntimeConfigCapabilityLabel(value, t) }))} className="w-full" /></div> : !capabilities.length ? <p>{t('runtimeConfig.cloudWorkspace.capabilitiesUnknown')}</p> : null}
+      {capabilities.length > 1 ? <div><label htmlFor={capabilitySelectId} className="mb-1 block text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.cloudWorkspace.filterCapability')}</label><RuntimeSelect id={capabilitySelectId} value={capability} onChange={value => { setCapability(value); setQuery(''); }} disabled={busy} options={capabilities.map(value => ({ value, label: displayRuntimeConfigCapabilityLabel(value, t) }))} className="w-full" /></div> : !capabilities.length ? <p>{t('runtimeConfig.cloudWorkspace.capabilitiesUnknown')}</p> : null}
       {authStatus !== 'authenticated' ? <InlineAlert tone="warning">{t('runtimeConfig.cloudWorkspace.signInRequired')}</InlineAlert> : null}
       {error ? <InlineAlert tone="danger">{t('runtimeConfig.cloudWorkspace.configureFailed')}</InlineAlert> : null}
       {owners.length > 6 || query ? <TextField aria-label={t('runtimeConfig.cloudWorkspace.searchOwners')} placeholder={t('runtimeConfig.cloudWorkspace.searchOwners')} leading={<Search size={17} aria-hidden="true" />} value={query} onChange={event => setQuery(event.target.value)} className="min-h-11 rounded-xl bg-[var(--nimi-surface-panel)] text-sm focus-within:ring-1" /> : null}
@@ -96,7 +97,7 @@ export function CloudConnectorUseDialog(props: {
           {appOwners.map(owner => <li key={owner.key} className="min-w-0">
             <button
               type="button"
-              className="group flex h-full min-h-[4.5rem] w-full items-center gap-3 rounded-2xl border border-transparent bg-[var(--nimi-surface-panel)] px-4 py-3 text-left text-sm font-medium text-[var(--nimi-text-primary)] transition-colors hover:border-[var(--nimi-border-subtle)] hover:bg-[var(--nimi-surface-active)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)] disabled:cursor-wait disabled:opacity-50"
+              className="group flex h-full min-h-[4.5rem] w-full items-center gap-3 rounded-2xl border border-transparent bg-[var(--nimi-surface-panel)] px-4 py-3 text-left text-sm font-medium text-[var(--nimi-text-primary)] transition-colors hover:border-[var(--nimi-border-subtle)] hover:bg-[var(--nimi-surface-active)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] enabled:active:scale-[var(--nimi-motion-pressed-scale)] disabled:cursor-wait disabled:opacity-50"
               disabled={busy || authStatus !== 'authenticated'} onClick={() => void choose(owner.owner)}
             >
               <AppArtworkIcon appId={owner.key} displayName={owner.label} iconUrl={apps?.iconUrls.get(owner.key)} size="xl" />
@@ -105,11 +106,11 @@ export function CloudConnectorUseDialog(props: {
             </button>
           </li>)}
         </ul>
-        {query && !filteredOwners.length ? <div className="flex flex-col items-center gap-3 px-4 py-10 text-center text-sm text-[var(--nimi-text-secondary)]"><Search size={24} aria-hidden="true" className="text-[var(--nimi-text-muted)]" /><p>{t('runtimeConfig.cloudWorkspace.noOwnersMatch')}</p></div> : null}
+        {query && !filteredOwners.length ? <div className="flex flex-col items-center gap-3 px-4 py-6 text-center text-sm text-[var(--nimi-text-secondary)]"><Search size={24} aria-hidden="true" className="text-[var(--nimi-text-muted)]" /><p>{t('runtimeConfig.cloudWorkspace.noOwnersMatch')}</p></div> : null}
       </ScrollShell>
       {agentOwner ? <button
           type="button"
-          className="group flex min-h-16 w-full shrink-0 items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-surface-panel)] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--nimi-focus-ring-color)] disabled:cursor-wait disabled:opacity-50"
+          className="group flex min-h-16 w-full shrink-0 items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-surface-panel)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--nimi-focus-ring-color)] enabled:active:scale-[var(--nimi-motion-pressed-scale)] disabled:cursor-wait disabled:opacity-50"
           disabled={busy || authStatus !== 'authenticated'} onClick={() => void choose(agentOwner.owner)}
         >
           <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--nimi-surface-panel)]"><Bot size={22} /></span>

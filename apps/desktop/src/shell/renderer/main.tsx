@@ -89,26 +89,26 @@ function EntryBootSurface(props: { title: string; description: string; detail: s
           initial={{ opacity: prefersReducedMotion ? 1 : 0, y: prefersReducedMotion ? 0 : 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: [0.2, 0, 0, 1] }}
-          className="w-full max-w-lg rounded-lg border border-[var(--nimi-border-subtle,#e5e7eb)] bg-[var(--nimi-surface-bg,#ffffff)] p-6 shadow-sm"
+          className="w-full max-w-lg rounded-lg border border-[var(--nimi-border-subtle,light-dark(#e5e7eb,#334155))] bg-[var(--nimi-surface-card,light-dark(#ffffff,#1e232c))] p-6 shadow-sm"
         >
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--nimi-text-muted,#64748b)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--nimi-text-muted,light-dark(#64748b,#94a3b8))]">
             Nimi Runtime
           </p>
-          <h1 className="mt-3 text-lg font-semibold text-[var(--nimi-text-primary,#111827)]">
+          <h1 className="mt-3 text-lg font-semibold text-[var(--nimi-text-primary,light-dark(#111827,#f8fafc))]">
             {props.title}
           </h1>
-          <p className="mt-3 break-words text-sm leading-6 text-[var(--nimi-text-secondary,#475569)]">
+          <p className="mt-3 break-words text-sm leading-6 text-[var(--nimi-text-secondary,light-dark(#475569,#cbd5e1))]">
             {props.description}
           </p>
           <button
             type="button"
             data-testid="entry-boot-reload"
             onClick={() => window.location.reload()}
-            className="mt-5 inline-flex h-9 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg,#111827)] px-4 text-sm font-semibold text-[var(--nimi-action-primary-text,#ffffff)]"
+            className="mt-5 inline-flex h-9 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg,light-dark(#1a73e8,#3b82f6))] px-4 text-sm font-semibold text-[var(--nimi-action-primary-text,#ffffff)] transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-action-primary-bg-hover,light-dark(#1557b0,#2563eb))] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nimi-focus-ring-color,light-dark(#1a73e8,#60a5fa))]"
           >
             {entryBootCopy.retryStart}
           </button>
-          <details className="mt-4 text-xs text-[var(--nimi-text-muted,#64748b)]">
+          <details className="mt-4 text-xs text-[var(--nimi-text-muted,light-dark(#64748b,#94a3b8))]">
             <summary className="cursor-pointer">{entryBootCopy.technicalDetails}</summary>
             <p className="mt-2 break-words font-mono">{props.detail}</p>
           </details>
@@ -117,8 +117,32 @@ function EntryBootSurface(props: { title: string; description: string; detail: s
     );
 }
 
+function shouldAllowNativeContextMenu(event: MouseEvent): boolean {
+    const rawTarget = event.target;
+    const element = rawTarget instanceof Element
+      ? rawTarget
+      : (rawTarget instanceof Node ? rawTarget.parentElement : null);
+    if (element) {
+        if (
+            element.matches('input, textarea, [contenteditable="true"]')
+            || Boolean(element.closest('[contenteditable="true"]'))
+            || (element instanceof HTMLElement && element.isContentEditable)
+        ) {
+            return true;
+        }
+    }
+    if (window.getSelection()?.toString().trim()) {
+        return true;
+    }
+    return false;
+}
+
 if (!import.meta.env.DEV) {
-    document.addEventListener('contextmenu', (e) => e.preventDefault());
+    document.addEventListener('contextmenu', (e) => {
+        if (!shouldAllowNativeContextMenu(e)) {
+            e.preventDefault();
+        }
+    });
 }
 const rootElement = document.getElementById('root');
 if (!rootElement) {

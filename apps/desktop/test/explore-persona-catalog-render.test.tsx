@@ -5,8 +5,10 @@ import { JSDOM } from 'jsdom';
 
 test('character discovery stays in Worlds and pages world choices within the selected topic', async () => {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost', pretendToBeVisual: true });
+  class Observer { observe() {} unobserve() {} disconnect() {} }
   const globals = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
     HTMLElement: dom.window.HTMLElement, Element: dom.window.Element, getComputedStyle: dom.window.getComputedStyle,
+    IntersectionObserver: Observer, ResizeObserver: Observer,
     React, IS_REACT_ACT_ENVIRONMENT: true };
   const previous = new Map(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
@@ -15,9 +17,18 @@ test('character discovery stays in Worlds and pages world choices within the sel
   const { AppStoreProvider } = await import('../src/shell/renderer/app-shell/providers/app-store.js');
   const { createAppStore } = await import('../src/shell/renderer/app-shell/providers/app-store-factory.js');
   const { DesktopRendererBindingProvider } = await import('../src/shell/renderer/renderer/binding-context.js');
+  const { WorldFollowStoreProvider } = await import('../src/shell/renderer/features/world/world-follow-store-context.js');
   const { ExplorePanel } = await import('../src/shell/renderer/features/explore/explore-panel.js');
   const { initI18n, changeLocale } = await import('../src/shell/renderer/i18n/index.js');
   await initI18n(); await changeLocale('en');
+  const emptyFollowSnapshot = Object.freeze({ ids: Object.freeze([] as string[]), set: new Set<string>(), error: null });
+  const followStore = {
+    emptySnapshot: emptyFollowSnapshot,
+    getSnapshot: () => emptyFollowSnapshot,
+    toggle: () => false,
+    subscribe: () => () => {},
+    dispose: () => {},
+  };
   const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
   await store.navigation.push({ id: 'explore', exploreSearchKind: 'characters' });
   store.getState().setBootstrapReady(true);
@@ -56,10 +67,13 @@ test('character discovery stays in Worlds and pages world choices within the sel
   const option = (id: string) => document.querySelector(`select option[value="${id}"]`);
   try {
     await act(async () => root.render(<QueryClientProvider client={client}><AppStoreProvider store={store}>
-      <DesktopRendererBindingProvider bindings={bindings}><ExplorePanel activeSection="worlds" searchText=""
-        onSectionChange={() => {}} onSearchTextChange={() => {}} /></DesktopRendererBindingProvider>
+      <WorldFollowStoreProvider store={followStore}><DesktopRendererBindingProvider bindings={bindings}><ExplorePanel activeSection="worlds" searchText=""
+        onSectionChange={() => {}} onSearchTextChange={() => {}} /></DesktopRendererBindingProvider></WorldFollowStoreProvider>
     </AppStoreProvider></QueryClientProvider>));
-    assert.deepEqual([...document.querySelectorAll('[role="tab"]')].map(tab => [tab.textContent, tab.getAttribute('aria-selected')]), [['Worlds', 'true']]);
+    assert.deepEqual(
+      [...document.querySelectorAll('[role="tab"]')].map(tab => [tab.textContent, tab.getAttribute('aria-selected')]),
+      [['Worlds', 'false'], ['Discover partners', 'true']],
+    );
     await waitFor(() => !!option('world-1'));
     assert.equal(option('world-51'), null);
     await act(async () => document.querySelector<HTMLButtonElement>('[data-topic-id="comedy"]')!.click());
@@ -74,7 +88,18 @@ test('character discovery stays in Worlds and pages world choices within the sel
       select.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
     });
     assert.deepEqual(characterRequests.at(-1), { worldId: 'world-91', topicId: 'comedy', limit: 24 });
+    // Switching back to Worlds tab deactivates Discover partners and activates Worlds.
+    const worldsTab = document.querySelector<HTMLButtonElement>('[data-testid="explore-section-tab-worlds"]');
+    assert.ok(worldsTab);
+    await act(async () => worldsTab.click());
+    assert.equal(store.navigation.getSnapshot().current.destination.exploreSection, 'worlds');
+    assert.equal(store.navigation.getSnapshot().current.destination.exploreSearchKind, undefined);
+    assert.deepEqual(
+      [...document.querySelectorAll('[role="tab"]')].map(tab => [tab.textContent, tab.getAttribute('aria-selected')]),
+      [['Worlds', 'true'], ['Discover partners', 'false']],
+    );
   } finally {
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 15)); });
     await act(async () => root.unmount()); client.clear(); dom.window.close();
     for (const [key, descriptor] of previous) {
       if (descriptor) Object.defineProperty(globalThis, key, descriptor);

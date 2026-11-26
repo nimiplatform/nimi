@@ -1,8 +1,8 @@
 .web-account-status,
 .web-static-page {
   min-height: 100vh;
-  background: #f4fbfb;
-  color: #102b2c;
+  background: #f6f8fb;
+  color: #0f172a;
 }
 
 .web-account-status,
@@ -173,30 +173,30 @@
 .web-account-status nav,
 .web-static-page nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; }
 .web-account-status a,
-.web-static-page a { color: #087b87; font-weight: 600; }
+.web-static-page a { color: #1476d4; font-weight: 600; }
 .web-static-page section { max-width: 42rem; }
-.web-static-page h1 { font-size: clamp(2rem, 6vw, 4.5rem); font-weight: 700; }
-.web-static-page p { margin: 1.5rem 0; color: #496667; line-height: 1.8; }
-.web-wordmark { font-size: 1.25rem; letter-spacing: .16em; text-transform: uppercase; }
-.web-account-form { width: min(100%, 36rem); }
+.web-static-page h1 { font-size: clamp(1.75rem, 4.5vw, 2.5rem); font-weight: 700; letter-spacing: -0.025em; }
+.web-static-page p { margin: 1rem 0; color: #475569; line-height: 1.7; }
+.web-wordmark { font-size: 1.25rem; letter-spacing: -0.02em; }
+.web-account-form { width: min(100%, 30rem); text-align: left; }
 .web-account-form form,
 .web-account-actions { display: grid; gap: .75rem; margin: 1rem 0; }
-.web-account-form input { border: 1px solid #b7d5d5; border-radius: .75rem; padding: .8rem 1rem; background: white; }
-.web-account-form button { border-radius: 999px; padding: .8rem 1rem; background: #087b87; color: white; font-weight: 600; }
-.web-account-secret { overflow-wrap: anywhere; border-radius: .75rem; background: #e8f5f5; padding: 1rem; font-family: monospace; }
-.web-account-panel { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #b7d5d5; text-align: left; }
+.web-account-form input { border: 1px solid #cbd9e6; border-radius: .75rem; padding: .75rem 1rem; background: white; color: #0f172a; }
+.web-account-form button { border-radius: 999px; padding: .75rem 1.25rem; background: #1476d4; color: white; font-weight: 600; }
+.web-account-secret { overflow-wrap: anywhere; border-radius: .75rem; background: #eaf3fd; padding: 1rem; font-family: monospace; }
+.web-account-panel { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #cbd9e6; text-align: left; }
 .web-account-panel h2 { font-size: 1.35rem; font-weight: 650; }
 .web-account-verification-heading { max-width: 36rem; margin: 1rem auto 0; padding: 1rem; text-align: center; line-height: 1.65; }
 .web-account-panel p { margin: .75rem 0; line-height: 1.65; }
 .web-account-session-list { margin: 1rem 0; padding: 0; list-style: none; }
-.web-account-session-list li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid #d6e6e6; }
-.web-account-session-list span { display: block; color: #496667; font-size: .875rem; }
+.web-account-session-list li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid #dce7f3; }
+.web-account-session-list span { display: block; color: #475569; font-size: .875rem; }
 .web-account-form button:disabled { opacity: .55; cursor: not-allowed; }
-.web-account-form button:focus-visible, .web-account-form input:focus-visible { outline: 2px solid #087b87; outline-offset: 3px; }
+.web-account-form button:focus-visible, .web-account-form input:focus-visible { outline: 2px solid #1476d4; outline-offset: 3px; }
 .web-account-check { display: flex; align-items: flex-start; gap: .65rem; margin: 1rem 0; }
 .web-account-check input { margin-top: .3rem; }
-.web-account-form button.web-account-danger { background: #a12626; }
-.web-account-confirmation { margin-top: 1rem; padding: 1rem; border: 1px solid #b7d5d5; border-radius: .75rem; }
+.web-account-form button.web-account-danger { background: #dc2626; }
+.web-account-confirmation { margin-top: 1rem; padding: 1rem; border: 1px solid #cbd9e6; border-radius: .75rem; }
 @media (max-width: 560px) { .web-account-session-list li { align-items: stretch; flex-direction: column; } }
 
 .release-page-shell {
@@ -5393,12 +5393,6 @@
 
 .public-platform-page .public-platform-vision-header {
   max-width: 980px;
-  transition: opacity 0.68s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.public-platform-page:has(.platform-blueprint-stage[data-expanded="true"]) .public-platform-vision-header {
-  opacity: 0;
-  pointer-events: none;
 }
 
 .public-platform-page .public-platform-vision-header h1 {
@@ -5430,13 +5424,13 @@
 }
 
 @keyframes platformScanSweep {
-  0%, 100% { top: 14%; opacity: 0.55; }
-  50% { top: 82%; opacity: 1; }
+  0%, 100% { transform: translate3d(0, 8px, 0); opacity: 0.55; }
+  50% { transform: translate3d(0, 42px, 0); opacity: 1; }
 }
 
 @keyframes platformPlayhead {
-  0% { left: 4%; }
-  100% { left: 95%; }
+  0% { transform: translate3d(4%, 0, 0); }
+  100% { transform: translate3d(95%, 0, 0); }
 }
 
 @keyframes platformReticleLock {
@@ -5445,10 +5439,10 @@
 }
 
 @keyframes platformWirePacket {
-  0% { left: -16px; opacity: 0; }
+  0% { transform: translate3d(-16px, 0, 0); opacity: 0; }
   20% { opacity: 1; }
   80% { opacity: 1; }
-  100% { left: calc(100% + 4px); opacity: 0; }
+  100% { transform: translate3d(100%, 0, 0); opacity: 0; }
 }
 
 @keyframes platformRingPulse {
@@ -5457,9 +5451,14 @@
 }
 
 @keyframes platformTunnelShuttle {
-  0% { left: 0%; opacity: 0.35; }
+  0% { transform: translate3d(0%, 0, 0); opacity: 0.35; }
   50% { opacity: 1; }
-  100% { left: calc(100% - 7px); opacity: 0.35; }
+  100% { transform: translate3d(calc(100% - 7px), 0, 0); opacity: 0.35; }
+}
+
+@keyframes platformActFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .public-platform-page .sr-only {
@@ -5485,10 +5484,23 @@
   }
 }
 
-/* Event-Driven Full-Width Cinema Stage: Screen-1 Zero-Truncation Fit -> Screen-2 Full-Viewport Unfold */
+/* Native Scroll-Driven Sticky Stage: zero wheel/touch hijacking */
 .public-platform-page .platform-scrolly-inversion.is-full-cinema {
   position: relative;
   margin-top: clamp(20px, 2.4vh, 32px);
+}
+
+@media (min-width: 981px) and (prefers-reduced-motion: no-preference) {
+  .public-platform-page .platform-scrolly-inversion.is-full-cinema {
+    --platform-stage-sticky-top: 82px;
+    --platform-stage-travel: clamp(1320px, 200svh, 2100px);
+    min-height: calc(clamp(540px, calc(100svh - 104px), 840px) + var(--platform-stage-travel));
+  }
+
+  .public-platform-page .platform-blueprint-stage {
+    position: sticky;
+    top: var(--platform-stage-sticky-top);
+  }
 }
 
 .public-platform-page .platform-blueprint-stage {
@@ -5663,12 +5675,12 @@
   transform-origin: left center;
 }
 
-/* Initial Screen-1 Fit Default; smoothly unfolded to Screen-2 Full-Viewport via JS */
+/* Viewport-fitted 2.5D architectural canvas frame */
 .public-platform-page .platform-iso-frame {
   container-type: inline-size;
   position: relative;
   width: 100%;
-  height: clamp(240px, calc(100svh - 520px), 680px);
+  height: clamp(340px, calc(100svh - 270px), 660px);
   border-radius: 20px;
   border: 0;
   background: #ffffff;
@@ -5695,7 +5707,7 @@
   font-weight: 650;
   white-space: nowrap;
   pointer-events: none;
-  transition: opacity 0.45s ease, left 0.72s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 0.45s ease, transform 0.72s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .public-platform-page .platform-iso-floating-pill.is-fault {
@@ -5965,12 +5977,22 @@
 
 .public-platform-page .platform-wire-packet {
   position: absolute;
+  left: 0;
+  right: 0;
   top: -2px;
+  height: 6px;
+  background: transparent;
+  pointer-events: none;
+  animation: platformWirePacket 2.6s ease-in-out infinite;
+}
+
+.public-platform-page .platform-wire-packet::after {
+  content: '';
+  display: block;
   width: 16px;
   height: 6px;
   border-radius: 999px;
   background: linear-gradient(90deg, #05dc78, #1476d4);
-  animation: platformWirePacket 2.6s ease-in-out infinite;
 }
 
 .public-platform-page .platform-wire-packet.is-delayed {
@@ -6133,6 +6155,7 @@
 
 .public-platform-page .platform-scan-laser {
   position: absolute;
+  top: 0;
   left: 8px;
   right: 8px;
   height: 1.5px;
@@ -6817,13 +6840,11 @@
   padding: 4px 10px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.34);
-  background: rgba(15, 23, 42, 0.72);
+  background: rgba(15, 23, 42, 0.9);
   color: #f8fafc;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.01em;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   pointer-events: none;
 }
 
@@ -6945,20 +6966,27 @@
 
 .public-platform-page .platform-vision-scan-beam {
   position: absolute;
-  left: 0;
-  right: 0;
-  height: 36px;
-  background: linear-gradient(180deg, rgba(5, 220, 120, 0), rgba(17, 188, 226, 0.24) 80%, rgba(5, 220, 120, 0.85) 100%);
-  border-bottom: 1.5px solid rgba(5, 220, 120, 0.9);
+  inset: 0;
   pointer-events: none;
   animation: platformPhotoScan 3.4s ease-in-out infinite;
 }
 
+.public-platform-page .platform-vision-scan-beam::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 36px;
+  background: linear-gradient(180deg, rgba(5, 220, 120, 0), rgba(17, 188, 226, 0.24) 80%, rgba(5, 220, 120, 0.85) 100%);
+  border-bottom: 1.5px solid rgba(5, 220, 120, 0.9);
+}
+
 @keyframes platformPhotoScan {
-  0% { top: -36px; opacity: 0; }
+  0% { transform: translate3d(0, -18%, 0); opacity: 0; }
   12% { opacity: 1; }
   88% { opacity: 1; }
-  100% { top: 100%; opacity: 0; }
+  100% { transform: translate3d(0, 100%, 0); opacity: 0; }
 }
 
 .public-platform-page .platform-vision-prompt-chip {
@@ -6968,14 +6996,12 @@
   bottom: 10px;
   padding: 6px 10px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(15, 23, 42, 0.9);
   color: #f8fafc;
   font-size: 11.5px;
   font-weight: 550;
   line-height: 1.35;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
 }
 
 .public-platform-page .platform-vision-output-card {
@@ -7418,10 +7444,12 @@
 
 .public-platform-page .platform-embed-mini-track > i {
   display: block;
+  width: 100%;
   height: 100%;
   border-radius: 999px;
   background: #94a3b8;
-  transition: width 0.28s ease;
+  transform-origin: left;
+  transition: transform 0.28s ease;
 }
 
 .public-platform-page .platform-embed-note-card.is-top .platform-embed-mini-track > i {
@@ -7574,10 +7602,12 @@
 
 .public-platform-page .platform-decide-track > i {
   display: block;
+  width: 100%;
   height: 100%;
   border-radius: 999px;
   background: #94a3b8;
-  transition: width 0.3s ease;
+  transform-origin: left;
+  transition: transform 0.3s ease;
 }
 
 .public-platform-page .platform-decide-row.is-winner .platform-decide-track > i {
@@ -7630,9 +7660,16 @@
   gap: 3px;
   padding: 3px;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.72);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.public-platform-page .platform-annotate-toggle button:focus-visible,
+.public-platform-page .platform-compare-quickbar button:focus-visible,
+.public-platform-page .platform-video-playbtn:focus-visible,
+.public-platform-page .platform-video-timeline:focus-visible {
+  outline: 2px solid #81e8d5;
+  outline-offset: 2px;
 }
 
 .public-platform-page .platform-annotate-toggle button {
@@ -7666,11 +7703,9 @@
   gap: 2px;
   padding: 8px 14px;
   border-radius: 10px;
-  border: 1px solid rgba(5, 220, 120, 0.4);
-  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(5, 220, 120, 0.48);
+  background: rgba(15, 23, 42, 0.92);
   text-align: center;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 
 .public-platform-page .platform-annotate-subtitle.is-naive {
@@ -7755,8 +7790,16 @@
   object-position: center 74%;
 }
 
+.public-platform-page .platform-compare-divider-track {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
 .public-platform-page .platform-compare-divider {
   position: absolute;
+  left: 0;
   top: 0;
   bottom: 0;
   z-index: 3;
@@ -7778,7 +7821,7 @@
   height: 34px;
   border-radius: 50%;
   border: 2px solid #ffffff;
-  background: rgba(15, 23, 42, 0.84);
+  background: rgba(15, 23, 42, 0.9);
   color: #ffffff;
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.45);
   transition: transform 0.14s ease, background-color 0.14s ease;
@@ -7791,6 +7834,12 @@
   color: #064e3b;
 }
 
+.public-platform-page .platform-compare-stage:has(.platform-compare-range:focus-visible) .platform-compare-handle {
+  outline: 2px solid #81e8d5;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px rgba(15, 23, 42, 0.78);
+}
+
 .public-platform-page .platform-compare-range {
   position: absolute;
   inset: 0;
@@ -7799,6 +7848,7 @@
   height: 100%;
   margin: 0;
   opacity: 0;
+  pointer-events: none;
   cursor: ew-resize;
 }
 
@@ -7811,13 +7861,11 @@
   padding: 5px 12px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.24);
-  background: rgba(15, 23, 42, 0.72);
+  background: rgba(15, 23, 42, 0.9);
   color: #f8fafc;
   font-size: 11px;
   font-weight: 580;
   white-space: nowrap;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   pointer-events: none;
 }
 
@@ -7833,9 +7881,7 @@
   padding: 3px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.24);
-  background: rgba(15, 23, 42, 0.76);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(15, 23, 42, 0.92);
 }
 
 .public-platform-page .platform-compare-quickbar button {
@@ -7900,11 +7946,10 @@
   bottom: 7px;
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.74);
+  background: rgba(15, 23, 42, 0.9);
   color: #f8fafc;
   font-size: 10.5px;
   font-weight: 620;
-  backdrop-filter: blur(8px);
 }
 
 .public-platform-page .platform-faceswap-plus {
@@ -8064,7 +8109,7 @@
 .public-platform-page .platform-locate-guide-v {
   position: absolute;
   pointer-events: none;
-  transition: top 0.32s cubic-bezier(0.22, 1, 0.36, 1), left 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 0.24s ease;
 }
 
 .public-platform-page .platform-locate-guide-h {
@@ -8087,11 +8132,7 @@
   border-radius: 10px;
   background: rgba(5, 220, 120, 0.12);
   box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.25), 0 0 18px rgba(5, 220, 120, 0.35);
-  transition:
-    left 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-    top 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-    width 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-    height 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 0.24s ease, box-shadow 0.24s ease;
 }
 
 .public-platform-page .platform-locate-tag {
@@ -8120,7 +8161,7 @@
   transform: translate(-50%, -50%);
   box-shadow: 0 0 0 4px rgba(5, 220, 120, 0.28);
   pointer-events: none;
-  transition: left 0.32s cubic-bezier(0.22, 1, 0.36, 1), top 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 0.24s ease, transform 0.24s ease;
 }
 
 /* --------------------------------------------------------------------------
@@ -8149,10 +8190,8 @@
   gap: 10px;
   padding: 7px 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(15, 23, 42, 0.74);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(15, 23, 42, 0.92);
 }
 
 .public-platform-page .platform-video-playbtn {
@@ -8169,19 +8208,22 @@
 
 .public-platform-page .platform-video-timeline {
   flex: 1;
-  height: 5px;
+  height: 6px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.24);
   overflow: hidden;
   cursor: pointer;
+  touch-action: none;
 }
 
 .public-platform-page .platform-video-progress-live {
   display: block;
+  width: 100%;
   height: 100%;
   border-radius: 999px;
   background: linear-gradient(90deg, #05dc78, #38bdf8);
-  transition: width 0.12s linear;
+  transform-origin: left;
+  transition: transform 0.12s linear;
 }
 
 .public-platform-page .platform-video-tc {
@@ -8207,12 +8249,10 @@
   gap: 10px;
   padding: 6px 12px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  background: rgba(15, 23, 42, 0.74);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(15, 23, 42, 0.92);
   color: #f8fafc;
   font-size: 11px;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   pointer-events: none;
 }
 
@@ -8281,11 +8321,10 @@
   gap: 5px;
   padding: 5px 10px;
   border-radius: 9px;
-  background: rgba(15, 23, 42, 0.74);
+  background: rgba(15, 23, 42, 0.9);
   color: #f8fafc;
   font-size: 11px;
   font-weight: 580;
-  backdrop-filter: blur(8px);
 }
 
 .public-platform-page .platform-monitor-caption.is-secure {
@@ -8940,10 +8979,12 @@
 
 .public-platform-page .platform-separate-progress > i {
   display: block;
+  width: 100%;
   height: 100%;
   border-radius: 999px;
   background: linear-gradient(90deg, #05dc78, #1476d4);
-  transition: width 0.1s linear;
+  transform-origin: left;
+  transition: transform 0.1s linear;
 }
 
 .public-platform-page .platform-stem-mixer-list {
@@ -9249,14 +9290,36 @@
   box-shadow: 0 0 16px rgba(5, 220, 120, 0.85);
 }
 
+.public-platform-page .platform-pianoroll-head-track {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
 .public-platform-page .platform-pianoroll-head {
   position: absolute;
+  left: 0;
   top: 0;
   bottom: 0;
   width: 2px;
   background: #05dc78;
   box-shadow: 0 0 10px rgba(5, 220, 120, 0.9);
   pointer-events: none;
+}
+
+.public-platform-page .platform-audio-waveform:focus-visible,
+.public-platform-page .platform-music-bars:focus-visible,
+.public-platform-page .platform-pianoroll-canvas:focus-visible,
+.public-platform-page .platform-shield-source-item:focus-visible {
+  outline: 2px solid var(--nimi-action-primary-bg, #1476d4);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.public-platform-page .platform-audio-waveform,
+.public-platform-page .platform-music-bars,
+.public-platform-page .platform-pianoroll-canvas {
+  touch-action: none;
 }
 
 /* 20. realtime.interact — Live Full-Duplex Call & Barge-In */
@@ -10276,11 +10339,19 @@
 
 .public-platform-page .platform-film-playhead {
   position: absolute;
-  top: -2px;
-  bottom: -2px;
+  inset: -2px 0;
+  pointer-events: none;
+  animation: platformPlayhead 2.8s linear infinite;
+}
+
+.public-platform-page .platform-film-playhead::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
   width: 2px;
   background: #059669;
-  animation: platformPlayhead 2.8s linear infinite;
 }
 
 .public-platform-page .platform-reticle-stage {
@@ -11617,17 +11688,30 @@
 
 .public-platform-page .platform-tunnel-line > b {
   position: absolute;
+  left: 0;
+  right: 0;
   top: -2px;
+  height: 6px;
+  background: transparent;
+  pointer-events: none;
+  animation: platformTunnelShuttle 1.6s ease-in-out infinite;
+}
+
+.public-platform-page .platform-tunnel-line > b::after {
+  content: '';
+  display: block;
   width: 7px;
   height: 6px;
   border-radius: 50%;
   background: #1476d4;
-  animation: platformTunnelShuttle 1.6s ease-in-out infinite;
 }
 
 .public-platform-page .platform-tunnel-line.is-reverse > b {
-  background: #05dc78;
   animation-direction: reverse;
+}
+
+.public-platform-page .platform-tunnel-line.is-reverse > b::after {
+  background: #05dc78;
 }
 
 .public-platform-page .platform-horizon-visual.is-wireframe {
@@ -12630,7 +12714,83 @@
   }
 }
 
+/* Immediate pointer-down tactile feedback across public site controls */
+.public-page-main :is(
+  button,
+  .release-primary-action,
+  .release-secondary-action,
+  .public-apps-stage-preview-btn,
+  .public-apps-stage-tile,
+  .public-capability-route-trigger,
+  .platform-stepper-pill,
+  .platform-cinema-scroll-cue,
+  .platform-iso-sub-btn,
+  .platform-audio-playbtn,
+  .platform-mind-tab,
+  .platform-mind-action-btn
+):active:not(:disabled) {
+  transform: scale(var(--nimi-motion-pressed-scale, 0.97));
+  transition: transform 80ms ease;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .public-platform-page .platform-stage-pill,
+  .public-platform-page .platform-vision-prompt-chip,
+  .public-platform-page .platform-annotate-toggle,
+  .public-platform-page .platform-annotate-subtitle,
+  .public-platform-page .platform-compare-hint,
+  .public-platform-page .platform-compare-quickbar,
+  .public-platform-page .platform-faceswap-input-card figcaption,
+  .public-platform-page .platform-video-hud,
+  .public-platform-page .platform-monitor-caption {
+    background: #0f172a !important;
+  }
+  .public-site-nav,
+  .public-capability-route-popover,
+  .download-panel {
+    background: #ffffff !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .public-page-main :is(
+    .download-panel,
+    .public-app-meta-card,
+    .public-capability-route-popover,
+    .platform-domain-sim-panel,
+    .platform-mind-dock-card,
+    .platform-rich-stage,
+    .public-status-card
+  ) {
+    border-width: 1.5px;
+    border-color: rgba(15, 23, 42, 0.48);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .public-platform-page .platform-cinema-narrative,
+  .public-platform-page .platform-mind-scene {
+    animation-name: platformActFade;
+    animation-duration: 180ms;
+  }
+  .public-page-main :is(
+    button,
+    a,
+    .release-primary-action,
+    .release-secondary-action,
+    .public-apps-stage-preview-btn,
+    .public-apps-stage-tile,
+    .public-capability-route-trigger,
+    .platform-stepper-pill,
+    .platform-cinema-scroll-cue,
+    .platform-iso-sub-btn,
+    .platform-audio-playbtn,
+    .platform-mind-tab,
+    .platform-mind-action-btn
+  ):active:not(:disabled) {
+    transform: none !important;
+    opacity: 0.85;
+  }
   .public-platform-page .platform-vision-scan-beam,
   .public-platform-page .platform-rec-dot,
   .public-platform-page .platform-live-badge > i,
@@ -12658,5 +12818,538 @@
   .public-platform-page .platform-proj-beam,
   .public-platform-page .platform-tunnel-line > b {
     animation: none !important;
+  }
+}
+
+/* =========================================================================
+ * System Dark-Mode Parity across Public Site, Auth Chrome, Release,
+ * /home, /apps, /platform, and /developers
+ * ========================================================================= */
+:is([data-nimi-scheme="dark"], .dark) :is(
+  .web-account-status,
+  .web-static-page,
+  .public-site-shell,
+  .story-site.release-page-shell,
+  .story-site.download-page-shell,
+  .public-route-loading-shell,
+  .public-site-shell .public-hero-section,
+  .public-site-shell .public-page-section
+) {
+  background: #0b1220;
+  color: #f8fafc;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-site-shell .public-section-tinted {
+  background: #0f172a;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .web-auth-brand {
+  color: #f8fafc;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .web-auth-footer-link:hover {
+  background: rgba(148, 163, 184, 0.14);
+  color: #f8fafc;
+}
+
+:is([data-nimi-scheme="dark"], .dark) :is(
+  .web-account-status a,
+  .web-static-page a,
+  .release-section a
+) {
+  color: #60a5fa;
+}
+
+:is([data-nimi-scheme="dark"], .dark) :is(
+  .web-static-page p,
+  .web-account-session-list span,
+  .release-section p,
+  .release-section li,
+  .release-reviewed
+) {
+  color: #cbd5e1;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .web-account-form input {
+  background: #0f172a;
+  border-color: rgba(148, 163, 184, 0.28);
+  color: #f8fafc;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .web-account-secret {
+  background: #162033;
+  color: #e2e8f0;
+}
+
+:is([data-nimi-scheme="dark"], .dark) :is(
+  .web-account-panel,
+  .web-account-session-list li,
+  .web-account-confirmation,
+  .release-section + .release-section,
+  .download-platform-row,
+  .download-resource-row
+) {
+  border-color: rgba(148, 163, 184, 0.20);
+}
+
+/* Public Hero Headings, Copy, Eyebrows & Buttons */
+:is([data-nimi-scheme="dark"], .dark) :is(
+  .public-site-shell .public-hero-header h1,
+  .public-site-shell .public-app-detail-header h1,
+  .public-site-shell .public-status-card h1,
+  .story-site.release-page-shell .download-hero-copy h1,
+  .story-site.release-page-shell .release-hero h1,
+  .public-site-shell .public-feature-card h2,
+  .public-site-shell .public-domain-card h3,
+  .public-site-shell .public-info-card h2,
+  .public-site-shell .public-info-card h3,
+  .public-site-shell .public-app-card-heading h3,
+  .public-site-shell .public-posture-tier-head strong,
+  .public-site-shell .public-toolchain-reference strong,
+  .public-site-shell .public-app-posture-callout strong,
+  .public-site-shell .public-create-copy h2,
+  .public-site-shell .public-track-card h3,
+  .story-site.release-page-shell .download-panel h2,
+  .story-site.release-page-shell .download-onboarding-step h3,
+  .story-site.release-page-shell .release-card h2,
+  .story-site.release-page-shell .release-card h3,
+  .download-platform-name,
+  .download-resource-copy,
+  .download-resource-row,
+  .release-brand
+) {
+  color: #f8fafc;
+}
+
+:is([data-nimi-scheme="dark"], .dark) :is(
+  .public-site-shell .public-hero-lead,
+  .public-site-shell .public-app-detail-summary,
+  .story-site.release-page-shell .download-scope,
+  .story-site.release-page-shell .release-intro,
+  .public-site-shell .public-feature-card p,
+  .public-site-shell .public-domain-summary,
+  .public-site-shell .public-info-card p,
+  .public-site-shell .public-app-card-description,
+  .public-site-shell .public-provenance-item p,
+  .public-site-shell .public-posture-tier p,
+  .public-site-shell .public-toolchain-reference small,
+  .public-site-shell .public-platform-source-note,
+  .public-site-shell .public-availability-note,
+  .public-site-shell .public-app-posture-callout p,
+  .public-site-shell .public-home-highlight-pill,
+  .public-site-shell .public-hero-actions .story-link,
+  .story-site.release-page-shell .download-sign-in,
+  .story-site.release-page-shell .download-intel-note,
+  .story-site.release-page-shell .download-onboarding-step p,
+  .download-platform-name small,
+  .download-resource-copy small,
+  .download-platform-icon,
+  .download-resource-icon,
+  .release-header nav a,
+  .release-footer nav a
+) {
+  color: #cbd5e1;
+}
+
+:is([data-nimi-scheme="dark"], .dark) :is(
+  .public-site-shell .public-eyebrow,
+  .story-site.release-page-shell .release-kicker
+) {
+  color: #94a3b8;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-site-shell .public-hero-actions .story-link:hover,
+:is([data-nimi-scheme="dark"], .dark) .download-resource-row:hover .download-resource-copy strong,
+:is([data-nimi-scheme="dark"], .dark) .download-resource-row:hover > svg {
+  color: #93c5fd;
+}
+
+:is([data-nimi-scheme="dark"], .dark) :is(
+  .public-site-shell .public-hero-actions .story-button,
+  .public-site-shell .public-hero-header .public-hero-actions .story-button,
+  .download-installer
+) {
+  background: #f8fafc;
+  border-color: #f8fafc;
+  color: #0b1220;
+}
+
+:is([data-nimi-scheme="dark"], .dark) :is(
+  .public-site-shell .public-hero-actions .story-button:hover,
+  .public-site-shell .public-hero-header .public-hero-actions .story-button:hover,
+  .download-installer:hover
+) {
+  background: #e2e8f0;
+  border-color: #e2e8f0;
+  color: #0b1220;
+}
+
+:is([data-nimi-scheme="dark"], .dark) :is(
+  .public-site-shell .public-hero-actions .story-button.story-button-outline,
+  .public-site-shell .public-hero-header .public-hero-actions .story-button.story-button-outline,
+  .download-hero .release-secondary-action
+) {
+  background: #162033;
+  border-color: rgba(148, 163, 184, 0.28);
+  color: #f8fafc;
+}
+
+:is([data-nimi-scheme="dark"], .dark) :is(
+  .public-site-shell .public-hero-actions .story-button.story-button-outline:hover,
+  .public-site-shell .public-hero-header .public-hero-actions .story-button.story-button-outline:hover,
+  .download-hero .release-secondary-action:hover
+) {
+  background: #1e293b;
+  border-color: rgba(148, 163, 184, 0.44);
+  color: #f8fafc;
+}
+
+/* Shared Cards across /home, /apps, /platform, /developers, /download, /code-signing */
+:is([data-nimi-scheme="dark"], .dark) :is(
+  .public-site-shell .public-feature-card,
+  .public-site-shell .public-domain-card,
+  .public-site-shell .public-info-card,
+  .public-site-shell .public-status-card,
+  .public-site-shell .public-app-card,
+  .public-site-shell .public-provenance-item,
+  .public-site-shell .public-posture-tier,
+  .public-site-shell .public-app-meta-card,
+  .public-site-shell .public-toolchain-reference,
+  .public-site-shell .public-capability-stage,
+  .public-site-shell .home-bento-card,
+  .public-site-shell .public-visual-step-card,
+  .public-site-shell .public-track-card,
+  .public-site-shell .public-community-card,
+  .public-site-shell .public-create-card,
+  .public-site-shell .public-start-banner,
+  .public-site-shell .public-routing-card,
+  .story-site.release-page-shell .download-panel,
+  .story-site.release-page-shell .download-onboarding-card,
+  .story-site.release-page-shell .download-onboarding-step,
+  .story-site.release-page-shell .release-card,
+  .story-site.release-page-shell .release-link-grid a
+) {
+  background: #111827;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  color: #f8fafc;
+  box-shadow: none;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-site-shell .public-section-tinted :is(
+  .public-feature-card,
+  .public-domain-card,
+  .public-info-card,
+  .public-app-card,
+  .public-toolchain-reference,
+  .public-capability-stage,
+  .public-track-card,
+  .public-community-card
+) {
+  background: #162033;
+  border: 1px solid rgba(148, 163, 184, 0.20);
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-site-shell :is(
+  .public-domain-badge,
+  .public-capability-pill,
+  .public-app-badge,
+  .public-visual-step-chip,
+  .public-filter-pills button,
+  .public-app-preview-btn,
+  .public-app-detail-preview-button,
+  .public-apps-expand-btn,
+  .download-unavailable
+) {
+  background: #162033;
+  border-color: rgba(148, 163, 184, 0.24);
+  color: #e2e8f0;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-site-shell :is(
+  .public-domain-badge.is-live,
+  .public-filter-pills button.is-active
+) {
+  background: #f8fafc;
+  border-color: #f8fafc;
+  color: #0b1220;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-site-shell .public-filter-pills button.is-active small {
+  background: rgba(11, 18, 32, 0.12);
+  color: #0b1220;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-site-shell .public-home-highlights-strip {
+  border-top-color: rgba(148, 163, 184, 0.18);
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-site-shell .public-home-highlight-pill svg {
+  color: #2dd4bf;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-apps-page :is(
+  .public-apps-foundation-stage,
+  .public-apps-catalog,
+  .public-app-ecosystem-notes,
+  .public-apps-stage-spotlight,
+  .public-apps-stage-foundation,
+  .public-apps-stage-legacy-card
+) {
+  background: #111827;
+  border-color: rgba(148, 163, 184, 0.20);
+  color: #f8fafc;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-apps-page :is(
+  .public-apps-stage-tile,
+  .public-apps-stage-switch,
+  .public-apps-stage-preview-btn,
+  .public-apps-search-box,
+  .public-app-card-media,
+  .public-app-card-heading img,
+  .public-app-detail-icon,
+  .public-create-steps li,
+  .public-apps-notes-disclosure
+) {
+  background: #162033;
+  border-color: rgba(148, 163, 184, 0.22);
+  color: #f8fafc;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-apps-page input[type="search"] {
+  background: transparent;
+  color: #f8fafc;
+}
+
+:is([data-nimi-scheme="dark"], .dark) :is(
+  .release-status,
+  .download-warning,
+  .release-warning
+) {
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(251, 191, 36, 0.36);
+  color: #fde68a !important;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .release-status > span,
+:is([data-nimi-scheme="dark"], .dark) .release-status p,
+:is([data-nimi-scheme="dark"], .dark) .download-warning svg {
+  color: #fde68a;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .download-page-shell .release-footer {
+  border-top-color: rgba(148, 163, 184, 0.18);
+  background: #0f172a;
+}
+
+/* /platform: Stack Stage, Capability Atlas, Mind Workbench, Sovereign Console & Broker */
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-blueprint-stage {
+  background: #111827;
+  border-color: rgba(148, 163, 184, 0.20);
+  color: #f8fafc;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-cinema-narrative h3,
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-iso-top-label strong,
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-iso-core-header strong,
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-iso-chamber strong,
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-iso-sub-btn strong {
+  color: #f8fafc;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-cinema-narrative p,
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-iso-top-label small,
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-iso-core-tagline,
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-iso-chamber span,
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-iso-sub-btn small {
+  color: #cbd5e1;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-iso-top-label.is-hovered strong {
+  color: #34d399;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-cinema-eyebrow.is-step-0 {
+  background: #1e293b;
+  color: #e2e8f0;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-cinema-eyebrow.is-step-1,
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-iso-floating-pill.is-fault {
+  background: rgba(244, 63, 94, 0.18);
+  border-color: rgba(251, 113, 133, 0.42);
+  color: #fda4af;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-cinema-eyebrow.is-step-2,
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-iso-floating-pill.is-hotswap {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: rgba(96, 165, 250, 0.42);
+  color: #93c5fd;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-cinema-eyebrow.is-step-3,
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-iso-floating-pill.is-continuity {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: rgba(52, 211, 153, 0.42);
+  color: #6ee7b7;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-cinema-scroll-cue {
+  background: #162033;
+  border-color: rgba(148, 163, 184, 0.26);
+  color: #e2e8f0;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-cinema-scroll-cue:hover {
+  background: #1e293b;
+  color: #93c5fd;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-cinema-stepper {
+  background: #0f172a;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-stepper-pill {
+  color: #94a3b8;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-stepper-pill:hover {
+  color: #f8fafc;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-stepper-pill.is-current {
+  background: #162033;
+  color: #f8fafc;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-stepper-num {
+  color: #94a3b8;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-stepper-pill.is-current .platform-stepper-num {
+  color: #60a5fa;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-iso-frame {
+  background: #0b1220;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+/* Platform Interactive Lab, Mind Workbench, Sovereign Console & Broker */
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page :is(
+  .platform-sensory-console,
+  .platform-lab-sidebar,
+  .platform-lab-main,
+  .platform-domain-sim-panel,
+  .platform-mind-workbench,
+  .platform-mind-rail,
+  .platform-mind-canvas,
+  .platform-trust-ledger,
+  .platform-sovereign-console,
+  .platform-integration-broker-stage,
+  .platform-projection-hub,
+  .platform-rich-stage,
+  .public-capability-route-popover,
+  .platform-shield-gate,
+  .platform-router-pipeline
+) {
+  background: #111827;
+  border-color: rgba(148, 163, 184, 0.20);
+  color: #f8fafc;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page :is(
+  .platform-lab-sidebar-head,
+  .platform-lab-sidebar-foot,
+  .platform-mind-tab,
+  .platform-mind-dock-card,
+  .platform-mind-ledger-row,
+  .platform-projection-origin,
+  .platform-ledger-item,
+  .platform-shield-source,
+  .platform-shield-consumer,
+  .platform-shield-guarantee-item,
+  .platform-embed-searchbar,
+  .platform-embed-note-card,
+  .platform-decide-header,
+  .platform-decide-row,
+  .platform-sheet-footer,
+  .public-capability-route-counts > span,
+  .public-capability-route-popover-list li,
+  .public-capability-route-popover-chips li,
+  .public-capability-sample,
+  .public-capability-sample-result,
+  .public-capability-sample-header
+) {
+  background: #162033;
+  border-color: rgba(148, 163, 184, 0.20);
+  color: #f8fafc;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page :is(
+  .platform-lab-menu-list button,
+  .platform-lab-group-label,
+  .platform-lab-sidebar-foot small,
+  .platform-mind-tab,
+  .platform-mind-canvas p,
+  .platform-ledger-item p,
+  .public-capability-route-popover-empty
+) {
+  color: #cbd5e1;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-lab-menu-list button:hover,
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-lab-menu-list button.is-active,
+:is([data-nimi-scheme="dark"], .dark) .public-platform-page .platform-mind-tab.is-active {
+  background: #1e293b;
+  color: #f8fafc;
+}
+
+/* /developers Toolchain Commands & Cards */
+:is([data-nimi-scheme="dark"], .dark) .public-toolchain-command {
+  background: #162033;
+  border-color: rgba(148, 163, 184, 0.24);
+  color: #f8fafc;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-toolchain-command button {
+  color: #cbd5e1;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-toolchain-command button:hover {
+  background: #1e293b;
+  color: #f8fafc;
+}
+
+:is([data-nimi-scheme="dark"], .dark) .public-track-spec-code {
+  background: #1e293b;
+  color: #93c5fd;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :is([data-nimi-scheme="dark"], .dark) :is(
+    .public-site-nav,
+    .public-capability-route-popover,
+    .download-panel
+  ) {
+    background: #111827 !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :is([data-nimi-scheme="dark"], .dark) .public-page-main :is(
+    .download-panel,
+    .public-app-meta-card,
+    .public-capability-route-popover,
+    .platform-domain-sim-panel,
+    .platform-mind-dock-card,
+    .platform-rich-stage,
+    .public-status-card
+  ) {
+    border-width: 1.5px;
+    border-color: rgba(226, 232, 240, 0.56);
   }
 }

@@ -338,6 +338,11 @@ test('independent loading, unavailable and invalid readers never hide the health
 
 async function withDetailsDocument(run: (document: Document, renderAI: (ai: SystemEntryAIState) => Promise<void>) => Promise<void>) {
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://localhost', pretendToBeVisual: true });
+  // Kit SelectField (Radix) calls pointer-capture and scroll APIs jsdom lacks.
+  dom.window.Element.prototype.scrollIntoView = () => {};
+  dom.window.HTMLElement.prototype.hasPointerCapture = () => false;
+  dom.window.HTMLElement.prototype.setPointerCapture = () => {};
+  dom.window.HTMLElement.prototype.releasePointerCapture = () => {};
   class ResizeObserverStub { observe() {} unobserve() {} disconnect() {} }
   const values: Record<string, unknown> = {
     window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
@@ -397,10 +402,14 @@ test('large usage groups support search, route filters, recovery and details wit
     assert.match(document.body.textContent ?? '', /No groups match the current filters/);
     await clear();
     assert.equal(groups().length, 6);
-    const route = document.querySelector<HTMLSelectElement>('#home-usage-route-filter')!;
+    const route = document.querySelector<HTMLButtonElement>('#home-usage-route-filter')!;
     await act(async () => {
-      Object.getOwnPropertyDescriptor(dom.window.HTMLSelectElement.prototype, 'value')!.set!.call(route, 'local');
-      route.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+      route.click();
+    });
+    const localOption = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find(item => item.textContent === 'Local');
+    assert.ok(localOption, 'Local route option should render');
+    await act(async () => {
+      localOption.click();
     });
     assert.equal(groups().length, 1);
     assert.match(groups()[0]!.textContent ?? '', /Model 1/);

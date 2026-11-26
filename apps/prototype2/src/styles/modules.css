@@ -256,11 +256,15 @@
   color: var(--fld-text);
   font: inherit;
   font-size: 0.8125rem;
-  outline: none;
 }
 
 .zh-composer input:focus {
   border-color: rgba(234, 176, 194, 0.5);
+}
+
+.zh-composer input:focus-visible {
+  outline: 2px solid var(--nimi-focus-ring-color);
+  outline-offset: 2px;
 }
 
 .zh-composer input::placeholder {

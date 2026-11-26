@@ -8,6 +8,7 @@ import type { LandingLocale } from '../landing/i18n/locale.js';
 import { loadWebLocaleFont } from '../fonts.js';
 import { useHashScroll } from '../landing/hooks/use-hash-scroll.js';
 import { usePublicPageLocale } from './use-page-locale.js';
+import { preventDecorativeDragStart } from '../prevent-decorative-drag.js';
 
 const SHELL_LOCALE_OPTIONS = {
   zh: {
@@ -292,6 +293,12 @@ export function PublicSiteHeader({
       material="glass-chrome"
       padding="none"
       className={`story-nav public-site-nav${className ? ` ${className}` : ''}`}
+      onBlur={(event) => {
+        if (!menuOpen) return;
+        const next = event.relatedTarget;
+        if (next instanceof Node && event.currentTarget.contains(next)) return;
+        setMenuOpen(false);
+      }}
     >
       <PublicSiteLink to={withLocaleQuery('/', locale)} className="story-brand">
         <img src="/logo.svg" alt="" width={29} height={29} />
@@ -472,15 +479,15 @@ export function PublicSiteShell({
   useHashScroll(true, location.hash);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || location.hash) return;
+    if (inRouter || typeof window === 'undefined' || location.hash) return;
     window.scrollTo(0, 0);
-  }, [location.pathname, location.hash]);
+  }, [inRouter, location.pathname, location.hash]);
 
   return (
     <div
       className={`story-site public-site-shell${shellClassName ? ` ${shellClassName}` : ''}`}
       lang={locale === 'zh' ? 'zh-CN' : 'en'}
-      onDragStart={(event) => event.preventDefault()}
+      onDragStart={preventDecorativeDragStart}
     >
       <a href={`#${mainId}`} className="skip-link">
         {copy.skipToContent}

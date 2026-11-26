@@ -32,10 +32,10 @@
 .cloud-filter-menu button:hover { background: var(--nimi-surface-active); }
 .cloud-provider-mark {
   display: inline-grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 9px;
-  background: white; color: #20252a; box-shadow: inset 0 0 0 1px var(--nimi-border-subtle, #dde3e9);
+  background: var(--nimi-surface-card, white); color: var(--nimi-text-primary, #20252a); box-shadow: inset 0 0 0 1px var(--nimi-border-subtle, #dde3e9);
 }
 .cloud-provider-mark svg { width: 18px; height: 18px; }
-.cloud-provider-mark text { fill: #475569; font: 700 12px system-ui, sans-serif; }
+.cloud-provider-mark text { fill: var(--nimi-text-secondary, #475569); font: 700 12px system-ui, sans-serif; }
 .cloud-provider-mark--large { width: 52px; height: 52px; border-radius: 14px; }
 .cloud-provider-mark--large svg { width: 29px; height: 29px; }
 .cloud-detail { min-width: 0; }

@@ -537,7 +537,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
         <button
           type="button"
           onClick={onHome}
-          className="desktop-sidebar__header flex min-w-0 items-center text-left"
+          className="desktop-sidebar__header flex min-w-0 items-center rounded-lg text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]"
           data-testid="ai-capabilities-home"
         >
           <span className="desktop-sidebar__title min-w-0 truncate font-semibold text-[var(--nimi-text-primary)]">
@@ -879,7 +879,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
         confirmLabel={t('runtimeConfig.loadouts.confirm')}
         cancelLabel={t('runtimeConfig.loadouts.cancel')}
         confirmTone="primary"
-        pending={busy}
+        loading={busy}
         onConfirm={confirmImpact}
         onClose={cancelImpact}
       />

@@ -1,5 +1,20 @@
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Button, IconButton, InlineAlert, nimiToast, OverlayShell, Popover, PopoverContent, PopoverTrigger } from '@nimiplatform/kit/ui';
+import {
+  AnimatePresence,
+  Button,
+  Checkbox,
+  ConfirmDialog,
+  IconButton,
+  InlineAlert,
+  motion,
+  nimiOverlayPanelMotion,
+  nimiToast,
+  OverlayShell,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  useNimiReducedMotion,
+} from '@nimiplatform/kit/ui';
 import { Check, ChevronRight, Ellipsis, FileX, Funnel, GitCompareArrows, RefreshCw, Search, Sparkles, Trash2, X } from 'lucide-react';
 import { useAIStudioHost } from './host-context.js';
 import type { StudioCapabilityRegistration } from './module-registration.js';
@@ -221,6 +236,13 @@ export function CapabilityRunHistory({
   const [comparing, setComparing] = useState(false);
   const [comparisonIds, setComparisonIds] = useState<readonly string[]>([]);
   const [comparisonOpen, setComparisonOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<
+    | { kind: 'media'; record: StudioMediaHistoryRecord }
+    | { kind: 'document'; record: StudioRunHistoryRecord }
+    | null
+  >(null);
+  const reducedMotion = useNimiReducedMotion();
+  const drawerMotion = nimiOverlayPanelMotion({ kind: 'drawer', side: 'right', reducedMotion });
   const scope: StudioHistoryPanelScope = historyPanel?.scope ?? 'capability';
   const hideFailures = historyPanel?.hideFailures ?? false;
   const setScope = (next: StudioHistoryPanelScope) => {
@@ -274,6 +296,7 @@ export function CapabilityRunHistory({
   }
 
   function handleRemoveRecord(record: StudioRunHistoryRecord, deleteDocument = false) {
+    setComparisonIds((ids) => ids.filter((id) => id !== record.id));
     void historyActions?.removeRecord(record.id, deleteDocument);
   }
 
@@ -427,15 +450,31 @@ export function CapabilityRunHistory({
     setActiveMenu(null);
   }
 
-  if (collapsed) return <div className="studio-history-shell studio-history-shell--collapsed" inert />;
+  function handleConfirmPendingDelete() {
+    if (!pendingDelete) return;
+    const target = pendingDelete;
+    setPendingDelete(null);
+    if (target.kind === 'media') {
+      handleRemoveMediaRecord(target.record);
+    } else {
+      handleRemoveRecord(target.record, true);
+    }
+  }
 
   return (
-    <div className={collapsed ? 'studio-history-shell studio-history-shell--collapsed' : 'studio-history-shell'} inert={collapsed}>
-      <aside
-        className={collapsed ? 'studio-history studio-history--collapsed' : 'studio-history'}
-        aria-label={t('History.panelAriaLabel')}
-        onKeyDown={onClose ? (event) => { if (event.key === 'Escape' && !filterOpen && !historyActionsOpen) onClose(); } : undefined}
-      >
+    <>
+      <AnimatePresence initial={false}>
+        {!collapsed ? (
+          <motion.div
+            key="studio-history-panel"
+            className="studio-history-shell"
+            {...drawerMotion}
+          >
+            <aside
+              className="studio-history"
+              aria-label={t('History.panelAriaLabel')}
+              onKeyDown={onClose ? (event) => { if (event.key === 'Escape' && !filterOpen && !historyActionsOpen && !pendingDelete) onClose(); } : undefined}
+            >
         <div className="studio-recent__head">
           <div className="studio-history__title">
             <strong>{t('History.title')}</strong>
@@ -681,6 +720,7 @@ export function CapabilityRunHistory({
                       </span>
                     </Button>
                     {historyActions ? (
+                      <div className="studio-recent__row-actions">
                         <IconButton
                           type="button"
                           tone="ghost"
@@ -688,9 +728,10 @@ export function CapabilityRunHistory({
                           className="studio-recent__row-delete"
                           aria-label={t('History.deleteRecordAndAsset')}
                           title={t('History.deleteRecordAndAsset')}
-                          onClick={() => handleRemoveMediaRecord(record)}
+                          onClick={() => setPendingDelete({ kind: 'media', record })}
                           icon={<Trash2 size={13} strokeWidth={1.9} aria-hidden="true" />}
                         />
+                      </div>
                     ) : null}
                   </li>
                 ))}
@@ -713,8 +754,8 @@ export function CapabilityRunHistory({
                     return (
                       <li key={record.id} className={comparing ? 'studio-recent__compare-row' : undefined}>
                         {comparing ? (
-                          <input
-                            type="checkbox"
+                          <Checkbox
+                            className="studio-recent__compare-checkbox"
                             checked={selected}
                             disabled={!selected && !selectable}
                             aria-label={t('History.selectComparisonRun', { run: historyLabelForRun(record) })}
@@ -753,6 +794,19 @@ export function CapabilityRunHistory({
                           </span>
                         </Button>
                         {historyActions ? (
+                          <div className="studio-recent__row-actions">
+                            {studioHistoryDocumentPaths(record).length > 0 ? (
+                              <IconButton
+                                type="button"
+                                tone="ghost"
+                                size="sm"
+                                className="studio-recent__row-delete studio-recent__row-delete--document"
+                                aria-label={t('History.deleteRecordAndDocument')}
+                                title={t('History.deleteRecordAndDocument')}
+                                onClick={() => setPendingDelete({ kind: 'document', record })}
+                                icon={<FileX size={13} strokeWidth={1.9} aria-hidden="true" />}
+                              />
+                            ) : null}
                             <IconButton
                               type="button"
                               tone="ghost"
@@ -763,18 +817,7 @@ export function CapabilityRunHistory({
                               onClick={() => handleRemoveRecord(record)}
                               icon={<Trash2 size={13} strokeWidth={1.9} aria-hidden="true" />}
                             />
-                        ) : null}
-                        {historyActions && studioHistoryDocumentPaths(record).length > 0 ? (
-                            <IconButton
-                              type="button"
-                              tone="ghost"
-                              size="sm"
-                              className="studio-recent__row-delete studio-recent__row-delete--document"
-                              aria-label={t('History.deleteRecordAndDocument')}
-                              title={t('History.deleteRecordAndDocument')}
-                              onClick={() => handleRemoveRecord(record, true)}
-                              icon={<FileX size={13} strokeWidth={1.9} aria-hidden="true" />}
-                            />
+                          </div>
                         ) : null}
                       </li>
                     );
@@ -791,7 +834,10 @@ export function CapabilityRunHistory({
             </Button>
           ) : null}
         </div>
-      </aside>
+            </aside>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
       <OverlayShell
         open={comparisonOpen && comparisonRecords.length === 2}
         kind="dialog"
@@ -844,6 +890,20 @@ export function CapabilityRunHistory({
           })}
         </div>
       </OverlayShell>
-    </div>
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={pendingDelete?.kind === 'media'
+          ? t('History.confirmDeleteAssetTitle')
+          : t('History.confirmDeleteDocumentTitle')}
+        message={pendingDelete?.kind === 'media'
+          ? t('History.confirmDeleteAssetMessage')
+          : t('History.confirmDeleteDocumentMessage')}
+        confirmLabel={t('History.confirmDeleteAction')}
+        cancelLabel={t('History.cancelDeleteAction')}
+        confirmTone="danger"
+        onConfirm={handleConfirmPendingDelete}
+        onClose={() => setPendingDelete(null)}
+      />
+    </>
   );
 }

@@ -25,6 +25,7 @@ export const sillytavernMessagesZh = {
   'sillytavern.demoChat.repliesArePrewrittenExamplesIndependentOfYour':
     '回复为预设示例，不会根据你输入的消息生成。',
   'sillytavern.demoPanel.closeCharacterPanel': '关闭角色面板',
+  'sillytavern.demoPanel.closePanel': '关闭{panel}面板',
   'sillytavern.demoPanel.fictionalSampleCharacters': '虚构的示例角色',
   'sillytavern.demoPanel.eveningLibrary': '晚间图书馆',
   'sillytavern.demoPanel.theLibraryAfterSunset': '日落后的图书馆',

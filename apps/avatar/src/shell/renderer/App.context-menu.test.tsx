@@ -703,7 +703,9 @@ describe('App context menu overlay', () => {
       timestamp: '2026-08-30T00:00:03.000Z',
       detail: { voice_id: 'voice-caption-1' },
     }));
-    expect(screen.queryByText('Exact spoken reply')).toBeNull();
+    await waitFor(() => {
+      expect(screen.queryByText('Exact spoken reply')).toBeNull();
+    });
   });
 
   it('keeps native window menu actions disabled without an Avatar host runtime', async () => {
@@ -822,10 +824,10 @@ describe('App context menu overlay', () => {
       hideAvatarWindowMock.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER,
     );
     expect(projection.applyActivity).toHaveBeenCalledWith({ name: 'idle', intensity: 0.2 });
-    expect(screen.queryByTestId('avatar-companion-surface')).toBeNull();
     expect(handle.interruptConversationTurn).not.toHaveBeenCalled();
     expect(closeAvatarWindowMock).not.toHaveBeenCalled();
     await waitFor(() => {
+      expect(screen.queryByTestId('avatar-companion-surface')).toBeNull();
       expect(screen.queryByTestId('avatar-context-menu')).toBeNull();
     });
   });
@@ -1017,7 +1019,9 @@ describe('App context menu overlay', () => {
     fireEvent.click(settings);
 
     expect(await screen.findByTestId('avatar-settings-overlay')).toBeTruthy();
-    expect(screen.queryByTestId('avatar-context-menu')).toBeNull();
+    await waitFor(() => {
+      expect(screen.queryByTestId('avatar-context-menu')).toBeNull();
+    });
     expect(screen.getByText('Avatar settings')).toBeTruthy();
     expect(screen.getByText('Always on top')).toBeTruthy();
     expect(screen.getByText('Show voice captions')).toBeTruthy();
@@ -1052,12 +1056,15 @@ describe('App context menu overlay', () => {
 
     const captions = await screen.findByTestId('avatar-settings-toggle-show-voice-captions') as HTMLInputElement;
     expect(captions.checked).toBe(true);
-    fireEvent.click(captions);
     await chooseSelectFieldOption('avatar-settings-caption-size', 'Large');
     await chooseSelectFieldOption('avatar-settings-caption-contrast', 'High');
     await chooseSelectFieldOption('avatar-settings-caption-duration', 'Long');
 
+    fireEvent.click(captions);
     expect(readAvatarShellSettings().showVoiceCaptions).toBe(false);
+    expect((screen.getByTestId('avatar-settings-caption-size') as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByTestId('avatar-settings-caption-contrast') as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByTestId('avatar-settings-caption-duration') as HTMLButtonElement).disabled).toBe(true);
     expect(readAvatarShellSettings()).toMatchObject({
       captionSize: 'large',
       captionContrast: 'high',
@@ -1158,7 +1165,9 @@ describe('App context menu overlay', () => {
     fireEvent.click(appearance);
 
     expect(await screen.findByTestId('avatar-appearance-overlay')).toBeTruthy();
-    expect(screen.queryByTestId('avatar-context-menu')).toBeNull();
+    await waitFor(() => {
+      expect(screen.queryByTestId('avatar-context-menu')).toBeNull();
+    });
     expect(screen.getByText('Live2D')).toBeTruthy();
     expect(screen.getByText('ren-prod')).toBeTruthy();
     expect(screen.getByText('Connected to Runtime')).toBeTruthy();

@@ -15,6 +15,7 @@ import {
   TextareaField,
   cn,
 } from '@nimiplatform/kit/ui';
+import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
 
 import { resolveNimiAgentRealtimeCopy } from './copy.js';
 import { createNimiAgentRealtimeSession } from './session.js';
@@ -297,6 +298,37 @@ function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps & {
   const outputTrackId = state.activeOutputTrackIds[0] ?? null;
   const staleModelCatalog = state.error?.reasonCode === 'ai-remote-model-catalog-stale';
   const chinese = props.locale?.trim().toLowerCase().startsWith('zh');
+  const localizedErrorMessage = state.error
+    ? staleModelCatalog
+      ? (chinese
+        ? '云端模型列表已更新。请在伙伴中心的「模型 → 实时语音」重新选择并保存模型，然后回来重试。'
+        : 'The cloud model list has changed. Open Agent Center, choose and save a model under Models → Realtime voice, then try again.')
+      : state.capture === 'permission-denied' || /permission[_-]denied/i.test(state.error.reasonCode || '')
+        ? copy.permissionDenied
+        : state.capture === 'device-unavailable' || /device[_-]unavailable/i.test(state.error.reasonCode || '')
+          ? copy.deviceUnavailable
+          : state.capture === 'device-lost' || /device[_-]lost/i.test(state.error.reasonCode || '')
+            ? copy.deviceLost
+            : state.playback === 'unavailable' || /playback[_-]unavailable/i.test(state.error.reasonCode || '')
+              ? copy.playbackUnavailable
+              : null
+    : null;
+  const submitText = useCallback(() => {
+    const value = text.trim();
+    if (!value || state.pressure === 'blocked') return;
+    const revision = draftRevision.current;
+    const epoch = session.getState().sessionEpoch;
+    void session.sendText({
+      requestId: createRequestId(),
+      text: value,
+    }).then((result) => {
+      if (result.ack.ok && currentSession.current === session
+        && session.getState().sessionEpoch === epoch && draftRevision.current === revision) {
+        draftRevision.current += 1;
+        setText('');
+      }
+    }).catch(() => undefined);
+  }, [session, state.pressure, text]);
   const statusText = state.capture === 'active'
     ? copy.capturing
     : state.pressure === 'blocked'
@@ -319,13 +351,11 @@ function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps & {
           {state.error ? (
             <InlineAlert tone="danger">
               {state.closeUnconfirmed ? <p>{copy.closeUnconfirmed}</p> : null}
-              {staleModelCatalog ? (
+              {localizedErrorMessage ? (
                 <>
-                  <p>{chinese
-                    ? '云端模型列表已更新。请在伙伴中心的「模型 → 实时语音」重新选择并保存模型，然后回来重试。'
-                    : 'The cloud model list has changed. Open Agent Center, choose and save a model under Models → Realtime voice, then try again.'}</p>
+                  <p>{localizedErrorMessage}</p>
                   <details className="mt-2 text-xs">
-                    <summary className="cursor-pointer">{chinese ? '技术详情' : 'Technical details'}</summary>
+                    <summary className={cn('cursor-pointer rounded-sm', FOCUS_RING_CLASS_NAME)}>{chinese ? '技术详情' : 'Technical details'}</summary>
                     <p>{state.error.message}</p>
                   </details>
                 </>
@@ -349,7 +379,8 @@ function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps & {
             </Button> : null}
             {active && !switching ? <Button
               type="button"
-              tone="primary"
+              tone={state.capture === 'active' ? 'danger' : 'primary'}
+              aria-pressed={state.capture === 'active'}
               disabled={state.lifecycle !== 'ready' || state.capture === 'requesting'}
               onClick={() => {
                 if (state.capture === 'active') {
@@ -359,6 +390,9 @@ function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps & {
                 }
               }}
             >
+              {state.capture === 'active' ? (
+                <span aria-hidden="true" className="inline-block size-2 rounded-full bg-current animate-pulse motion-reduce:animate-none" />
+              ) : null}
               {state.capture === 'active' ? <MicOff className="size-4" aria-hidden="true" /> : <Mic className="size-4" aria-hidden="true" />}
               {state.capture === 'active' ? copy.stop : copy.start}
             </Button> : null}
@@ -410,28 +444,19 @@ function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps & {
                 draftRevision.current += 1;
                 setText(event.currentTarget.value);
               }}
+              onKeyDown={(event) => {
+                if ((event.metaKey || event.ctrlKey) && event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                  event.preventDefault();
+                  submitText();
+                }
+              }}
             />
             <Button
               type="button"
               size="sm"
               className="justify-self-end"
               disabled={state.pressure === 'blocked' || text.trim().length === 0}
-              onClick={() => {
-                const value = text.trim();
-                if (!value) return;
-                const revision = draftRevision.current;
-                const epoch = session.getState().sessionEpoch;
-                void session.sendText({
-                  requestId: createRequestId(),
-                  text: value,
-                }).then((result) => {
-                  if (result.ack.ok && currentSession.current === session
-                    && session.getState().sessionEpoch === epoch && draftRevision.current === revision) {
-                    draftRevision.current += 1;
-                    setText('');
-                  }
-                }).catch(() => undefined);
-              }}
+              onClick={submitText}
             >
               {copy.sendText}
             </Button>

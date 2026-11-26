@@ -1,6 +1,8 @@
 import { MediaImage, MediaVideo, readMediaDelivery, type MediaImageProps } from '@nimiplatform/kit/features/media';
 import { Component, Suspense, lazy, memo, useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { Pause, Play } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, IconButton, cn } from '@nimiplatform/kit/ui';
+import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
 import type { ConversationCanonicalMessage } from '../types.js';
 import { resolveChatCopy, type ChatCopy } from '../copy.js';
 import {
@@ -236,21 +238,29 @@ function VoiceBubbleContent(props: {
   idleLabel: string;
 }) {
   return (
-    <button type="button" onClick={props.onPlay} onContextMenu={props.onContextMenu} className="flex items-center gap-3 text-left">
+    <button
+      type="button"
+      aria-pressed={props.isPlaying}
+      onClick={props.onPlay}
+      onContextMenu={props.onContextMenu}
+      className={cn(
+        'flex items-center gap-3 rounded-lg text-left transition-transform duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)]',
+        FOCUS_RING_CLASS_NAME,
+      )}
+    >
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--nimi-text-primary)_16%,transparent)]">
-        {props.isPlaying ? '⏸' : '▶'}
+        {props.isPlaying ? <Pause size={14} aria-hidden="true" /> : <Play size={14} aria-hidden="true" />}
       </span>
-      <div className="flex items-end gap-[3px]">
+      <div className="flex h-[15px] items-end gap-[3px]" aria-hidden="true">
         {[0, 1, 2, 3, 4].map((i) => (
           <span
             key={`bar-${i}`}
-            className="chat-voice-bar w-[3px] rounded-full bg-current"
+            className="chat-voice-bar h-[15px] w-[3px] origin-bottom rounded-full bg-current motion-reduce:!animate-none"
             style={{
-              height: props.isPlaying ? undefined : '4px',
+              transform: props.isPlaying ? undefined : 'scaleY(0.27)',
               animation: props.isPlaying
                 ? `voice-bar var(--nimi-motion-ambient) var(--nimi-motion-ease-standard) calc(var(--nimi-motion-fast) * ${i}) infinite`
                 : 'none',
-              minHeight: '4px',
             }}
           />
         ))}
@@ -393,7 +403,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
             style={stageMediaFrameStyle}
           />
           <div className="flex items-center gap-2 text-xs text-[var(--nimi-text-secondary)]">
-            <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--nimi-border-strong)] border-t-[var(--nimi-action-primary-bg)]" />
+            <span aria-hidden="true" className="inline-block h-3.5 w-3.5 animate-spin motion-reduce:animate-none rounded-full border-2 border-[var(--nimi-border-strong)] border-t-[var(--nimi-action-primary-bg)]" />
             <span>{message.text || (isImagePending ? copyResolved.bubbleGeneratingImageLabel : copyResolved.bubbleGeneratingVideoLabel)}</span>
           </div>
         </div>
@@ -404,9 +414,10 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
               type="button"
               onClick={handleOpenImagePreview}
               aria-label={copyResolved.bubbleOpenImagePreviewLabel}
-              className={`group block overflow-hidden ${displayContext === 'stage'
-                ? 'bg-[radial-gradient(circle_at_center,_rgba(248,250,252,0.98),_rgba(226,232,240,0.84))]'
-                : 'bg-gray-50'}`}
+              className={cn(
+                'group block overflow-hidden bg-[var(--nimi-surface-panel)]',
+                FOCUS_RING_CLASS_NAME,
+              )}
               style={stageMediaFrameStyle}
             >
               <MediaImage
@@ -461,7 +472,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
       ) : isStreaming ? (
         <div className={`space-y-1 ${message.text ? '' : 'italic opacity-70'}`}>
           {message.text ? <MarkdownMessageContent content={message.text} markdownCopyLabel={copyResolved.markdownCopyLabel} markdownCopiedLabel={copyResolved.markdownCopiedLabel} /> : copyResolved.bubbleStreamingLabel}
-          <span className="inline-block animate-pulse text-[var(--nimi-action-primary-bg)]">|</span>
+          <span aria-hidden="true" className="inline-block animate-pulse motion-reduce:animate-none text-[var(--nimi-action-primary-bg)]">|</span>
         </div>
       ) : !disableRpContent && hasRpContent(message.text) ? (
         <RpMessageContent content={message.text} />
@@ -513,7 +524,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
             <div
               data-canonical-message-timestamp="true"
               className={cn(
-                'mt-1 text-[length:var(--nimi-type-overline-size)] leading-4 text-[var(--nimi-text-muted)] opacity-0 transition-opacity duration-[var(--nimi-motion-fast)] group-hover:opacity-100 group-focus-within:opacity-100',
+                'mt-1 text-[length:var(--nimi-type-overline-size)] leading-4 text-[var(--nimi-text-muted)] opacity-0 transition-opacity duration-[var(--nimi-motion-fast)] group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100',
                 isUser ? 'text-right' : 'text-left',
               )}
             >
@@ -528,7 +539,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
       {isImage ? <Dialog open={imagePreviewOpen && Boolean(mediaUri)} onOpenChange={(open) => { if (!open) closeImagePreview(); }}>
         <DialogContent
           onClose={closeImagePreview}
-          overlayClassName="bg-black/70"
+          overlayClassName="bg-[var(--nimi-scrim-modal)]"
           className="flex max-h-[calc(100vh-3rem)] max-w-[calc(100vw-3rem)] items-start justify-center border-0 bg-transparent p-0 shadow-none"
         >
           <DialogTitle className="sr-only">{copyResolved.bubbleImagePreviewTitle}</DialogTitle>
@@ -549,7 +560,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
               if (openMediaOriginal) await openMediaOriginal(next.originalUrl);
               else window.open(next.originalUrl, '_blank', 'noopener,noreferrer');
             } catch { setOriginalDownloadFailed(true); }
-          }} className="absolute bottom-3 left-3 rounded bg-black/70 px-3 py-2 text-sm text-white">{copyResolved.bubbleDownloadOriginalLabel}</a> : null}
+          }} className={cn('absolute bottom-3 left-3 rounded bg-black/70 px-3 py-2 text-sm text-white', FOCUS_RING_CLASS_NAME)}>{copyResolved.bubbleDownloadOriginalLabel}</a> : null}
           {originalDownloadFailed ? <p role="alert" className="absolute bottom-14 left-3 rounded bg-black/70 px-3 py-2 text-sm text-white">{copyResolved.bubbleDownloadFailedLabel}</p> : null}
           {mediaUri ? (
             <MediaImage delivery={mediaDelivery} externalUrl={mediaUri} purpose="detail" sizes="calc(100vw - 3rem)" refresh={refreshMedia} alt={message.text || copyResolved.bubbleImageLabel} className="max-h-[calc(100vh-3rem)] max-w-[calc(100vw-3rem)] rounded-2xl object-contain shadow-2xl" />

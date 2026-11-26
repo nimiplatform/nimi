@@ -60,7 +60,7 @@ export function CheckIcon({ className = '' }: { className?: string }) {
 }
 
 export function SpinnerIcon({ className = '' }: { className?: string }) {
-  return <span className={`${className} inline-block animate-spin rounded-full border-2 border-white/40 border-t-white`} />;
+  return <span className={`${className} inline-block animate-spin motion-reduce:animate-none rounded-full border-2 border-current/30 border-t-current`} />;
 }
 
 export function StatDivider() {

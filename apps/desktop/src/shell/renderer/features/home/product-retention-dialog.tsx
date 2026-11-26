@@ -48,7 +48,7 @@ export function ProductRetentionDialog({ port, disabled }: { port: DesktopProduc
           })}</p>
           <ScrollShell className="max-h-80">
             <ul className="space-y-3">
-              {preview.entries.map(entry => <li key={entry.path} className="rounded-lg border border-[var(--nimi-border-default)] p-3">
+              {preview.entries.map(entry => <li key={entry.path} className="rounded-lg border border-[var(--nimi-border-subtle)] p-3">
                 <p className="font-medium">{entry.version} · {entry.eligible ? bytes(entry.logicalBytes) : t('ProductUpdate.retention.kept')}</p>
                 <p className="break-all text-xs text-[var(--nimi-text-muted)]">{entry.path}</p>
                 {!entry.eligible ? <p>{t(`ProductUpdate.retention.reasons.${entry.reason}`, { defaultValue: t('ProductUpdate.retention.reasons.unknown') })}</p> : null}

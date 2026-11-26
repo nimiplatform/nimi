@@ -211,16 +211,25 @@ function renderElectronOauthSuccessPage(): string {
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Authorization received - Nimi</title>
   <style>
-    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:grid;min-height:100vh;margin:0;place-items:center;background:#fff;color:#1f2937}
-    main{text-align:center;padding:32px}
-    h1{margin:0 0 10px;font-size:24px}
-    p{margin:0;color:#6b7280}
+    :root{color-scheme:light dark;--bg:#f5f7fa;--card:#ffffff;--border:rgba(226,232,240,.9);--ink:#111827;--muted:#4b5563;--accent:#1476d4;--accent-hover:#1166b8}
+    @media (prefers-color-scheme:dark){:root{--bg:#081019;--card:#162033;--border:rgba(148,163,184,.24);--ink:#f8fafc;--muted:#cbd5e1}}
+    @media (prefers-contrast:more){:root{--border:currentColor}}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;font-optical-sizing:auto;display:grid;min-height:100vh;margin:0;padding:1.5rem;place-items:center;background:var(--bg);color:var(--ink)}
+    main{max-width:26rem;width:100%;text-align:center;padding:2rem;border-radius:1rem;background:var(--card);border:1px solid var(--border)}
+    h1{margin:0 0 .625rem;font-size:1.5rem;line-height:1.25;letter-spacing:-0.02em}
+    p{margin:0 0 1.25rem;font-size:.9375rem;line-height:1.5;color:var(--muted)}
+    button{min-height:2.5rem;padding:.5rem 1.25rem;border:none;border-radius:.75rem;background:var(--accent);color:#fff;font:600 .875rem/1 inherit;cursor:pointer;transition:background-color 120ms ease,transform 100ms ease}
+    button:hover{background:var(--accent-hover)}
+    button:active{transform:scale(.97)}
+    button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+    @media (prefers-reduced-motion:reduce){button{transition:none}button:active{transform:none}}
   </style>
 </head>
 <body>
   <main>
     <h1>Authorization received</h1>
-    <p>Return to Nimi to finish signing in. This window will close shortly.</p>
+    <p>Return to Nimi to finish signing in. You can safely close this tab.</p>
+    <button type="button" onclick="window.close()">Close tab</button>
   </main>
   <script>setTimeout(function(){window.close();}, ${ELECTRON_OAUTH_SUCCESS_AUTO_CLOSE_MS});</script>
 </body>

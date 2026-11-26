@@ -1,5 +1,5 @@
 import { openExternalUrl } from '@nimiplatform/kit/shell/renderer/bridge';
-import { ConfirmDialog } from '@nimiplatform/kit/ui';
+import { Button, OverlayShell } from '@nimiplatform/kit/ui';
 import { NIMI_CHATGPT_PLAN_USAGE_URL } from '@nimiplatform/sdk/runtime';
 import type { TFunction } from 'i18next';
 import type { ManagedOAuthPendingState } from './runtime-config-managed-oauth';
@@ -10,7 +10,7 @@ type CloudConnector = RuntimeConfigStateV11['connectors'][number];
 const DISCLOSURE_SEEN_KEY = 'nimi.desktop.chatgpt-plan.disclosure-seen';
 
 const NOTE_CLASS = 'rounded-[var(--nimi-radius-md)] px-3 py-2 text-xs';
-const LINK_CLASS = 'text-[var(--nimi-action-primary-bg)] underline underline-offset-2';
+const LINK_CLASS = 'rounded text-[var(--nimi-action-primary-bg)] underline underline-offset-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]';
 
 function openLink(url: string): void {
   void openExternalUrl(url).catch(() => undefined);
@@ -115,25 +115,28 @@ export function ChatGPTPlanWelcomeDialog(props: {
 }) {
   const { open, onClose, t } = props;
   return (
-    <ConfirmDialog
+    <OverlayShell
       open={open}
+      kind="dialog"
+      size="sm"
       title={t('runtimeConfig.cloud.chatgptPlanWelcomeTitle', { defaultValue: "You're using your ChatGPT plan" })}
-      message={(
-        <span className="space-y-2">
-          <span className="block">
-            {t('runtimeConfig.cloud.chatgptPlanWelcomeBody', {
-              defaultValue: 'Eligible usage in this app uses your ChatGPT plan. Nimi runs locally and does not charge for it.',
-            })}
-          </span>
-          <button type="button" className={LINK_CLASS} onClick={() => openLink(NIMI_CHATGPT_PLAN_USAGE_URL)}>
-            {t('runtimeConfig.cloud.chatgptPlanManageUsage', { defaultValue: 'Manage usage' })}
-          </button>
-        </span>
-      )}
-      confirmLabel={t('runtimeConfig.cloud.chatgptPlanWelcomeConfirm', { defaultValue: 'Got it' })}
-      cancelLabel={t('runtimeConfig.cloud.chatgptPlanWelcomeClose', { defaultValue: 'Close' })}
-      onConfirm={onClose}
       onClose={onClose}
-    />
+      footer={(
+        <Button tone="primary" fullWidth onClick={onClose}>
+          {t('runtimeConfig.cloud.chatgptPlanWelcomeConfirm', { defaultValue: 'Got it' })}
+        </Button>
+      )}
+    >
+      <div className="space-y-2 text-sm text-[var(--nimi-text-secondary)]">
+        <p>
+          {t('runtimeConfig.cloud.chatgptPlanWelcomeBody', {
+            defaultValue: 'Eligible usage in this app uses your ChatGPT plan. Nimi runs locally and does not charge for it.',
+          })}
+        </p>
+        <button type="button" className={LINK_CLASS} onClick={() => openLink(NIMI_CHATGPT_PLAN_USAGE_URL)}>
+          {t('runtimeConfig.cloud.chatgptPlanManageUsage', { defaultValue: 'Manage usage' })}
+        </button>
+      </div>
+    </OverlayShell>
   );
 }

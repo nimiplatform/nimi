@@ -74,7 +74,7 @@ export function AccountCredentials({
   }
   if (passwordChanged) return <>
     <AccountHeading title={t('Account.passwordUpdated')} description={c('passwordSignInAgain')} />
-    <Link to="/login?returnTo=%2Faccount%2Fsecurity">{t('Account.backToLogin')}</Link>
+    <Link className="ac-button" to="/login?returnTo=%2Faccount%2Fsecurity">{t('Account.backToLogin')}</Link>
   </>;
   return (
     <>

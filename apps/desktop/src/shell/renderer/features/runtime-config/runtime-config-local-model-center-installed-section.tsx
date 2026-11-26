@@ -61,7 +61,7 @@ function ChevronDownIcon({ className = '' }: { className?: string }) {
   );
 }
 
-const SECONDARY_ACTION_CLASS = 'inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-medium text-[var(--nimi-text-secondary)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_8%,transparent)] hover:text-[var(--nimi-text-primary)] disabled:opacity-50';
+const SECONDARY_ACTION_CLASS = 'inline-flex min-h-8 items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-[var(--nimi-text-secondary)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_8%,transparent)] hover:text-[var(--nimi-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] enabled:active:scale-[var(--nimi-motion-pressed-scale)] disabled:opacity-50';
 const CARD_CLASS = 'rounded-2xl bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-base)] ring-1 ring-[var(--nimi-border-subtle)]';
 const META_SEPARATOR = ' · ';
 
@@ -125,10 +125,10 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
           </span>
           {[0, 1].map((row) => (
             <div key={row} className={`${CARD_CLASS} flex items-center gap-3 px-4 py-4`} aria-hidden="true">
-              <div className="h-10 w-10 animate-pulse rounded-xl bg-[var(--nimi-surface-subtle)]" />
+              <div className="h-10 w-10 animate-pulse motion-reduce:animate-none rounded-xl bg-[var(--nimi-surface-subtle)]" />
               <div className="flex-1 space-y-2">
-                <div className="h-3.5 w-1/3 animate-pulse rounded bg-[var(--nimi-surface-subtle)]" />
-                <div className="h-3 w-1/5 animate-pulse rounded bg-[var(--nimi-surface-subtle)]" />
+                <div className="h-3.5 w-1/3 animate-pulse motion-reduce:animate-none rounded bg-[var(--nimi-surface-subtle)]" />
+                <div className="h-3 w-1/5 animate-pulse motion-reduce:animate-none rounded bg-[var(--nimi-surface-subtle)]" />
               </div>
             </div>
           ))}
@@ -152,7 +152,7 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
                 <button
                   type="button"
                   onClick={props.onOpenDiscover}
-                  className="inline-flex h-9 items-center rounded-full bg-[var(--nimi-action-primary-bg)] px-4 text-sm font-medium text-[var(--nimi-action-primary-text)] transition-opacity hover:opacity-90"
+                  className="inline-flex min-h-9 items-center rounded-full bg-[var(--nimi-action-primary-bg)] px-4 text-sm font-medium text-[var(--nimi-action-primary-text)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]"
                 >
                   {t('runtimeConfig.localModelCenter.emptyDiscoverAction', { defaultValue: 'Discover models' })}
                 </button>
@@ -161,7 +161,7 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
                 <button
                   type="button"
                   onClick={props.onImportFile}
-                  className="inline-flex h-9 items-center rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 text-sm font-medium text-[var(--nimi-text-secondary)] transition-colors hover:text-[var(--nimi-text-primary)]"
+                  className="inline-flex min-h-9 items-center rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 text-sm font-medium text-[var(--nimi-text-secondary)] transition-colors hover:text-[var(--nimi-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]"
                 >
                   {t('runtimeConfig.localModelCenter.importModelFile', { defaultValue: 'Import Model File' })}
                 </button>
@@ -191,7 +191,7 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
             return (
               <article
                 key={asset.modelAssetId}
-                className={`${CARD_CLASS} px-4 py-3.5 transition-shadow hover:shadow-[var(--nimi-elevation-raised)]`}
+                className={`${CARD_CLASS} px-4 py-3.5`}
                 data-model-asset-id={asset.modelAssetId}
               >
                 <div className="flex items-center gap-3">
@@ -258,7 +258,7 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
                         type="button"
                         onClick={() => requestRemove(asset.modelAssetId)}
                         disabled={props.assetBusy || removing || props.runtimeWritesDisabled}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-status-danger-soft-bg)] hover:text-[var(--nimi-status-danger)] disabled:opacity-50"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-status-danger-soft-bg)] hover:text-[var(--nimi-status-danger)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] enabled:active:scale-[var(--nimi-motion-pressed-scale)] disabled:opacity-50"
                         aria-label={t('runtimeConfig.localModelCenter.remove', { defaultValue: 'Remove' })}
                       >
                         <TrashIcon className="h-4 w-4" />

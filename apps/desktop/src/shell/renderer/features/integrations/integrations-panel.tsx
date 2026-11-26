@@ -634,9 +634,9 @@ export function IntegrationsPanel({
                       />
                     </div>
                     {target?.available ? (
-                      <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-status-success)_10%,transparent)] px-2 py-1 text-xs text-[var(--nimi-status-success)]">
+                      <StatusBadge tone="success" shape="soft">
                         {t('Integrations.available')}
-                      </span>
+                      </StatusBadge>
                     ) : null}
                   </div>
                 ) : null}
@@ -715,7 +715,7 @@ export function IntegrationsPanel({
                     }
                   }}
                   tabIndex={tab === item ? 0 : -1}
-                  className={`border-b-2 pb-3 pt-2 text-sm focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${tab === item ? 'border-[var(--nimi-action-primary-bg)] font-medium text-[var(--nimi-action-primary-bg)]' : 'border-transparent text-[var(--nimi-text-secondary)]'}`}
+                  className={`border-b-2 pb-3 pt-2 text-sm transition-[color,border-color,transform] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${tab === item ? 'border-[var(--nimi-action-primary-bg)] font-medium text-[var(--nimi-action-primary-bg)]' : 'border-transparent text-[var(--nimi-text-secondary)]'}`}
                 >
                   {t(
                     `Integrations.${{ permissions: 'applicationPermissions', calls: 'usageRecords', settings: 'connectionInfo' }[item]}`,
@@ -1049,7 +1049,7 @@ export function IntegrationsPanel({
               <div className="text-xs leading-relaxed text-[var(--nimi-text-secondary)]">
                 {!refreshingFeishu ? <p>{t('Integrations.feishuManualHelp')}</p> : null}
                 <details className="mt-2">
-                  <summary>
+                  <summary className="cursor-pointer rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1">
                     {t(refreshingFeishu ? 'Integrations.feishuConfigurationDetails' : 'Integrations.operationDetails')}
                   </summary>
                   {refreshingFeishu ? <p className="mt-2">{t('Integrations.feishuManualHelp')}</p> : null}
@@ -1062,7 +1062,7 @@ export function IntegrationsPanel({
                     ).map((item) => (
                       <li key={item.scope} className="flex flex-wrap items-baseline gap-x-2">
                         <span className="shrink-0">{item.label}</span>
-                        <code className="break-all rounded bg-[var(--nimi-surface-active)] px-1.5 py-0.5 text-[11px]">
+                        <code className="break-all rounded bg-[var(--nimi-surface-active)] px-1.5 py-0.5 text-xs">
                           {item.scope}
                         </code>
                       </li>
@@ -1080,7 +1080,7 @@ export function IntegrationsPanel({
               <div className="text-xs leading-relaxed text-[var(--nimi-text-secondary)]">
                 <p>{t('Integrations.onebotMode')}</p>
                 <details className="mt-2">
-                  <summary>{t('Integrations.operationDetails')}</summary>
+                  <summary className="cursor-pointer rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1">{t('Integrations.operationDetails')}</summary>
                   <p className="mt-2">{t('Integrations.onebotProtocolHelp')}</p>
                 </details>
               </div>
@@ -1107,7 +1107,7 @@ export function IntegrationsPanel({
                   <div className="flex flex-col items-center pt-1">
                     <IntegrationSetupQr value={setup.verificationUrl} label={t('Integrations.scanQr')} />
                     <a
-                      className="mt-2 text-xs text-[var(--nimi-action-primary-bg)] underline"
+                      className="mt-2 rounded-sm text-xs text-[var(--nimi-action-primary-bg)] underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1"
                       href={setup.verificationUrl}
                       target="_blank"
                       rel="noreferrer"
@@ -1131,7 +1131,7 @@ export function IntegrationsPanel({
                         disabled={busy}
                       />
                     </label>
-                    <Button className="mt-2" disabled={busy} onClick={submitVerification}>
+                    <Button type="button" className="mt-2" disabled={busy} onClick={submitVerification}>
                       {t('Integrations.submitVerification')}
                     </Button>
                   </>
@@ -1390,7 +1390,7 @@ export function IntegrationsPanel({
                         </span>
                       </label>
                       <details className="mx-3 mb-2 ml-14 mt-1 rounded-lg px-2 py-1 text-xs text-[var(--nimi-text-muted)]">
-                        <summary className="cursor-pointer">{t('Integrations.technicalDetails')}</summary>
+                        <summary className="cursor-pointer rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1">{t('Integrations.technicalDetails')}</summary>
                         <p className="mt-2 break-all"><code>{op.name}</code></p>
                         <p className="mt-2">
                           {t('Integrations.descriptorSource', { source: target.displayName })}
@@ -1427,7 +1427,7 @@ export function IntegrationsPanel({
                         <span aria-hidden="true" className={permissionCheckClass}>
                           <Check size={13} strokeWidth={3} />
                         </span>
-                        <code className="break-all rounded-md bg-[color-mix(in_srgb,var(--nimi-surface-card)_70%,transparent)] px-1.5 py-0.5 text-[11px]">
+                        <code className="break-all rounded-md bg-[color-mix(in_srgb,var(--nimi-surface-card)_70%,transparent)] px-1.5 py-0.5 text-xs">
                           {name}
                         </code>
                       </label>
@@ -1499,7 +1499,7 @@ export function IntegrationsPanel({
                         .join(', '),
                     })}
                     <details className="mt-1 text-xs">
-                      <summary>{t('Integrations.operationDetails')}</summary>
+                      <summary className="cursor-pointer rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1">{t('Integrations.operationDetails')}</summary>
                       <p className="mt-1 break-all">{change.removed.join(', ')}</p>
                     </details>
                   </li>

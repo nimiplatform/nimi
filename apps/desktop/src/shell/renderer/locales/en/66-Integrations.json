@@ -352,5 +352,6 @@
   "unlistedOperationsHelp": "These operations remain in existing permissions. Keep them checked to preserve them, or uncheck and save to withdraw them.",
   "closeSetupHelp": "Closing this window cancels the unfinished connection setup.",
   "affectedApps": "Permissions for these apps will also be revoked",
-  "endpointPlaceholder": "https://example.com/mcp"
+  "endpointPlaceholder": "https://example.com/mcp",
+  "qrUnavailableFallback": "Could not render the QR code. Use the verification link below to continue."
 }

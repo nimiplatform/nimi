@@ -44,7 +44,7 @@ export function ProfileDetailViewContent(input: { controller: ProfileDetailViewC
               return updated.avatarMedia ?? null;
             }} name={profile.displayName} className="h-20 w-20 shrink-0 text-3xl font-semibold" />
             <div className="min-w-0 flex-1">
-              <h1 className="break-words text-2xl font-semibold text-[var(--nimi-text-primary)]">{profile.displayName}</h1>
+              <h1 className="break-words text-2xl font-semibold tracking-[-0.02em] text-[var(--nimi-text-primary)]">{profile.displayName}</h1>
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 <span className="text-sm text-[var(--nimi-text-secondary)]">{handle}</span>
                 {input.isOwnProfile && profile.handle ? <Button tone="ghost" size="sm" leadingIcon={<Copy size={14} />} onClick={() => { void copyHandle(); }}>{t('Profile.copyUsername')}</Button> : null}
@@ -89,6 +89,6 @@ export function ProfileDetailViewContent(input: { controller: ProfileDetailViewC
   );
   return <div data-testid={E2E_IDS.profileDetailSurface} className="flex min-h-0 flex-1 flex-col">
     {controller.usesExternalScrollContainer ? body : <ScrollArea className="flex-1" viewportRef={controller.scrollContainerRef}>{body}</ScrollArea>}
-    {controller.showScrollTop ? <button type="button" onClick={controller.scrollToTop} aria-label={t('Common.backToTop')} className="fixed bottom-8 right-8 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-floating)]"><ArrowUpIcon className="h-5 w-5" /></button> : null}
+    {controller.showScrollTop ? <button type="button" onClick={controller.scrollToTop} aria-label={t('Common.backToTop')} className="fixed bottom-8 right-8 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-floating)] transition-[background-color,transform] hover:bg-[var(--nimi-surface-hover)] active:scale-[0.95] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1"><ArrowUpIcon className="h-5 w-5" /></button> : null}
   </div>;
 }

@@ -114,7 +114,7 @@ export function DesktopBrowserAuthGate(props: DesktopBrowserAuthGateProps) {
       className="nimi-shell-auth-root nimi-shell-auth-brand-surface absolute inset-0 z-10"
       data-shell-auth-theme="custom"
       data-testid={props.screenTestId}
-      onMouseDown={props.onRootPointerDown}
+      onPointerDown={props.onRootPointerDown}
     >
       <div aria-hidden className="nimi-shell-auth-background">
         <AuthVisualBackground isLogoHovered={isLogoHovered} profile="desktop" />
@@ -123,41 +123,42 @@ export function DesktopBrowserAuthGate(props: DesktopBrowserAuthGateProps) {
         <section className="nimi-shell-auth-content">
           <div className="pointer-events-auto flex flex-col items-center text-center">
             {props.logo ? (
-              <button
-                type="button"
-                aria-label={actionLabel}
-                aria-describedby={descriptionId}
-                data-testid={props.actionTestId}
-                onClick={() => void begin()}
+              <div
+                aria-hidden="true"
+                onClick={() => { if (status !== 'pending') void begin(); }}
                 onMouseEnter={() => setIsLogoHovered(true)}
                 onMouseLeave={() => setIsLogoHovered(false)}
-                disabled={status === 'pending'}
-                className="group relative block h-24 w-24 cursor-pointer select-none rounded-full focus:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-2 disabled:cursor-default"
+                className={`group relative block h-24 w-24 select-none rounded-full transition-transform duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] ${status === 'pending' ? 'cursor-default' : 'cursor-pointer active:scale-[var(--nimi-motion-pressed-scale)]'}`}
               >
                 <span
-                  aria-hidden="true"
-                  className="block h-full w-full pointer-events-none transition-transform duration-500 ease-out group-enabled:group-hover:scale-105"
+                  className="block h-full w-full pointer-events-none transition-transform duration-[var(--nimi-motion-base)] ease-[var(--nimi-motion-ease-standard)] group-hover:scale-105"
                 >
                   {props.logo}
                 </span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                aria-describedby={descriptionId}
-                data-testid={props.actionTestId}
-                onClick={() => void begin()}
-                disabled={status === 'pending'}
-                className="rounded-full bg-[var(--nimi-action-primary-bg)] px-6 py-2.5 text-sm font-medium text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-2 disabled:cursor-default"
-              >
-                {actionLabel}
-              </button>
-            )}
+              </div>
+            ) : null}
 
-            <h1 className="mt-10 text-[13px] font-medium uppercase tracking-[0.38em] text-[var(--nimi-text-secondary)]">
+            <h1 className={props.logo ? 'mt-8 text-[length:var(--nimi-type-body-sm-size)] font-medium uppercase tracking-[0.38em] text-[var(--nimi-text-secondary)]' : 'text-[length:var(--nimi-type-body-sm-size)] font-medium uppercase tracking-[0.38em] text-[var(--nimi-text-secondary)]'}>
               Nimi
             </h1>
-            <p id={descriptionId} className="sr-only">{title}. {description}</p>
+            <p id={descriptionId} className="mt-2 max-w-xs text-xs leading-relaxed text-[var(--nimi-text-muted)]">
+              {title}
+            </p>
+            <p className="sr-only">{description}</p>
+
+            <button
+              type="button"
+              aria-label={actionLabel}
+              aria-describedby={descriptionId}
+              data-testid={props.actionTestId}
+              onClick={() => void begin()}
+              onMouseEnter={() => setIsLogoHovered(true)}
+              onMouseLeave={() => setIsLogoHovered(false)}
+              disabled={status === 'pending'}
+              className="mt-6 rounded-full bg-[var(--nimi-action-primary-bg)] px-6 py-2.5 text-sm font-medium text-[var(--nimi-action-primary-text)] shadow-sm transition-[background-color,opacity,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:bg-[var(--nimi-action-primary-bg-hover)] active:scale-[var(--nimi-motion-pressed-scale)] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-2 disabled:cursor-default disabled:opacity-55 disabled:active:scale-100"
+            >
+              {actionLabel}
+            </button>
 
             {props.notice && status !== 'pending' ? (
               <p className="mt-3 max-w-sm text-xs text-[var(--nimi-text-muted)]">{props.notice}</p>
@@ -180,7 +181,7 @@ export function DesktopBrowserAuthGate(props: DesktopBrowserAuthGateProps) {
                         <button
                           type="button"
                           onClick={() => { void reopen().catch(() => false); }}
-                          className="rounded-full px-3 py-1.5 text-xs text-[var(--nimi-action-primary-bg)] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nimi-focus-ring-color)]"
+                          className="rounded-full px-3 py-1.5 text-xs text-[var(--nimi-action-primary-bg)] transition-[background-color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[var(--nimi-motion-pressed-scale)] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nimi-focus-ring-color)]"
                         >
                           {props.reopenLabel || '重新打开浏览器'}
                         </button>
@@ -188,7 +189,7 @@ export function DesktopBrowserAuthGate(props: DesktopBrowserAuthGateProps) {
                       <button
                         type="button"
                         onClick={endWait}
-                        className="rounded-full px-3 py-1.5 text-xs text-[var(--nimi-text-muted)] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nimi-focus-ring-color)]"
+                        className="rounded-full px-3 py-1.5 text-xs text-[var(--nimi-text-muted)] transition-[background-color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[var(--nimi-motion-pressed-scale)] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nimi-focus-ring-color)]"
                       >
                         {props.endWaitLabel || '结束等待'}
                       </button>

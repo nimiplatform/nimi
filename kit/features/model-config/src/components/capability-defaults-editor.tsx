@@ -2,6 +2,7 @@ import { useId, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import type { NimiJsonObject } from '@nimiplatform/kit/core/sdk-contract';
 import { SelectField, TextareaField, TextField } from '@nimiplatform/kit/ui';
+import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
 import {
   capabilityDefaultFields,
   type CapabilityDefaultField,
@@ -245,7 +246,7 @@ export function CapabilityDefaultsEditor(props: CapabilityDefaultsEditorProps) {
       className="group overflow-hidden rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] transition-colors duration-[var(--nimi-motion-fast)]"
       data-nimi-model-config-defaults={props.capabilityContract}
     >
-      <summary className="cursor-pointer select-none list-none px-3 py-2.5 text-xs font-semibold text-[var(--nimi-text-primary)] transition-colors duration-[var(--nimi-motion-fast)] hover:bg-[var(--nimi-action-ghost-hover)] [&::-webkit-details-marker]:hidden">
+      <summary className={`cursor-pointer select-none list-none px-3 py-2.5 text-xs font-semibold text-[var(--nimi-text-primary)] transition-colors duration-[var(--nimi-motion-fast)] hover:bg-[var(--nimi-action-ghost-hover)] [&::-webkit-details-marker]:hidden ${FOCUS_RING_CLASS_NAME}`}>
         <span className="flex items-center justify-between gap-3">
           <span>{props.copy.label}</span>
           <ChevronRight aria-hidden="true" className="h-3.5 w-3.5 text-[var(--nimi-text-muted)] transition-transform duration-[var(--nimi-motion-fast)] group-open:rotate-90" />

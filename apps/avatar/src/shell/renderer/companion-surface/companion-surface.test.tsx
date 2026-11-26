@@ -140,7 +140,7 @@ describe('CompanionSurface', () => {
     expect(screen.getByText('caption').getAttribute('aria-live')).toBe('polite');
   });
 
-  it('keeps either terminal idle caption visible until the existing App timeout closes it', () => {
+  it('keeps either terminal idle caption visible until the existing App timeout closes it', async () => {
     const terminalCue = {
       at: '2026-08-30T00:00:00.000Z',
       messageId: null,
@@ -167,7 +167,9 @@ describe('CompanionSurface', () => {
         assistantCaption: { ...terminalCue, text: 'Final assistant caption' },
       },
     })} />);
-    expect(screen.queryByText('Final user caption')).toBeNull();
+    await waitFor(() => {
+      expect(screen.queryByText('Final user caption')).toBeNull();
+    });
     expect(screen.getByText('Final assistant caption')).toBeTruthy();
   });
 

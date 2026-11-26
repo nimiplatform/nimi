@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
+import { NimiMotionProvider } from '@nimiplatform/kit/ui';
 import { HeroDemoSessionProvider } from './components/hero-demo-session.js';
 import { StoryPage } from './components/story/story-page.js';
 import { getStoryCopy } from './content/story-copy.js';
@@ -24,8 +25,10 @@ export function App() {
   usePublicDocumentMetadata(copy['hero.metaTitle'], copy['hero.metaDescription'], '/', locale);
 
   return (
-    <HeroDemoSessionProvider key={locale} demo={demo} initialSurface="home" initialTarget={DEFAULT_STORY_AGENT}>
-      <StoryPage links={links} locale={locale} onLocale={setLocale} />
-    </HeroDemoSessionProvider>
+    <NimiMotionProvider>
+      <HeroDemoSessionProvider key={locale} demo={demo} initialSurface="home" initialTarget={DEFAULT_STORY_AGENT}>
+        <StoryPage links={links} locale={locale} onLocale={setLocale} />
+      </HeroDemoSessionProvider>
+    </NimiMotionProvider>
   );
 }

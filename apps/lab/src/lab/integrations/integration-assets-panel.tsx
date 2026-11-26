@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { NimiLocalAppAssetRecord } from '@nimiplatform/sdk/app';
-import { Button, InlineAlert, Surface } from '@nimiplatform/kit/ui';
+import { Button, ConfirmDialog, InlineAlert, Surface } from '@nimiplatform/kit/ui';
 import { useLabRendererHost } from '../../renderer/context.js';
 import { useTranslation } from '../../shell/i18n/index.js';
 import { subscribeLabLocalAppSessionLoss } from '../../shell/auth/session-loss.js';
@@ -16,6 +16,7 @@ export function IntegrationAssetsPanel({ busy, setAssetBusy }: { busy: boolean; 
   const [cursor, setCursor] = useState(''); const [selected, setSelected] = useState('');
   const [error, setError] = useState(''); const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(false); const [acting, setActing] = useState(false);
+  const [pendingDeletePath, setPendingDeletePath] = useState<string | null>(null);
   const live = useRef(false); const generation = useRef(0); const requests = useRef(0); const action = useRef(false);
   const currentHost = useRef(host); currentHost.current = host;
   const load = async (nextCursor = '') => {
@@ -61,9 +62,24 @@ export function IntegrationAssetsPanel({ busy, setAssetBusy }: { busy: boolean; 
     {loaded && !assets.length ? <p className="mt-3 text-sm">{t('Integrations.noCurrentFiles')}</p> : null}
     {assets.map(asset => <div key={asset.relativePath} className="mt-3 border-t border-[var(--nimi-border-subtle)] pt-3 text-sm">
       <p className="break-all">{asset.relativePath}</p><p className="mt-1 text-xs">{asset.mediaType || 'application/octet-stream'} · {t('Integrations.assetSize', { size: asset.sizeBytes })}</p>
-      <div className="mt-2 flex gap-2"><Button size="sm" tone="secondary" disabled={busy || acting} onClick={() => setSelected(asset.relativePath)}>{t('Integrations.viewCurrentFile')}</Button><Button size="sm" tone="danger" disabled={busy || acting} onClick={() => void remove(asset.relativePath)}>{t('Integrations.removeCurrentFile')}</Button></div>
+      <div className="mt-2 flex gap-2"><Button size="sm" tone="secondary" disabled={busy || acting} onClick={() => setSelected(asset.relativePath)}>{t('Integrations.viewCurrentFile')}</Button><Button size="sm" tone="danger" disabled={busy || acting} onClick={() => setPendingDeletePath(asset.relativePath)}>{t('Integrations.removeCurrentFile')}</Button></div>
       {selected === asset.relativePath ? <IntegrationAssetPreview relativePath={asset.relativePath} disabled={busy || acting} report={() => setError(t('Integrations.currentFileUnavailable'))} /> : null}
     </div>)}
     {cursor ? <Button className="mt-3" tone="secondary" disabled={busy || loading || acting} onClick={() => void load(cursor)}>{t('Integrations.moreAssets')}</Button> : null}
+    <ConfirmDialog
+      open={pendingDeletePath !== null}
+      title={t('Integrations.confirmRemoveCurrentFileTitle')}
+      message={pendingDeletePath ? t('Integrations.confirmRemoveCurrentFileMessage', { path: pendingDeletePath }) : ''}
+      confirmLabel={t('Integrations.removeCurrentFile')}
+      cancelLabel={t('Common.cancel')}
+      confirmTone="danger"
+      loading={acting}
+      onConfirm={() => {
+        const targetPath = pendingDeletePath;
+        setPendingDeletePath(null);
+        if (targetPath) void remove(targetPath);
+      }}
+      onClose={() => setPendingDeletePath(null)}
+    />
   </details></Surface>;
 }

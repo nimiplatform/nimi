@@ -258,7 +258,7 @@ export function ProfileExportPanel(props: {
               </div>
               {groupUses(inventory.shareable).map(({ group, uses }) => (
                 <div key={group}>
-                  <div className="px-4 pb-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--nimi-text-muted)]">
+                  <div className="px-4 pb-1 text-[length:var(--nimi-type-caption-size)] font-semibold uppercase tracking-wide text-[var(--nimi-text-muted)]">
                     {t(`runtimeConfig.capabilities.group.${group}`)}
                   </div>
                   {uses.map((use) => (
@@ -477,7 +477,7 @@ function ShareableUseRow(props: {
                     <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-[var(--nimi-text-primary)]">
                       {props.modelName(candidate.loadout)}
                       {candidate.current ? (
-                        <span className="rounded-full bg-[var(--nimi-status-success-soft-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--nimi-status-success)]">
+                        <span className="rounded-full bg-[var(--nimi-status-success-soft-bg)] px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-status-success)]">
                           {t('runtimeConfig.profiles.share.currentInUse', { defaultValue: 'in use' })}
                         </span>
                       ) : null}
@@ -526,7 +526,7 @@ function ExportPortabilityTag(props: {
     return (
       <span
         data-export-portability="auto-downloadable"
-        className="rounded-full bg-[var(--nimi-status-info-soft-bg)] px-2 py-0.5 text-[11px] font-medium text-[var(--nimi-status-info)]"
+        className="rounded-full bg-[var(--nimi-status-info-soft-bg)] px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-status-info)]"
       >
         {t('runtimeConfig.profiles.share.portabilityAutoDownload', { defaultValue: 'Auto-downloadable' })}
       </span>
@@ -538,7 +538,7 @@ function ExportPortabilityTag(props: {
   return (
     <span
       data-export-portability="manual-import-required"
-      className="rounded-full bg-[var(--nimi-status-warning-soft-bg)] px-2 py-0.5 text-[11px] font-medium text-[var(--nimi-status-warning)]"
+      className="rounded-full bg-[var(--nimi-status-warning-soft-bg)] px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-status-warning)]"
     >
       {label}
     </span>
@@ -613,7 +613,7 @@ function ShareDonePanel(props: {
         <ol className="grid gap-2 md:grid-cols-2">
           {(['next1', 'next2', 'next3', 'next4'] as const).map((key, index) => (
             <li key={key} className="flex gap-3 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3">
-              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[11px] font-semibold text-[var(--nimi-action-primary-text)]">{index + 1}</span>
+              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-action-primary-text)]">{index + 1}</span>
               <span className="text-xs leading-relaxed text-[var(--nimi-text-primary)]">
                 {t(`runtimeConfig.profiles.share.${key}`, { defaultValue: NEXT_STEP_DEFAULTS[key], title: done.title, models })}
               </span>

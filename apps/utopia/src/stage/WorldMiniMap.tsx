@@ -40,20 +40,32 @@ export function WorldMiniMap(props: {
 
   const [collapsed, setCollapsed] = useState(false);
   const radarRef = useRef<HTMLDivElement | null>(null);
-  const draggingRef = useRef<number | null>(null);
+  const draggingRef = useRef<{
+    pointerId: number;
+    offsetXPercent: number;
+    offsetYPercent: number;
+  } | null>(null);
 
   const openSet = new Set(snapshot.openPlaceIds);
   const placeMap = new Map(snapshot.habitat.places.map((p) => [p.id, p]));
   const landmarks = resolveWorldLandmarks(snapshot.habitat.habitatId);
   const totalSpots = anchors.length + landmarks.length;
 
-  const jumpFromPointer = (clientX: number, clientY: number, instant: boolean) => {
+  const jumpFromPointer = (
+    clientX: number,
+    clientY: number,
+    offsetXPercent: number,
+    offsetYPercent: number,
+    instant: boolean,
+  ) => {
     const el = radarRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
-    const xPct = Math.max(4, Math.min(96, ((clientX - rect.left) / rect.width) * 100));
-    const yPct = Math.max(6, Math.min(94, ((clientY - rect.top) / rect.height) * 100));
+    const rawXPct = ((clientX - rect.left) / rect.width) * 100 + offsetXPercent;
+    const rawYPct = ((clientY - rect.top) / rect.height) * 100 + offsetYPercent;
+    const xPct = Math.max(4, Math.min(96, rawXPct));
+    const yPct = Math.max(6, Math.min(94, rawYPct));
     onJumpToPercent(xPct, yPct, instant);
   };
 
@@ -103,25 +115,43 @@ export function WorldMiniMap(props: {
           if (e.button !== 0) return;
           const target = e.target as HTMLElement | null;
           if (target?.closest('button')) return;
+          const el = radarRef.current;
+          if (!el) return;
+          const rect = el.getBoundingClientRect();
+          if (rect.width <= 0 || rect.height <= 0) return;
           e.stopPropagation();
-          draggingRef.current = e.pointerId;
+          const ptrXPct = ((e.clientX - rect.left) / rect.width) * 100;
+          const ptrYPct = ((e.clientY - rect.top) / rect.height) * 100;
+          const centerX = viewportBox.leftPercent + viewportBox.widthPercent / 2;
+          const centerY = viewportBox.topPercent + viewportBox.heightPercent / 2;
+          const insideViewportRect =
+            ptrXPct >= viewportBox.leftPercent
+            && ptrXPct <= viewportBox.leftPercent + viewportBox.widthPercent
+            && ptrYPct >= viewportBox.topPercent
+            && ptrYPct <= viewportBox.topPercent + viewportBox.heightPercent;
+          const offsetXPercent = insideViewportRect ? centerX - ptrXPct : 0;
+          const offsetYPercent = insideViewportRect ? centerY - ptrYPct : 0;
+          draggingRef.current = { pointerId: e.pointerId, offsetXPercent, offsetYPercent };
           e.currentTarget.setPointerCapture(e.pointerId);
-          jumpFromPointer(e.clientX, e.clientY, false);
+          if (!insideViewportRect) {
+            jumpFromPointer(e.clientX, e.clientY, 0, 0, false);
+          }
         }}
         onPointerMove={(e) => {
-          if (draggingRef.current !== e.pointerId) return;
+          const drag = draggingRef.current;
+          if (!drag || drag.pointerId !== e.pointerId) return;
           e.stopPropagation();
-          jumpFromPointer(e.clientX, e.clientY, true);
+          jumpFromPointer(e.clientX, e.clientY, drag.offsetXPercent, drag.offsetYPercent, true);
         }}
         onPointerUp={(e) => {
-          if (draggingRef.current !== e.pointerId) return;
+          if (!draggingRef.current || draggingRef.current.pointerId !== e.pointerId) return;
           draggingRef.current = null;
           if (e.currentTarget.hasPointerCapture(e.pointerId)) {
             e.currentTarget.releasePointerCapture(e.pointerId);
           }
         }}
         onPointerCancel={(e) => {
-          if (draggingRef.current !== e.pointerId) return;
+          if (!draggingRef.current || draggingRef.current.pointerId !== e.pointerId) return;
           draggingRef.current = null;
           if (e.currentTarget.hasPointerCapture(e.pointerId)) {
             e.currentTarget.releasePointerCapture(e.pointerId);

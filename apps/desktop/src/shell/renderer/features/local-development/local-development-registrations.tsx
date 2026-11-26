@@ -119,13 +119,13 @@ export function LocalDevelopmentRegistrations() {
                   <StatusBadge tone="info">{t(`LocalDevelopment.shell.${run.shell}`)}</StatusBadge>
                 </div>
               </div>
-              <NimiText role="body" className="text-[13px]">
+              <NimiText role="body" className="text-sm">
                 {run.message === 'Supervised electron host is running'
                   ? t('LocalDevelopment.activity.runningMessage')
                   : run.message}
               </NimiText>
               <div className="flex flex-wrap gap-x-4 gap-y-1">
-                {run.reasonCode ? <code className="text-[11px] leading-4 text-[var(--nimi-text-secondary)] break-all">{run.reasonCode}</code> : null}
+                {run.reasonCode ? <code className="text-xs leading-4 text-[var(--nimi-text-secondary)] break-all">{run.reasonCode}</code> : null}
                 {run.hostGeneration > 0 ? <NimiText role="caption">{t('LocalDevelopment.activity.hostGeneration', { count: run.hostGeneration })}</NimiText> : null}
                 {run.retryable ? <NimiText role="caption">{t('LocalDevelopment.activity.retryable')}</NimiText> : null}
               </div>
@@ -160,7 +160,7 @@ export function LocalDevelopmentRegistrations() {
                   {row.appAccess.length === 0 ? (
                     <NimiText role="caption">{t('LocalDevelopment.field.noAppAccess')}</NimiText>
                   ) : row.appAccess.map((domain) => (
-                    <code key={domain} className="rounded-md bg-[var(--nimi-surface-active)] px-2 py-1 text-[11px] text-[var(--nimi-text-secondary)]">
+                    <code key={domain} className="rounded-md bg-[var(--nimi-surface-active)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)]">
                       {domain}
                     </code>
                   ))}

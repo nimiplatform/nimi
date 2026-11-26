@@ -13,6 +13,7 @@ export const accountCenterCopy = {
   connectInvalid: ['This connection request is invalid. Start again from the application.', '连接请求无效，请从应用重新发起。'],
   connectUnavailable: ['This application source is unavailable or could not be verified. Start again from the application later.', '应用来源不可用或暂时无法核实，请稍后从应用重新发起。'],
   connectFailed: ['Could not confirm this identity. Check the signed-in account and start again from the application.', '未能确认该身份，请核对当前登录账号并从应用重新发起。'],
+  localDevelopment: ['Local development', '本机开发'],
   runtime: ['Primary host', '主设备'],
   runtimeNav: ['My host', '我的主机'],
   runtimeHeading: ['My host', '我的主机'],
@@ -69,6 +70,9 @@ export const accountCenterCopy = {
   sending: ['Sending…', '正在发送…'],
   keepEditing: ['Keep editing', '继续编辑'],
   discardChanges: ['Discard changes', '放弃更改'],
+  discardAndSignOut: ['Discard and sign out', '放弃更改并退出'],
+  clearSearch: ['Clear search', '清空搜索'],
+  copyLinkFailed: ['Couldn’t copy the link. Please copy it manually.', '复制链接失败，请手动复制。'],
   userNotFound: [
     'No account found. Check the exact username and try again.',
     '没有找到该用户，请核对完整用户名后重试。',

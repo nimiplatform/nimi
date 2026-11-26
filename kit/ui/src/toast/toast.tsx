@@ -14,6 +14,7 @@ import { createPortal } from 'react-dom';
 import { cva } from 'class-variance-authority';
 import { AlertTriangle, Bell, CheckCircle2, Info, X, XCircle, type LucideIcon } from 'lucide-react';
 import { cn } from '../design-tokens.js';
+import { FOCUS_RING_CLASS_NAME } from '../a11y/focus.js';
 import {
   AnimatePresence,
   motion,
@@ -30,7 +31,7 @@ import {
 } from './toast-store.js';
 
 const toastVariants = cva(
-  'nimi-toast pointer-events-auto flex min-w-0 items-start gap-3 rounded-[var(--nimi-radius-md)] border px-3 py-2 shadow-lg text-[length:var(--nimi-type-body-sm-size)]',
+  'nimi-toast pointer-events-auto flex min-w-0 items-start gap-3 rounded-[var(--nimi-radius-md)] border px-3 py-2 shadow-[var(--nimi-elevation-floating)] text-[length:var(--nimi-type-body-sm-size)]',
   {
     variants: {
       tone: {
@@ -76,9 +77,10 @@ function NimiToastItem({ record, dismissLabel }: { record: NimiToastRecord; dism
     };
   }, [record.id, record.durationMs]);
 
-  // Hover pauses auto-dismiss: entering freezes the countdown and banks
-  // the elapsed slice; leaving resumes with the remaining time only.
-  const handleMouseEnter = () => {
+  const hoveredRef = useRef(false);
+  const focusedRef = useRef(false);
+
+  const pauseCountdown = () => {
     if (record.durationMs === Infinity || timerRef.current === null) {
       return;
     }
@@ -90,7 +92,10 @@ function NimiToastItem({ record, dismissLabel }: { record: NimiToastRecord; dism
     );
   };
 
-  const handleMouseLeave = () => {
+  const resumeCountdown = () => {
+    if (hoveredRef.current || focusedRef.current) {
+      return;
+    }
     if (record.durationMs === Infinity || timerRef.current !== null) {
       return;
     }
@@ -100,12 +105,37 @@ function NimiToastItem({ record, dismissLabel }: { record: NimiToastRecord; dism
     }, remainingMsRef.current);
   };
 
+  // Hover and keyboard focus pause auto-dismiss so assistive-tech / keyboard
+  // users tabbing to an action or dismiss button never lose the toast mid-focus.
+  const handleMouseEnter = () => {
+    hoveredRef.current = true;
+    pauseCountdown();
+  };
+
+  const handleMouseLeave = () => {
+    hoveredRef.current = false;
+    resumeCountdown();
+  };
+
+  const handleFocus = () => {
+    focusedRef.current = true;
+    pauseCountdown();
+  };
+
+  const handleBlur = (event: React.FocusEvent<HTMLDivElement>) => {
+    if (event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      return;
+    }
+    focusedRef.current = false;
+    resumeCountdown();
+  };
+
   const Icon = TONE_ICONS[record.tone];
   const transition = reducedMotion ? nimiReducedFade() : nimiSpring('default');
 
   return (
     <motion.div
-      layout
+      layout={!reducedMotion}
       className={cn(toastVariants({ tone: record.tone }))}
       role={record.tone === 'danger' ? 'alert' : 'status'}
       data-nimi-toast-tone={record.tone}
@@ -115,6 +145,8 @@ function NimiToastItem({ record, dismissLabel }: { record: NimiToastRecord; dism
       transition={transition}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
     >
       <span className="nimi-toast__icon inline-flex shrink-0 items-center justify-center pt-0.5">
         <Icon size={16} aria-hidden />
@@ -130,7 +162,10 @@ function NimiToastItem({ record, dismissLabel }: { record: NimiToastRecord; dism
       {record.action ? (
         <button
           type="button"
-          className="nimi-toast__action shrink-0 self-center font-[var(--nimi-type-label-weight)] underline-offset-2 hover:underline"
+          className={cn(
+            'nimi-toast__action shrink-0 self-center rounded-[var(--nimi-radius-sm)] px-1.5 py-1 font-[var(--nimi-type-label-weight)] underline-offset-2 transition-[color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:underline active:scale-[var(--nimi-motion-pressed-scale)]',
+            FOCUS_RING_CLASS_NAME,
+          )}
           onClick={() => {
             record.action?.onClick();
             nimiToast.dismiss(record.id);
@@ -141,7 +176,10 @@ function NimiToastItem({ record, dismissLabel }: { record: NimiToastRecord; dism
       ) : null}
       <button
         type="button"
-        className="nimi-toast__close inline-flex shrink-0 items-center justify-center opacity-70 hover:opacity-100"
+        className={cn(
+          'nimi-toast__close -mt-0.5 -mr-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--nimi-radius-sm)] opacity-70 transition-[opacity,background-color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:bg-[var(--nimi-action-ghost-hover)] hover:opacity-100 active:scale-[var(--nimi-motion-pressed-scale)]',
+          FOCUS_RING_CLASS_NAME,
+        )}
         aria-label={dismissLabel}
         onClick={() => nimiToast.dismiss(record.id)}
       >

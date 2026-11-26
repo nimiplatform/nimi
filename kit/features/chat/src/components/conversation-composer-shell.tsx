@@ -32,6 +32,7 @@ export function ConversationComposerShell({
       className={cn(
         'shrink-0 rounded-[var(--nimi-radius-xl)]',
         'px-2.5 py-1.5',
+        'focus-within:ring-[length:var(--nimi-focus-ring-width)] focus-within:ring-[var(--nimi-focus-ring-color)]',
         className,
       )}
       style={style}

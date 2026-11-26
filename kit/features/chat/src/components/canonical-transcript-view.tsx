@@ -1,5 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, type ReactNode, type UIEvent } from 'react';
 import { Avatar, cn } from '@nimiplatform/kit/ui';
+import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
 import { resolveChatCopy, type ChatCopy } from '../copy.js';
 import type {
   CanonicalMessageAccessorySlot,
@@ -406,10 +407,10 @@ export function CanonicalTranscriptView({
           data-canonical-transcript-width={widthClassName}
         >
         {loading ? (
-          <div className="rounded-[var(--nimi-radius-xl)] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,transparent)] px-6 py-6 shadow-[var(--nimi-elevation-floating)]">
-            <div className="h-4 w-28 animate-pulse rounded-full bg-[var(--nimi-surface-active)]" />
-            <div className="mt-4 h-24 w-full animate-pulse rounded-[var(--nimi-radius-xl)] bg-[color-mix(in_srgb,var(--nimi-surface-active)_70%,transparent)]" />
-            <div className="mt-4 h-24 w-full animate-pulse rounded-[var(--nimi-radius-xl)] bg-[color-mix(in_srgb,var(--nimi-surface-active)_70%,transparent)]" />
+          <div role="status" className="rounded-[var(--nimi-radius-xl)] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,transparent)] px-6 py-6 shadow-[var(--nimi-elevation-floating)]">
+            <div className="h-4 w-28 animate-pulse motion-reduce:animate-none rounded-full bg-[var(--nimi-surface-active)]" />
+            <div className="mt-4 h-24 w-full animate-pulse motion-reduce:animate-none rounded-[var(--nimi-radius-xl)] bg-[color-mix(in_srgb,var(--nimi-surface-active)_70%,transparent)]" />
+            <div className="mt-4 h-24 w-full animate-pulse motion-reduce:animate-none rounded-[var(--nimi-radius-xl)] bg-[color-mix(in_srgb,var(--nimi-surface-active)_70%,transparent)]" />
             <p className="mt-4 text-sm text-[var(--nimi-text-muted)]">{loadingLabel}</p>
           </div>
         ) : null}
@@ -459,8 +460,8 @@ export function CanonicalTranscriptView({
                 ) : null}
                 {emptyTitle ? (
                   <h2 className={cn(
-                    'mt-3 text-[length:var(--nimi-type-page-title-size)] text-[var(--nimi-text-primary)]',
-                    compactEmptyState ? 'font-black tracking-tight' : 'font-semibold',
+                    'mt-3 text-[length:var(--nimi-type-page-title-size)] tracking-[var(--nimi-type-page-title-letter-spacing)] text-[var(--nimi-text-primary)]',
+                    compactEmptyState ? 'font-black' : 'font-semibold',
                   )}>
                     {emptyTitle}
                   </h2>
@@ -478,7 +479,8 @@ export function CanonicalTranscriptView({
                     type="button"
                     onClick={onSeedFirstTurn}
                     className={cn(
-                      'mt-5 inline-flex h-11 items-center rounded-full bg-[var(--nimi-action-primary-bg)] px-5 text-sm font-semibold text-[var(--nimi-action-primary-text)] shadow-[0_18px_36px_color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,transparent)] transition-[box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)] hover:bg-[var(--nimi-action-primary-bg-hover)] hover:shadow-[0_22px_44px_color-mix(in_srgb,var(--nimi-action-primary-bg)_40%,transparent)]',
+                      'mt-5 inline-flex h-11 items-center rounded-full bg-[var(--nimi-action-primary-bg)] px-5 text-sm font-semibold text-[var(--nimi-action-primary-text)] shadow-[0_18px_36px_color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,transparent)] transition-[background-color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)] hover:bg-[var(--nimi-action-primary-bg-hover)] hover:shadow-[0_22px_44px_color-mix(in_srgb,var(--nimi-action-primary-bg)_40%,transparent)]',
+                      FOCUS_RING_CLASS_NAME,
                       compactEmptyState ? 'self-start' : '',
                     )}
                   >

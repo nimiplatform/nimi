@@ -1,4 +1,4 @@
-import { useState, type ComponentType } from 'react';
+import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
 import { pageOrder, type PageId } from './pages';
 import { HomePage } from './pages/HomePage';
 import { AnswersPage } from './pages/AnswersPage';
@@ -34,18 +34,39 @@ export function RuntimeShell({
 }) {
   const [page, setPage] = useState<PageId>(initialPage);
   const [overlay, setOverlay] = useState<Overlay>('none');
+  const overlayReturnFocusRef = useRef<HTMLElement | null>(null);
+
+  const openOverlay = useCallback((next: Exclude<Overlay, 'none'>) => {
+    overlayReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setOverlay(next);
+  }, []);
+
+  const closeOverlay = useCallback(() => {
+    setOverlay('none');
+  }, []);
+
+  useEffect(() => {
+    if (overlay === 'none' && overlayReturnFocusRef.current) {
+      const target = overlayReturnFocusRef.current;
+      overlayReturnFocusRef.current = null;
+      target.focus();
+    }
+  }, [overlay]);
 
   if (overlay === 'setup-guide') {
     return (
       <div className="rt-shell">
-        <SetupGuide onClose={() => setOverlay('none')} />
+        <SetupGuide
+          onClose={closeOverlay}
+          onCreatePersonality={() => setOverlay('new-personality')}
+        />
       </div>
     );
   }
   if (overlay === 'new-personality') {
     return (
       <div className="rt-shell">
-        <NewProfileWizard onClose={() => setOverlay('none')} />
+        <NewProfileWizard onClose={closeOverlay} />
       </div>
     );
   }
@@ -80,14 +101,14 @@ export function RuntimeShell({
           <HomePage
             setupComplete={!setupIncomplete}
             onNavigate={setPage}
-            onOpenSetupGuide={() => setOverlay('setup-guide')}
+            onOpenSetupGuide={() => openOverlay('setup-guide')}
           />
         )}
         {page === 'answers' && (
           <AnswersPage empty={answersEmpty} presetApplied={presetApplied} justInstalled={justInstalled} />
         )}
         {page === 'personality' && (
-          <PersonalityPage onNewPersonality={() => setOverlay('new-personality')} />
+          <PersonalityPage onNewPersonality={() => openOverlay('new-personality')} />
         )}
         {page === 'usage' && <UsageAccessPage />}
         {page === 'status' && <StatusPage onNavigate={setPage} />}

@@ -324,6 +324,7 @@ export const sidebarEn: DefaultTheme.Sidebar = {
         { text: 'Desktop', link: '/desktop/' },
         { text: 'Realm', link: '/realm/' },
         { text: 'Avatar', link: '/avatar/' },
+        { text: 'Cognition', link: '/cognition/' },
         { text: 'Nimi Coding', link: '/nimicoding/' },
       ],
     },

@@ -467,7 +467,7 @@ function AgentCenterChromeHeader(props: {
     return (
       <header className="flex min-w-0 shrink-0 items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
-          <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-[18px] border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_35%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-lg font-semibold text-[var(--nimi-action-primary-bg)] shadow-[0_0_0_3px_var(--nimi-surface-active)]">
+          <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-[var(--nimi-radius-lg)] border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_35%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-lg font-semibold text-[var(--nimi-action-primary-bg)] shadow-[0_0_0_3px_var(--nimi-surface-active)]">
             {identity.avatarUrl ? (
               <img
                 alt=""
@@ -499,7 +499,7 @@ function AgentCenterChromeHeader(props: {
   return (
     <header className="flex min-w-0 shrink-0 items-start justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="m-0 text-[length:var(--nimi-type-page-title-size)] font-semibold leading-[1.2] text-[var(--nimi-text-primary)]">{props.copy.title}</h1>
+        <h1 className="m-0 text-[length:var(--nimi-type-page-title-size)] font-semibold leading-[1.2] tracking-[var(--nimi-type-page-title-letter-spacing)] text-[var(--nimi-text-primary)]">{props.copy.title}</h1>
         <p className={cnAgentCenter(
           'm-0 mt-1.5 text-[length:var(--nimi-type-body-sm-size)] leading-[1.45]',
           props.state.statusTone === 'ready' && 'text-[var(--nimi-status-success-soft-text)]',
@@ -611,7 +611,7 @@ export function AgentCenter(props: AgentCenterProps) {
       className={cnAgentCenter(
         'min-w-0 max-w-full text-[var(--nimi-text-primary)]',
         chrome === 'standalone'
-          ? 'flex h-full min-h-0 flex-1 flex-col gap-4 rounded-[18px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-raised)]'
+          ? 'flex h-full min-h-0 flex-1 flex-col gap-4 rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-raised)]'
           : 'grid gap-3',
       )}
       data-chat-agent-center="true"
@@ -637,7 +637,7 @@ export function AgentCenter(props: AgentCenterProps) {
           {Object.values(store.snapshot.reads).includes('failed') ? (
             <>
               {translateAgentCenter(props.i18n, 'AgentCenter.error.load', agentCenterEnCatalog['AgentCenter.error.load'])}
-              <details className="mt-1 text-xs"><summary>{translateAgentCenter(props.i18n, 'AgentCenter.error.details', agentCenterEnCatalog['AgentCenter.error.details'])}</summary>{store.snapshot.error}</details>
+              <details className="mt-1 text-xs"><summary className={cnAgentCenter('cursor-pointer rounded-sm', FOCUS_RING_CLASS_NAME)}>{translateAgentCenter(props.i18n, 'AgentCenter.error.details', agentCenterEnCatalog['AgentCenter.error.details'])}</summary>{store.snapshot.error}</details>
             </>
           ) : store.snapshot.error}
         </InlineAlert>
@@ -660,8 +660,8 @@ export function AgentCenter(props: AgentCenterProps) {
               aria-label={sectionLabels[section]}
               aria-selected={selected}
               className={cnAgentCenter(
-                'group relative flex h-8 min-w-[34px] shrink-0 items-center rounded-[10px] text-[length:var(--nimi-type-caption-size)] font-medium',
-                'transition-[background-color,color,padding] duration-[var(--nimi-motion-base)] ease-[var(--nimi-motion-ease-emphasized)]',
+                'group relative flex h-8 min-w-[34px] shrink-0 items-center rounded-[var(--nimi-radius-sm)] text-[length:var(--nimi-type-caption-size)] font-medium',
+                'transition-[background-color,color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)]',
                 FOCUS_RING_CLASS_NAME,
                 selected
                   ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] px-2.5 text-[var(--nimi-action-primary-bg)]'
@@ -683,7 +683,7 @@ export function AgentCenter(props: AgentCenterProps) {
                 <span
                   aria-hidden="true"
                   className={cnAgentCenter(
-                    'pointer-events-none grid h-[17px] min-w-[17px] place-items-center rounded-full bg-[var(--nimi-status-danger)] px-1 text-[length:var(--nimi-type-overline-size)] font-semibold leading-none text-white shadow-sm ring-2 ring-[var(--nimi-surface-card)]',
+                    'pointer-events-none grid h-[17px] min-w-[17px] place-items-center rounded-full bg-[var(--nimi-status-danger)] px-1 text-[length:var(--nimi-type-overline-size)] font-semibold leading-none text-[var(--nimi-text-inverse)] shadow-sm ring-2 ring-[var(--nimi-surface-card)]',
                     selected ? 'ml-1.5 shrink-0' : 'ml-1 shrink-0',
                   )}
                 >

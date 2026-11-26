@@ -1,6 +1,12 @@
 import { EventEmitter } from 'node:events';
 import { describe, expect, it } from 'vitest';
-import { createNimiElectronAppChromeHost, type NimiElectronChromeMenuItem } from '../src/main/app-chrome.js';
+import {
+  createNimiElectronAppChromeHost,
+  createNimiElectronAppChromeWindowOptions,
+  resolveNimiElectronTitleBarOverlay,
+  type NimiElectronChromeMenuItem,
+  type NimiElectronTitleBarOverlayOptions,
+} from '../src/main/app-chrome.js';
 import type { NimiChromeState } from '@nimiplatform/kit/shell/capabilities';
 import { NIMI_CHROME_COMMAND_EVENT } from '@nimiplatform/kit/shell/capabilities';
 
@@ -259,6 +265,35 @@ describe('exact native chrome binding', () => {
     else expect(() => bind(plain + '?tab=1')).toThrow('location-rejected');
     win.contents.getURL = () => plain + '?tab=2';
     expect(() => bind(plain)).toThrow('location-rejected');
+    host.dispose();
+  });
+  it('syncs Windows titleBarOverlay symbolColor with dark and light theme updates', () => {
+    expect(resolveNimiElectronTitleBarOverlay('light').symbolColor).toBe('#334155');
+    expect(resolveNimiElectronTitleBarOverlay('dark').symbolColor).toBe('#e5e7eb');
+    expect(createNimiElectronAppChromeWindowOptions('win32', { scheme: 'dark' }).titleBarOverlay?.symbolColor).toBe('#e5e7eb');
+
+    const theme = Object.assign(new EventEmitter(), { shouldUseDarkColors: true });
+    const overlays: NimiElectronTitleBarOverlayOptions[] = [];
+    const win = Object.assign(new Window(), {
+      setTitleBarOverlay(next: NimiElectronTitleBarOverlayOptions) { overlays.push(next); },
+    });
+    const host = createNimiElectronAppChromeHost({
+      metadata: { name: 'App', version: '1' },
+      platform: 'win32',
+      allowedRendererUrls: [url],
+      app: { quit() {} },
+      menu: { buildFromTemplate: () => ({}), setApplicationMenu() {} },
+      nativeTheme: theme,
+    });
+    const unbind = host.bindWindow(win);
+    expect(overlays.at(-1)?.symbolColor).toBe('#e5e7eb');
+    theme.shouldUseDarkColors = false;
+    theme.emit('updated');
+    expect(overlays.at(-1)?.symbolColor).toBe('#334155');
+    unbind();
+    theme.shouldUseDarkColors = true;
+    theme.emit('updated');
+    expect(overlays).toHaveLength(2);
     host.dispose();
   });
 });

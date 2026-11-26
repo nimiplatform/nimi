@@ -114,8 +114,8 @@ export function CloudConnectorUsage({ connectorId, onOpenHistory }: { connectorI
         <Button size="sm" tone="ghost" onClick={() => onOpenHistory(days)}>{t('runtimeConfig.cloudWorkspace.viewHistory')}<ArrowRight size={14} aria-hidden="true" /></Button>
       </div>
     </div>
-    {!account.enabled ? <p className="py-10 text-sm">{t('runtimeConfig.cloudWorkspace.usageSignIn')}</p> : query.isPending ? <p className="py-10 text-sm text-[var(--nimi-text-secondary)]">{t('Common.loading')}</p> : query.isError ? <p className="py-10 text-sm text-[var(--nimi-text-secondary)]" role="alert">{t('runtimeConfig.cloudWorkspace.usageFailed')}</p> : summary?.totals ? <>
-      <div className="py-10 sm:py-12">
+    {!account.enabled ? <p className="py-6 text-sm">{t('runtimeConfig.cloudWorkspace.usageSignIn')}</p> : query.isPending ? <p className="py-6 text-sm text-[var(--nimi-text-secondary)]">{t('Common.loading')}</p> : query.isError ? <p className="py-6 text-sm text-[var(--nimi-text-secondary)]" role="alert">{t('runtimeConfig.cloudWorkspace.usageFailed')}</p> : summary?.totals ? <>
+      <div className="py-6 sm:py-8">
         {hasUsage ? <>
           <h3 className="text-xl font-medium tracking-tight text-[var(--nimi-text-primary)]">{t(summary.totals.attemptCount === '0' && !complete ? 'runtimeConfig.cloudWorkspace.usageCountUnknown' : 'runtimeConfig.cloudWorkspace.usageRequests', { requests: summary.totals.attemptCount })}</h3>
           <dl className="mt-7 flex flex-wrap gap-x-16 gap-y-6">
@@ -134,7 +134,7 @@ export function CloudConnectorUsage({ connectorId, onOpenHistory }: { connectorI
           <div className="mt-3 space-y-3">
             <p>{t('runtimeConfig.cloudWorkspace.usageExplanationBody')}</p>
             {summary.readAt ? <p>{t('runtimeConfig.cloudWorkspace.observedAt', { time: timestampLabel(summary.readAt) })}</p> : null}
-            {summary.partialReasons.length ? <div><p>{t('runtimeConfig.profiles.technicalDetails')}</p><ul className="mt-1 space-y-1 font-mono text-[11px]">{summary.partialReasons.map(reason => <li className="break-words" key={reason}>{reason}</li>)}</ul></div> : null}
+            {summary.partialReasons.length ? <div><p>{t('runtimeConfig.profiles.technicalDetails')}</p><ul className="mt-1 space-y-1 font-mono text-[length:var(--nimi-type-caption-size)]">{summary.partialReasons.map(reason => <li className="break-words" key={reason}>{reason}</li>)}</ul></div> : null}
           </div>
         </details>
       </div>

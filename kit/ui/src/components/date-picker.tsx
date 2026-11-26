@@ -9,6 +9,7 @@ import {
   forwardRef,
   useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
   type CSSProperties,
@@ -18,6 +19,7 @@ import {
 import { createPortal } from 'react-dom';
 import { Calendar } from 'lucide-react';
 import { FOCUS_RING_CLASS_NAME } from '../a11y/focus.js';
+import { useNimiReducedMotion } from '../motion/index.js';
 
 const DEFAULT_MIN_YEAR = 1900;
 const ITEM_H = 28;
@@ -35,6 +37,7 @@ interface PanelPosition {
   readonly left: number;
   readonly top: number;
   readonly width: number;
+  readonly placement: 'top' | 'bottom';
 }
 
 export function parseDateValue(value: string): Date {
@@ -144,11 +147,11 @@ function getPanelPosition(
   const width = Math.max(rect.width, minimumWidth);
   const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
   const below = rect.bottom + 6;
-  const top =
-    below + panelHeight <= window.innerHeight - 8
-      ? below
-      : Math.max(8, rect.top - panelHeight - 6);
-  return { left, top, width };
+  const fitsBelow = below + panelHeight <= window.innerHeight - 8;
+  const top = fitsBelow
+    ? below
+    : Math.max(8, rect.top - panelHeight - 6);
+  return { left, top, width, placement: fitsBelow ? 'bottom' : 'top' };
 }
 
 function DrumColumn({
@@ -168,6 +171,7 @@ function DrumColumn({
   readonly visibleRows?: number;
   readonly renderValue?: (value: number) => string;
 }) {
+  const reducedMotion = useNimiReducedMotion();
   const panelHeight = itemHeight * visibleRows;
   const padRows = Math.floor(visibleRows / 2);
   const colRef = useRef<HTMLDivElement>(null);
@@ -180,13 +184,13 @@ function DrumColumn({
       const nextTop = idx * itemHeight;
       const column = colRef.current;
       if (typeof column?.scrollTo === 'function') {
-        column.scrollTo({ top: nextTop, behavior: smooth ? 'smooth' : 'auto' });
+        column.scrollTo({ top: nextTop, behavior: smooth && !reducedMotion ? 'smooth' : 'auto' });
       } else if (column) {
         column.scrollTop = nextTop;
       }
       setScrollTop(nextTop);
     },
-    [itemHeight],
+    [itemHeight, reducedMotion],
   );
 
   useEffect(() => {
@@ -256,7 +260,29 @@ function DrumColumn({
   }, [itemHeight, items.length, scheduleSettle, scrollToIndex]);
 
   return (
-    <div className="flex-1 relative" aria-label={label}>
+    <div
+      className={`flex-1 relative ${FOCUS_RING_CLASS_NAME} rounded-[var(--nimi-radius-sm)]`}
+      role="listbox"
+      tabIndex={0}
+      aria-label={label}
+      onKeyDown={(event) => {
+        const currentIdx = Math.max(0, items.indexOf(selected));
+        let nextIdx: number | null = null;
+        if (event.key === 'ArrowDown') nextIdx = Math.min(items.length - 1, currentIdx + 1);
+        else if (event.key === 'ArrowUp') nextIdx = Math.max(0, currentIdx - 1);
+        else if (event.key === 'Home') nextIdx = 0;
+        else if (event.key === 'End') nextIdx = items.length - 1;
+        else if (event.key === 'PageDown') nextIdx = Math.min(items.length - 1, currentIdx + 5);
+        else if (event.key === 'PageUp') nextIdx = Math.max(0, currentIdx - 5);
+        if (nextIdx === null || nextIdx === currentIdx) return;
+        event.preventDefault();
+        const nextVal = items[nextIdx];
+        if (nextVal !== undefined) {
+          onSelect(nextVal);
+          scrollToIndex(nextIdx, true);
+        }
+      }}
+    >
       <div
         className="absolute inset-x-0 top-0 z-10 pointer-events-none bg-[linear-gradient(to_bottom,var(--nimi-surface-overlay),transparent)]"
         style={{ height: itemHeight * 2 }}
@@ -278,31 +304,26 @@ function DrumColumn({
           const centerOffset = idx * itemHeight - scrollTop;
           const distanceRows = Math.min(2.6, Math.abs(centerOffset) / itemHeight);
           const emphasis = Math.max(0, 1 - distanceRows / 2.6);
-          const fontSize = Math.max(12, itemHeight * 0.36) + emphasis * Math.max(5, itemHeight * 0.22);
-          const fontWeight = 430 + Math.round(emphasis * 350);
-          const opacity = 0.22 + emphasis * 0.78;
-          const translateY = (centerOffset > 0 ? 1 : -1) * Math.min(8, distanceRows * 3);
-          const scale = 0.9 + emphasis * 0.2;
+          const opacity = 0.25 + emphasis * 0.75;
+          const translateY = (centerOffset > 0 ? 1 : -1) * Math.min(6, distanceRows * 2.4);
+          const scale = 0.86 + emphasis * 0.26;
           const isCentered = Math.abs(centerOffset) < itemHeight * 0.35;
           return (
             <div
               key={value}
+              role="option"
               onClick={() => {
                 onSelect(value);
                 scrollToIndex(items.indexOf(value), true);
               }}
-              className={`flex items-center justify-center cursor-pointer select-none ${
-                isCentered ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-muted)]'
+              className={`flex items-center justify-center cursor-pointer select-none tabular-nums text-[length:var(--nimi-type-body-size)] ${
+                isCentered ? 'font-semibold text-[var(--nimi-action-primary-bg)]' : 'font-medium text-[var(--nimi-text-muted)]'
               }`}
               aria-selected={isCentered}
               style={{
                 height: itemHeight,
                 scrollSnapAlign: 'center',
-                fontSize,
-                fontWeight,
-                transform: `translateY(${translateY}px) scale(${scale})`,
-                transition: 'font-size 0.12s ease, color 0.12s ease, font-weight 0.12s ease, transform 0.12s ease',
-                letterSpacing: 0,
+                transform: `translate3d(0, ${translateY}px, 0) scale(${scale})`,
                 opacity,
               }}
             >
@@ -398,11 +419,21 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, DatePickerPanelProps>(
     throw new RangeError('DatePicker minDate must not exceed maxDate');
   }
   const text = resolveLabels(labels);
+  const panelTitleId = useId();
+  const reducedMotion = useNimiReducedMotion();
   const [pos, setPos] = useState<PanelPosition | null>(null);
   const [draft, setDraft] = useState(() => selectionFromValue(value, minimumYear, effectiveMax, minDate));
 
   useEffect(() => {
-    setPos(getPanelPosition(anchorRef, 360, PANEL_HEIGHT));
+    const syncPos = () => setPos(getPanelPosition(anchorRef, 360, PANEL_HEIGHT));
+    syncPos();
+    if (!open || typeof window === 'undefined') return undefined;
+    window.addEventListener('resize', syncPos);
+    window.addEventListener('scroll', syncPos, true);
+    return () => {
+      window.removeEventListener('resize', syncPos);
+      window.removeEventListener('scroll', syncPos, true);
+    };
   }, [anchorRef, open]);
 
   useEffect(() => {
@@ -426,10 +457,13 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, DatePickerPanelProps>(
   const dayItems = Array.from({ length: dayCount - firstDay + 1 }, (_, i) => i + firstDay);
   const commitValue = selectionToValue(selection);
 
+  const hiddenOffsetY = pos.placement === 'top' ? 6 : -6;
   return (
     <div
       ref={ref}
-      className={`nimi-date-picker-panel fixed rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-3.5 shadow-[var(--nimi-elevation-floating)] text-[var(--nimi-text-primary)] box-border ${
+      role="dialog"
+      aria-labelledby={panelTitleId}
+      className={`nimi-date-picker-panel fixed rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-3.5 shadow-[var(--nimi-elevation-floating)] text-[var(--nimi-text-primary)] box-border ${
         contentLayer === 'dialog' ? 'z-[calc(var(--nimi-z-dialog)+1)]' : 'z-[var(--nimi-z-popover)]'
       }`}
       onClick={(event) => event.stopPropagation()}
@@ -442,14 +476,20 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, DatePickerPanelProps>(
         top: pos.top,
         width: pos.width,
         opacity: open ? 1 : 0,
-        transform: open ? 'translateY(0) scale(1)' : 'translateY(-6px) scale(0.98)',
-        transformOrigin: 'top center',
-        transition: 'opacity 0.18s ease, transform 0.18s ease',
+        transform: reducedMotion
+          ? 'none'
+          : open
+            ? 'translateY(0) scale(1)'
+            : `translateY(${hiddenOffsetY}px) scale(0.97)`,
+        transformOrigin: pos.placement === 'top' ? 'bottom center' : 'top center',
+        transition: reducedMotion
+          ? 'opacity var(--nimi-motion-base) var(--nimi-motion-ease-standard)'
+          : 'opacity var(--nimi-motion-base) var(--nimi-motion-ease-standard), transform var(--nimi-motion-base) var(--nimi-motion-ease-standard)',
         pointerEvents: open ? 'auto' : 'none',
       }}
     >
       <div className="flex items-center justify-between gap-3 px-0.5 pb-3">
-        <span className="text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-secondary)]">{text.panelTitle}</span>
+        <span id={panelTitleId} className="text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-secondary)]">{text.panelTitle}</span>
         <span className="min-w-0 truncate font-mono text-[length:var(--nimi-type-mono-size)] text-[var(--nimi-action-primary-bg)]">
           {formatDateDisplay(commitValue)}
         </span>
@@ -493,7 +533,7 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, DatePickerPanelProps>(
         <button
           type="button"
           onClick={() => setDraft(selectionFromValue(formatDateValue(todayAtNoon()), minimumYear, effectiveMax, minDate))}
-          className={`rounded-lg bg-transparent px-2.5 py-1.5 text-[length:var(--nimi-type-body-sm-size)] font-medium text-[var(--nimi-action-primary-bg)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] ${FOCUS_RING_CLASS_NAME}`}
+          className={`rounded-[var(--nimi-radius-sm)] bg-transparent px-2.5 py-1.5 text-[length:var(--nimi-type-body-sm-size)] font-medium text-[var(--nimi-action-primary-bg)] transition-[background-color,color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[var(--nimi-motion-pressed-scale)] ${FOCUS_RING_CLASS_NAME}`}
         >
           {text.todayButton}
         </button>
@@ -502,7 +542,7 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, DatePickerPanelProps>(
             <button
               type="button"
               onClick={onClear}
-              className={`rounded-lg bg-transparent px-2.5 py-1.5 text-[length:var(--nimi-type-body-sm-size)] font-medium text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] ${FOCUS_RING_CLASS_NAME}`}
+              className={`rounded-[var(--nimi-radius-sm)] bg-transparent px-2.5 py-1.5 text-[length:var(--nimi-type-body-sm-size)] font-medium text-[var(--nimi-text-muted)] transition-[background-color,color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[var(--nimi-motion-pressed-scale)] ${FOCUS_RING_CLASS_NAME}`}
             >
               {text.clearButton}
             </button>
@@ -513,7 +553,7 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, DatePickerPanelProps>(
               onChange(commitValue);
               onClose?.();
             }}
-            className={`rounded-lg bg-[var(--nimi-action-primary-bg)] px-3.5 py-2 text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] ${FOCUS_RING_CLASS_NAME}`}
+            className={`rounded-[var(--nimi-radius-sm)] bg-[var(--nimi-action-primary-bg)] px-3.5 py-2 text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-action-primary-text)] transition-[background-color,color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:bg-[var(--nimi-action-primary-bg-hover)] active:scale-[var(--nimi-motion-pressed-scale)] ${FOCUS_RING_CLASS_NAME}`}
           >
             {text.confirmButton}
           </button>
@@ -602,7 +642,7 @@ export function DatePicker({
 
   useEffect(() => {
     if (!mounted) return;
-    const handler = (event: globalThis.MouseEvent) => {
+    const handler = (event: Event) => {
       if (
         wrapRef.current &&
         !wrapRef.current.contains(event.target as Node) &&
@@ -612,8 +652,12 @@ export function DatePicker({
         closePanel();
       }
     };
+    document.addEventListener('pointerdown', handler);
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    return () => {
+      document.removeEventListener('pointerdown', handler);
+      document.removeEventListener('mousedown', handler);
+    };
   }, [mounted, closePanel]);
 
   useEffect(() => {
@@ -671,9 +715,18 @@ export function DatePicker({
           type="text"
           id={id}
           readOnly
+          role="combobox"
+          aria-haspopup="dialog"
+          aria-expanded={open}
           value={formatDateDisplay(value)}
           placeholder={placeholder}
-          className={`w-full rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] ${sizeClass} cursor-pointer outline-none transition-shadow focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)] ${className}`}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown') {
+              event.preventDefault();
+              openPanel();
+            }
+          }}
+          className={`w-full rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] ${sizeClass} cursor-pointer outline-none transition-shadow focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)] ${className}`}
           style={style}
         />
         <div className={`absolute right-2 flex items-center gap-1 ${canonicalSize === 'sm' ? 'text-[length:var(--nimi-type-body-sm-size)]' : ''}`}>

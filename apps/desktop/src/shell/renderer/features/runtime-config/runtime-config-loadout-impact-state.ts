@@ -1,6 +1,7 @@
 export type RuntimeConfigLoadoutPendingImpact = {
   readonly kind: 'select' | 'clear' | 'update' | 'delete';
   readonly title: string;
+  readonly selected?: boolean;
   readonly run: () => Promise<void>;
   readonly onError?: (message: string) => void;
 };

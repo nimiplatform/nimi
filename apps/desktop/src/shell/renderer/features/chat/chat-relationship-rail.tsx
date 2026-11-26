@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { motion } from 'motion/react';
+import { motion, nimiReducedFade, nimiSpring } from '@nimiplatform/kit/ui/motion';
 import { ChatHumanAvatarCard } from './chat-human-avatar-card.js';
 import { RealmHumanAvatar } from './realm-human-avatar.js';
 import { ChatPartnerAvatarCard } from './chat-partner-avatar-card.js';
@@ -10,8 +10,6 @@ import { AppCardSurface, IconButton, IconToggleAction, NimiTabs, ScrollArea, Too
 import { useTranslation } from 'react-i18next';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { useDesktopReducedMotion } from '../../ui/motion/desktop-motion.js';
-
-const EASE_OUT_EXPO = [0.16, 1, 0.3, 1] as const;
 
 // @nimi-authority: rule.nimi.desktop.shell-ui.chat-sides
 export function ChatRelationshipRail({ settingsOpen, nimiThreadListOpen, onToggleSettings, onToggleNimiThreadList }: {
@@ -40,12 +38,12 @@ function PartnerRelationshipAvatar({ target, selected, onSelect }: { target: Con
   const { t } = useTranslation();
   const label = `${t('Chat.hoverCardOpenChat')}: ${target.title}`;
   return <div className="group relative flex h-11 w-full items-center justify-center">
-    <div aria-hidden className={`absolute right-0 w-[3px] rounded-l-full bg-[var(--nimi-action-primary-bg)] transition-all ${selected ? 'h-8' : 'h-0 group-hover:h-4'}`} />
+    <div aria-hidden className={`absolute right-0 h-8 w-[3px] origin-center rounded-l-full bg-[var(--nimi-action-primary-bg)] transition-transform duration-150 motion-reduce:transition-none ${selected ? 'scale-y-100' : 'scale-y-0 group-hover:scale-y-50'}`} />
     <ChatPartnerAvatarCard agentHandle={normalizeText(target.metadata?.agentHandle)} name={target.title} avatarUrl={target.avatarUrl} placement="rail"
       onSelect={onSelect}>
       <button type="button" data-testid={E2E_IDS.chatTarget(String(target.id))} aria-label={label} aria-pressed={selected} aria-current={selected ? 'page' : undefined}
-        className="relative flex h-11 w-11 items-center justify-center rounded-2xl focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]">
-        <span className={`flex h-10 w-10 items-center justify-center overflow-hidden bg-[var(--nimi-surface-panel)] transition-all duration-200 ${selected ? 'rounded-2xl' : 'rounded-full'}`}>
+        className="relative flex h-11 w-11 items-center justify-center rounded-2xl transition-transform duration-150 active:scale-[0.96] motion-reduce:transform-none focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]">
+        <span className={`flex h-10 w-10 items-center justify-center overflow-hidden bg-[var(--nimi-surface-panel)] transition-[border-radius,transform] duration-200 motion-reduce:transition-none ${selected ? 'rounded-2xl' : 'rounded-full'}`}>
           {target.avatarUrl ? <img src={target.avatarUrl} alt="" className="h-full w-full object-cover" /> : <span>{(target.avatarFallback || target.title || '?').charAt(0)}</span>}
         </span>
         {target.unreadCount ? <span className="absolute -right-0.5 -top-0.5 rounded-full bg-[var(--nimi-status-danger)] px-1 text-[10px] text-white">{target.unreadCount > 99 ? '99+' : target.unreadCount}</span> : null}
@@ -60,11 +58,11 @@ function RelationshipAvatar({ target, selected, onSelect }: { target: Conversati
   const unread = target.unreadCount || 0;
   const label = `${t('Chat.hoverCardOpenChat')}: ${target.title}${unread ? ` · ${t('Relationship.contacts.unreadMessages', { count: unread })}` : ''}`;
   return <div className="group relative flex h-11 w-full items-center justify-center">
-    <div aria-hidden className={`absolute right-0 w-[3px] rounded-l-full bg-[var(--nimi-action-primary-bg)] transition-all ${selected ? 'h-8' : 'h-0 group-hover:h-4'}`} />
+    <div aria-hidden className={`absolute right-0 h-8 w-[3px] origin-center rounded-l-full bg-[var(--nimi-action-primary-bg)] transition-transform duration-150 motion-reduce:transition-none ${selected ? 'scale-y-100' : 'scale-y-0 group-hover:scale-y-50'}`} />
     <ChatHumanAvatarCard person={{ id, name: target.title, handle: target.handle, avatarUrl: target.avatarUrl, avatarMedia: target.avatarMedia, avatarResourceId: target.avatarResourceId, deleted: target.metadata?.isDeleted === true }} placement="rail" onSelect={onSelect}>
       <button type="button" data-testid={E2E_IDS.chatRow(String(target.canonicalSessionId || target.id))} aria-label={label} aria-current={selected ? 'page' : undefined}
-        className="relative flex h-11 w-11 items-center justify-center rounded-2xl focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]">
-        <span className={`flex h-10 w-10 items-center justify-center overflow-hidden bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)] transition-all duration-200 ${selected ? 'rounded-2xl' : 'rounded-full'}`}>
+        className="relative flex h-11 w-11 items-center justify-center rounded-2xl transition-transform duration-150 active:scale-[0.96] motion-reduce:transform-none focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]">
+        <span className={`flex h-10 w-10 items-center justify-center overflow-hidden bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)] transition-[border-radius,transform] duration-200 motion-reduce:transition-none ${selected ? 'rounded-2xl' : 'rounded-full'}`}>
           <RealmHumanAvatar accountId={id} name={target.title} imageUrl={target.avatarUrl} media={target.avatarMedia} resourceId={target.avatarResourceId} className="h-full w-full" />
         </span>
         {unread ? <span aria-hidden className="absolute -right-0.5 -top-0.5 rounded-full bg-[var(--nimi-status-danger)] px-1 text-[10px] font-bold text-white">{unread > 99 ? '99+' : unread}</span> : null}
@@ -138,33 +136,20 @@ export function ContactsAvatarRail({
     }
   }, [selectedId, side, contactsOpen]);
 
-  const shellSpring = reducedMotion
-    ? { duration: 0 }
-    : { type: 'spring' as const, stiffness: 420, damping: 36, mass: 0.85 };
-  const glassTransition = reducedMotion
-    ? { duration: 0 }
-    : { duration: 0.24, ease: EASE_OUT_EXPO };
-  const contentTransition = reducedMotion
-    ? { duration: 0 }
-    : { duration: 0.22, ease: EASE_OUT_EXPO };
-  const tabTransition = reducedMotion
-    ? { duration: 0 }
-    : { duration: 0.18, ease: EASE_OUT_EXPO };
-  const iconTransition = reducedMotion
-    ? { duration: 0 }
-    : { type: 'spring' as const, stiffness: 460, damping: 30, mass: 0.7 };
+  const springTransition = reducedMotion ? nimiReducedFade(0) : nimiSpring('default');
+  const glassTransition = reducedMotion ? nimiReducedFade(0) : nimiSpring('default');
+  const contentTransition = reducedMotion ? nimiReducedFade(0) : nimiSpring('default');
+  const tabTransition = reducedMotion ? nimiReducedFade(0) : nimiSpring('default');
+  const iconTransition = reducedMotion ? nimiReducedFade(0) : nimiSpring('default');
 
-  const targetWidth = isDesktopSplit
-    ? (contactsOpen ? 372 : 84)
-    : (contactsOpen && mobileFocusList ? '100%' : 84);
+  const widthClassName = isDesktopSplit
+    ? (contactsOpen ? 'w-[372px]' : 'w-[84px]')
+    : (contactsOpen && mobileFocusList ? 'w-full' : 'w-[84px]');
 
   const hiddenOnMobile = !isDesktopSplit && contactsOpen && !mobileFocusList;
 
   return (
-    <motion.aside
-      initial={false}
-      animate={{ width: targetWidth }}
-      transition={shellSpring}
+    <aside
       aria-label={t('Relationship.contacts.title')}
       data-contacts-rail-state={contactsOpen ? 'expanded' : 'compact'}
       data-chat-relationship-rail-chrome={contactsOpen ? 'glass' : 'transparent'}
@@ -180,7 +165,7 @@ export function ContactsAvatarRail({
           onToggleContacts();
         }
       }}
-      className={`${hiddenOnMobile ? 'hidden min-[960px]:flex' : 'flex'} relative h-full min-h-0 shrink-0 overflow-hidden py-3 pr-3 ${contactsOpen && !isDesktopSplit ? 'pl-3' : 'pl-0'}`}
+      className={`${hiddenOnMobile ? 'hidden min-[960px]:flex' : 'flex'} ${widthClassName} relative h-full min-h-0 shrink-0 overflow-hidden py-3 pr-3 ${contactsOpen && !isDesktopSplit ? 'pl-3' : 'pl-0'}`}
     >
       {/* Unified morphing glass backdrop: invisible in compact rail form, blooms from the bottom-right Contacts hinge when expanded */}
       <motion.div
@@ -207,8 +192,8 @@ export function ContactsAvatarRail({
           <motion.div
             key="expanded-body"
             data-testid="contacts-right-panel"
-            initial={reducedMotion ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={reducedMotion ? false : { opacity: 0, x: 12 }}
+            animate={{ opacity: 1, x: 0 }}
             transition={contentTransition}
             className="flex min-h-0 w-full flex-1 flex-col self-start overflow-hidden pl-1 min-[960px]:w-[360px]"
           >
@@ -257,7 +242,7 @@ export function ContactsAvatarRail({
             className="flex min-h-0 w-[72px] flex-1 flex-col items-center pb-[76px] pt-2"
           >
             <div className="relative flex shrink-0 flex-col items-center gap-1 pb-3">
-              <Tooltip content={flipLabel} placement="right">
+              <Tooltip content={flipLabel} placement="left">
                 <IconButton
                   tone="ghost"
                   icon={(
@@ -288,12 +273,19 @@ export function ContactsAvatarRail({
               className="mt-2 min-h-0 w-full flex-1"
               contentClassName="py-1"
             >
-              <div key={side} className="chat-side-entry flex flex-col items-center gap-2" data-side={side}>
+              <motion.div
+                key={side}
+                initial={reducedMotion ? false : { opacity: 0.25, x: side === 'human' ? -10 : 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={springTransition}
+                className="flex flex-col items-center gap-2"
+                data-side={side}
+              >
                 {visible.map(target => target.source === 'agent'
                   ? <PartnerRelationshipAvatar key={target.id} target={target} selected={selectedId === target.id} onSelect={() => onSelect(target)} />
                   : <RelationshipAvatar key={target.id} target={target} selected={selectedId === target.id} onSelect={() => onSelect(target)} />)}
                 {onMore ? (
-                  <Tooltip content={t('Relationship.contacts.loadMore')} placement="right">
+                  <Tooltip content={t('Relationship.contacts.loadMore')} placement="left">
                     <IconButton
                       size="sm"
                       tone="ghost"
@@ -303,7 +295,7 @@ export function ContactsAvatarRail({
                     />
                   </Tooltip>
                 ) : null}
-              </div>
+              </motion.div>
             </ScrollArea>
           </motion.div>
         )}
@@ -320,7 +312,7 @@ export function ContactsAvatarRail({
           whileHover={reducedMotion ? undefined : { scale: 1.05 }}
           whileTap={reducedMotion ? undefined : { scale: 0.93 }}
           animate={{ scale: !reducedMotion && contactsOpen ? 1.03 : 1 }}
-          transition={shellSpring}
+          transition={springTransition}
           className="relative"
         >
           <IconToggleAction
@@ -377,6 +369,6 @@ export function ContactsAvatarRail({
           {t('Relationship.contacts.title')}
         </span>
       </div>
-    </motion.aside>
+    </aside>
   );
 }

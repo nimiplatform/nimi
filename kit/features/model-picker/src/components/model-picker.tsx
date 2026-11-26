@@ -83,7 +83,7 @@ function PickerFeedback(props: {
   }
   if (props.error) {
     const content = (
-      <div className="flex items-center justify-between gap-3 text-sm text-[var(--nimi-status-danger)]">
+      <div role="alert" className="flex items-center justify-between gap-3 text-sm text-[var(--nimi-status-danger)]">
         <span>{props.error}</span>
         <Button size="sm" tone="secondary" onClick={props.onRetry}>{props.retryLabel}</Button>
       </div>
@@ -170,7 +170,7 @@ function RouteModelPicker<TCandidate>(props: {
                 aria-pressed={selected}
                 onClick={() => state.selectCandidate(id)}
                 className={cn(
-                  'flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors',
+                  'flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors duration-[var(--nimi-motion-fast)] active:bg-[var(--nimi-surface-active)]',
                   FOCUS_RING_CLASS_NAME,
                   selected
                     ? 'text-[var(--nimi-text-primary)]'
@@ -289,7 +289,7 @@ export function ModelPicker<TCandidate>({ state, className, copy, presentation =
                           : 'border-[var(--nimi-border-subtle)] hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,var(--nimi-border-subtle))]',
                       )}
                     >
-                      <button type="button" aria-pressed={selected} className={cn('w-full text-left', FOCUS_RING_CLASS_NAME)} onClick={() => state.selectCandidate(id)}>
+                      <button type="button" aria-pressed={selected} className={cn('w-full rounded-[var(--nimi-radius-sm)] text-left transition-colors duration-[var(--nimi-motion-fast)] active:bg-[var(--nimi-surface-active)]', FOCUS_RING_CLASS_NAME)} onClick={() => state.selectCandidate(id)}>
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="m-0 truncate text-sm font-semibold text-[var(--nimi-text-primary)]">{state.adapter.getTitle(candidate)}</p>

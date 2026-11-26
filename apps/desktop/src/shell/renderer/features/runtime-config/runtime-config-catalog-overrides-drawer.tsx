@@ -257,13 +257,13 @@ export function CatalogOverridesDrawer(props: CatalogOverridesDrawerProps) {
       <OverlayShell
         open={props.open}
         kind="drawer"
-        size="L"
+        size="lg"
         onClose={requestClose}
         panelClassName="flex max-h-screen flex-col"
         contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden px-0 py-0"
         title={(
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-muted)]">
+            <p className="text-xs font-semibold uppercase tracking-[var(--nimi-type-overline-letter-spacing)] text-[var(--nimi-text-muted)]">
               {props.providerId}
             </p>
             <h2 className="mt-1 text-xl font-semibold text-[var(--nimi-text-primary)]">
@@ -393,7 +393,7 @@ export function CatalogOverridesDrawer(props: CatalogOverridesDrawerProps) {
                 <Card hoverMotion={false} className="p-0">
                   <button
                     type="button"
-                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                    className="flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3 text-left transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-surface-panel)]/50 active:scale-[var(--nimi-motion-pressed-scale)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
                     aria-expanded={advancedOpen}
                     onClick={() => setAdvancedOpen((value) => !value)}
                   >
@@ -737,7 +737,7 @@ function AddCustomModelForm(props: {
       ) : null}
 
       <div className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]">
-        <button type="button" aria-expanded={advancedOpen} onClick={() => setAdvancedOpen((value) => !value)} className="flex w-full items-center justify-between px-3 py-2.5 text-left text-sm font-medium text-[var(--nimi-text-secondary)]">
+        <button type="button" aria-expanded={advancedOpen} onClick={() => setAdvancedOpen((value) => !value)} className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-medium text-[var(--nimi-text-secondary)] transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-surface-panel)]/50 active:scale-[var(--nimi-motion-pressed-scale)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]">
           {t('runtimeConfig.catalogOverrides.optionalPricing', { defaultValue: 'Optional pricing and dates' })}
           <span aria-hidden="true">{advancedOpen ? '−' : '+'}</span>
         </button>
@@ -787,7 +787,7 @@ function LabeledTextarea(props: {
         onChange={(event) => props.onChange(event.target.value)}
         readOnly={props.readOnly}
         spellCheck={false}
-        className={`${props.minHeightClass || 'min-h-40'} mt-2 w-full rounded-xl border border-[var(--nimi-border-subtle)] p-3 font-mono text-xs outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)] ${props.tone === 'dark' ? 'bg-[var(--nimi-text-primary)] text-[var(--nimi-text-inverse)]' : 'bg-[var(--nimi-field-bg)] text-[var(--nimi-text-primary)]'}`}
+        className={`${props.minHeightClass || 'min-h-40'} mt-2 w-full rounded-xl border border-[var(--nimi-border-subtle)] p-3 font-mono text-xs outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)] ${props.tone === 'dark' ? 'bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-primary)]' : 'bg-[var(--nimi-field-bg)] text-[var(--nimi-text-primary)]'}`}
       />
     </div>
   );
@@ -816,7 +816,7 @@ function CatalogConfirmationDialog(props: {
     <OverlayShell
       open
       kind="dialog"
-      size="S"
+      size="sm"
       onClose={props.onCancel}
       title={<h3 className="text-lg font-semibold text-[var(--nimi-text-primary)]">{title}</h3>}
       footer={(

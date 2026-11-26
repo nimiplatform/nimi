@@ -31,6 +31,7 @@ export const jevSearchMessagesZh = {
   'jevSearch.workspace.hackerNews': 'Hacker News',
   'jevSearch.workspace.arXiv': 'arXiv',
   'jevSearch.workspace.source': '来源',
+  'jevSearch.workspace.allSources': '全部来源',
   'jevSearch.workspace.timeRange': '时间范围',
   'jevSearch.workspace.anyTime': '不限时间',
   'jevSearch.workspace.pastYear': '过去一年',

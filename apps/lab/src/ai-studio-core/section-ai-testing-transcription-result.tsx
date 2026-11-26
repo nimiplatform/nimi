@@ -103,19 +103,30 @@ export function MusicTranscriptionNotice({ value, recordId }: { readonly value?:
       end: (value.inputRange.endFrame / value.sourceInfo.sampleRateHz).toFixed(3), hz: value.sourceInfo.sampleRateHz })}</p>
     <ArtifactMediaResult artifact={value.sourceAudio} fallbackLabel={t('Transcription.source')} />
     <div className="flex flex-wrap gap-2">
-      {value.scores.map(score => <Button key={score.relativePath} onClick={() => {
-        choose(score.relativePath);
-      }}>{t(`Transcription.parts.${score.part}`)} · {score.format.toUpperCase()}</Button>)}
-      {timelinePath ? <Button onClick={() => choose(timelinePath)}>{t('Transcription.timeline')}</Button> : null}
+      {value.scores.map(score => <Button
+        key={score.relativePath}
+        size="sm"
+        tone={selected === score.relativePath ? 'primary' : 'secondary'}
+        aria-pressed={selected === score.relativePath}
+        onClick={() => { choose(score.relativePath); }}
+      >{t(`Transcription.parts.${score.part}`)} · {score.format.toUpperCase()}</Button>)}
+      {timelinePath ? <Button
+        size="sm"
+        tone={selected === timelinePath ? 'primary' : 'secondary'}
+        aria-pressed={selected === timelinePath}
+        onClick={() => choose(timelinePath)}
+      >{t('Transcription.timeline')}</Button> : null}
     </div>
     {file?.midi ? <div className="space-y-2">
       <p>{t('Transcription.midiTimeBasis', { start: (value.inputRange.startFrame / value.sourceInfo.sampleRateHz).toFixed(3) })}</p>
-      <Button disabled={exporting === sourceKey} onClick={() => void exportSelected()}>{t('Transcription.exportMidi')}</Button>
-      <Button onClick={() => void revealSelected()}>{t('Transcription.showFile')}</Button>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" disabled={exporting === sourceKey} onClick={() => void exportSelected()}>{t('Transcription.exportMidi')}</Button>
+        <Button size="sm" tone="secondary" onClick={() => void revealSelected()}>{t('Transcription.showFile')}</Button>
+      </div>
     </div> : null}
     {body ? <>
       <TextareaField value={body} readOnly textareaClassName="min-h-48 max-h-96 font-mono" aria-label={t('Transcription.result')} />
-      <Button disabled={exporting === sourceKey} onClick={() => void exportSelected()}>{t('Transcription.export')}</Button>
+      <Button size="sm" disabled={exporting === sourceKey} onClick={() => void exportSelected()}>{t('Transcription.export')}</Button>
     </> : null}
     {exportedPath ? <p>{t('Transcription.exported', { path: exportedPath })}</p> : null}
     {error ? <p role="alert">{error}</p> : null}

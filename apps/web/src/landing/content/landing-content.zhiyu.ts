@@ -94,6 +94,11 @@ export const createZhiyuPreviewContent = (t: PreviewTranslate, locale: 'zh' | 'e
         { voiceId: 'musheng', name: t('zhiyu.demo.presetVoices.item2.name') },
         { voiceId: 'xiaoman', name: t('zhiyu.demo.presetVoices.item3.name') },
       ],
+      conversationContextUnavailable: t('zhiyu.demo.conversationContextUnavailable'),
+      autonomyRevisionConflict: t('zhiyu.demo.autonomyRevisionConflict'),
+      presentationRevisionConflict: t('zhiyu.demo.presentationRevisionConflict'),
+      resourcePackMaterialRequired: t('zhiyu.demo.resourcePackMaterialRequired'),
+      embeddedPreviewUnavailable: t('zhiyu.demo.embeddedPreviewUnavailable'),
     },
     partners: createLocalAgentDemoPartners(locale),
   };

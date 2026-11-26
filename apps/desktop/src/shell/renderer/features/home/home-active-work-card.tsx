@@ -74,7 +74,7 @@ export function HomeActiveWorkCardView({
 
   return (
     <AppCardSurface
-      kind="promoted-glass"
+      kind="operational-solid"
       className="flex min-w-0 flex-col gap-3 rounded-3xl border-transparent! bg-[var(--nimi-home-porcelain-card)]! p-6 shadow-[var(--nimi-home-porcelain-shadow)]!"
       data-testid="home-active-work"
     >

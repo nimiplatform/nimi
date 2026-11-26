@@ -162,7 +162,11 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       }
       setStatusBanner({
         kind: 'error',
-        message: `Catalog model install failed: ${error instanceof Error ? error.message : String(error || '')}`,
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.catalogInstallFailed',
+          'Catalog model install failed: {{message}}',
+          { message: error instanceof Error ? error.message : String(error || '') },
+        ),
       });
       return { status: 'failed', error };
     }

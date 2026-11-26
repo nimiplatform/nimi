@@ -120,12 +120,21 @@ export function DemoVoiceStudioPreview({ content }: { content: VoiceStudioPrevie
               );
             })}
           </nav>
-          <button className="vs-settings-link" type="button" onClick={() => setView('settings')}>
+          <button
+            className="vs-settings-link"
+            type="button"
+            aria-current={view === 'settings' ? 'page' : undefined}
+            onClick={() => setView('settings')}
+          >
             <Settings size={16} />
             {t('voiceStudio.sidebar.settings')}
           </button>
         </aside>
-        <main className="vs-main">
+        <div
+          role="region"
+          aria-label={navigationLabels[view] ?? t('voiceStudio.header.savedVoices')}
+          className="vs-main"
+        >
           <header className="vs-header">
             <h1>
               {view === 'savedVoices'
@@ -390,7 +399,7 @@ export function DemoVoiceStudioPreview({ content }: { content: VoiceStudioPrevie
               </PreviewButton>
             </section>
           )}
-        </main>
+        </div>
       </div>
       <PreviewCredits />
     </div>

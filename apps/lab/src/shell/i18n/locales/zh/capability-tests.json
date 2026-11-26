@@ -194,6 +194,8 @@
       "generating": "正在回复…",
       "stop": "停止",
       "startOver": "新对话",
+      "confirmStartOverTitle": "开始新对话？",
+      "confirmStartOverMessage": "这将清空当前的对话记录以及已保存的延续数据。",
       "you": "你",
       "assistant": "模型",
       "empty": "还没有消息。发送一条消息开始对话。",

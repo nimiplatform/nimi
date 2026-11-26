@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   BellOff,
   BrainCircuit,
@@ -258,6 +258,25 @@ export function PlatformMemoryIdentitySection({
 
   const currentPillar = ui.pillars.find((item) => item.id === activePillar) ?? ui.pillars[0]!;
 
+  const mindTabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const handlePillarKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const idx = ui.pillars.findIndex((p) => p.id === activePillar);
+    if (idx < 0) return;
+    let nextIdx = -1;
+    if (event.key === 'ArrowDown' || event.key === 'ArrowRight') nextIdx = (idx + 1) % ui.pillars.length;
+    else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') nextIdx = (idx - 1 + ui.pillars.length) % ui.pillars.length;
+    else if (event.key === 'Home') nextIdx = 0;
+    else if (event.key === 'End') nextIdx = ui.pillars.length - 1;
+    if (nextIdx >= 0) {
+      event.preventDefault();
+      const target = ui.pillars[nextIdx];
+      if (target) {
+        setActivePillar(target.id);
+        mindTabRefs.current[nextIdx]?.focus();
+      }
+    }
+  };
+
   return (
     <div className="platform-domains-interactive">
       {/* Main Interactive Showcase: Left 5-Pillar Rail + Right Un-Nested Editorial Canvas */}
@@ -268,15 +287,24 @@ export function PlatformMemoryIdentitySection({
       >
         <aside className="platform-mind-rail">
           <span className="platform-mind-rail-label">{ui.railHeading}</span>
-          <div className="platform-mind-tabs" role="tablist" aria-label={ui.pillarsAria}>
-            {ui.pillars.map((pillar) => {
+          <div
+            className="platform-mind-tabs"
+            role="tablist"
+            aria-label={ui.pillarsAria}
+            onKeyDown={handlePillarKeyDown}
+          >
+            {ui.pillars.map((pillar, idx) => {
               const Icon = PILLAR_ICONS[pillar.id];
               const isSelected = pillar.id === activePillar;
               return (
                 <button
                   key={pillar.id}
+                  ref={(el) => {
+                    mindTabRefs.current[idx] = el;
+                  }}
                   type="button"
                   role="tab"
+                  tabIndex={isSelected ? 0 : -1}
                   id={`mind-tab-${pillar.id}`}
                   data-mind-pillar={pillar.id}
                   aria-selected={isSelected}
@@ -377,6 +405,7 @@ export function PlatformMemoryIdentitySection({
                       <button
                         key={surf.name}
                         type="button"
+                        aria-pressed={contextSurfaceIdx === idx}
                         className={contextSurfaceIdx === idx ? 'is-active' : undefined}
                         onClick={() => setContextSurfaceIdx(idx as 0 | 1 | 2)}
                       >
@@ -498,6 +527,7 @@ export function PlatformMemoryIdentitySection({
                           <button
                             key={m.label}
                             type="button"
+                            aria-pressed={projectionModeIdx === idx}
                             className={projectionModeIdx === idx ? 'is-active' : undefined}
                             onClick={() => setProjectionModeIdx(idx as 0 | 1 | 2 | 3)}
                           >
@@ -649,6 +679,7 @@ export function PlatformMemoryIdentitySection({
                       <button
                         key={t.tab}
                         type="button"
+                        aria-pressed={delegationTier === idx}
                         className={delegationTier === idx ? 'is-active' : undefined}
                         onClick={() => setDelegationTier(idx as 0 | 1 | 2)}
                       >
@@ -690,6 +721,7 @@ export function PlatformMemoryIdentitySection({
                   <div className="platform-mind-segment" role="group" aria-label={isZh ? '切换海岛模式' : 'Switch island mode'}>
                     <button
                       type="button"
+                      aria-pressed={utopiaSocialOn}
                       className={utopiaSocialOn ? 'is-active' : undefined}
                       onClick={() => setUtopiaSocialOn(true)}
                     >
@@ -698,6 +730,7 @@ export function PlatformMemoryIdentitySection({
                     </button>
                     <button
                       type="button"
+                      aria-pressed={!utopiaSocialOn}
                       className={!utopiaSocialOn ? 'is-active' : undefined}
                       onClick={() => setUtopiaSocialOn(false)}
                     >
@@ -823,6 +856,7 @@ export function PlatformMemoryIdentitySection({
                 className={`platform-mind-dock-card${isHighlighted ? ' is-highlighted' : ''}`}
                 data-domain={domain.id}
                 role="button"
+                aria-pressed={isHighlighted}
                 tabIndex={0}
                 onClick={() => setActivePillar(targetPillar)}
                 onKeyDown={(event) => {

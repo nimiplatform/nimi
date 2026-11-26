@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState, type ReactElement } from 'react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Dialog, DialogContent, DialogTitle } from '@nimiplatform/kit/ui';
 import { withLocaleQuery } from '../landing/config/landing-links.js';
 import type { LandingLocale } from '../landing/i18n/locale.js';
 import { CAPABILITY_LABELS } from './informational-content.js';
@@ -532,7 +534,16 @@ export function PublicProduct({
                 {locale === 'zh' ? '展示图片暂不可用' : 'Preview image unavailable'}
               </div>
             ) : (
-              <button type="button" className="block w-full cursor-zoom-in" onClick={() => setLightboxOpen(true)}>
+              <button
+                type="button"
+                className="block w-full cursor-zoom-in"
+                aria-label={
+                  locale === 'zh'
+                    ? `放大查看 ${currentSlide.caption || content.displayName}`
+                    : `Zoom ${currentSlide.caption || content.displayName}`
+                }
+                onClick={() => setLightboxOpen(true)}
+              >
                 <img
                   src={currentSlide.url}
                   alt={currentSlide.caption || content.displayName}
@@ -551,26 +562,86 @@ export function PublicProduct({
                 <button
                   key={slide.id}
                   type="button"
+                  aria-pressed={idx === activeSlide}
+                  aria-label={slide.caption || `${content.displayName} ${idx + 1}`}
                   onClick={() => setActiveSlide(idx)}
                   className={`aspect-video w-28 shrink-0 overflow-hidden rounded-lg border-2 ${
                     idx === activeSlide ? 'border-current opacity-100' : 'border-black/15 opacity-75 hover:opacity-100'
                   }`}
                 >
-                  <img src={slide.url} alt={slide.caption || `${content.displayName} ${idx + 1}`} className="h-full w-full object-cover" />
+                  <img src={slide.url} alt="" className="h-full w-full object-cover" />
                 </button>
               ))}
             </div>
           ) : null}
-          {lightboxOpen && !failedImages[currentSlide.url] ? (
-            <div
-              role="dialog"
-              aria-modal="true"
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-6"
-              onClick={() => setLightboxOpen(false)}
+          <Dialog
+            open={lightboxOpen && !failedImages[currentSlide.url]}
+            onOpenChange={(open) => {
+              if (!open) setLightboxOpen(false);
+            }}
+          >
+            <DialogContent
+              onClose={() => setLightboxOpen(false)}
+              overlayClassName="bg-black/85"
+              className="max-w-[92vw] w-auto border-0 bg-transparent shadow-none p-0"
             >
-              <img src={currentSlide.url} alt={currentSlide.caption || content.displayName} className="max-h-[84vh] max-w-[90vw] rounded-xl object-contain" />
-            </div>
-          ) : null}
+              <DialogTitle className="sr-only">
+                {currentSlide.caption || `${content.displayName} (${activeSlide + 1} / ${slides.length})`}
+              </DialogTitle>
+              <div
+                className="relative flex flex-col items-center justify-center gap-3 p-4"
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  if (slides.length <= 1) return;
+                  if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    setActiveSlide((prev) => (prev - 1 + slides.length) % slides.length);
+                  } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    setActiveSlide((prev) => (prev + 1) % slides.length);
+                  }
+                }}
+              >
+                <button
+                  type="button"
+                  autoFocus
+                  aria-label={locale === 'zh' ? '关闭大图预览' : 'Close image preview'}
+                  onClick={() => setLightboxOpen(false)}
+                  className="absolute top-2 right-2 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/80 text-white border border-white/25 hover:bg-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                >
+                  <X size={18} aria-hidden="true" />
+                </button>
+                {slides.length > 1 ? (
+                  <>
+                    <button
+                      type="button"
+                      aria-label={locale === 'zh' ? '上一张图片' : 'Previous image'}
+                      onClick={() => setActiveSlide((prev) => (prev - 1 + slides.length) % slides.length)}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/80 text-white border border-white/25 hover:bg-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                    >
+                      <ChevronLeft size={18} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={locale === 'zh' ? '下一张图片' : 'Next image'}
+                      onClick={() => setActiveSlide((prev) => (prev + 1) % slides.length)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/80 text-white border border-white/25 hover:bg-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                    >
+                      <ChevronRight size={18} aria-hidden="true" />
+                    </button>
+                  </>
+                ) : null}
+                <img
+                  src={currentSlide.url}
+                  alt={currentSlide.caption || content.displayName}
+                  className="max-h-[82vh] max-w-[88vw] rounded-xl object-contain"
+                />
+                {currentSlide.caption ? (
+                  <p className="max-w-xl text-center text-sm text-white/90">{currentSlide.caption}</p>
+                ) : null}
+              </div>
+            </DialogContent>
+          </Dialog>
         </section>
       ) : null}
 

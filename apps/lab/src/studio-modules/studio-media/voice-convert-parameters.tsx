@@ -76,13 +76,16 @@ export function VoiceConvertFields(props: StudioParameterPanelProps) {
     {!profile ? <p>{t('VoiceConvert.configureInputs')}</p> : <p>{t('VoiceConvert.inputHint', {
       sourceSeconds: profile.maxSourceSeconds, sourceMib: Math.floor(profile.maxSourceBytes / 1048576),
       targetSeconds: profile.maxTargetSeconds, targetMib: Math.floor(profile.maxTargetBytes / 1048576) })}</p>}
-    <StudioParameterField label={t('VoiceConvert.source')}>
+    <fieldset className="studio-parameters__field">
+      <legend className="studio-parameters__label">{t('VoiceConvert.source')}</legend>
       <input ref={sourceInput} hidden type="file" accept=".mp3,.wav,.flac" onChange={event => {
         const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; if (file) void importAudio(file, 'source');
       }} />
-      <Button disabled={disabled || !profile} onClick={() => sourceInput.current?.click()}>{t(busy === 'source' ? 'Music.importing' : 'VoiceConvert.chooseSource')}</Button>
+      <div>
+        <Button size="sm" tone="secondary" disabled={disabled || !profile} onClick={() => sourceInput.current?.click()}>{t(busy === 'source' ? 'Music.importing' : 'VoiceConvert.chooseSource')}</Button>
+      </div>
       {parameters.sourceRelativePath ? <p>{parameters.sourceName}</p> : null}
-    </StudioParameterField>
+    </fieldset>
     {profile ? <>
       {profile.supportsRange ? <>
         <StudioNumberParameter current={parameters} field="sourceStartSeconds" label={t('VoiceConvert.sourceStart')} onChange={update} disabled={disabled} />
@@ -98,13 +101,16 @@ export function VoiceConvertFields(props: StudioParameterPanelProps) {
           }} />
       </StudioParameterField>
       {targetKind === 'reference-audio' ? <>
-        <StudioParameterField label={t('VoiceConvert.target')}>
+        <fieldset className="studio-parameters__field">
+          <legend className="studio-parameters__label">{t('VoiceConvert.target')}</legend>
           <input ref={targetInput} hidden type="file" accept=".mp3,.wav,.flac" onChange={event => {
             const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; if (file) void importAudio(file, 'target');
           }} />
-          <Button disabled={disabled || !profile} onClick={() => targetInput.current?.click()}>{t(busy === 'target' ? 'Music.importing' : 'VoiceConvert.chooseTarget')}</Button>
+          <div>
+            <Button size="sm" tone="secondary" disabled={disabled || !profile} onClick={() => targetInput.current?.click()}>{t(busy === 'target' ? 'Music.importing' : 'VoiceConvert.chooseTarget')}</Button>
+          </div>
           {parameters.targetRelativePath ? <p>{parameters.targetName}</p> : null}
-        </StudioParameterField>
+        </fieldset>
         {profile.supportsRange ? <>
           <StudioNumberParameter current={parameters} field="targetStartSeconds" label={t('VoiceConvert.targetStart')} onChange={update} disabled={disabled} />
           <StudioNumberParameter current={parameters} field="targetEndSeconds" label={t('VoiceConvert.targetEnd')} onChange={update} disabled={disabled} />

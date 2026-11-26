@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Button, OverlayShell } from '@nimiplatform/kit/ui';
 import { useModelPicker } from '../hooks/use-model-picker.js';
 import type { ModelPickerCandidateAdapter, ModelPickerCopy, ModelPickerPresentation } from '../types.js';
@@ -26,6 +26,7 @@ export type ModelPickerDialogProps<TCandidate> = {
 };
 
 function OpenModelPickerDialog<TCandidate>({
+  open,
   title,
   description,
   adapter,
@@ -40,6 +41,13 @@ function OpenModelPickerDialog<TCandidate>({
   onConfirm,
 }: ModelPickerDialogProps<TCandidate>) {
   const [draftId, setDraftId] = useState(selectedId);
+  const wasOpenRef = useRef(open);
+  useEffect(() => {
+    if (open && !wasOpenRef.current) {
+      setDraftId(selectedId);
+    }
+    wasOpenRef.current = open;
+  }, [open, selectedId]);
   const state = useModelPicker({
     adapter,
     selectedId: draftId,
@@ -50,8 +58,8 @@ function OpenModelPickerDialog<TCandidate>({
   const routePresentation = presentation === 'route';
   return (
     <OverlayShell
-      open
-      size={routePresentation ? 'S' : 'L'}
+      open={open}
+      size={routePresentation ? 'sm' : 'lg'}
       onClose={onClose}
       title={title}
       description={description ? <p className="m-0 mt-1 text-sm font-normal text-[var(--nimi-text-secondary)]">{description}</p> : undefined}
@@ -94,6 +102,12 @@ function OpenModelPickerDialog<TCandidate>({
 }
 
 export function ModelPickerDialog<TCandidate>(props: ModelPickerDialogProps<TCandidate>) {
-  if (!props.open) return null;
+  const [hasOpened, setHasOpened] = useState(props.open);
+  useEffect(() => {
+    if (props.open) {
+      setHasOpened(true);
+    }
+  }, [props.open]);
+  if (!hasOpened && !props.open) return null;
   return <OpenModelPickerDialog {...props} />;
 }

@@ -42,7 +42,7 @@ export function identityTileStyle(seed: string): CSSProperties {
   const hue = identityHue(seed);
   return {
     background: `hsl(${hue} 60% 50% / 0.16)`,
-    color: `hsl(${hue} 55% 38%)`,
+    color: `light-dark(hsl(${hue} 55% 36%), hsl(${hue} 70% 74%))`,
     boxShadow: `inset 0 0 0 1px hsl(${hue} 50% 50% / 0.18)`,
   };
 }

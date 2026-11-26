@@ -143,6 +143,8 @@
     "visibility": "Visibility"
   },
   "removePhoto": "Remove photo",
+  "removePhotoConfirmTitle": "Remove profile photo?",
+  "removePhotoConfirmMessage": "Your current photo will be cleared from the draft. Save your profile to apply the change.",
   "photoUploaded": "Photo uploaded.",
   "defaultAvatarPresets": "Default monogram colors",
   "applyAvatarPreset": "Use {{color}} default avatar",
@@ -168,6 +170,8 @@
   "previewDraftTag": "Unsaved draft",
   "viewFullProfile": "View full profile",
   "discardChanges": "Discard changes",
+  "discardChangesConfirmTitle": "Discard unsaved changes?",
+  "discardChangesConfirmMessage": "Your unsaved edits will be reverted to your last saved profile.",
   "unsavedChangesSummary": "{{count}} unsaved changes ({{fields}})",
   "cityPlaceholder": "e.g. Shanghai, Columbus",
   "countrySearchPlaceholder": "Search country, region, or code (e.g. US)…",

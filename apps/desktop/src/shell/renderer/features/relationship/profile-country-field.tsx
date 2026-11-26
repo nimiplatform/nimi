@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { FieldShell, Popover, PopoverContent, PopoverTrigger, cn } from '@nimiplatform/kit/ui';
+import { FieldShell, Popover, PopoverContent, PopoverTrigger, ScrollArea, cn } from '@nimiplatform/kit/ui';
 import { Check, ChevronDown, Search } from 'lucide-react';
 
 // ISO 3166-1 alpha-2 values; Intl supplies the localized country/region names.
@@ -51,6 +51,7 @@ export function ProfileCountryField(input: {
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const searchRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
   const listId = useId();
 
   const options = useMemo<CountryOption[]>(() => {
@@ -100,6 +101,14 @@ export function ProfileCountryField(input: {
     setActiveIndex(0);
   }, [query]);
 
+  useEffect(() => {
+    if (!open) return;
+    const optionEl = listRef.current?.querySelector<HTMLElement>(`[id="${listId}-opt-${activeIndex}"]`);
+    optionEl?.scrollIntoView?.({ block: 'nearest' });
+  }, [open, activeIndex, listId]);
+
+  const activeOptionId = filtered[activeIndex] ? `${listId}-opt-${activeIndex}` : undefined;
+
   const selectedLabel = useMemo(() => {
     if (!value) return input.emptyLabel;
     return options.find((option) => option.value === value)?.label || value;
@@ -146,6 +155,11 @@ export function ProfileCountryField(input: {
               <input
                 ref={searchRef}
                 type="search"
+                role="combobox"
+                aria-expanded={open}
+                aria-controls={listId}
+                aria-activedescendant={activeOptionId}
+                aria-autocomplete="list"
                 value={query}
                 placeholder={input.searchPlaceholder || input.label}
                 aria-label={input.searchPlaceholder || input.label}
@@ -173,44 +187,52 @@ export function ProfileCountryField(input: {
               />
             </label>
           </div>
-          <ul
-            id={listId}
-            role="listbox"
-            aria-label={input.label}
-            className="max-h-60 overflow-y-auto overscroll-contain p-1"
-          >
-            {filtered.length ? filtered.map((option, index) => {
-              const selected = option.value === value;
-              const active = index === activeIndex;
-              return (
-                <li key={option.value || '__unspecified__'} role="option" aria-selected={selected}>
-                  <button
-                    type="button"
-                    disabled={option.disabled}
-                    onMouseEnter={() => setActiveIndex(index)}
-                    onClick={() => selectOption(option)}
-                    className={cn(
-                      'flex w-full items-center justify-between gap-2 rounded-[var(--nimi-radius-sm)] px-2.5 py-2 text-left text-sm text-[var(--nimi-text-primary)] outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
-                      active && 'bg-[var(--nimi-action-ghost-hover)]',
-                      selected && 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] font-medium',
-                    )}
+          <ScrollArea className="max-h-60" viewportClassName="max-h-60 overscroll-contain">
+            <ul
+              ref={listRef}
+              id={listId}
+              role="listbox"
+              aria-label={input.label}
+              className="p-1"
+            >
+              {filtered.length ? filtered.map((option, index) => {
+                const selected = option.value === value;
+                const active = index === activeIndex;
+                return (
+                  <li
+                    key={option.value || '__unspecified__'}
+                    id={`${listId}-opt-${index}`}
+                    role="option"
+                    aria-selected={selected}
                   >
-                    <span className="min-w-0 flex-1 truncate">{option.label}</span>
-                    <span className="flex shrink-0 items-center gap-1.5">
-                      {option.value ? (
-                        <span className="font-mono text-xs text-[var(--nimi-text-muted)]">{option.value}</span>
-                      ) : null}
-                      {selected ? <Check size={14} className="text-[var(--nimi-action-primary-bg)]" aria-hidden="true" /> : null}
-                    </span>
-                  </button>
+                    <button
+                      type="button"
+                      disabled={option.disabled}
+                      onMouseEnter={() => setActiveIndex(index)}
+                      onClick={() => selectOption(option)}
+                      className={cn(
+                        'flex w-full items-center justify-between gap-2 rounded-[var(--nimi-radius-sm)] px-2.5 py-2 text-left text-sm text-[var(--nimi-text-primary)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--nimi-focus-ring-color)] disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
+                        active && 'bg-[var(--nimi-action-ghost-hover)]',
+                        selected && 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] font-medium',
+                      )}
+                    >
+                      <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                      <span className="flex shrink-0 items-center gap-1.5">
+                        {option.value ? (
+                          <span className="font-mono text-xs text-[var(--nimi-text-muted)]">{option.value}</span>
+                        ) : null}
+                        {selected ? <Check size={14} className="text-[var(--nimi-action-primary-bg)]" aria-hidden="true" /> : null}
+                      </span>
+                    </button>
+                  </li>
+                );
+              }) : (
+                <li className="px-3 py-2.5 text-sm text-[var(--nimi-text-muted)]">
+                  {input.noResultsLabel || '—'}
                 </li>
-              );
-            }) : (
-              <li className="px-3 py-2.5 text-sm text-[var(--nimi-text-muted)]">
-                {input.noResultsLabel || '—'}
-              </li>
-            )}
-          </ul>
+              )}
+            </ul>
+          </ScrollArea>
         </PopoverContent>
       </Popover>
     </FieldShell>

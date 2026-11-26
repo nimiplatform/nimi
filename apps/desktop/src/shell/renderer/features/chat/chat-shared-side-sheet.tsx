@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { AppCardSurface, cn, IconToggleAction, ScrollShell } from '@nimiplatform/kit/ui';
+import { motion, nimiReducedFade, nimiSpring, useNimiReducedMotion } from '@nimiplatform/kit/ui/motion';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '../../components/entity-avatar';
 import { CHAT_SIDE_SHEET_RAIL_RESERVE_CLASS } from './chat-shared-content-layout';
@@ -32,12 +33,37 @@ export type ChatSideSheetProps = {
 
 export function ChatSideSheet(props: ChatSideSheetProps) {
   const { t } = useTranslation();
+  const reducedMotion = useNimiReducedMotion();
+  const { onClose } = props;
   const widthClassName = props.sheetKey === 'settings'
     ? 'w-[min(500px,calc(100cqw-96px))]'
     : 'w-[min(340px,calc(100cqw-96px))]';
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      const target = event.target;
+      if (
+        (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)
+        && target.value
+      ) {
+        return;
+      }
+      event.preventDefault();
+      onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  const sheetTransition = reducedMotion ? nimiReducedFade() : nimiSpring('default');
+
   return (
-    <aside
+    <motion.aside
+      initial={reducedMotion ? { opacity: 0 } : { opacity: 0, x: 24 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={reducedMotion ? { opacity: 0 } : { opacity: 0, x: 24 }}
+      transition={sheetTransition}
       className={cn(CHAT_SIDE_SHEET_RAIL_RESERVE_CLASS, 'desktop-sidebar flex min-h-0 shrink-0', widthClassName, props.className)}
       data-chat-shared-side-sheet={props.sheetKey}
     >
@@ -48,7 +74,7 @@ export function ChatSideSheet(props: ChatSideSheetProps) {
         // raised shadow was cut into a hard dark band along the window bottom.
         className="desktop-module-panel flex min-h-0 flex-1 flex-col overflow-hidden shadow-[var(--nimi-elevation-base)]"
       >
-        {props.hideHeader ? null : <div className="desktop-sidebar__header flex items-start gap-2 border-b border-white/70">
+        {props.hideHeader ? null : <div className="desktop-sidebar__header flex items-start gap-2 border-b border-[var(--nimi-border-subtle)]">
           {props.eyebrow && (props.avatarUrl !== undefined || props.avatarFallback) ? (
             <EntityAvatar
               kind="agent"
@@ -73,7 +99,7 @@ export function ChatSideSheet(props: ChatSideSheetProps) {
                       <span className="truncate font-mono text-[11.5px] text-[var(--nimi-text-secondary)]">{props.subtitle}</span>
                     ) : null}
                     {props.world ? (
-                      <span className="inline-flex max-w-full shrink-0 items-center gap-1 rounded-full border border-[color-mix(in_srgb,#a855f7_30%,transparent)] bg-[color-mix(in_srgb,#a855f7_8%,transparent)] px-2 py-px text-[10.5px] font-medium text-[#7c3aed]">
+                      <span className="inline-flex max-w-full shrink-0 items-center gap-1 rounded-full border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-2 py-px text-[10.5px] font-medium text-[var(--nimi-action-primary-bg)]">
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                           <circle cx="12" cy="12" r="10" />
                           <line x1="2" y1="12" x2="22" y2="12" />
@@ -116,11 +142,11 @@ export function ChatSideSheet(props: ChatSideSheetProps) {
           {props.children}
         </ScrollShell>
         {props.footer ? (
-          <div className="desktop-sidebar__footer border-t border-white/70">
+          <div className="desktop-sidebar__footer border-t border-[var(--nimi-border-subtle)]">
             {props.footer}
           </div>
         ) : null}
       </AppCardSurface>
-    </aside>
+    </motion.aside>
   );
 }

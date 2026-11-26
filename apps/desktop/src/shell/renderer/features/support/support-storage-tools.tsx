@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@nimiplatform/kit/ui';
+import { Button, TextField } from '@nimiplatform/kit/ui';
 import type { DesktopRendererStorageDirs as DesktopStorageDirs } from '../../renderer/settings-port.js';
 import { NIMI_DATA_DESTRUCTIVE_CLEANUP_CONFIRMATION, type NimiAppHostCachePlan, type NimiDataCleanupPlan } from '../../renderer/support-repair-port.js';
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
@@ -107,6 +107,7 @@ export function SupportAppHostCacheCard() {
       ) : null}
       {feedback ? (
         <p
+          role={feedback.tone === 'error' ? 'alert' : 'status'}
           data-testid="support-repair-app-cache-feedback"
           className={
             feedback.tone === 'error'
@@ -211,7 +212,7 @@ export function SupportDataRootCleanupCard(props: {
   const body = (
     <>
       {props.dirsError ? (
-        <p className="mb-3 break-words rounded-lg bg-[var(--nimi-surface-canvas)] px-3 py-2 text-xs text-[var(--nimi-status-danger)]">
+        <p role="alert" className="mb-3 break-words rounded-lg bg-[var(--nimi-surface-canvas)] px-3 py-2 text-xs text-[var(--nimi-status-danger)]">
           {props.dirsError}
         </p>
       ) : null}
@@ -222,7 +223,7 @@ export function SupportDataRootCleanupCard(props: {
       ) : null}
       <div className="flex flex-col gap-3">
         <label htmlFor="support-cleanup-directory" className="text-sm text-[var(--nimi-text-secondary)]">{t('Support.repairDirectoryIdentifier')}</label>
-        <input
+        <TextField
           id="support-cleanup-directory"
           value={directoryInput}
           onChange={(event) => {
@@ -231,7 +232,7 @@ export function SupportDataRootCleanupCard(props: {
           }}
           placeholder={t('Support.repairCleanupDirectoryPlaceholder')}
           data-testid="support-repair-cleanup-directory-input"
-          className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-sm text-[var(--nimi-text-primary)]"
+          inputClassName="text-sm"
         />
         <Button
           tone="secondary"
@@ -278,13 +279,14 @@ export function SupportDataRootCleanupCard(props: {
                       confirmation: NIMI_DATA_DESTRUCTIVE_CLEANUP_CONFIRMATION,
                     })}
                   </label>
-                  <input
+                  <TextField
                     id="support-repair-cleanup-confirmation-input"
                     value={confirmationInput}
                     onChange={(event) => setConfirmationInput(event.target.value)}
                     autoComplete="off"
                     data-testid="support-repair-cleanup-confirmation-input"
-                    className="mt-2 w-full rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-sm text-[var(--nimi-text-primary)]"
+                    className="mt-2 w-full"
+                    inputClassName="text-sm"
                   />
                 </div>
               ) : null}
@@ -305,6 +307,7 @@ export function SupportDataRootCleanupCard(props: {
 
       {feedback ? (
         <p
+          role={feedback.tone === 'error' ? 'alert' : 'status'}
           data-testid="support-repair-cleanup-feedback"
           className={
             feedback.tone === 'error'

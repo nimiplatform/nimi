@@ -1,6 +1,15 @@
 {
   "Settings": {
     "title": "Settings",
+    "appearance": "Appearance",
+    "appearanceHint": "Follow your system appearance or lock Lab to light or dark mode.",
+    "appearanceSystem": "System",
+    "appearanceLight": "Light",
+    "appearanceDark": "Dark",
+    "density": "Density",
+    "densityHint": "Compact fits more controls on screen; Regular gives extra breathing room.",
+    "densityCompact": "Compact",
+    "densityRegular": "Regular",
     "localDrafts": "Save prompt drafts",
     "draftPersistenceHint": "When enabled, this Lab can restore prompt drafts for this account the next time it opens.",
     "draftPreferenceError": "Could not save the draft preference. Try again.",

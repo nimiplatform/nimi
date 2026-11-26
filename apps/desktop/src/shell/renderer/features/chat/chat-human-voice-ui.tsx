@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   CanonicalDrawerSection,
@@ -10,9 +10,11 @@ export function useHumanVoiceUiState() {
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const [playingVoiceMessageId, setPlayingVoiceMessageId] = useState<string | null>(null);
   const [voiceTranscriptVisibleById, setVoiceTranscriptVisibleById] = useState<Record<string, boolean>>({});
   const [voiceContextMenu, setVoiceContextMenu] = useState<{ messageId: string; x: number; y: number } | null>(null);
+  const [clampedMenuPos, setClampedMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [selectedVoiceMessageId, setSelectedVoiceMessageId] = useState<string | null>(null);
 
   useEffect(() => () => {
@@ -20,15 +22,37 @@ export function useHumanVoiceUiState() {
     audioRef.current = null;
   }, []);
 
+  useLayoutEffect(() => {
+    if (!voiceContextMenu) {
+      setClampedMenuPos(null);
+      return;
+    }
+    const margin = 8;
+    const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1280;
+    const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 720;
+    const rect = menuRef.current?.getBoundingClientRect();
+    const width = rect?.width || 180;
+    const height = rect?.height || 52;
+    setClampedMenuPos({
+      x: Math.max(margin, Math.min(voiceContextMenu.x, viewportWidth - width - margin)),
+      y: Math.max(margin, Math.min(voiceContextMenu.y, viewportHeight - height - margin)),
+    });
+    menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]:not(:disabled)')?.focus();
+  }, [voiceContextMenu]);
+
   useEffect(() => {
     if (!voiceContextMenu) {
       return undefined;
     }
-    const handlePointerDown = () => {
+    const handlePointerDown = (event: PointerEvent) => {
+      if (menuRef.current && event.target instanceof Node && menuRef.current.contains(event.target)) {
+        return;
+      }
       setVoiceContextMenu(null);
     };
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        event.preventDefault();
         setVoiceContextMenu(null);
       }
     };
@@ -84,10 +108,13 @@ export function useHumanVoiceUiState() {
     event.preventDefault();
     event.stopPropagation();
     setSelectedVoiceMessageId(message.id);
+    const margin = 8;
+    const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1280;
+    const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 720;
     setVoiceContextMenu({
       messageId: message.id,
-      x: event.clientX,
-      y: event.clientY,
+      x: Math.max(margin, Math.min(event.clientX, viewportWidth - 180 - margin)),
+      y: Math.max(margin, Math.min(event.clientY, viewportHeight - 52 - margin)),
     });
   }, []);
 
@@ -99,15 +126,27 @@ export function useHumanVoiceUiState() {
     setVoiceContextMenu(null);
   }, []);
 
-  const rightSidebarOverlayMenu: ReactNode = voiceContextMenu ? (
+  const menuPos = clampedMenuPos ?? (voiceContextMenu ? { x: voiceContextMenu.x, y: voiceContextMenu.y } : null);
+  const rightSidebarOverlayMenu: ReactNode = voiceContextMenu && menuPos ? (
     <div
+      ref={menuRef}
+      role="menu"
+      aria-label={t('Chat.voiceInspectTitle', { defaultValue: 'Voice inspect' })}
       className="fixed z-50 min-w-[160px] rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-1.5 shadow-xl"
-      style={{ left: `${voiceContextMenu.x}px`, top: `${voiceContextMenu.y}px` }}
+      style={{ left: `${menuPos.x}px`, top: `${menuPos.y}px` }}
       onClick={(event) => event.stopPropagation()}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          event.stopPropagation();
+          setVoiceContextMenu(null);
+        }
+      }}
     >
       <button
         type="button"
-        className="w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
+        role="menuitem"
+        className="w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--nimi-text-secondary)] transition-[background-color,transform] hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[0.98] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1"
         onClick={() => toggleVoiceTranscript(voiceContextMenu.messageId)}
       >
         {voiceTranscriptVisibleById[voiceContextMenu.messageId]
@@ -160,7 +199,7 @@ export function HumanVoiceInspectSidebar(props: {
           <button
             type="button"
             onClick={() => props.onPlay(props.message)}
-            className="rounded-full bg-[var(--nimi-action-primary-bg)] px-4 py-2 text-sm font-semibold text-[var(--nimi-action-primary-text)] shadow-[0_12px_30px_color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] transition hover:-translate-y-px"
+            className="rounded-full bg-[var(--nimi-action-primary-bg)] px-4 py-2 text-sm font-semibold text-[var(--nimi-action-primary-text)] shadow-[0_12px_30px_color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] transition-[transform,opacity] hover:-translate-y-px active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1"
           >
             {props.playing
               ? t('Chat.voiceInspectStop', { defaultValue: 'Stop playback' })
@@ -169,7 +208,7 @@ export function HumanVoiceInspectSidebar(props: {
           <button
             type="button"
             onClick={() => props.onToggleTranscript(props.message.id)}
-            className="rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-2 text-sm font-semibold text-[var(--nimi-text-secondary)] transition hover:bg-[var(--nimi-action-ghost-hover)]"
+            className="rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-2 text-sm font-semibold text-[var(--nimi-text-secondary)] transition-[background-color,transform] hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[0.97] motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1"
           >
             {props.transcriptVisible
               ? t('Chat.voiceCollapseTranscript', { defaultValue: 'Collapse transcript' })

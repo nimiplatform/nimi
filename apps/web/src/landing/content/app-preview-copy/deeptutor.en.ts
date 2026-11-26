@@ -60,6 +60,7 @@ export const deeptutorMessagesEn = {
   'deeptutor.quiz.checkYourUnderstanding': 'Check your understanding',
   'deeptutor.quiz.whatDoesAFrequencySpectrumHelpYou':
     'What does a frequency spectrum help you see?',
+  'deeptutor.quiz.theTonesPresentInASignal': 'The tones present in a signal',
   'deeptutor.quiz.onlyTheLengthOfARecording': 'Only the length of a recording',
   'deeptutor.quiz.theNameOfTheSpeaker': 'The name of the speaker',
   'deeptutor.quiz.correctItShowsFrequencyContent': 'Correct — it shows frequency content.',

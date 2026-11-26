@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Components, ExtraProps } from 'react-markdown';
 import { cn } from '@nimiplatform/kit/ui';
+import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
 import { resolveChatCopy, type ChatCopy } from '../copy.js';
 
 export type ChatMarkdownRendererProps = {
@@ -68,7 +69,7 @@ const APPEARANCE_CONFIG: Record<ChatMarkdownAppearance, AppearanceConfig> = {
     },
     paragraphClassName: 'my-2 whitespace-pre-wrap text-sm leading-[1.7] text-[var(--nimi-text-primary)]',
     inlineCodeClassName: 'rounded bg-[var(--nimi-surface-panel)] px-1 py-0.5 font-mono text-[0.85em] text-[var(--nimi-text-primary)]',
-    linkClassName: 'underline decoration-[var(--nimi-action-primary-bg)]/70 underline-offset-2 text-[var(--nimi-action-primary-bg)]',
+    linkClassName: `rounded-sm underline decoration-[var(--nimi-action-primary-bg)]/70 underline-offset-2 text-[var(--nimi-action-primary-bg)] ${FOCUS_RING_CLASS_NAME}`,
     blockquoteClassName: 'my-2 border-l-2 border-[var(--nimi-action-primary-bg)]/40 pl-3 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-secondary)]',
     listClassName: 'my-2 list-disc space-y-1 pl-5 text-sm leading-[1.7] text-[var(--nimi-text-primary)]',
     orderedListClassName: 'my-2 list-decimal space-y-1 pl-5 text-sm leading-[1.7] text-[var(--nimi-text-primary)]',
@@ -84,12 +85,12 @@ const APPEARANCE_CONFIG: Record<ChatMarkdownAppearance, AppearanceConfig> = {
     codeBlockShellClassName: 'my-3 overflow-hidden rounded-[var(--nimi-radius-md)] bg-gray-950',
     codeBlockHeaderClassName: 'flex items-center justify-between px-4 py-2 text-[length:var(--nimi-type-overline-size)]',
     codeBlockLanguageClassName: 'font-medium uppercase tracking-wider text-gray-400',
-    codeBlockActionClassName: 'flex items-center gap-1 text-gray-400 transition-colors duration-[var(--nimi-motion-fast)] hover:text-gray-100',
+    codeBlockActionClassName: `flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-gray-400 transition-[color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:text-gray-100 active:scale-[var(--nimi-motion-pressed-scale)] ${FOCUS_RING_CLASS_NAME}`,
     codeBlockCopiedClassName: 'text-[var(--nimi-status-success)]',
     codeBlockBodyClassName: 'overflow-x-auto px-4 pb-3',
     codeBlockLineNumberClassName: 'w-[1%] whitespace-nowrap pr-4 text-right align-top font-mono text-[length:var(--nimi-type-mono-size)] leading-[1.6] select-none text-gray-500',
     codeBlockLineClassName: 'whitespace-pre font-mono text-[length:var(--nimi-type-mono-size)] leading-[1.6] text-gray-100',
-    codeBlockFooterClassName: 'flex w-full items-center justify-center gap-1 border-t border-gray-800 py-2 text-[length:var(--nimi-type-overline-size)] text-gray-400 transition-colors duration-[var(--nimi-motion-fast)] hover:text-gray-100',
+    codeBlockFooterClassName: `flex w-full items-center justify-center gap-1 border-t border-gray-800 py-2 text-[length:var(--nimi-type-overline-size)] text-gray-400 transition-[color,background-color] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:text-gray-100 active:bg-gray-900 ${FOCUS_RING_CLASS_NAME}`,
   },
 };
 

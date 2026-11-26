@@ -101,7 +101,7 @@ export function RuntimeCapabilityAppsCard(props: {
                   <li key={entry.identity.appId}>
                     <button
                       type="button"
-                      className="group flex w-full items-center gap-3 rounded-[var(--nimi-radius-md)] px-2 py-1.5 text-left transition-colors hover:bg-[var(--nimi-surface-active)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+                      className="group flex w-full items-center gap-3 rounded-[var(--nimi-radius-md)] px-2 py-1.5 text-left transition-colors hover:bg-[var(--nimi-surface-active)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] active:scale-[var(--nimi-motion-pressed-scale)]"
                       title={entry.identity.displayName}
                       onClick={() => props.onOpen(entry)}
                       data-testid={`capability-app:${entry.identity.appId}`}

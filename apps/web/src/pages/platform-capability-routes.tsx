@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Globe, Laptop } from 'lucide-react';
+import { AnimatePresence, motion, nimiOverlayPanelMotion, useNimiReducedMotion } from '@nimiplatform/kit/ui';
 import {
   nimiRuntimeConfigConnectorVendorLabel,
   providerToNimiRuntimeConnectorVendor,
@@ -81,8 +82,28 @@ export function PlatformCapabilityRouteCounts({
   const [openKind, setOpenKind] = useState<RoutePopoverKind | null>(initialOpen);
   const [pinnedKind, setPinnedKind] = useState<RoutePopoverKind | null>(initialOpen);
   const rootRef = useRef<HTMLDivElement>(null);
+  const localTriggerRef = useRef<HTMLButtonElement>(null);
+  const remoteTriggerRef = useRef<HTMLButtonElement>(null);
+  const hoverCloseTimerRef = useRef<number | null>(null);
+  const suppressNextFocusOpenRef = useRef<RoutePopoverKind | null>(null);
   const localPopoverId = useId();
   const remotePopoverId = useId();
+  const reducedMotion = useNimiReducedMotion();
+  const popoverMotion = nimiOverlayPanelMotion({
+    kind: 'popover',
+    side: 'bottom',
+    align: 'end',
+    reducedMotion,
+  });
+
+  const clearHoverCloseTimer = () => {
+    if (hoverCloseTimerRef.current !== null && typeof window !== 'undefined') {
+      window.clearTimeout(hoverCloseTimerRef.current);
+      hoverCloseTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => clearHoverCloseTimer, []);
 
   const { localModels, cloudServices } = useMemo(
     () => getCapabilityRouteDetails(capability),
@@ -98,14 +119,20 @@ export function PlatformCapabilityRouteCounts({
     if (!openKind) return;
     const handlePointerDown = (event: PointerEvent) => {
       if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
+        clearHoverCloseTimer();
         setOpenKind(null);
         setPinnedKind(null);
       }
     };
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        clearHoverCloseTimer();
+        const closingKind = openKind;
+        suppressNextFocusOpenRef.current = closingKind;
         setOpenKind(null);
         setPinnedKind(null);
+        const trigger = closingKind === 'local' ? localTriggerRef.current : remoteTriggerRef.current;
+        trigger?.focus({ preventScroll: true });
       }
     };
     document.addEventListener('pointerdown', handlePointerDown);
@@ -125,14 +152,34 @@ export function PlatformCapabilityRouteCounts({
     : (cloudServices.length === 1 ? ROUTE_COPY.en.remotePillSingular : ROUTE_COPY.en.remotePillPlural);
 
   const handleMouseEnter = (kind: RoutePopoverKind) => {
+    clearHoverCloseTimer();
     setOpenKind(kind);
   };
 
   const handleMouseLeave = (kind: RoutePopoverKind) => {
-    setOpenKind((current) => (pinnedKind === kind ? kind : current === kind ? null : current));
+    clearHoverCloseTimer();
+    if (typeof window === 'undefined') {
+      setOpenKind((current) => (pinnedKind === kind ? kind : current === kind ? null : current));
+      return;
+    }
+    hoverCloseTimerRef.current = window.setTimeout(() => {
+      hoverCloseTimerRef.current = null;
+      setOpenKind((current) => (pinnedKind === kind ? kind : current === kind ? null : current));
+    }, 100);
+  };
+
+  const handleFocusOpen = (kind: RoutePopoverKind) => {
+    if (suppressNextFocusOpenRef.current === kind) {
+      suppressNextFocusOpenRef.current = null;
+      return;
+    }
+    clearHoverCloseTimer();
+    setOpenKind(kind);
   };
 
   const handleTriggerClick = (kind: RoutePopoverKind) => {
+    clearHoverCloseTimer();
+    suppressNextFocusOpenRef.current = null;
     if (pinnedKind === kind) {
       setPinnedKind(null);
       setOpenKind(null);
@@ -152,15 +199,17 @@ export function PlatformCapabilityRouteCounts({
         data-route-kind="local"
         onMouseEnter={() => handleMouseEnter('local')}
         onMouseLeave={() => handleMouseLeave('local')}
-        onFocus={() => setOpenKind('local')}
+        onFocus={() => handleFocusOpen('local')}
         onBlur={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+            clearHoverCloseTimer();
             setOpenKind((current) => (current === 'local' ? null : current));
             setPinnedKind((current) => (current === 'local' ? null : current));
           }
         }}
       >
         <button
+          ref={localTriggerRef}
           type="button"
           className="public-capability-route-trigger"
           aria-expanded={isLocalOpen}
@@ -172,38 +221,44 @@ export function PlatformCapabilityRouteCounts({
           <span>{localLabel}</span>
         </button>
 
-        {isLocalOpen && (
-          <div className="public-capability-route-popover-bridge">
-            <div
-              id={localPopoverId}
-              className={`public-capability-route-popover${localModels.length >= 7 ? ' is-wide' : ''}`}
-              role="region"
-              aria-label={copy.localHeading}
+        <AnimatePresence>
+          {isLocalOpen && (
+            <motion.div
+              className="public-capability-route-popover-bridge"
+              {...popoverMotion}
+              style={{ ...popoverMotion.style, transformOrigin: 'top right' }}
             >
-              <div className="public-capability-route-popover-head">
-                <div>
-                  <strong>{copy.localHeading}</strong>
-                  <p>{copy.localHint}</p>
+              <div
+                id={localPopoverId}
+                className={`public-capability-route-popover${localModels.length >= 7 ? ' is-wide' : ''}`}
+                role="region"
+                aria-label={copy.localHeading}
+              >
+                <div className="public-capability-route-popover-head">
+                  <div>
+                    <strong>{copy.localHeading}</strong>
+                    <p>{copy.localHint}</p>
+                  </div>
+                  <span className="public-capability-route-popover-count">{localModels.length}</span>
                 </div>
-                <span className="public-capability-route-popover-count">{localModels.length}</span>
+                {localModels.length > 0 ? (
+                  <ul className={`public-capability-route-popover-list${localModels.length >= 7 ? ' is-two-col' : ''}`}>
+                    {localModels.map((model) => (
+                      <li key={model.id}>
+                        <span>{model.label}</span>
+                        {model.byo && (
+                          <em className="public-capability-route-byo-tag">{copy.byoTag}</em>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="public-capability-route-popover-empty">{copy.localEmpty}</p>
+                )}
               </div>
-              {localModels.length > 0 ? (
-                <ul className={`public-capability-route-popover-list${localModels.length >= 7 ? ' is-two-col' : ''}`}>
-                  {localModels.map((model) => (
-                    <li key={model.id}>
-                      <span>{model.label}</span>
-                      {model.byo && (
-                        <em className="public-capability-route-byo-tag">{copy.byoTag}</em>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="public-capability-route-popover-empty">{copy.localEmpty}</p>
-              )}
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div
@@ -211,15 +266,17 @@ export function PlatformCapabilityRouteCounts({
         data-route-kind="remote"
         onMouseEnter={() => handleMouseEnter('remote')}
         onMouseLeave={() => handleMouseLeave('remote')}
-        onFocus={() => setOpenKind('remote')}
+        onFocus={() => handleFocusOpen('remote')}
         onBlur={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+            clearHoverCloseTimer();
             setOpenKind((current) => (current === 'remote' ? null : current));
             setPinnedKind((current) => (current === 'remote' ? null : current));
           }
         }}
       >
         <button
+          ref={remoteTriggerRef}
           type="button"
           className="public-capability-route-trigger"
           aria-expanded={isRemoteOpen}
@@ -231,33 +288,39 @@ export function PlatformCapabilityRouteCounts({
           <span>{remoteLabel}</span>
         </button>
 
-        {isRemoteOpen && (
-          <div className="public-capability-route-popover-bridge">
-            <div
-              id={remotePopoverId}
-              className={`public-capability-route-popover${cloudServices.length >= 9 ? ' is-wide' : ''}`}
-              role="region"
-              aria-label={copy.remoteHeading}
+        <AnimatePresence>
+          {isRemoteOpen && (
+            <motion.div
+              className="public-capability-route-popover-bridge"
+              {...popoverMotion}
+              style={{ ...popoverMotion.style, transformOrigin: 'top right' }}
             >
-              <div className="public-capability-route-popover-head">
-                <div>
-                  <strong>{copy.remoteHeading}</strong>
-                  <p>{copy.remoteHint}</p>
+              <div
+                id={remotePopoverId}
+                className={`public-capability-route-popover${cloudServices.length >= 9 ? ' is-wide' : ''}`}
+                role="region"
+                aria-label={copy.remoteHeading}
+              >
+                <div className="public-capability-route-popover-head">
+                  <div>
+                    <strong>{copy.remoteHeading}</strong>
+                    <p>{copy.remoteHint}</p>
+                  </div>
+                  <span className="public-capability-route-popover-count">{cloudServices.length}</span>
                 </div>
-                <span className="public-capability-route-popover-count">{cloudServices.length}</span>
+                {cloudServices.length > 0 ? (
+                  <ul className="public-capability-route-popover-chips">
+                    {cloudServices.map((service) => (
+                      <li key={service.provider}>{service.label}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="public-capability-route-popover-empty">{copy.remoteEmpty}</p>
+                )}
               </div>
-              {cloudServices.length > 0 ? (
-                <ul className="public-capability-route-popover-chips">
-                  {cloudServices.map((service) => (
-                    <li key={service.provider}>{service.label}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="public-capability-route-popover-empty">{copy.remoteEmpty}</p>
-              )}
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

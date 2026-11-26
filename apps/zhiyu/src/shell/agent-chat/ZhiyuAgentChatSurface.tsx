@@ -10,6 +10,14 @@ import {
   nimiToast,
   StatusBadge,
 } from '@nimiplatform/kit/ui';
+import {
+  AnimatePresence,
+  motion,
+  nimiOverlayBackdropMotion,
+  useIsPresent,
+  useNimiReducedMotion,
+  type NimiOverlayMotionProps,
+} from '@nimiplatform/kit/ui/motion';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   createBrowserDataUrlAttachmentAdapter,
@@ -161,6 +169,11 @@ export function ZhiyuAgentChatSurface({
   onAvatarLaunch,
 }: ZhiyuAgentChatSurfaceProps) {
   const boundClient = useMemo(() => getZhiyuLocalAppClient(), []);
+  const reducedMotion = useNimiReducedMotion();
+  const drawerBackdropMotion = useMemo(
+    () => nimiOverlayBackdropMotion({ reducedMotion }),
+    [reducedMotion],
+  );
   const { navigation, sidebarVisible } = useZhiyuNavigationOwner();
   const destination = useNimiNavigationSnapshot<ZhiyuDestination>().current.destination;
   const openPanel = (panel?: AgentPanelTab) => { const current = navigation.getSnapshot().current.destination; void navigation.push({ ...current, panel }); };
@@ -188,7 +201,7 @@ export function ZhiyuAgentChatSurface({
       aria-label="还没有本地伙伴"
     >
       <div className="zhiyu-no-local-partner-empty__inner">
-        <p className="zhiyu-no-local-partner-empty__eyebrow">ZHI YU</p>
+        <p className="zhiyu-no-local-partner-empty__eyebrow">ZHIYU</p>
         <h2>还没有本地伙伴</h2>
         <p className="zhiyu-no-local-partner-empty__copy">
           {evidence.inventory.ready ? emptyDescription : evidence.inventory.message}
@@ -286,6 +299,7 @@ export function ZhiyuAgentChatSurface({
     },
   };
   const [voiceStatus, setVoiceStatus] = useState<'idle' | 'recording' | 'transcribing' | 'failed'>('idle');
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const voiceRecorderRef = useRef<MediaRecorder | null>(null);
   const voiceStreamRef = useRef<MediaStream | null>(null);
   const voiceChunksRef = useRef<Blob[]>([]);
@@ -308,6 +322,7 @@ export function ZhiyuAgentChatSurface({
     const recorder = voiceRecorderRef.current;
     if (recorder && recorder.state !== 'inactive') recorder.stop();
     else clearVoiceCapture();
+    setVoiceError(null);
     setVoiceStatus('idle');
   }, [clearVoiceCapture]);
   const toggleVoiceCapture = useCallback(() => {
@@ -319,6 +334,7 @@ export function ZhiyuAgentChatSurface({
     if (!onTranscribeVoice || !navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') return;
     voiceCanceledRef.current = false;
     voiceChunksRef.current = [];
+    setVoiceError(null);
     void navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
       const preferredMime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'
@@ -350,10 +366,16 @@ export function ZhiyuAgentChatSurface({
 				submit: onSubmit,
 			}))
 			.then(() => {
-				if (voiceGenerationRef.current === generation) setVoiceStatus('idle');
+				if (voiceGenerationRef.current === generation) {
+					setVoiceError(null);
+					setVoiceStatus('idle');
+				}
 			})
-			.catch(() => {
-				if (!transcriptionAbort.signal.aborted && voiceGenerationRef.current === generation) setVoiceStatus('failed');
+			.catch((error: unknown) => {
+				if (!transcriptionAbort.signal.aborted && voiceGenerationRef.current === generation) {
+					setVoiceError(describeZhiyuVoiceError(error, 'transcribe'));
+					setVoiceStatus('failed');
+				}
 			})
 			.finally(() => {
 				if (voiceTranscriptionAbortRef.current === transcriptionAbort) voiceTranscriptionAbortRef.current = null;
@@ -364,7 +386,10 @@ export function ZhiyuAgentChatSurface({
       voiceTimerRef.current = setTimeout(() => {
         if (recorder.state === 'recording') recorder.stop();
       }, 5 * 60 * 1_000);
-    }).catch(() => setVoiceStatus('failed'));
+    }).catch((error: unknown) => {
+      setVoiceError(describeZhiyuVoiceError(error, 'capture'));
+      setVoiceStatus('failed');
+    });
   }, [clearVoiceCapture, onSubmit, onTranscribeVoice]);
   useEffect(() => () => {
     voiceCanceledRef.current = true;
@@ -379,6 +404,7 @@ export function ZhiyuAgentChatSurface({
 	voiceGenerationRef.current += 1;
 	voiceTranscriptionAbortRef.current?.abort('zhiyu_voice_conversation_changed');
 	voiceTranscriptionAbortRef.current = null;
+	setVoiceError(null);
   }, [evidence.conversation.agentHandle, evidence.conversation.conversationAnchorId]);
   const voiceState = onTranscribeVoice
     && typeof navigator !== 'undefined'
@@ -427,15 +453,53 @@ export function ZhiyuAgentChatSurface({
   // transcript would sit hidden under it.
   const chatTurnNotices = (
     <>
-      {interactionNotice ? <p role="status">{interactionNotice}</p> : null}
-      {draftSaveStatus === 'unsaved' ? <p role="status">草稿尚未保存，输入仍在。离开前请重试保存或复制文字。 <button type="button" onClick={onRetryDraftSave}>重试保存</button></p> : null}
-      {connectionStatus === 'error' ? <div role="status">连接暂时中断，已有内容已保留。<button type="button" onClick={onRefreshConversation}>重新连接</button></div> : null}
+      {interactionNotice ? (
+        <p role="status" className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3.5 py-2.5 text-sm text-[var(--nimi-text-primary)]">
+          {interactionNotice}
+        </p>
+      ) : null}
+      {voiceError ? (
+        <div
+          role="alert"
+          data-zhiyu-voice-error="true"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--nimi-status-danger-soft-border)] bg-[var(--nimi-status-danger-soft-bg)] px-3.5 py-2.5 text-sm text-[var(--nimi-status-danger-soft-text)]"
+        >
+          <span>{voiceError}</span>
+          <button
+            type="button"
+            aria-label="关闭语音提示"
+            className="shrink-0 px-2.5 py-1"
+            onClick={() => {
+              setVoiceError(null);
+              if (voiceStatus === 'failed') setVoiceStatus('idle');
+            }}
+          >
+            关闭
+          </button>
+        </div>
+      ) : null}
+      {draftSaveStatus === 'unsaved' ? (
+        <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3.5 py-2.5 text-sm text-[var(--nimi-text-primary)]">
+          <span>草稿尚未保存，输入仍在。离开前请重试保存或复制文字。</span>
+          <button type="button" className="shrink-0 px-2.5 py-1" onClick={onRetryDraftSave}>重试保存</button>
+        </div>
+      ) : null}
+      {connectionStatus === 'error' ? (
+        <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3.5 py-2.5 text-sm text-[var(--nimi-text-primary)]">
+          <span>连接暂时中断，已有内容已保留。</span>
+          <button type="button" className="shrink-0 px-2.5 py-1" onClick={onRefreshConversation}>重新连接</button>
+        </div>
+      ) : null}
       {pendingSubmission && !submitting && evidence.conversation.agentHandle ? <LocalAppConversationSubmissionRecovery
         submission={pendingSubmission} agentHandle={evidence.conversation.agentHandle} conversation={conversation}
         acknowledge={onAcknowledgeSubmission} onRestore={onRestoreSubmission} onResolved={onSubmissionResolved} translate={submissionCopy}
         describeError={agentConfigurationErrorMessage} isConfigurationError={reason => Boolean(agentConfigurationErrorMessage(reason))}
         onOpenAgentCenter={() => openPanel('ai-config')} /> : null}
-      {evidence.chat.regenerateTurnId && !pendingSubmission ? <button type="button" disabled={submitting} onClick={onRegenerate}>重新回答原问题</button> : null}
+      {evidence.chat.regenerateTurnId && !pendingSubmission ? (
+        <div className="flex justify-center pt-1">
+          <button type="button" className="px-3.5 py-1.5" disabled={submitting} onClick={onRegenerate}>重新回答原问题</button>
+        </div>
+      ) : null}
       {evidence.chat.state === 'failed' ? (
         <RuntimeChatFailureNotice chat={evidence.chat} onOpenSettings={() => openPanel('ai-config')}
           onReopen={evidence.localAgent.agentHandle ? () => onSelectLocalAgent(evidence.localAgent.agentHandle!) : undefined} />
@@ -462,8 +526,8 @@ export function ZhiyuAgentChatSurface({
             <strong>请重新选择当前伙伴</strong>
             <p>
               {evidence.chat.diagnostics?.turnAdmission === 'observed'
-                ? 'Runtime 已接受此 turn；重新选择后会读取当前结果。'
-                : '这条消息尚未确认提交到 Runtime；重新选择后草稿会保留，可再次发送。'}
+                ? '服务已收到这条消息，重新选择伙伴后会同步最新结果。'
+                : '这条消息尚未确认发出，重新选择伙伴后草稿会保留，可再次发送。'}
             </p>
           </div>
         </section>
@@ -473,6 +537,80 @@ export function ZhiyuAgentChatSurface({
   );
   const rightPanelMode: RightPanelMode = destination.panel ? 'agent' : 'closed';
   const activeAgentTab: AgentPanelTab = destination.panel ?? 'overview';
+  const isAgentDrawerOpen = !discovery && rightPanelMode !== 'closed';
+  const layoutRef = useRef<HTMLDivElement>(null);
+  const wasAgentDrawerOpenRef = useRef(isAgentDrawerOpen);
+  const drawerReturnFocusRef = useRef<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    const layout = layoutRef.current;
+    if (!layout) return undefined;
+    const siblings: HTMLElement[] = [];
+    for (const child of Array.from(layout.children)) {
+      if (!(child instanceof HTMLElement)) continue;
+      if (
+        child.dataset.zhiyuRegion === 'agent-panel'
+        || child.dataset.zhiyuAgentPanelBackdrop === 'true'
+      ) {
+        continue;
+      }
+      siblings.push(child);
+    }
+    const wasOpen = wasAgentDrawerOpenRef.current;
+    wasAgentDrawerOpenRef.current = isAgentDrawerOpen;
+
+    if (isAgentDrawerOpen) {
+      // Capture the triggering control BEFORE marking siblings inert — setting
+      // `inert` synchronously blurs any active element inside the inert subtree.
+      if (!wasOpen && typeof document !== 'undefined') {
+        const activeEl = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        const panel = layout.querySelector<HTMLElement>('[data-zhiyu-region="agent-panel"]');
+        if (
+          activeEl
+          && activeEl !== document.body
+          && activeEl !== document.documentElement
+          && !panel?.contains(activeEl)
+        ) {
+          drawerReturnFocusRef.current = activeEl;
+        }
+      }
+      for (const sibling of siblings) {
+        sibling.setAttribute('inert', '');
+        sibling.setAttribute('aria-hidden', 'true');
+      }
+    } else {
+      for (const sibling of siblings) {
+        sibling.removeAttribute('inert');
+        sibling.removeAttribute('aria-hidden');
+      }
+      // Restore focus synchronously right after removing `inert` so Escape /
+      // close returns immediately to the exact trigger rather than `<body>`.
+      if (wasOpen && typeof document !== 'undefined') {
+        const returnTarget = drawerReturnFocusRef.current;
+        drawerReturnFocusRef.current = null;
+        const panel = layout.querySelector<HTMLElement>('[data-zhiyu-region="agent-panel"]');
+        const currentActive = document.activeElement;
+        if (
+          returnTarget?.isConnected
+          && !returnTarget.matches(':disabled')
+          && !returnTarget.closest('[inert]')
+          && (
+            !currentActive
+            || currentActive === document.body
+            || currentActive === document.documentElement
+            || Boolean(panel?.contains(currentActive))
+          )
+        ) {
+          returnTarget.focus({ preventScroll: true });
+        }
+      }
+    }
+    return () => {
+      for (const sibling of siblings) {
+        sibling.removeAttribute('inert');
+        sibling.removeAttribute('aria-hidden');
+      }
+    };
+  }, [isAgentDrawerOpen, sidebarVisible, evidence.auth.ready, discovery]);
   const acknowledgedPlacementKeyRef = useRef<string | null>(null);
   useLayoutEffect(() => {
     if (!resourcePackPlacementKey) return;
@@ -529,6 +667,7 @@ export function ZhiyuAgentChatSurface({
         data-zhiyu-primary-ui="true"
       >
       <div
+        ref={layoutRef}
         className={`zhiyu-agent-chat__layout${discovery || rightPanelMode === 'closed' ? ' is-side-closed' : ''}`}
         data-zhiyu-side-panel-state={rightPanelMode}
         data-zhiyu-rail-visible={sidebarVisible && evidence.auth.ready}
@@ -650,8 +789,8 @@ export function ZhiyuAgentChatSurface({
                   return <>
                   {reply ? <ZhiyuConversationReadReceipt reply={reply} state={readReceipts} /> : null}
                   {message.metadata?.canonicalPartial && message.text.trim() && message.status !== 'streaming'
-                    ? <p className="text-xs text-neutral-500">{message.status === 'canceled' ? message.text.trim() ? '已停止，保留已收到的内容。' : '已停止。' : message.text.trim() ? '回复未完成，已收到的内容已保留。' : '这次未收到回复，可以重新回答原问题。'}</p>
-                    : message.metadata?.canonicalMediaRunning ? <p className="text-xs text-neutral-500">文字已完成，媒体仍在处理。可以继续聊天。</p> : null}
+                    ? <p className="text-xs text-[var(--nimi-text-muted)]">{message.status === 'canceled' ? message.text.trim() ? '已停止，保留已收到的内容。' : '已停止。' : message.text.trim() ? '回复未完成，已收到的内容已保留。' : '这次未收到回复，可以重新回答原问题。'}</p>
+                    : message.metadata?.canonicalMediaRunning ? <p className="text-xs text-[var(--nimi-text-muted)]">文字已完成，媒体仍在处理。可以继续聊天。</p> : null}
                   {message.metadata?.canonicalMediaRunning && (message.role === 'agent' || message.role === 'assistant') && evidence.conversation.agentHandle && evidence.conversation.conversationAnchorId ? <LocalAppConversationMediaStopButton
                     agentHandle={evidence.conversation.agentHandle} conversationAnchorId={evidence.conversation.conversationAnchorId}
                     turnId={String(message.metadata.canonicalTurnId)} conversation={conversation}
@@ -748,21 +887,32 @@ export function ZhiyuAgentChatSurface({
             </div>
         </ZhiyuResourcePackSurface>}
 
-        {!discovery && rightPanelMode !== 'closed' ? (
-          <RightAgentPanel
-            onOpenHomePartner={onOpenHomePartner}
-            mode={rightPanelMode}
-            evidence={evidence}
-            currentPartnerName={currentPartnerName}
-            activeTab={activeAgentTab}
-            onActiveTabChange={openPanel}
-            onClose={() => openPanel()}
-            onOpenDesktopRuntimeSettings={() => { void onDesktopOpenRuntimeSettings(); }}
-            onRetryAgentCenter={onRetryAgentCenter}
-            onAvatarLaunch={onAvatarLaunch}
-            session={agentCenterSession}
-          />
-        ) : null}
+        <AnimatePresence>
+          {!discovery && rightPanelMode !== 'closed' ? (
+            <ZhiyuDrawerBackdrop
+              key="zhiyu-agent-panel-backdrop"
+              motionProps={drawerBackdropMotion}
+              onClose={() => openPanel()}
+            />
+          ) : null}
+          {!discovery && rightPanelMode !== 'closed' ? (
+            <RightAgentPanel
+              key="zhiyu-agent-panel"
+              managedReturnFocus
+              onOpenHomePartner={onOpenHomePartner}
+              mode={rightPanelMode}
+              evidence={evidence}
+              currentPartnerName={currentPartnerName}
+              activeTab={activeAgentTab}
+              onActiveTabChange={openPanel}
+              onClose={() => openPanel()}
+              onOpenDesktopRuntimeSettings={() => { void onDesktopOpenRuntimeSettings(); }}
+              onRetryAgentCenter={onRetryAgentCenter}
+              onAvatarLaunch={onAvatarLaunch}
+              session={agentCenterSession}
+            />
+          ) : null}
+        </AnimatePresence>
       </div>
       </div>
       <ZhiyuHarnessHandoffDialog
@@ -779,6 +929,40 @@ export function ZhiyuAgentChatSurface({
       />
     </main>
   );
+}
+
+function ZhiyuDrawerBackdrop({
+  motionProps,
+  onClose,
+}: {
+  motionProps: NimiOverlayMotionProps;
+  onClose: () => void;
+}) {
+  const isPresent = useIsPresent();
+  return (
+    <motion.div
+      className="zhiyu-agent-center-backdrop"
+      data-zhiyu-agent-panel-backdrop="true"
+      aria-hidden="true"
+      onClick={isPresent ? onClose : undefined}
+      {...motionProps}
+      style={{ ...motionProps.style, pointerEvents: isPresent ? 'auto' : 'none' }}
+    />
+  );
+}
+
+function describeZhiyuVoiceError(error: unknown, stage: 'capture' | 'transcribe'): string {
+  if (stage === 'capture') {
+    const name = error instanceof Error ? error.name : '';
+    if (name === 'NotAllowedError' || name === 'SecurityError' || name === 'PermissionDeniedError') {
+      return '未能获取麦克风权限，请在系统或浏览器设置中允许访问麦克风后重试。';
+    }
+    if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+      return '未检测到可用的麦克风设备，请检查输入设备连接后重试。';
+    }
+    return '无法开始录音，请检查麦克风状态后重试。';
+  }
+  return '语音转写未能完成，请重试或改为文字输入。';
 }
 
 async function browserAttachmentPayload(

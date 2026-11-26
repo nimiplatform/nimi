@@ -7,7 +7,9 @@ import {
   motion,
   nimiOverlayBackdropMotion,
   nimiOverlayPanelMotion,
+  useIsPresent,
   useNimiReducedMotion,
+  type NimiOverlayMotionProps,
 } from '../motion/index.js';
 
 type DialogProps = {
@@ -46,6 +48,69 @@ type DialogContentProps = {
   'data-testid'?: string;
 };
 
+function DialogPresenceLayer({
+  overlayClassName,
+  className,
+  backdropMotion,
+  panelMotion,
+  style,
+  resolvedDataTestId,
+  handleOpenAutoFocus,
+  handleCloseAutoFocus,
+  onClose,
+  children,
+}: {
+  overlayClassName?: string;
+  className?: string;
+  backdropMotion: NimiOverlayMotionProps;
+  panelMotion: NimiOverlayMotionProps;
+  style?: CSSProperties;
+  resolvedDataTestId?: string;
+  handleOpenAutoFocus: () => void;
+  handleCloseAutoFocus: (event: Event) => void;
+  onClose?: () => void;
+  children?: ReactNode;
+}) {
+  const isPresent = useIsPresent();
+  const exitingPointerStyle: CSSProperties | undefined = isPresent ? undefined : { pointerEvents: 'none' };
+
+  return (
+    <DialogPrimitive.Portal forceMount>
+      <DialogPrimitive.Overlay asChild forceMount style={exitingPointerStyle}>
+        <motion.div
+          className={cn(
+            'nimi-overlay-backdrop nimi-overlay-backdrop--dialog fixed inset-0 z-[var(--nimi-z-dialog)] bg-[var(--nimi-overlay-backdrop)]',
+            !isPresent && 'pointer-events-none',
+            overlayClassName,
+          )}
+          {...backdropMotion}
+          style={{ ...backdropMotion.style, pointerEvents: isPresent ? 'auto' : 'none' }}
+        />
+      </DialogPrimitive.Overlay>
+      <DialogPrimitive.Content asChild forceMount
+        aria-hidden={!isPresent || undefined}
+        onOpenAutoFocus={handleOpenAutoFocus}
+        onCloseAutoFocus={handleCloseAutoFocus}
+        onEscapeKeyDown={() => onClose?.()}
+        style={exitingPointerStyle}
+      >
+        <motion.div
+          data-testid={resolvedDataTestId}
+          className={cn(
+            'nimi-overlay-panel nimi-overlay-panel--dialog fixed top-1/2 left-1/2 z-[var(--nimi-z-dialog)] -translate-x-1/2 -translate-y-1/2 flex max-h-[calc(100dvh-2rem)] w-full max-w-[min(28rem,calc(100vw-2rem))] flex-col rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-modal)]',
+            !isPresent && 'pointer-events-none',
+            className,
+          )}
+          {...panelMotion}
+          style={{ ...panelMotion.style, ...style, ...(isPresent ? undefined : { pointerEvents: 'none' }) }}
+        >
+          {children}
+        </motion.div>
+      </DialogPrimitive.Content>
+    </DialogPrimitive.Portal>
+  );
+}
+
 export function DialogContent({
   onClose,
   className,
@@ -81,34 +146,19 @@ export function DialogContent({
   return (
     <AnimatePresence>
       {open ? (
-        <DialogPrimitive.Portal forceMount>
-          <DialogPrimitive.Overlay asChild forceMount>
-            <motion.div
-              className={cn(
-                'nimi-overlay-backdrop nimi-overlay-backdrop--dialog fixed inset-0 z-[var(--nimi-z-dialog)] bg-[var(--nimi-overlay-backdrop)]',
-                overlayClassName,
-              )}
-              {...backdropMotion}
-            />
-          </DialogPrimitive.Overlay>
-          <DialogPrimitive.Content asChild forceMount
-            onOpenAutoFocus={handleOpenAutoFocus}
-            onCloseAutoFocus={handleCloseAutoFocus}
-            onEscapeKeyDown={() => onClose?.()}
-          >
-            <motion.div
-              data-testid={resolvedDataTestId}
-              className={cn(
-                'nimi-overlay-panel nimi-overlay-panel--dialog fixed top-1/2 left-1/2 z-[var(--nimi-z-dialog)] -translate-x-1/2 -translate-y-1/2 rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-modal)] w-full max-w-md',
-                className,
-              )}
-              {...panelMotion}
-              style={{ ...panelMotion.style, ...style }}
-            >
-              {children}
-            </motion.div>
-          </DialogPrimitive.Content>
-        </DialogPrimitive.Portal>
+        <DialogPresenceLayer
+          overlayClassName={overlayClassName}
+          className={className}
+          backdropMotion={backdropMotion}
+          panelMotion={panelMotion}
+          style={style}
+          resolvedDataTestId={resolvedDataTestId}
+          handleOpenAutoFocus={handleOpenAutoFocus}
+          handleCloseAutoFocus={handleCloseAutoFocus}
+          onClose={onClose}
+        >
+          {children}
+        </DialogPresenceLayer>
       ) : null}
     </AnimatePresence>
   );
@@ -184,6 +234,8 @@ const OVERLAY_SHELL_MAX_WIDTH = 'calc(100vw - 32px)';
 type OverlayShellProps = {
   open: boolean;
   kind?: OverlayShellKind;
+  /** Edge axis for `kind="drawer"`. Defaults to `'right'`. */
+  side?: 'left' | 'right';
   size?: OverlayShellSize;
   onClose?: () => void;
   closeOnBackdrop?: boolean;
@@ -209,11 +261,99 @@ function currentFocusTarget(): HTMLElement | null {
     ? document.activeElement : null;
 }
 
+function OverlayShellPresenceLayer({
+  drawerBackdropPositionClass,
+  backdropKindClass,
+  className,
+  backdropMotion,
+  description,
+  handleCloseAutoFocus,
+  closeOnBackdrop,
+  resolvedDataTestId,
+  defaultWidthClass,
+  panelKindClass,
+  drawerClasses,
+  sizeClass,
+  panelClassName,
+  panelMotion,
+  mergedPanelStyle,
+  panelInner,
+}: {
+  drawerBackdropPositionClass: string;
+  backdropKindClass: string;
+  className?: string;
+  backdropMotion: NimiOverlayMotionProps;
+  description?: ReactNode;
+  handleCloseAutoFocus: (event: Event) => void;
+  closeOnBackdrop: boolean;
+  resolvedDataTestId?: string;
+  defaultWidthClass: string;
+  panelKindClass: string;
+  drawerClasses: string;
+  sizeClass: string;
+  panelClassName?: string;
+  panelMotion: NimiOverlayMotionProps;
+  mergedPanelStyle?: CSSProperties;
+  panelInner: ReactNode;
+}) {
+  const isPresent = useIsPresent();
+  const exitingPointerStyle: CSSProperties | undefined = isPresent ? undefined : { pointerEvents: 'none' };
+
+  return (
+    <DialogPrimitive.Portal forceMount>
+      <DialogPrimitive.Overlay asChild forceMount style={exitingPointerStyle}>
+        <motion.div
+          className={cn(
+            'nimi-overlay-backdrop fixed z-[var(--nimi-z-dialog)] bg-[var(--nimi-overlay-backdrop)]',
+            !isPresent && 'pointer-events-none',
+            drawerBackdropPositionClass,
+            backdropKindClass,
+            className,
+          )}
+          {...backdropMotion}
+          style={{ ...backdropMotion.style, pointerEvents: isPresent ? 'auto' : 'none' }}
+        />
+      </DialogPrimitive.Overlay>
+      <DialogPrimitive.Content asChild forceMount
+        aria-modal={isPresent ? 'true' : undefined}
+        aria-hidden={!isPresent}
+        {...(description ? {} : { 'aria-describedby': undefined })}
+        onCloseAutoFocus={handleCloseAutoFocus}
+        onPointerDownOutside={closeOnBackdrop ? undefined : (e) => e.preventDefault()}
+        onInteractOutside={closeOnBackdrop ? undefined : (e) => e.preventDefault()}
+        style={exitingPointerStyle}
+      >
+        <motion.div
+          data-testid={resolvedDataTestId}
+          className={cn(
+            'nimi-overlay-panel fixed top-1/2 left-1/2 z-[var(--nimi-z-dialog)] -translate-x-1/2 -translate-y-1/2 rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-modal)] w-full',
+            !isPresent && 'pointer-events-none',
+            defaultWidthClass,
+            panelKindClass,
+            drawerClasses,
+            sizeClass,
+            panelClassName,
+          )}
+          {...panelMotion}
+          style={{
+            ...panelMotion.style,
+            ...mergedPanelStyle,
+            ...(isPresent ? undefined : { pointerEvents: 'none' }),
+          }}
+        >
+          {panelInner}
+        </motion.div>
+      </DialogPrimitive.Content>
+    </DialogPrimitive.Portal>
+  );
+}
+
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-design-013a
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-design-013b
 export function OverlayShell({
   open,
   kind = 'dialog',
+  side = 'right',
   size,
   onClose,
   closeOnBackdrop = true,
@@ -245,6 +385,7 @@ export function OverlayShell({
   const reducedMotion = useNimiReducedMotion();
   const panelMotion = nimiOverlayPanelMotion({
     kind: kind === 'drawer' ? 'drawer' : kind === 'popover' ? 'popover' : 'dialog',
+    side: kind === 'drawer' ? side : 'bottom',
     reducedMotion,
   });
   const backdropMotion = nimiOverlayBackdropMotion({ reducedMotion });
@@ -299,13 +440,15 @@ export function OverlayShell({
     : 'inset-0';
 
   const drawerClasses = kind === 'drawer'
-    ? 'top-[var(--nimi-titlebar-area-height,env(titlebar-area-height,0px))] right-0 bottom-0 left-auto h-[calc(100dvh-var(--nimi-titlebar-area-height,env(titlebar-area-height,0px)))] max-h-[calc(100dvh-var(--nimi-titlebar-area-height,env(titlebar-area-height,0px)))] translate-x-0 translate-y-0 max-w-sm rounded-l-[var(--nimi-radius-lg)] rounded-r-none'
+    ? (side === 'left'
+      ? 'top-[var(--nimi-titlebar-area-height,env(titlebar-area-height,0px))] left-0 bottom-0 right-auto h-[calc(100dvh-var(--nimi-titlebar-area-height,env(titlebar-area-height,0px)))] max-h-[calc(100dvh-var(--nimi-titlebar-area-height,env(titlebar-area-height,0px)))] translate-x-0 translate-y-0 max-w-sm rounded-r-[var(--nimi-radius-lg)] rounded-l-none'
+      : 'top-[var(--nimi-titlebar-area-height,env(titlebar-area-height,0px))] right-0 bottom-0 left-auto h-[calc(100dvh-var(--nimi-titlebar-area-height,env(titlebar-area-height,0px)))] max-h-[calc(100dvh-var(--nimi-titlebar-area-height,env(titlebar-area-height,0px)))] translate-x-0 translate-y-0 max-w-sm rounded-l-[var(--nimi-radius-lg)] rounded-r-none')
     : '';
 
   const canonicalSize = size === undefined ? undefined : OVERLAY_SHELL_SIZE_NORMALIZE[size];
   const hasSize = canonicalSize !== undefined;
   const sizeClass = hasSize ? OVERLAY_SHELL_SIZE_CLASS[canonicalSize] : '';
-  const defaultWidthClass = hasSize ? '' : 'max-w-md';
+  const defaultWidthClass = hasSize ? '' : 'max-w-[min(28rem,calc(100vw-2rem))]';
 
   const mergedPanelStyle: CSSProperties | undefined = hasSize
     ? { width: OVERLAY_SHELL_SIZE_WIDTH[canonicalSize], maxWidth: OVERLAY_SHELL_MAX_WIDTH, ...panelStyle }
@@ -314,15 +457,15 @@ export function OverlayShell({
   const hasSidebar = sidebar !== undefined;
 
   const titleNode = title || description ? (
-    <div className="nimi-overlay-title px-6 pt-6 pb-2 text-[length:var(--nimi-type-section-title-size)] font-[var(--nimi-type-section-title-weight)] leading-[var(--nimi-type-section-title-line-height)]">
+    <div className="nimi-overlay-title px-6 pt-6 pb-2">
       {title ? (
         <DialogPrimitive.Title asChild>
-          <div>{title}</div>
+          <div className="text-[length:var(--nimi-type-section-title-size)] font-[var(--nimi-type-section-title-weight)] leading-[var(--nimi-type-section-title-line-height)] tracking-[var(--nimi-type-section-title-letter-spacing)] text-[var(--nimi-text-primary)]">{title}</div>
         </DialogPrimitive.Title>
       ) : null}
       {description ? (
         <DialogPrimitive.Description asChild>
-          <div>{description}</div>
+          <div className="mt-1 text-[length:var(--nimi-type-body-sm-size)] font-normal leading-[var(--nimi-type-body-sm-line-height)] text-[var(--nimi-text-secondary)]">{description}</div>
         </DialogPrimitive.Description>
       ) : null}
     </div>
@@ -360,43 +503,24 @@ export function OverlayShell({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       {presenceMounted ? <AnimatePresence onExitComplete={finishExit}>
         {open ? (
-          <DialogPrimitive.Portal forceMount>
-            <DialogPrimitive.Overlay asChild forceMount>
-              <motion.div
-                className={cn(
-                  'nimi-overlay-backdrop fixed z-[var(--nimi-z-dialog)] bg-[var(--nimi-overlay-backdrop)]',
-                  drawerBackdropPositionClass,
-                  backdropKindClass,
-                  className,
-                )}
-                {...backdropMotion}
-              />
-            </DialogPrimitive.Overlay>
-            <DialogPrimitive.Content asChild forceMount
-              aria-modal="true"
-              aria-hidden={!open}
-              {...(description ? {} : { 'aria-describedby': undefined })}
-              onCloseAutoFocus={handleCloseAutoFocus}
-              onPointerDownOutside={closeOnBackdrop ? undefined : (e) => e.preventDefault()}
-              onInteractOutside={closeOnBackdrop ? undefined : (e) => e.preventDefault()}
-            >
-              <motion.div
-                data-testid={dataTestIdKebab ?? dataTestId}
-                className={cn(
-                  'nimi-overlay-panel fixed top-1/2 left-1/2 z-[var(--nimi-z-dialog)] -translate-x-1/2 -translate-y-1/2 rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-modal)] w-full',
-                  defaultWidthClass,
-                  panelKindClass,
-                  drawerClasses,
-                  sizeClass,
-                  panelClassName,
-                )}
-                {...panelMotion}
-                style={{ ...panelMotion.style, ...mergedPanelStyle }}
-              >
-                {panelInner}
-              </motion.div>
-            </DialogPrimitive.Content>
-          </DialogPrimitive.Portal>
+          <OverlayShellPresenceLayer
+            drawerBackdropPositionClass={drawerBackdropPositionClass}
+            backdropKindClass={backdropKindClass}
+            className={className}
+            backdropMotion={backdropMotion}
+            description={description}
+            handleCloseAutoFocus={handleCloseAutoFocus}
+            closeOnBackdrop={closeOnBackdrop}
+            resolvedDataTestId={dataTestIdKebab ?? dataTestId}
+            defaultWidthClass={defaultWidthClass}
+            panelKindClass={panelKindClass}
+            drawerClasses={drawerClasses}
+            sizeClass={sizeClass}
+            panelClassName={panelClassName}
+            panelMotion={panelMotion}
+            mergedPanelStyle={mergedPanelStyle}
+            panelInner={panelInner}
+          />
         ) : null}
       </AnimatePresence> : null}
     </Dialog>

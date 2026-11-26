@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, SelectField } from '@nimiplatform/kit/ui';
+import { Button, Checkbox, SelectField } from '@nimiplatform/kit/ui';
 import type { NimiMusicTranscriptionInputProfile } from '@nimiplatform/sdk/ai';
 import { useAIStudioHost } from '../../ai-studio-core/host-context.js';
 import { StudioNumberParameter, StudioParameterField, type StudioParameterPanelProps } from '../../ai-studio-core/parameter-fields.js';
@@ -53,26 +53,34 @@ export function MusicTranscriptionFields(props: StudioParameterPanelProps) {
   }
   return <div className="space-y-4">
     {!profile ? <p>{t('Transcription.configureInputs')}</p> : <p>{t('Transcription.inputHint', { seconds: profile.maxDurationSeconds, mib: Math.floor(profile.maxSourceBytes / 1048576) })}</p>}
-    <StudioParameterField label={t('Transcription.source')}>
+    <fieldset className="studio-parameters__field">
+      <legend className="studio-parameters__label">{t('Transcription.source')}</legend>
       <input ref={fileInput} hidden type="file" accept=".mp3,.wav,.flac" onChange={event => {
         const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; if (file) void importAudio(file);
       }} />
-      <Button disabled={disabled || !profile} onClick={() => fileInput.current?.click()}>{t(busy ? 'Music.importing' : 'Transcription.chooseSource')}</Button>
+      <div>
+        <Button size="sm" tone="secondary" disabled={disabled || !profile} onClick={() => fileInput.current?.click()}>{t(busy ? 'Music.importing' : 'Transcription.chooseSource')}</Button>
+      </div>
       {parameters.sourceRelativePath ? <p>{parameters.sourceName}</p> : null}
-    </StudioParameterField>
+    </fieldset>
     {profile ? <>
       <StudioParameterField label={t('Transcription.part')}>
         <SelectField value={parameters.requestedPart ?? profile.parts[0]} disabled={disabled}
           options={[...new Set(profiles.flatMap(item => item.parts))].map(value => ({ value, label: t(`Transcription.parts.${value}`) }))}
           onChange={event => { const part = event.currentTarget.value as NonNullable<StudioMusicTranscriptionParameters['requestedPart']>; const next = profiles.find(item => item.parts.includes(part)); update({ ...parameters, requestedPart: part, requestedFormats: next ? [...next.formats] : [] }); }} />
       </StudioParameterField>
-      <StudioParameterField label={t('Transcription.formats')}>
-        <div className="flex flex-wrap gap-4">{profile.formats.map(format => <label key={format} className="flex items-center gap-2">
-          <input type="checkbox" checked={parameters.requestedFormats?.includes(format) ?? false} disabled={disabled}
-            onChange={event => update({ ...parameters, requestedFormats: event.currentTarget.checked ? [...(parameters.requestedFormats ?? []), format] : parameters.requestedFormats?.filter(item => item !== format) })} />
-          {format === 'timeline' ? t('Transcription.timeline') : format.toUpperCase()}
-        </label>)}</div>
-      </StudioParameterField>
+      <fieldset className="studio-parameters__field">
+        <legend className="studio-parameters__label">{t('Transcription.formats')}</legend>
+        <div className="flex flex-wrap gap-4">{profile.formats.map(format => (
+          <Checkbox
+            key={format}
+            checked={parameters.requestedFormats?.includes(format) ?? false}
+            disabled={disabled}
+            label={format === 'timeline' ? t('Transcription.timeline') : format.toUpperCase()}
+            onChange={event => update({ ...parameters, requestedFormats: event.currentTarget.checked ? [...(parameters.requestedFormats ?? []), format] : parameters.requestedFormats?.filter(item => item !== format) })}
+          />
+        ))}</div>
+      </fieldset>
       {profile.supportsRange ? <>
         <StudioNumberParameter current={parameters} field="startSeconds" label={t('Transcription.start')} onChange={update} disabled={disabled} />
         <StudioNumberParameter current={parameters} field="endSeconds" label={t('Transcription.end')} onChange={update} disabled={disabled} />

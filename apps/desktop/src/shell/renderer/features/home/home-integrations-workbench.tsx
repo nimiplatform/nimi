@@ -72,7 +72,7 @@ export function HomeIntegrationsWorkbenchView({
 
   return (
     <AppCardSurface
-      kind="promoted-glass"
+      kind="operational-solid"
       className="flex h-full min-w-0 flex-col gap-4 rounded-3xl border-transparent! bg-[var(--nimi-home-porcelain-card)]! p-6 shadow-[var(--nimi-home-porcelain-shadow)]!"
       data-testid="home-integrations-workbench"
     >
@@ -123,8 +123,8 @@ export function HomeIntegrationsWorkbenchView({
                   data-connected={connected ? 'true' : 'false'}
                   className={
                     connected
-                      ? 'group/service relative flex min-w-0 cursor-pointer items-center gap-2.5 rounded-2xl border border-transparent bg-[var(--nimi-home-soft-well)] px-3 py-2.5 text-left transition-colors duration-150 hover:bg-[var(--nimi-home-soft-well-hover)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]'
-                      : 'group/service relative flex min-w-0 cursor-pointer items-center gap-2 overflow-hidden rounded-2xl border border-dashed border-[var(--nimi-border-strong)] bg-transparent px-2.5 py-2.5 text-left transition-all duration-150 hover:border-solid hover:border-[var(--nimi-action-primary-bg)]/40 hover:bg-[var(--nimi-home-soft-well)] focus-visible:border-solid focus-visible:border-[var(--nimi-action-primary-bg)]/40 focus-visible:bg-[var(--nimi-home-soft-well)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]'
+                      ? 'group/service relative flex min-w-0 cursor-pointer items-center gap-2.5 rounded-2xl border border-transparent bg-[var(--nimi-home-soft-well)] px-3 py-2.5 text-left transition-[transform,opacity,background-color,border-color,color] duration-150 hover:bg-[var(--nimi-home-soft-well-hover)] active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]'
+                      : 'group/service relative flex min-w-0 cursor-pointer items-center gap-2 overflow-hidden rounded-2xl border border-dashed border-[var(--nimi-border-strong)] bg-transparent px-2.5 py-2.5 text-left transition-[transform,opacity,background-color,border-color,color] duration-150 hover:border-solid hover:border-[var(--nimi-action-primary-bg)]/40 hover:bg-[var(--nimi-home-soft-well)] active:scale-[0.99] focus-visible:border-solid focus-visible:border-[var(--nimi-action-primary-bg)]/40 focus-visible:bg-[var(--nimi-home-soft-well)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]'
                   }
                 >
                   <span className="relative inline-flex shrink-0">
@@ -133,7 +133,7 @@ export function HomeIntegrationsWorkbenchView({
                       className={
                         connected
                           ? 'shadow-[var(--nimi-elevation-base)]'
-                          : 'opacity-55 grayscale-[45%] transition-all duration-150 group-hover/service:opacity-100 group-hover/service:grayscale-0 group-hover/service:shadow-[var(--nimi-elevation-base)] group-focus-visible/service:opacity-100 group-focus-visible/service:grayscale-0 group-focus-visible/service:shadow-[var(--nimi-elevation-base)]'
+                          : 'opacity-55 transition-opacity duration-150 group-hover/service:opacity-100 group-focus-visible/service:opacity-100'
                       }
                     />
                     {connected ? (

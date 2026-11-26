@@ -101,17 +101,22 @@ export function Pane({
     setDragging(false);
   };
 
+  const isBare = Boolean(className && /\bpane-bare\b/.test(className));
+  const glassClassName = isBare
+    ? ''
+    : 'nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] backdrop-saturate-[var(--nimi-backdrop-saturate)]';
+
   return (
     <section
-      className={`pane pane-float nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] backdrop-saturate-[var(--nimi-backdrop-saturate)] ${agent ? 'pane-agent' : ''} ${className ?? ''}`}
-      data-nimi-material="glass-regular"
-      data-nimi-tone="panel"
+      className={`pane pane-float ${glassClassName} ${agent ? 'pane-agent' : ''} ${className ?? ''}`}
+      data-nimi-material={isBare ? undefined : 'glass-regular'}
+      data-nimi-tone={isBare ? undefined : 'panel'}
       data-pane-id={id}
       data-top={top || undefined}
       data-dragging={dragging || undefined}
       style={{
-        left: x,
-        top: y,
+        '--pane-x': `${x}px`,
+        '--pane-y': `${y}px`,
         width: w,
         zIndex: z,
         '--pane-enter-delay': `${enterDelay}s`,

@@ -25,7 +25,7 @@ function SkeletonBlock({
 }) {
   return (
     <div
-      className="animate-pulse"
+      className="animate-pulse motion-reduce:animate-none"
       style={{
         height,
         width,

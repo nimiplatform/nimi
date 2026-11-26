@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { TFunction } from 'i18next';
 import type { ConnectorMediaStorageUpdate } from '@nimiplatform/sdk/runtime/wire-types';
-import { Button, Surface, TextField } from '@nimiplatform/kit/ui';
+import { Button, ConfirmDialog, Surface, TextField } from '@nimiplatform/kit/ui';
 import type { ApiConnector } from './runtime-config-state-types.js';
 import { useRuntimeConfigConnectorSdk } from './runtime-config-connector-sdk-context.js';
 import { humanizeConnectorError } from './runtime-config-connector-error-copy.js';
@@ -16,6 +16,7 @@ export function CloudMediaStorage(props: {
   const { connector, t } = props;
   const sdk = useRuntimeConfigConnectorSdk();
   const [editing, setEditing] = useState(false);
+  const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [region, setRegion] = useState(connector.mediaStorage?.region ?? '');
@@ -78,11 +79,32 @@ export function CloudMediaStorage(props: {
       </div>
       <p className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.mediaStorage.dataHandling')}</p>
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" size="sm" tone="primary" disabled={props.disabled || busy}>{t(busy ? 'Common.saving' : 'Common.save')}</Button>
+        <Button type="submit" size="sm" tone="primary" loading={busy} disabled={props.disabled}>{t('Common.save')}</Button>
         <Button type="button" size="sm" tone="ghost" disabled={busy} onClick={() => { clearSecrets(); setEditing(false); setError(''); }}>{t('Common.cancel')}</Button>
-        {connector.mediaStorage ? <Button type="button" size="sm" tone="ghost" disabled={props.disabled || busy} onClick={() => void commit({ change: { oneofKind: 'remove', remove: true } })}>{t('runtimeConfig.mediaStorage.remove')}</Button> : null}
+        {connector.mediaStorage ? (
+          <Button type="button" size="sm" tone="danger" disabled={props.disabled || busy} onClick={() => setConfirmRemoveOpen(true)}>
+            {t('runtimeConfig.mediaStorage.remove')}
+          </Button>
+        ) : null}
       </div>
     </form> : null}
     {error ? <p role="alert" className="mt-3 text-sm text-[var(--nimi-status-danger-soft-text)]">{error}</p> : null}
+    <ConfirmDialog
+      open={confirmRemoveOpen}
+      title={t('runtimeConfig.mediaStorage.removeConfirmTitle', { defaultValue: 'Remove reference media storage?' })}
+      message={t('runtimeConfig.mediaStorage.removeConfirmMessage', {
+        defaultValue: 'This permanently deletes the saved OSS bucket settings and credentials for this connection. Video models that require uploaded media references will not work until configured again.',
+      })}
+      confirmLabel={t('runtimeConfig.mediaStorage.remove')}
+      cancelLabel={t('Common.cancel')}
+      confirmTone="danger"
+      loading={busy}
+      onConfirm={() => {
+        void commit({ change: { oneofKind: 'remove', remove: true } }).finally(() => {
+          setConfirmRemoveOpen(false);
+        });
+      }}
+      onClose={() => { if (!busy) setConfirmRemoveOpen(false); }}
+    />
   </Surface>;
 }

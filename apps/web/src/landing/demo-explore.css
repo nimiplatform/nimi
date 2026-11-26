@@ -2,7 +2,7 @@
 .demo-world-atlas {
   --atlas-ink: var(--nimi-text-primary);
   --atlas-muted: var(--nimi-text-secondary);
-  --atlas-tint: color-mix(in srgb, var(--nimi-surface-panel) 85%, #d8eaff);
+  --atlas-tint: color-mix(in srgb, var(--nimi-surface-panel) 88%, var(--nimi-action-primary-bg) 12%);
   color: var(--atlas-ink);
   border-radius: 20px;
   container-type: inline-size;
@@ -11,7 +11,7 @@
 .demo-world-detail-surface {
   background: radial-gradient(
     ellipse at 20% 0%,
-    color-mix(in srgb, #b9dfff 24%, transparent),
+    color-mix(in srgb, var(--nimi-action-primary-bg) 14%, transparent),
     transparent 52%
   );
 }
@@ -234,9 +234,9 @@
   font-weight: 600;
 }
 .demo-world-atlas-filters [aria-pressed='true'] {
-  background: #172334;
-  color: white;
-  box-shadow: 0 3px 8px #14233825;
+  background: var(--nimi-text-primary);
+  color: var(--nimi-text-inverse);
+  box-shadow: 0 3px 8px color-mix(in srgb, var(--nimi-text-primary) 22%, transparent);
 }
 .demo-world-atlas-section {
   margin-top: 22px;
@@ -453,7 +453,7 @@
 .demo-explore-partner-gallery {
   --demo-explore-partner-ink: var(--nimi-text-primary);
   --demo-explore-partner-muted: var(--nimi-text-secondary);
-  --demo-explore-partner-paper: color-mix(in srgb, var(--nimi-surface-panel) 90%, #e8efff);
+  --demo-explore-partner-paper: color-mix(in srgb, var(--nimi-surface-panel) 90%, var(--nimi-action-primary-bg) 10%);
   container-type: inline-size;
   max-width: 1200px;
   margin: 0 auto;
@@ -472,7 +472,7 @@
 .demo-explore-partner-gallery button:focus-visible,
 .demo-explore-partner-gallery select:focus-visible,
 .demo-explore-partner-action-list button:focus-visible {
-  outline: 2px solid var(--nimi-focus-ring-color);
+  outline: 2px solid var(--nimi-action-primary-bg, #2584ed);
   outline-offset: 3px;
 }
 .demo-explore-partner-hero h2,
@@ -706,9 +706,9 @@
   background: var(--nimi-surface-active);
 }
 .demo-explore-partner-gallery-filters [aria-pressed='true'] {
-  background: #15202e;
-  color: #fff;
-  border-color: #15202e;
+  background: var(--nimi-text-primary);
+  color: var(--nimi-text-inverse);
+  border-color: var(--nimi-text-primary);
 }
 .demo-explore-partner-gallery-sort {
   position: relative;

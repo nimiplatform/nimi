@@ -219,7 +219,7 @@ export const AppListRow = memo(function AppListRow({
           <button
             type="button"
             data-testid={`apps-entry-${identity.entryKey}-name`}
-            className="min-w-0 truncate text-left text-sm font-semibold leading-5 text-[color:var(--nimi-text-primary)] outline-none after:absolute after:inset-0 after:content-[''] focus-visible:text-[var(--nimi-action-primary-bg)]"
+            className="min-w-0 truncate rounded-sm text-left text-sm font-semibold leading-5 text-[color:var(--nimi-text-primary)] after:absolute after:inset-0 after:content-[''] focus-visible:text-[var(--nimi-action-primary-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1"
             onClick={() => onAction('details')}
           >
             {localizedName}
@@ -276,7 +276,7 @@ export const AppListRow = memo(function AppListRow({
           ) : null}
           {focusFailure ? (
             <details className="relative z-10 basis-full text-xs text-[var(--nimi-status-danger)]" data-testid="apps-focus-failed">
-              <summary className="w-fit cursor-pointer"><span role="status">{t('Apps.focusFailed')}</span></summary>
+              <summary className="w-fit cursor-pointer rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1"><span role="status">{t('Apps.focusFailed')}</span></summary>
               <p className="mt-1 break-words text-[var(--nimi-text-secondary)]">{focusFailure}</p>
             </details>
           ) : null}

@@ -427,7 +427,7 @@ export function HomeRemoteAccess({
                   </div>
                   <div className="min-w-0 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <NimiText as="h3" role="section-title" className="truncate text-[17px]">
+                      <NimiText as="h3" role="section-title" className="truncate text-[1.0625rem]">
                         {primaryDisplayName || c.primaryFallbackTitle}
                       </NimiText>
                       <span className="text-xs font-medium text-[var(--nimi-action-primary-bg)]">{c.thisPcTag}</span>
@@ -440,9 +440,9 @@ export function HomeRemoteAccess({
 
                 <div className="flex shrink-0 items-center gap-3 self-end sm:self-center">
                   <div className="text-right">
-                    <div className="text-[13px] font-medium text-[var(--nimi-text-primary)]">{c.remoteLabel}</div>
+                    <div className="text-[0.8125rem] font-medium text-[var(--nimi-text-primary)]">{c.remoteLabel}</div>
                     <div
-                      className={`text-[11.5px] font-medium tabular-nums ${
+                      className={`text-xs font-medium tabular-nums ${
                         listening && !query.isError
                           ? 'text-[var(--nimi-status-success)]'
                           : enabled && !query.isError
@@ -480,7 +480,7 @@ export function HomeRemoteAccess({
                     <Monitor size={22} aria-hidden="true" />
                   </div>
                   <div className="min-w-0 space-y-1">
-                    <NimiText as="h3" role="section-title" className="text-[16.5px]">
+                    <NimiText as="h3" role="section-title" className="text-base">
                       {nonPrimaryTitle}
                     </NimiText>
                     <NimiText role="helper" className="leading-relaxed">
@@ -495,13 +495,13 @@ export function HomeRemoteAccess({
 
               {!primarySetupOpen && !statusPending ? (
                 <div className="flex items-center justify-between gap-4 border-t border-[var(--nimi-border-subtle)] pt-4">
-                  <div className="flex min-w-0 items-center gap-2 text-[13px] text-[var(--nimi-text-muted)]">
+                  <div className="flex min-w-0 items-center gap-2 text-[0.8125rem] text-[var(--nimi-text-muted)]">
                     <Radio size={15} className="shrink-0 opacity-60" aria-hidden="true" />
                     <span className="shrink-0">{c.remoteLabel}</span>
                     <span className="opacity-45" aria-hidden="true">
                       ·
                     </span>
-                    <span className="truncate text-[12.5px]">
+                    <span className="truncate text-xs">
                       {primaryStatus === 'error' ? c.unavailable : c.primaryLocked}
                     </span>
                   </div>
@@ -546,7 +546,7 @@ export function HomeRemoteAccess({
       <section className="min-w-0 space-y-4" aria-label={zh ? '外部应用与连接' : 'Application access'}>
         <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-3.5">
-            <NimiText as="h3" role="section-title" className="text-[15px]">
+            <NimiText as="h3" role="section-title" className="text-[0.9375rem]">
               {zh ? '外部应用与连接' : 'Application access'}
             </NimiText>
 
@@ -561,16 +561,16 @@ export function HomeRemoteAccess({
                       type="button"
                       aria-pressed={selected}
                       onClick={() => setFilter(item.id)}
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12.5px] font-medium transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-[transform,opacity,background-color,border-color,color] duration-150 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${
                         selected
-                          ? 'bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)] shadow-[0_1px_3px_rgba(15,23,42,0.08)]'
+                          ? 'bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)]'
                           : 'text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]'
                       }`}
                     >
                       {showDot ? <span className="size-1.5 rounded-full bg-[var(--nimi-status-warning)]" aria-hidden="true" /> : null}
                       <span>{item.label}</span>
                       {recordsKnown ? (
-                        <span className="text-[11px] tabular-nums text-[var(--nimi-text-muted)]">{item.count}</span>
+                        <span className="text-[0.6875rem] tabular-nums text-[var(--nimi-text-muted)]">{item.count}</span>
                       ) : null}
                     </button>
                   );
@@ -779,7 +779,7 @@ function PendingSourceCard({
         <div className="flex min-w-0 flex-1 items-center gap-3.5">
           <div
             style={{ backgroundColor: tone.bg, color: tone.fg }}
-            className="flex size-11 shrink-0 items-center justify-center rounded-2xl text-[15px] font-semibold"
+            className="flex size-11 shrink-0 items-center justify-center rounded-2xl text-[0.9375rem] font-semibold"
           >
             {source.officialManager ? <ShieldCheck size={19} aria-hidden="true" /> : sourceInitial(source.displayName)}
           </div>
@@ -814,7 +814,7 @@ function PendingSourceCard({
       </div>
 
       <div className="space-y-2.5 pl-0 sm:pl-[58px]">
-        <NimiText role="body" className="text-[13px] leading-relaxed text-[var(--nimi-text-secondary)]">
+        <NimiText role="body" className="text-[0.8125rem] leading-relaxed text-[var(--nimi-text-secondary)]">
           {scopeText}
         </NimiText>
 
@@ -836,7 +836,7 @@ function PendingSourceCard({
           )
         ) : null}
 
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-[11.5px] text-[var(--nimi-text-muted)]">
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-xs text-[var(--nimi-text-muted)]">
           <span>
             {c.once} {!source.officialManager ? c.unsupported : ''}
           </span>
@@ -848,7 +848,7 @@ function PendingSourceCard({
                   {c.capability} ({source.capabilityContractRefs.length})
                 </span>
               </summary>
-              <div className="mt-1.5 rounded-lg bg-[var(--nimi-surface-panel)] px-2.5 py-1.5 font-mono text-[11px] break-all text-[var(--nimi-text-secondary)]">
+              <div className="mt-1.5 rounded-lg bg-[var(--nimi-surface-panel)] px-2.5 py-1.5 font-mono text-[0.6875rem] break-all text-[var(--nimi-text-secondary)]">
                 {source.capabilityContractRefs.join(', ')}
               </div>
             </details>
@@ -891,7 +891,7 @@ function ManagedSourceRow({
         <div className="flex min-w-0 flex-1 items-center gap-3.5">
           <div
             style={paused ? undefined : { backgroundColor: tone.bg, color: tone.fg }}
-            className={`flex size-10 shrink-0 items-center justify-center rounded-[13px] text-[14.5px] font-semibold ${
+            className={`flex size-10 shrink-0 items-center justify-center rounded-[13px] text-sm font-semibold ${
               paused ? 'bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)]' : ''
             }`}
           >
@@ -908,7 +908,7 @@ function ManagedSourceRow({
                 {source.displayName}
               </NimiText>
               {source.officialManager ? (
-                <span className="text-[11.5px] font-medium text-[var(--nimi-action-primary-bg)]">{c.manager}</span>
+                <span className="text-xs font-medium text-[var(--nimi-action-primary-bg)]">{c.manager}</span>
               ) : null}
             </div>
 
@@ -936,7 +936,7 @@ function ManagedSourceRow({
             type="button"
             disabled={disabled}
             onClick={onPause}
-            className={`inline-flex h-8 items-center rounded-lg px-2.5 text-[12.5px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] disabled:cursor-not-allowed disabled:opacity-45 ${
+            className={`inline-flex min-h-8 items-center rounded-lg px-2.5 text-xs font-medium transition-[transform,background-color,color] duration-150 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] disabled:cursor-not-allowed disabled:opacity-45 ${
               paused
                 ? 'text-[var(--nimi-action-primary-bg)] hover:bg-[var(--nimi-action-ghost-hover)]'
                 : 'text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]'
@@ -949,7 +949,7 @@ function ManagedSourceRow({
             aria-label={`${zh ? '查看访问权限' : 'View access permissions'} · ${source.displayName}`}
             aria-expanded={expanded}
             onClick={() => setExpanded((prev) => !prev)}
-            className="inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-[12.5px] font-medium text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+            className="inline-flex min-h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-medium text-[var(--nimi-text-secondary)] transition-[transform,background-color,color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
           >
             <span>{zh ? '权限' : 'Access'}</span>
             <ChevronDown size={12} className={`transition-transform duration-150 ${expanded ? 'rotate-180' : ''}`} aria-hidden="true" />
@@ -966,10 +966,10 @@ function ManagedSourceRow({
               data-connection-id={connection.connectionId}
               className="flex flex-wrap items-center justify-between gap-2 rounded-xl py-1 pl-2 pr-1.5 transition-colors hover:bg-[var(--nimi-surface-panel)]"
             >
-              <div className="flex min-w-0 flex-wrap items-center gap-2 text-[12.5px]">
+              <div className="flex min-w-0 flex-wrap items-center gap-2 text-xs">
                 <span className="size-1.5 shrink-0 rounded-full bg-[var(--nimi-status-success)]" aria-hidden="true" />
                 <span className="text-[var(--nimi-text-secondary)]">{c.connection}</span>
-                <span className="font-mono text-[11.5px] text-[var(--nimi-text-muted)]">#{connection.connectionId.slice(0, 8)}</span>
+                <span className="font-mono text-xs text-[var(--nimi-text-muted)]">#{connection.connectionId.slice(0, 8)}</span>
                 <span className="text-[var(--nimi-border-subtle)]" aria-hidden="true">
                   ·
                 </span>
@@ -983,7 +983,7 @@ function ManagedSourceRow({
                 type="button"
                 disabled={disabled}
                 onClick={() => onEnd(connection.connectionId)}
-                className="rounded-lg px-2 py-1 text-xs font-medium text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-status-danger-soft-bg)] hover:text-[var(--nimi-status-danger-soft-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] disabled:cursor-not-allowed disabled:opacity-45"
+                className="rounded-lg px-2 py-1 text-xs font-medium text-[var(--nimi-text-muted)] transition-[transform,background-color,color] duration-150 hover:bg-[var(--nimi-status-danger-soft-bg)] hover:text-[var(--nimi-status-danger-soft-text)] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] disabled:cursor-not-allowed disabled:opacity-45"
               >
                 {c.endConnection}
               </button>
@@ -993,7 +993,7 @@ function ManagedSourceRow({
       ) : null}
 
       {expanded ? (
-        <div className="mt-3 ml-0 space-y-2.5 rounded-2xl bg-[var(--nimi-surface-panel)] px-4 py-3.5 text-[12.5px] sm:ml-[54px]">
+        <div className="mt-3 ml-0 space-y-2.5 rounded-2xl bg-[var(--nimi-surface-panel)] px-4 py-3.5 text-xs sm:ml-[54px]">
           <p className="leading-relaxed text-[var(--nimi-text-secondary)]">
             {source.officialManager
               ? c.managerScope
@@ -1007,7 +1007,7 @@ function ManagedSourceRow({
                 {source.appAccess.map((domain) => (
                   <li
                     key={domain}
-                    className="inline-flex items-center gap-1 rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2.5 py-0.5 text-[11.5px] font-medium text-[var(--nimi-text-primary)]"
+                    className="inline-flex items-center gap-1 rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2.5 py-0.5 text-xs font-medium text-[var(--nimi-text-primary)]"
                   >
                     <Check size={11} className="shrink-0 text-[var(--nimi-action-primary-bg)]" aria-hidden="true" />
                     <span>{accessLabels[domain]?.[zh ? 1 : 0] || domain}</span>
@@ -1018,11 +1018,11 @@ function ManagedSourceRow({
               <NimiText role="helper">{zh ? '未声明访问范围' : 'No access scope declared'}</NimiText>
             )
           ) : null}
-          <p className="text-[11.5px] leading-relaxed text-[var(--nimi-text-muted)]">
+          <p className="text-xs leading-relaxed text-[var(--nimi-text-muted)]">
             {c.pauseHint} {c.once}
           </p>
           {source.capabilityContractRefs.length > 0 ? (
-            <div className="font-mono text-[11px] break-all text-[var(--nimi-text-muted)]">
+            <div className="font-mono text-[0.6875rem] break-all text-[var(--nimi-text-muted)]">
               {source.capabilityContractRefs.join(' · ')}
             </div>
           ) : null}

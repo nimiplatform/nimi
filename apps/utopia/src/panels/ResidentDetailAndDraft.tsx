@@ -15,7 +15,7 @@ import {
   type AppConversationEntrySession,
   type AppConversationEntryState,
 } from '@nimiplatform/kit/features/chat/headless';
-import { Button, InlineAlert, StatusBadge, TextareaField, Toggle } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, StatusBadge, TextareaField, Toggle, useNimiReducedMotion } from '@nimiplatform/kit/ui';
 import type { NimiLocalAppClient } from '@nimiplatform/sdk';
 import type {
   NimiUtopiaResident,
@@ -194,6 +194,7 @@ function LazyMountedFormalConversation(props: {
     onClose,
     createSession,
   } = props;
+  const reducedMotion = useNimiReducedMotion();
   const [mounted, setMounted] = useState<MountedConversation | null>(null);
   const [state, setState] = useState<AppConversationEntryState | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -296,9 +297,9 @@ function LazyMountedFormalConversation(props: {
   useEffect(() => {
     const el = listRef.current;
     if (el && typeof el.scrollTo === 'function') {
-      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+      el.scrollTo({ top: el.scrollHeight, behavior: reducedMotion ? 'auto' : 'smooth' });
     }
-  }, [state?.messages.length, state?.activeTurnId]);
+  }, [state?.messages.length, state?.activeTurnId, reducedMotion]);
 
   const triggerManualSend = () => {
     const text = draftText.trim();

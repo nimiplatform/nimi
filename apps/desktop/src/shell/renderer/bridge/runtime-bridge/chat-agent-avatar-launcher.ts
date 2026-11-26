@@ -8,6 +8,7 @@ import {
   confirmDialog,
   invokeAvatarHostHandoffMechanic,
 } from '@nimiplatform/kit/shell/renderer/bridge';
+import { i18n } from '../../i18n/index.js';
 
 export type DesktopAvatarLaunchHandoffInput = {
   agentHandle: string;
@@ -131,9 +132,15 @@ async function invokeDesktopAvatarLaunch(
 }
 
 async function confirmDesktopAvatarSwitch(): Promise<boolean> {
+  const titleDefault = 'Switch current companion?';
+  const descriptionDefault = 'Another companion is already active. Switch the desktop companion to this Agent?';
   const result = await confirmDialog({
-    title: 'Switch current companion?',
-    description: 'Another companion is already active. Switch the desktop companion to this Agent?',
+    title: i18n.isInitialized
+      ? i18n.t('Common.avatarSwitchConfirmTitle', { defaultValue: titleDefault })
+      : titleDefault,
+    description: i18n.isInitialized
+      ? i18n.t('Common.avatarSwitchConfirmDescription', { defaultValue: descriptionDefault })
+      : descriptionDefault,
     level: 'warning',
   });
   return result.confirmed;

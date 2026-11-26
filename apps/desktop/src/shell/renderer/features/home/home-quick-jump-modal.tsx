@@ -301,8 +301,6 @@ export function HomeQuickJumpModal({
       .filter((section) => section.entries.length > 0);
   }, [filtered]);
 
-  if (!open) return null;
-
   const commitItem = (item: HomeQuickJumpItem) => {
     onClose();
     item.onSelect();
@@ -332,7 +330,7 @@ export function HomeQuickJumpModal({
 
   return (
     <OverlayShell
-      open
+      open={open}
       kind="dialog"
       onClose={onClose}
       dataTestId="home-quick-jump-modal"

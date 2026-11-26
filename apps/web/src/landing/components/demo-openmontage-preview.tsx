@@ -88,7 +88,7 @@ export function DemoOpenMontagePreview({ content }: { content: RemainingPreviewM
           <p>{t('openmontage.settings.thisPreviewShowsALandscape720pProduction')}</p>
         </section>
       )}
-      <main className="om-main">
+      <div role="region" aria-label={content.name} className="om-main">
         {page === 'library' ? (
           <>
             <div className="rp-heading">
@@ -291,7 +291,7 @@ export function DemoOpenMontagePreview({ content }: { content: RemainingPreviewM
             )}
           </>
         )}
-      </main>
+      </div>
     </RemainingPreview>
   );
 }

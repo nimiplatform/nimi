@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { LocalAuditEvent } from '@nimiplatform/sdk/runtime/wire-types';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import {
@@ -17,7 +17,8 @@ function toIsoTimeRangeValue(value: string): string | undefined {
   return parsed.toISOString();
 }
 
-export function useAuditPageData(enabled: boolean) {
+export function useAuditPageData(enabled: boolean, options?: { poll?: boolean }) {
+  const poll = options?.poll ?? true;
   const bindings = useDesktopRendererBindings();
   const [loadingAudits, setLoadingAudits] = useState(false);
   const [auditEvents, setAuditEvents] = useState<LocalAuditEvent[]>([]);
@@ -27,33 +28,27 @@ export function useAuditPageData(enabled: boolean) {
   const [auditReasonCodeQuery, setAuditReasonCodeQuery] = useState('');
   const [auditTimeFrom, setAuditTimeFrom] = useState('');
   const [auditTimeTo, setAuditTimeTo] = useState('');
+  const activeRequest = useRef<symbol | null>(null);
 
-  const loadAudits = useCallback(async (overrides?: Partial<{
-    eventType: string;
-    source: string;
-    modality: string;
-    reasonCode: string;
-    timeFrom: string;
-    timeTo: string;
-  }>) => {
-    const eventType = overrides?.eventType ?? auditEventType;
-    const source = overrides?.source ?? auditSource;
-    const modality = overrides?.modality ?? auditModality;
-    const reasonCode = (overrides?.reasonCode ?? auditReasonCodeQuery).trim();
-    const timeFrom = toIsoTimeRangeValue(overrides?.timeFrom ?? auditTimeFrom);
-    const timeTo = toIsoTimeRangeValue(overrides?.timeTo ?? auditTimeTo);
+  const loadAudits = useCallback(async () => {
+    // A refresh for the same filters must let the current read finish all its pages.
+    if (activeRequest.current !== null) return;
+    const request = Symbol();
+    activeRequest.current = request;
+    const timeFrom = toIsoTimeRangeValue(auditTimeFrom);
+    const timeTo = toIsoTimeRangeValue(auditTimeTo);
     setLoadingAudits(true);
     try {
       const audits: LocalAuditEvent[] = [];
       let pageToken = '';
       do {
         const response = await bindings.sdk.localAudit().listLocalAudits({
-          eventType: eventType && eventType !== 'all' ? eventType : '',
+          eventType: auditEventType && auditEventType !== 'all' ? auditEventType : '',
           eventTypes: [],
-          source: source && source !== 'all' ? source : '',
-          modality: modality && modality !== 'all' ? modality : '',
+          source: auditSource && auditSource !== 'all' ? auditSource : '',
+          modality: auditModality && auditModality !== 'all' ? auditModality : '',
           targetId: '',
-          reasonCode: reasonCode || '',
+          reasonCode: '',
           timeRange: timeFrom || timeTo
             ? { from: timeFrom || '', to: timeTo || '' }
             : undefined,
@@ -62,26 +57,38 @@ export function useAuditPageData(enabled: boolean) {
           appId: '',
           subjectUserId: '',
         });
+        if (activeRequest.current !== request) {
+          return;
+        }
         audits.push(...response.events);
         pageToken = String(response.nextPageToken || '').trim();
       } while (pageToken);
       setAuditEvents(audits);
     } finally {
-      setLoadingAudits(false);
+      if (activeRequest.current === request) {
+        activeRequest.current = null;
+        setLoadingAudits(false);
+      }
     }
-  }, [auditEventType, auditModality, auditReasonCodeQuery, auditSource, auditTimeFrom, auditTimeTo, bindings.sdk]);
+  }, [auditEventType, auditModality, auditSource, auditTimeFrom, auditTimeTo, bindings.sdk]);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      setLoadingAudits(false);
+      return;
+    }
     void loadAudits();
     const schedule = (): (() => void) => bindings.clock.schedule(5000, (result) => {
       if (!result.ok) return;
       void loadAudits();
       cancel = schedule();
     });
-    let cancel = schedule();
-    return () => cancel();
-  }, [enabled, loadAudits]);
+    let cancel = poll ? schedule() : undefined;
+    return () => {
+      activeRequest.current = null;
+      cancel?.();
+    };
+  }, [bindings.clock, enabled, loadAudits, poll]);
 
   const filteredAudits = useMemo(
     () => filterAuditEvents({

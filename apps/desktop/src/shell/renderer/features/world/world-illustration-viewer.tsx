@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ArrowRight, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { MediaImage } from '@nimiplatform/kit/features/media';
@@ -15,6 +15,16 @@ function IllustrationViewport({ illustration, alt, zoom, onZoomChange, onUnavail
   const { t } = useTranslation();
   const viewportRef = useRef<HTMLDivElement>(null);
   const previousZoom = useRef(1);
+  const dragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    startScrollLeft: number;
+    startScrollTop: number;
+  } | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const isZoomed = zoom > 1;
+
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
     if (viewport) {
@@ -23,10 +33,62 @@ function IllustrationViewport({ illustration, alt, zoom, onZoomChange, onUnavail
       viewport.scrollTop = (viewport.scrollTop + viewport.clientHeight / 2) * factor - viewport.clientHeight / 2;
     }
     previousZoom.current = zoom;
+    if (zoom <= 1) {
+      dragRef.current = null;
+      setDragging(false);
+    }
   }, [zoom]);
+
+  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!isZoomed || event.button !== 0) return;
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    event.preventDefault();
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startScrollLeft: viewport.scrollLeft,
+      startScrollTop: viewport.scrollTop,
+    };
+    setDragging(true);
+    try {
+      viewport.setPointerCapture?.(event.pointerId);
+    } catch {
+      // Ignore environments without pointer capture support.
+    }
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    const viewport = viewportRef.current;
+    if (!drag || !viewport || drag.pointerId !== event.pointerId) return;
+    viewport.scrollLeft = drag.startScrollLeft - (event.clientX - drag.startX);
+    viewport.scrollTop = drag.startScrollTop - (event.clientY - drag.startY);
+  };
+
+  const endDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    setDragging(false);
+    const viewport = viewportRef.current;
+    if (viewport?.hasPointerCapture?.(event.pointerId)) {
+      viewport.releasePointerCapture(event.pointerId);
+    }
+  };
+
   return <ScrollShell ref={viewportRef}
-    className="flex-1 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-action-primary-bg)]"
+    className={`flex-1 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-action-primary-bg)] ${
+      isZoomed ? (dragging ? 'cursor-grabbing select-none touch-none' : 'cursor-grab touch-none') : ''
+    }`}
     tabIndex={0} role="region" aria-label={t('WorldDetail.discovery.imageViewport')} data-testid="world-illustration-viewport"
+    data-zoom-pan-dragging={dragging ? 'true' : 'false'}
+    onPointerDown={handlePointerDown}
+    onPointerMove={handlePointerMove}
+    onPointerUp={endDrag}
+    onPointerCancel={endDrag}
+    onLostPointerCapture={endDrag}
     onDoubleClick={() => onZoomChange(zoom === 1 ? 2 : 1)}>
     <div className="world-illustration-viewer-canvas" style={{ '--world-illustration-zoom': zoom } as CSSProperties}>
       <MediaImage delivery={illustration.delivery} externalUrl={illustration.url} purpose="detail" sizes="auto, 1600px" loading="eager"

@@ -2432,7 +2432,6 @@
   inset: 0;
   z-index: 200;
   background: rgba(255, 255, 255, 0.12);
-  animation: shijing-yuejing__panel-fade-in 160ms ease both;
 }
 
 .shijing-yuejing__panel {
@@ -2450,7 +2449,6 @@
   display: flex;
   flex-direction: column;
   gap: 26px;
-  animation: shijing-yuejing__panel-slide-in 220ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 
 @keyframes shijing-yuejing__panel-fade-in {
@@ -2800,9 +2798,14 @@
   display: block;
 }
 
-.shijing-yuejing .shijing-yuejing__panel-record-actions button:hover,
+.shijing-yuejing .shijing-yuejing__panel-record-actions button:hover {
+  background: var(--shijing-hover-surface);
+  color: var(--shijing-text-primary);
+}
+
 .shijing-yuejing .shijing-yuejing__panel-record-actions button:focus-visible {
-  outline: none;
+  outline: 2px solid var(--nimi-action-primary-bg, #0d9488);
+  outline-offset: 2px;
   background: var(--shijing-hover-surface);
   color: var(--shijing-text-primary);
 }
@@ -3545,11 +3548,16 @@
   border-radius: 8px;
 }
 
-.shijing-yuejing .shijing-yuejing__month-concern-checklist button:hover,
+.shijing-yuejing .shijing-yuejing__month-concern-checklist button:hover {
+  background: transparent;
+  color: var(--shijing-text-primary);
+}
+
 .shijing-yuejing .shijing-yuejing__month-concern-checklist button:focus-visible {
   background: transparent;
   color: var(--shijing-text-primary);
-  outline: none;
+  outline: 2px solid var(--nimi-action-primary-bg, #0d9488);
+  outline-offset: 2px;
 }
 
 .shijing-yuejing .shijing-yuejing__month-concern-checklist button > span:last-child {
@@ -4924,11 +4932,11 @@
 
 .shijing-mingjing-five__value {
   width: 54px;
-  min-height: 28px;
-  max-height: 82px;
+  height: 82px;
   border-radius: 9px;
   background: var(--mj-five-el, var(--mj-el, var(--shijing-text-muted)));
-  transition: height 0.3s ease;
+  transform-origin: bottom;
+  transition: transform 0.3s ease;
 }
 
 .shijing-mingjing-five__bar[data-dominant] .shijing-mingjing-five__value {
@@ -7037,8 +7045,16 @@
   box-shadow: var(--mingjing-elev-base);
   overflow: hidden;
 }
+.shijing-mingjing .shijing-qz-star__head-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 14px;
+}
 .shijing-mingjing .shijing-qz-star__head {
   appearance: none;
+  flex: 1;
+  min-width: 0;
   width: 100%;
   text-align: left;
   display: flex;
@@ -7052,8 +7068,17 @@
   color: inherit;
 }
 .shijing-mingjing .shijing-qz-star__head:focus-visible {
-  outline: none;
+  outline: 2px solid var(--nimi-action-primary-bg, #0d9488);
+  outline-offset: -2px;
   box-shadow: var(--shijing-focus-ring);
+}
+.shijing-qz-wheel-slice {
+  cursor: pointer;
+}
+.shijing-qz-wheel-slice:focus-visible {
+  outline: none;
+  stroke: var(--nimi-action-primary-bg, #0d9488);
+  stroke-width: 3;
 }
 .shijing-qz-star__body {
   flex: 1;
@@ -9859,6 +9884,60 @@
   :scope:lang(en) .shijing-rijing .shijing-rijing__hero { padding: 24px 18px; }
   :scope:lang(en) .shijing-rijing .shijing-rijing__hero-flip { position: static; align-self: flex-end; }
   .shijing-rijing__hero-subtitle, .shijing-rijing__hero-subtitle-row { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shijing-tab .shijing-generating-button[data-busy="true"],
+  .shijing-generating-button__spinner,
+  .shijing-ask__thinking-dots span,
+  .shijing-yuejing__panel,
+  .shijing-yuejing__panel-backdrop {
+    animation: none !important;
+  }
+  .shijing-mingjing-five__value {
+    transition: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .shijing-yuejing__panel {
+    background: #ffffff;
+  }
+  .shijing-tab .shijing-import-to-consultation {
+    background: #ffffff;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .shijing-yuejing__panel {
+    background: #ffffff;
+    border-left-color: #0f172a;
+  }
+  .shijing-mingjing button:focus-visible,
+  .shijing-tab button:focus-visible {
+    outline: 2px solid #0f172a;
+    outline-offset: 2px;
+  }
+}
+
+.shijing-desktop-notice {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  z-index: 40;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #1c2220;
+  color: #f6f4ef;
+  font-size: 12.5px;
+  font-weight: 550;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  box-shadow: 0 10px 28px -8px rgba(15, 23, 20, 0.42);
+  pointer-events: none;
 }
 
 }

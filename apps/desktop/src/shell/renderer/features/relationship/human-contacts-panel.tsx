@@ -474,8 +474,8 @@ function AccountContactsPanel({ accountId, realmBaseUrl, unreadByUserId, onOpenC
                             label={t('Relationship.contacts.personActions', { name })}
                             disabled={Boolean(pending)}
                             items={[
-                              { id: 'remove', label: t('Profile.removeFriend'), onSelect: () => setConfirmation({ row, action: 'remove' }) },
-                              ...(!row.isDeleted ? [{ id: 'block', label: t('Profile.blockUser'), onSelect: () => setConfirmation({ row, action: 'block' }) }] : []),
+                              { id: 'remove', label: t('Profile.removeFriend'), tone: 'danger', onSelect: () => setConfirmation({ row, action: 'remove' }) },
+                              ...(!row.isDeleted ? [{ id: 'block', label: t('Profile.blockUser'), tone: 'danger' as const, onSelect: () => setConfirmation({ row, action: 'block' }) }] : []),
                             ]}
                           />
                         </div>
@@ -484,7 +484,7 @@ function AccountContactsPanel({ accountId, realmBaseUrl, unreadByUserId, onOpenC
                           label={t('Relationship.contacts.personActions', { name })}
                           disabled={Boolean(pending)}
                           items={[
-                            { id: 'block', label: t('Profile.blockUser'), onSelect: () => setConfirmation({ row, action: 'block' }) },
+                            { id: 'block', label: t('Profile.blockUser'), tone: 'danger', onSelect: () => setConfirmation({ row, action: 'block' }) },
                           ]}
                         />
                       ) : null}

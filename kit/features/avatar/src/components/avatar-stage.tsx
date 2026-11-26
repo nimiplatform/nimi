@@ -1,5 +1,6 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import { cn, Surface } from '@nimiplatform/kit/ui';
+import { useNimiReducedMotion } from '@nimiplatform/kit/ui/motion';
 import {
   inferAvatarEmotionFromPhase,
   inferAvatarToneFromEmotion,
@@ -94,6 +95,7 @@ const SIZE_CLASSES: Record<NonNullable<AvatarStageProps['size']>, { frame: strin
 };
 
 function StaticMediaSurface({ context }: { context: AvatarStageRendererContext }) {
+  const reducedMotion = useNimiReducedMotion();
   const imageUrl = context.renderer.mediaUrl || context.renderer.posterUrl;
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const mediaFailed = imageUrl !== null && failedUrl === imageUrl;
@@ -102,11 +104,12 @@ function StaticMediaSurface({ context }: { context: AvatarStageRendererContext }
       {context.renderer.kind === 'video' && imageUrl && !mediaFailed ? (
         <video
           src={imageUrl}
+          poster={context.renderer.posterUrl || undefined}
           className="absolute inset-0 h-full w-full object-cover"
           muted
-          loop
+          loop={!reducedMotion}
           playsInline
-          autoPlay
+          autoPlay={!reducedMotion}
           aria-hidden="true"
           onError={() => setFailedUrl(imageUrl)}
         />
@@ -164,9 +167,10 @@ export function AvatarStage({
     renderers,
     defaults: DEFAULT_RENDERERS,
   });
+  const reducedMotion = useNimiReducedMotion();
   const amplitude = typeof snapshot.interaction.amplitude === 'number' ? Math.max(0, Math.min(snapshot.interaction.amplitude, 1)) : 0;
   const phase = snapshot.interaction.phase;
-  const speakingScale = phase === 'speaking' || renderer.prefersMotion ? 1 + amplitude * 0.06 : 1;
+  const speakingScale = reducedMotion ? 1 : (phase === 'speaking' || renderer.prefersMotion ? 1 + amplitude * 0.06 : 1);
   const badgeLabel = statusLabel ?? snapshot.interaction.actionCue ?? resolveAvatarPhaseLabel(phase, labels);
   const resolvedFallback = fallback ?? (((fallbackLabel || label).trim().charAt(0).toUpperCase()) || '?');
 
@@ -205,7 +209,7 @@ export function AvatarStage({
           style={{
             borderColor: toneStyle.ring,
             opacity: phase === 'speaking' ? 0.55 + amplitude * 0.25 : 0.45,
-            transform: `scale(${phase === 'speaking' ? 1.08 + amplitude * 0.08 : 1.05})`,
+            transform: reducedMotion ? undefined : `scale(${phase === 'speaking' ? 1.08 + amplitude * 0.08 : 1.05})`,
           }}
         />
       ) : null}
@@ -241,7 +245,7 @@ export function AvatarStage({
             sizeClass.badge,
           )}
         >
-          <span className={cn('inline-block h-2 w-2 shrink-0 rounded-full bg-current opacity-70', phase === 'thinking' || phase === 'speaking' ? 'animate-pulse motion-reduce:animate-none' : '')} />
+          <span aria-hidden="true" className={cn('inline-block h-2 w-2 shrink-0 rounded-full bg-current opacity-70', phase === 'thinking' || phase === 'speaking' ? 'animate-pulse motion-reduce:animate-none' : '')} />
           <span data-avatar-stage-status-label="true" className={cn(sizeClass.title, 'min-w-0 truncate leading-none')}>{badgeLabel}</span>
         </span>
       ) : null}

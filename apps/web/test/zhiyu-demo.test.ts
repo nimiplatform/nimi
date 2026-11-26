@@ -150,10 +150,20 @@ test('the kit Agent Center session loads a ready snapshot from the mock client',
   assert.equal(typeof current.appearance.replaceAvatar, 'function');
   assert.equal(snapshot.state.conversationContext, null);
   assert.equal(snapshot.availability.updateConversationContext.state, 'unavailable');
-  await assert.rejects(client.client.conversationContext.update({
-    agentHandle: client.handle, conversationAnchorId: 'demo-no-runtime-conversation',
-    expectedContextRevision: '1', firstTurnSequence: '0', omitSupplementalContext: false,
-  }), /unavailable in this preview/u);
+  await assert.rejects(
+    client.client.conversationContext.update({
+      agentHandle: client.handle,
+      conversationAnchorId: 'demo-no-runtime-conversation',
+      expectedContextRevision: '1',
+      firstTurnSequence: '0',
+      omitSupplementalContext: false,
+    }),
+    (error: unknown) =>
+      error instanceof Error &&
+      'reasonCode' in error &&
+      error.reasonCode === 'LOCAL_APP_OPERATION_UNAVAILABLE' &&
+      error.message === zhiyuPreviewContent.demo.conversationContextUnavailable,
+  );
   current.dispose();
 });
 

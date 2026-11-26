@@ -20,7 +20,11 @@ import {
   type StudioRunHistory,
   type StudioRunHistoryRecord,
 } from './history.js';
-import { studioHistoryClearOutcomeTone } from './history-policy.js';
+import {
+  appendStudioRunHistoryRecord,
+  studioHistoryClearOutcomeTone,
+  studioHistoryFromRecords,
+} from './history-policy.js';
 import type { StudioCapabilityRegistration } from './module-registration.js';
 import { createStudioNonSuccess } from './non-success-presentation.js';
 import type { StudioParameterState } from './parameters.js';
@@ -158,11 +162,26 @@ export function useAIStudioWorkspaceController({
   );
   const currentRepository = useRef(historyRepository);
   currentRepository.current = historyRepository;
+  const projectionRef = useRef<AIStudioHistoryProjection | null>(null);
+  projectionRef.current = projection;
+  const pendingRemovedIdsRef = useRef(new Set<string>());
+  const activeUndoToastsRef = useRef(new Set<string>());
   const active = useRef(true);
   useEffect(() => {
     active.current = true;
-    return () => { active.current = false; };
+    return () => {
+      active.current = false;
+      for (const id of activeUndoToastsRef.current) nimiToast.dismiss(id);
+      activeUndoToastsRef.current.clear();
+      pendingRemovedIdsRef.current.clear();
+    };
   }, []);
+
+  useEffect(() => () => {
+    for (const id of activeUndoToastsRef.current) nimiToast.dismiss(id);
+    activeUndoToastsRef.current.clear();
+    pendingRemovedIdsRef.current.clear();
+  }, [historyRepository]);
 
   const refreshHistory = useCallback(async () => {
     try {
@@ -226,9 +245,86 @@ export function useAIStudioWorkspaceController({
 
   const historyActions = useMemo(() => ({
     removeRecord: async (recordId: string, deleteAssets = false) => {
+      const currentProjection = projectionRef.current;
+      const removedRecord = !deleteAssets && currentProjection
+        ? Object.values(currentProjection.runHistory).flat().find((item) => item.id === recordId)
+        : undefined;
+      const removedMedia = !deleteAssets && currentProjection
+        ? currentProjection.mediaHistory.filter((item) => (item.runId || item.id) === recordId)
+        : [];
+      if (!deleteAssets && removedRecord) {
+        let undone = false;
+        pendingRemovedIdsRef.current.add(recordId);
+        setProjection((current) => current ? removeRecordFromProjection(current, recordId) : current);
+        const removePromise = historyRepository.remove(recordId, false);
+        let toastId = '';
+        const restore = async () => {
+          if (undone) return;
+          undone = true;
+          if (toastId) activeUndoToastsRef.current.delete(toastId);
+          pendingRemovedIdsRef.current.delete(recordId);
+          if (active.current && currentRepository.current === historyRepository) {
+            setProjection((current) => current
+              ? restoreRecordInProjection(current, removedRecord, removedMedia)
+              : { runHistory: studioHistoryFromRecords([removedRecord]), mediaHistory: removedMedia });
+          }
+          try {
+            await removePromise.catch(() => undefined);
+            // Once Undo has been accepted, always complete the restore write against the
+            // captured repository even if the workspace unmounts before removal settles.
+            const restored = await historyRepository.appendRecord(removedRecord);
+            if (!active.current || currentRepository.current !== historyRepository) return;
+            if ('refreshError' in restored) {
+              setHistoryIssue(current => current?.kind === 'save' ? current : { kind: 'load', saved: true, message: restored.refreshError });
+              return;
+            }
+            setProjection(filterPendingRemovedProjection(restored, pendingRemovedIdsRef.current));
+          } catch {
+            if (active.current && currentRepository.current === historyRepository) {
+              await refreshHistory();
+              nimiToast.danger(translate('History.restoreFailed'));
+            }
+          }
+        };
+        toastId = nimiToast.success(translate('History.deletedRecordOnly'), {
+          durationMs: 6000,
+          action: {
+            label: translate('Common.undo'),
+            onClick: () => { void restore(); },
+          },
+        });
+        activeUndoToastsRef.current.add(toastId);
+        try {
+          const outcome = await removePromise;
+          pendingRemovedIdsRef.current.delete(recordId);
+          if (undone || !active.current || currentRepository.current !== historyRepository) return;
+          if (outcome.skipped > 0) {
+            activeUndoToastsRef.current.delete(toastId);
+            nimiToast.dismiss(toastId);
+            setProjection(filterPendingRemovedProjection(outcome.projection, pendingRemovedIdsRef.current));
+            nimiToast.danger(translate('History.deleteAssetFailed'));
+          } else if (outcome.failed > 0) {
+            activeUndoToastsRef.current.delete(toastId);
+            nimiToast.dismiss(toastId);
+            setProjection(filterPendingRemovedProjection(outcome.projection, pendingRemovedIdsRef.current));
+            nimiToast.danger(translate('History.deleteFailed'));
+          } else {
+            setProjection(filterPendingRemovedProjection(outcome.projection, pendingRemovedIdsRef.current));
+          }
+        } catch {
+          pendingRemovedIdsRef.current.delete(recordId);
+          activeUndoToastsRef.current.delete(toastId);
+          nimiToast.dismiss(toastId);
+          if (!undone && active.current && currentRepository.current === historyRepository) {
+            await refreshHistory();
+            nimiToast.danger(translate('History.deleteFailed'));
+          }
+        }
+        return;
+      }
       try {
         const outcome = await historyRepository.remove(recordId, deleteAssets);
-        setProjection(outcome.projection);
+        setProjection(filterPendingRemovedProjection(outcome.projection, pendingRemovedIdsRef.current));
         if (outcome.skipped > 0) nimiToast.danger(translate('History.deleteAssetFailed'));
         else if (outcome.failed > 0) nimiToast.danger(translate('History.deleteFailed'));
         else nimiToast.success(translate(deleteAssets ? 'History.deletedRecordAndAsset' : 'History.deletedRecordOnly'));
@@ -467,6 +563,45 @@ export function AIStudioWorkspace({
       </StudioHistoryLoadContext.Provider>
     </StudioCapabilityParameterContext.Provider>
   );
+}
+
+function removeRecordFromProjection(
+  projection: AIStudioHistoryProjection,
+  recordId: string,
+): AIStudioHistoryProjection {
+  const remainingRuns = Object.values(projection.runHistory).flat().filter((item) => item.id !== recordId);
+  return {
+    runHistory: studioHistoryFromRecords(remainingRuns),
+    mediaHistory: projection.mediaHistory.filter((item) => (item.runId || item.id) !== recordId),
+  };
+}
+
+function filterPendingRemovedProjection(
+  projection: AIStudioHistoryProjection,
+  pendingRemovedIds: ReadonlySet<string>,
+): AIStudioHistoryProjection {
+  if (pendingRemovedIds.size === 0) return projection;
+  const remainingRuns = Object.values(projection.runHistory).flat().filter((item) => !pendingRemovedIds.has(item.id));
+  return {
+    runHistory: studioHistoryFromRecords(remainingRuns),
+    mediaHistory: projection.mediaHistory.filter((item) => !pendingRemovedIds.has(item.runId || item.id)),
+  };
+}
+
+function restoreRecordInProjection(
+  projection: AIStudioHistoryProjection,
+  record: StudioRunHistoryRecord,
+  mediaRows: readonly StudioMediaHistoryRecord[],
+): AIStudioHistoryProjection {
+  const restoredMediaIds = new Set(mediaRows.map((item) => item.id));
+  const mergedMedia = [
+    ...mediaRows,
+    ...projection.mediaHistory.filter((item) => !restoredMediaIds.has(item.id)),
+  ].sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+  return {
+    runHistory: appendStudioRunHistoryRecord(projection.runHistory, record),
+    mediaHistory: mergedMedia,
+  };
 }
 
 function errorMessage(error: unknown, fallback: string): string {

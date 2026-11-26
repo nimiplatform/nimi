@@ -65,7 +65,7 @@ export function HomeMessageCenter({ messages, context, filter, sourceKey, onFilt
       </div>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 id="home-message-center-title" className="text-[28px] font-semibold leading-tight tracking-tight">
+          <h1 id="home-message-center-title" className="text-[1.75rem] font-semibold leading-tight tracking-tight">
             {t('runtimeConfig.overview.messages.centerTitle')}
           </h1>
         </div>

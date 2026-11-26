@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperti
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, List, X } from 'lucide-react';
 import { Button, EmptyState, IconButton, LoadingSkeleton, OverlayShell, ScrollArea, Timeline, TimelineGroup } from '@nimiplatform/kit/ui';
+import { useNimiReducedMotion } from '@nimiplatform/kit/ui/motion';
 import type { WorldDetailData, WorldHistoryBundle, WorldSemanticData } from './world-detail-types.js';
 import { worldReadingEntries, type WorldReadingEntry, type WorldReadingSection } from './world-detail-reading-model.js';
 import { WorldStoryMarkdown } from './world-story-markdown.js';
@@ -117,6 +118,7 @@ export function WorldDetailReader({ world, semantic, history, loading, incomplet
   scrollViewportRef?: RefObject<HTMLDivElement | null>;
 }) {
   const { t } = useTranslation();
+  const reducedMotion = useNimiReducedMotion();
   const rootRef = useRef<HTMLElement | null>(null);
   const headerRef = useRef<HTMLElement | null>(null);
   const articleRef = useRef<HTMLElement | null>(null);
@@ -228,8 +230,8 @@ export function WorldDetailReader({ world, semantic, history, loading, incomplet
   const selectHeading = (id: string, moveFocus = true) => {
     const node = articleRef.current?.querySelector<HTMLElement>('[id="' + id + '"]');
     if (!node) return;
-    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    node.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+    const preferInstant = reducedMotion || document.documentElement?.dataset.nimiReducedMotion === 'true';
+    node.scrollIntoView({ behavior: preferInstant ? 'auto' : 'smooth', block: 'start' });
     if (moveFocus) node.focus({ preventScroll: true });
     setActiveId(id);
     // Reveal the selected heading without closing chapters opened by the user.
@@ -296,7 +298,12 @@ export function WorldDetailReader({ world, semantic, history, loading, incomplet
         <ScrollArea className="min-h-0 flex-1" contentClassName="px-3 pb-8">{contents()}</ScrollArea>
       </aside>
       <div className="world-reader-page">
-        <header ref={headerRef} className="world-reader-header">
+        <header
+          ref={headerRef}
+          className="world-reader-header nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
+          data-nimi-material="glass-regular"
+          data-nimi-tone="overlay"
+        >
           <div className="world-reader-heading-row">
             <div className="world-reader-running-head">
               {!sidebarVisible && outline.length ? (
@@ -349,7 +356,12 @@ export function WorldDetailReader({ world, semantic, history, loading, incomplet
           ))}
         </article>
         {current ? (
-          <footer className="world-reader-footer" aria-label={t('WorldDetail.reader.sectionNavigation')}>
+          <footer
+            className="world-reader-footer nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
+            data-nimi-material="glass-regular"
+            data-nimi-tone="overlay"
+            aria-label={t('WorldDetail.reader.sectionNavigation')}
+          >
             <div className="world-reader-footer-inner">
               <span className="world-reader-current" title={current.label}>{current.label}</span>
               {next ? (
@@ -365,7 +377,7 @@ export function WorldDetailReader({ world, semantic, history, loading, incomplet
           </footer>
         ) : null}
       </div>
-      <OverlayShell open={drawerOpen} kind="drawer" onClose={() => setDrawerOpen(false)} data-testid="world-reader-drawer"
+      <OverlayShell open={drawerOpen} kind="drawer" side="left" onClose={() => setDrawerOpen(false)} data-testid="world-reader-drawer"
         title={<div className="flex items-center justify-between gap-4"><span>{t('WorldDetail.reader.contents')}</span><IconButton tone="ghost" size="sm" icon={<X size={18} />} aria-label={t('WorldDetail.reader.closeContents')} onClick={() => setDrawerOpen(false)} /></div>}
         panelClassName="flex flex-col rounded-none" contentClassName="min-h-0 flex-1 px-0 pb-0"
         panelStyle={{ left: geometry.left, right: 'auto', top: geometry.top, height: geometry.height - geometry.headerHeight, width: 'min(300px, calc(100vw - 32px))', maxWidth: 'calc(100vw - 32px)' }}>

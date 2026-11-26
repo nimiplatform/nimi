@@ -7,7 +7,7 @@ import { Surface } from './surface.js';
 export type AppCardSurfaceKind = 'promoted-glass' | 'operational-solid';
 
 const APP_CARD_SURFACE_CLASS: Record<AppCardSurfaceKind, string> = {
-  'promoted-glass': 'rounded-[var(--nimi-radius-lg)] border-white/60 bg-[var(--nimi-surface-card-promoted-glass-elevated)]',
+  'promoted-glass': 'rounded-[var(--nimi-radius-lg)] border-[var(--nimi-material-glass-regular-border)] bg-[var(--nimi-surface-card-promoted-glass-elevated)]',
   'operational-solid': 'rounded-[var(--nimi-radius-lg)] border-[color:var(--nimi-border-subtle)] bg-[var(--nimi-surface-card-operational-solid-elevated)]',
 };
 
@@ -109,12 +109,13 @@ export function IconToggleAction(
   return (
     <IconButton
       {...domProps}
+      aria-pressed={active}
       icon={icon}
       tone={active ? (activeTone === 'danger' ? 'danger' : 'primary') : 'secondary'}
       size="sm"
       className={cn(
         'h-8 w-8 rounded-full shadow-[var(--nimi-elevation-base)]',
-        !active && 'border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_96%,white)] text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]',
+        !active && 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]',
         active && activeTone === 'primary' && 'border-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]',
         active && activeTone === 'danger' && 'border-transparent bg-[var(--nimi-status-danger)] text-[var(--nimi-text-inverse)]',
         className,
@@ -134,9 +135,9 @@ export function FieldTrigger(
       type="button"
       {...domProps}
       className={cn(
-        'flex h-10 w-full items-center gap-3 rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)]',
-        'bg-[color-mix(in_srgb,var(--nimi-surface-card)_96%,white)] px-3 text-left text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-primary)]',
-        'shadow-[var(--nimi-elevation-base)] transition-[border-color,box-shadow] duration-[var(--nimi-motion-fast)]',
+        'flex min-h-[var(--nimi-sizing-field-md-height)] w-full items-center gap-3 rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)]',
+        'bg-[var(--nimi-field-bg)] px-3 text-left text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-primary)]',
+        'shadow-[var(--nimi-elevation-base)] transition-[border-color,box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)]',
         'hover:border-[var(--nimi-border-strong)] hover:shadow-[var(--nimi-elevation-raised)]',
         'disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
         FOCUS_RING_CLASS_NAME,

@@ -1,6 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
-import { NimiThemeProvider, TooltipProvider } from '@nimiplatform/kit/ui';
+import { NimiMotionProvider, NimiThemeProvider, TooltipProvider } from '@nimiplatform/kit/ui';
 import { installNimiShellRuntimeBridge } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   DEFAULT_DEV_RENDERER_ENTRY_IMPORT_RETRY_DELAYS_MS,
@@ -27,11 +27,13 @@ function ThemedRoot() {
   const { scheme } = useAppTheme();
   return (
     <NimiThemeProvider scheme={scheme} accentPack="nimi-accent">
-      <TooltipProvider>
-        <Suspense fallback={null}>
-          <App />
-        </Suspense>
-      </TooltipProvider>
+      <NimiMotionProvider>
+        <TooltipProvider>
+          <Suspense fallback={null}>
+            <App />
+          </Suspense>
+        </TooltipProvider>
+      </NimiMotionProvider>
     </NimiThemeProvider>
   );
 }

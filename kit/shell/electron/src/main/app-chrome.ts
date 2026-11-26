@@ -15,11 +15,22 @@ export type NimiElectronChromeWebContents = Emitter & {
   setIgnoreMenuShortcuts(ignore: boolean): void;
   undo(): void; redo(): void; cut(): void; copy(): void; paste(): void; selectAll(): void;
 };
+export type NimiElectronTitleBarOverlayOptions = {
+  readonly color: string;
+  readonly symbolColor: string;
+  readonly height: number;
+};
+
+export type NimiElectronChromeThemeSource = Emitter & {
+  readonly shouldUseDarkColors: boolean;
+};
+
 export type NimiElectronChromeWindow = Emitter & {
   readonly webContents: NimiElectronChromeWebContents;
   isDestroyed(): boolean; isFocused(): boolean; close(): void;
   isFullScreen(): boolean; setFullScreen(fullscreen: boolean): void;
   setMenu(menu: null): void; setMenuBarVisibility(visible: boolean): void;
+  setTitleBarOverlay?(options: NimiElectronTitleBarOverlayOptions): void;
 };
 export type NimiElectronChromeMenuItem = {
   id?: string; label?: string; role?: NimiElectronStandardMenuRole;
@@ -46,6 +57,8 @@ export type NimiElectronAppChromeHostInput = {
     buildFromTemplate(template: NimiElectronChromeMenuItem[]): object;
     setApplicationMenu(menu: object | null): void;
   };
+  /** Optional OS theme source (Electron `nativeTheme`) to keep Windows titleBarOverlay symbolColor in sync with light/dark mode. */
+  readonly nativeTheme?: NimiElectronChromeThemeSource;
   readonly appCommands?: readonly NimiElectronChromeAppCommand[];
 };
 export type NimiElectronChromeOperation = 'chromeBind' | 'chromeStateSet' | 'chromeCommand' | 'chromeUnbind';
@@ -60,10 +73,22 @@ type WindowBinding = {
   suppress: boolean; send?: (event: string, payload: unknown) => void; cleanup: () => void;
 };
 
+/** Resolve accessible transparent titleBarOverlay options for the given theme scheme. */
+export function resolveNimiElectronTitleBarOverlay(scheme: 'light' | 'dark' = 'light'): NimiElectronTitleBarOverlayOptions {
+  return {
+    color: '#00000000',
+    symbolColor: scheme === 'dark' ? '#e5e7eb' : '#334155',
+    height: 40,
+  };
+}
+
 /** Only titlebar options: the App still owns security, creation and lifetime. */
-export function createNimiElectronAppChromeWindowOptions(platform: NodeJS.Platform = process.platform) {
+export function createNimiElectronAppChromeWindowOptions(
+  platform: NodeJS.Platform = process.platform,
+  options?: { readonly scheme?: 'light' | 'dark' },
+) {
   return platform === 'darwin' || platform === 'win32'
-    ? { titleBarStyle: 'hidden' as const, titleBarOverlay: { color: '#00000000', symbolColor: '#737373', height: 40 } }
+    ? { titleBarStyle: 'hidden' as const, titleBarOverlay: resolveNimiElectronTitleBarOverlay(options?.scheme ?? 'light') }
     : {};
 }
 
@@ -208,6 +233,15 @@ export function createNimiElectronAppChromeHost(input: NimiElectronAppChromeHost
     const cleanup: (() => void)[] = [];
     const binding: WindowBinding = { window, webContents, generation: null, loading: false, locale: 'en', states: new Map(), suppress: false, cleanup: () => undefined };
     const on = (target: Emitter, event: string, listener: Listener) => { target.on(event, listener); cleanup.push(() => { target.removeListener(event, listener); }); };
+    if (platform === 'win32' && input.titleBarStyle !== 'native' && input.nativeTheme && typeof window.setTitleBarOverlay === 'function') {
+      const syncOverlay = () => {
+        if (!window.isDestroyed()) {
+          window.setTitleBarOverlay?.(resolveNimiElectronTitleBarOverlay(input.nativeTheme?.shouldUseDarkColors ? 'dark' : 'light'));
+        }
+      };
+      syncOverlay();
+      on(input.nativeTheme, 'updated', syncOverlay);
+    }
     const remove = () => {
       // closed, WebContents.destroyed and host disposal can overlap. Detach
       // this exact binding before callbacks, without reading a dead Window.

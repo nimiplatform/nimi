@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MediaImage } from '@nimiplatform/kit/features/media';
 import { DialogDescription, DialogTitle, OverlayShell } from '@nimiplatform/kit/ui';
@@ -61,7 +61,13 @@ export function CharacterVisualGallery({
   if (items.length === 0) return null;
 
   const activeItem = activeIndex !== null ? items[activeIndex] ?? null : null;
-  const activeLabel = activeItem ? resolveVisualLabel(activeItem, t, language) : null;
+  const lastLightboxRef = useRef<{ item: SourceDetailVisualItem; index: number } | null>(null);
+  if (activeItem && activeIndex !== null) {
+    lastLightboxRef.current = { item: activeItem, index: activeIndex };
+  }
+  const renderedItem = activeItem ?? lastLightboxRef.current?.item ?? null;
+  const renderedIndex = activeIndex ?? lastLightboxRef.current?.index ?? 0;
+  const renderedLabel = renderedItem ? resolveVisualLabel(renderedItem, t, language) : null;
   const move = (step: -1 | 1) => {
     setActiveIndex((current) => current === null ? null : (current + step + items.length) % items.length);
   };
@@ -103,7 +109,7 @@ export function CharacterVisualGallery({
                 defaultValue: `Inspect full image: ${label}`,
               })}
               onClick={() => setActiveIndex(index)}
-              className={`group relative h-[280px] shrink-0 overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] text-left shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)] sm:h-[310px] ${visualAspectClass(item)}`}
+              className={`group relative h-[280px] shrink-0 overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] text-left shadow-xs transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.985] motion-reduce:transform-none motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)] sm:h-[310px] ${visualAspectClass(item)}`}
             >
               <MediaImage
                 delivery={item.delivery}
@@ -111,7 +117,7 @@ export function CharacterVisualGallery({
                 purpose={purpose}
                 sizes="(min-width: 1024px) 480px, 80vw"
                 alt={`${characterName} · ${label}`}
-                className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.02]"
+                className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.02] motion-reduce:transform-none motion-reduce:transition-none"
               />
               <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-gradient-to-t from-black/72 via-black/28 to-transparent px-3 pb-2.5 pt-8">
                 <span className="truncate text-xs font-semibold text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.65)]">
@@ -131,11 +137,11 @@ export function CharacterVisualGallery({
         open={activeItem !== null}
         onClose={() => setActiveIndex(null)}
         data-testid="world-character-gallery-lightbox"
-        className="bg-black/88 backdrop-blur-sm"
+        className="bg-black/88"
         panelClassName="w-max max-w-[calc(100vw-3rem)] border-0 bg-transparent shadow-none"
         contentClassName="p-0"
       >
-        {activeItem && activeIndex !== null ? (
+        {renderedItem ? (
           <div
             onKeyDown={(event) => {
               if (items.length < 2 || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) return;
@@ -149,11 +155,11 @@ export function CharacterVisualGallery({
                 <DialogTitle className="flex items-baseline gap-2.5">
                   <span className="text-sm font-semibold">{characterName}</span>
                   <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-medium text-white/90">
-                    {activeLabel}
+                    {renderedLabel}
                   </span>
                 </DialogTitle>
                 <DialogDescription className="text-xs text-white/65 tabular-nums">
-                  {activeIndex + 1} / {items.length}
+                  {renderedIndex + 1} / {items.length}
                 </DialogDescription>
               </div>
               <button
@@ -161,7 +167,7 @@ export function CharacterVisualGallery({
                 data-testid="world-character-gallery-lightbox-close"
                 aria-label={t('SourceDetail.worldCharacter.galleryClose', { defaultValue: 'Close preview' })}
                 onClick={() => setActiveIndex(null)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25 focus-visible:outline-2 focus-visible:outline-white"
+                className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/15 text-white transition-[background-color,transform] hover:bg-white/25 active:scale-[0.95] motion-reduce:transform-none focus-visible:outline-2 focus-visible:outline-white"
               >
                 <X className="h-4 w-4" aria-hidden />
               </button>
@@ -174,7 +180,7 @@ export function CharacterVisualGallery({
                   data-testid="world-character-gallery-lightbox-prev"
                   aria-label={t('SourceDetail.worldCharacter.galleryPrev', { defaultValue: 'Previous image' })}
                   onClick={() => move(-1)}
-                  className="mr-3 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25 focus-visible:outline-2 focus-visible:outline-white"
+                  className="mr-3 inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white/15 text-white transition-[background-color,transform] hover:bg-white/25 active:scale-[0.95] motion-reduce:transform-none focus-visible:outline-2 focus-visible:outline-white"
                 >
                   <ChevronLeft className="h-5 w-5" aria-hidden />
                 </button>
@@ -182,20 +188,20 @@ export function CharacterVisualGallery({
 
               <div className="flex items-center justify-center overflow-hidden rounded-2xl shadow-2xl">
                 <MediaImage
-                  delivery={activeItem.delivery}
-                  externalUrl={activeItem.externalUrl}
+                  delivery={renderedItem.delivery}
+                  externalUrl={renderedItem.externalUrl}
                   purpose={
-                    activeItem.delivery?.images.some((set) => set.purpose === 'hero')
+                    renderedItem.delivery?.images.some((set) => set.purpose === 'hero')
                       ? 'hero'
-                      : activeItem.delivery?.images.some((set) => set.purpose === 'detail')
+                      : renderedItem.delivery?.images.some((set) => set.purpose === 'detail')
                         ? 'detail'
                         : 'avatar'
                   }
                   sizes="85vw"
-                  width={activeItem.width ?? undefined}
-                  height={activeItem.height ?? undefined}
+                  width={renderedItem.width ?? undefined}
+                  height={renderedItem.height ?? undefined}
                   loading="eager"
-                  alt={`${characterName} · ${activeLabel}`}
+                  alt={`${characterName} · ${renderedLabel}`}
                   className="h-auto max-h-[78vh] w-auto max-w-[82vw] rounded-2xl object-contain"
                 />
               </div>
@@ -206,7 +212,7 @@ export function CharacterVisualGallery({
                   data-testid="world-character-gallery-lightbox-next"
                   aria-label={t('SourceDetail.worldCharacter.galleryNext', { defaultValue: 'Next image' })}
                   onClick={() => move(1)}
-                  className="ml-3 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25 focus-visible:outline-2 focus-visible:outline-white"
+                  className="ml-3 inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white/15 text-white transition-[background-color,transform] hover:bg-white/25 active:scale-[0.95] motion-reduce:transform-none focus-visible:outline-2 focus-visible:outline-white"
                 >
                   <ChevronRight className="h-5 w-5" aria-hidden />
                 </button>

@@ -332,7 +332,7 @@ function HomeMessageCardCompact({ message, context }: {
   const titlePad = ['', 'pr-8', 'pr-16', 'pr-24'][actions.length] ?? 'pr-24';
   return (
     <AppCardSurface
-      kind="promoted-glass"
+      kind="operational-solid"
       as="article"
       aria-label={title}
       className="group/message relative flex items-center gap-3 rounded-2xl border-transparent! bg-[var(--nimi-home-soft-well)]! px-4 py-3 shadow-none! transition-colors hover:bg-[var(--nimi-home-soft-well-hover)]!"
@@ -378,7 +378,7 @@ function HomeMessageCardCompact({ message, context }: {
         ) : null}
       </div>
       {actions.length ? (
-        <div className="absolute right-1.5 top-1.5 z-10 flex gap-1 opacity-0 transition-opacity group-hover/message:opacity-100 group-focus-within/message:opacity-100">
+        <div className="absolute right-1.5 top-1.5 z-10 flex gap-1 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/message:opacity-100 group-focus-within/message:opacity-100">
           {actions}
         </div>
       ) : null}
@@ -405,7 +405,7 @@ function HomeMessageCardCenter({ message, context, placement, onShowOnHome, onOp
   const title = messageTitle(message, t);
   return (
     <AppCardSurface
-      kind="promoted-glass"
+      kind="operational-solid"
       as="article"
       aria-label={title}
       className={`group/message ${CARD_CLASS} border-transparent! bg-[var(--nimi-home-porcelain-card)]! shadow-[var(--nimi-home-porcelain-shadow)]!`}
@@ -554,7 +554,7 @@ export function HomeMessageStack({ group, context, onExpand, autoFocus, onAutoFo
           className="absolute inset-x-6 bottom-0 h-1 rounded-b-xl bg-[var(--nimi-home-soft-well)] opacity-50"
         />
       ) : null}
-      <AppCardSurface kind="promoted-glass" as="article" aria-label={label} className="group/message relative rounded-2xl border-transparent! bg-[var(--nimi-home-soft-well)]! shadow-none! transition-colors hover:bg-[var(--nimi-home-soft-well-hover)]!">
+      <AppCardSurface kind="operational-solid" as="article" aria-label={label} className="group/message relative rounded-2xl border-transparent! bg-[var(--nimi-home-soft-well)]! shadow-none! transition-colors hover:bg-[var(--nimi-home-soft-well-hover)]!">
         {hideable ? (
           <HideButton
             label={t('runtimeConfig.overview.messages.hideGroup', { count: group.messages.length })}

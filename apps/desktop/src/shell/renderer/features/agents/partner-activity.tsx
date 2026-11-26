@@ -40,7 +40,7 @@ export function PartnerActivity({ agentHandle }: { agentHandle: string }) {
         items={[{ value: 'all', label: t(`${P}.all`) }, { value: 'pending', label: t(`${P}.pending`) }]}
         onValueChange={value => change({ ...filter, pendingOnly: value === 'pending' })} />
       <select aria-label={t(`${P}.source`)} value={filter.sourceRef ?? ''} onChange={event => change({ ...filter, sourceRef: event.target.value || undefined })}
-        className="max-w-full rounded-[var(--nimi-radius-field)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-3 py-2 text-sm text-[var(--nimi-field-text)]">
+        className="max-w-full rounded-[var(--nimi-radius-field)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-3 py-2 text-sm text-[var(--nimi-field-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] focus-visible:ring-offset-1">
         <option value="">{t(`${P}.allSources`)}</option>
         {filter.sourceRef && !sources.has(filter.sourceRef) ? <option value={filter.sourceRef}>{t(`${P}.selectedSource`)}</option> : null}
         {[...sources].map(([ref, label]) => <option key={ref} value={ref}>{label}</option>)}

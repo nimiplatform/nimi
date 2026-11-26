@@ -38,7 +38,7 @@
   .runtime-account-owner-copy {
     margin: 0;
     color: var(--nimi-text-secondary);
-    font-size: 14px;
+    font-size: var(--nimi-type-body-size);
     line-height: 1.6;
     overflow-wrap: anywhere;
   }
@@ -87,11 +87,6 @@
     max-width: min(420px, calc(100cqw - 48px));
   }
 
-  .product-hero h1 {
-    margin: 0;
-    letter-spacing: 0;
-  }
-
   .product-area {
     min-width: 0;
     display: grid;
@@ -111,8 +106,10 @@
   }
 
   .product-hero h1 {
-    font-size: 56px;
-    line-height: 0.96;
+    margin: 0;
+    font-size: 3.5rem;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
     max-width: 760px;
   }
 
@@ -120,23 +117,23 @@
     max-width: 720px;
     margin: 18px 0 0;
     color: var(--nimi-text-secondary);
-    font-size: 17px;
+    font-size: 1.0625rem;
     line-height: 1.55;
   }
 
   .eyebrow {
     margin: 0 0 8px;
     color: var(--nimi-text-muted);
-    font-size: 12px;
+    font-size: var(--nimi-type-caption-size);
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0;
+    letter-spacing: var(--nimi-type-overline-letter-spacing);
   }
 
   .world-tour-canvas h2 {
     margin: 0;
-    font-size: 22px;
-    letter-spacing: 0;
+    font-size: 1.375rem;
+    letter-spacing: var(--nimi-type-page-title-letter-spacing);
   }
 
   .lab-actions {
@@ -154,7 +151,7 @@
     border-radius: 12px;
     background: color-mix(in srgb, var(--nimi-surface-canvas) 82%, transparent);
     color: var(--nimi-text-secondary);
-    font-size: 12px;
+    font-size: var(--nimi-type-caption-size);
     line-height: 1.45;
     white-space: pre-wrap;
     word-break: break-word;
@@ -162,7 +159,7 @@
 
   .world-tour-page-title {
     margin: 0;
-    font-size: 24px;
+    font-size: var(--nimi-type-page-title-size);
   }
 
   .world-tour-viewer {
@@ -201,7 +198,7 @@
 
   .world-tour-toolbar h2 {
     flex: 1 1 240px;
-    font-size: 16px;
+    font-size: var(--nimi-type-section-title-size);
     overflow-wrap: anywhere;
   }
 
@@ -220,7 +217,7 @@
   }
 
   .world-tour-viewport canvas:active { cursor: grabbing; }
-  .world-tour-viewport canvas:focus-visible { outline: 3px solid var(--nimi-text-primary); outline-offset: -3px; }
+  .world-tour-viewport canvas:focus-visible { outline: 3px solid var(--nimi-focus-ring-color); outline-offset: -3px; }
 
   .world-tour-loading {
     position: absolute;
@@ -234,34 +231,49 @@
   .world-tour-controls, .world-tour-message {
     margin: 0;
     color: var(--nimi-text-secondary);
-    font-size: 13px;
+    font-size: var(--nimi-type-body-sm-size);
     line-height: 1.5;
   }
 
   .world-tour-scene-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
   .world-tour-scene-workspace:has(> .world-tour-viewport:only-child) { grid-template-columns: minmax(0, 1fr); }
-  .world-tour-objects { min-width: 0; max-height: max(420px, calc(100dvh - 250px)); overflow: auto; padding: 0 4px 8px 16px; border-left: 1px solid currentColor; color: var(--nimi-text-primary); }
+  .world-tour-objects { min-width: 0; max-height: max(420px, calc(100dvh - 250px)); overflow: auto; padding: 0 4px 8px 16px; border-left: 1px solid var(--nimi-border-subtle); color: var(--nimi-text-primary); }
   .world-tour-objects-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
-  .world-tour-objects h3 { margin: 0; font-size: 15px; font-weight: 600; }
-  .world-tour-objects-heading span { font-size: 12px; color: var(--nimi-text-secondary); }
-  .world-tour-object-file { display: grid; gap: 8px; font-size: 13px; font-weight: 600; }
-  .world-tour-object-file input { width: 100%; min-width: 0; font-size: 12px; font-weight: 400; }
-  .world-tour-object-note { margin: 10px 0 14px; color: var(--nimi-text-secondary); font-size: 12px; line-height: 1.5; }
+  .world-tour-objects h3 { margin: 0; font-size: 0.9375rem; font-weight: 600; }
+  .world-tour-objects-heading span { font-size: var(--nimi-type-caption-size); color: var(--nimi-text-secondary); }
+  .world-tour-object-file { display: grid; gap: 8px; font-size: var(--nimi-type-body-sm-size); font-weight: 600; }
+  .world-tour-object-file input { width: 100%; min-width: 0; font-size: var(--nimi-type-caption-size); font-weight: 400; }
+  .world-tour-object-note { margin: 10px 0 14px; color: var(--nimi-text-secondary); font-size: var(--nimi-type-caption-size); line-height: 1.5; }
   .world-tour-object-list { list-style: none; margin: 12px 0 16px; padding: 0; }
-  .world-tour-object-list button { width: 100%; padding: 9px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--nimi-text-primary); text-align: left; overflow-wrap: anywhere; cursor: pointer; }
-  .world-tour-object-list button:hover { background: rgba(20, 118, 212, 0.06); }
-  .world-tour-object-list button[aria-pressed="true"] { background: rgba(20, 118, 212, 0.12); font-weight: 600; }
-  .world-tour-object-list button:focus-visible, .world-tour-objects input:focus-visible { outline: 2px solid var(--nimi-text-primary); outline-offset: 2px; }
-  .world-tour-object-dimensions { font-size: 12px; font-variant-numeric: tabular-nums; margin: 12px 0; }
+  .world-tour-object-list button { width: 100%; padding: 9px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--nimi-text-primary); text-align: left; overflow-wrap: anywhere; cursor: pointer; transition: background-color var(--nimi-motion-fast) var(--nimi-motion-ease-standard), transform var(--nimi-motion-fast) var(--nimi-motion-ease-standard); }
+  .world-tour-object-list button:hover { background: var(--nimi-action-ghost-hover); }
+  .world-tour-object-list button:active { transform: scale(var(--nimi-motion-pressed-scale)); }
+  .world-tour-object-list button[aria-pressed="true"] { background: var(--nimi-surface-active); font-weight: 600; }
+  .world-tour-object-list button:focus-visible, .world-tour-objects input:focus-visible { outline: var(--nimi-focus-ring-width) solid var(--nimi-focus-ring-color); outline-offset: var(--nimi-focus-ring-offset); }
+  .world-tour-object-dimensions { font-size: var(--nimi-type-caption-size); font-variant-numeric: tabular-nums; margin: 12px 0; }
   .world-tour-object-transform { margin: 12px 0; padding: 0; border: 0; }
-  .world-tour-object-transform legend { font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+  .world-tour-object-transform legend { font-size: var(--nimi-type-caption-size); font-weight: 600; margin-bottom: 6px; }
   .world-tour-object-transform > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-  .world-tour-object-transform label { display: grid; gap: 4px; min-width: 0; color: var(--nimi-text-secondary); font-size: 11px; }
-  .world-tour-object-transform input { width: 100%; min-width: 0; border: 1px solid rgba(107, 114, 128, 0.25); border-radius: 8px; padding: 7px 6px; background: rgba(255, 255, 255, 0.65); color: var(--nimi-text-primary); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .world-tour-object-transform label { display: grid; gap: 4px; min-width: 0; color: var(--nimi-text-secondary); font-size: var(--nimi-type-overline-size); }
+  .world-tour-object-transform input { width: 100%; min-width: 0; border: 1px solid var(--nimi-field-border); border-radius: var(--nimi-radius-field); padding: 7px 6px; background: var(--nimi-field-bg); color: var(--nimi-field-text); font-size: var(--nimi-type-body-sm-size); font-variant-numeric: tabular-nums; }
   .world-tour-objects .lab-actions { gap: 6px; }
+  .world-tour-navigation-field { display: inline-flex; align-items: center; gap: 6px; font-size: var(--nimi-type-caption-size); color: var(--nimi-text-secondary); }
+  .world-tour-navigation-field .nimi-field { width: 5.5rem; }
+  @media (prefers-reduced-motion: reduce) {
+    .world-tour-object-list button { transition: none; }
+    .world-tour-object-list button:active { transform: none; }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .lab-account-login-popover__close { background: var(--nimi-surface-card); }
+    .lab-json { background: var(--nimi-surface-canvas); }
+  }
+  @media (prefers-contrast: more) {
+    .lab-account-login-popover__close,
+    .lab-json { background: var(--nimi-surface-card); border-color: var(--nimi-border-strong); }
+  }
   @media (max-width: 900px) {
     .world-tour-scene-workspace { grid-template-columns: minmax(0, 1fr); }
-    .world-tour-objects { max-height: none; padding: 16px 0 0; border-left: 0; border-top: 1px solid currentColor; }
+    .world-tour-objects { max-height: none; padding: 16px 0 0; border-left: 0; border-top: 1px solid var(--nimi-border-subtle); }
   }
 
   @container nimi-workbench-surface (max-width: 640px) {
@@ -271,8 +283,8 @@
     }
 
     .product-hero h1 {
-      font-size: 34px;
-      line-height: 1;
+      font-size: 2.125rem;
+      line-height: 1.1;
     }
   }
 }
