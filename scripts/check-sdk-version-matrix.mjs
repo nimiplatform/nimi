@@ -5,7 +5,8 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import { promises as fs } from 'node:fs';
+import { promises as fs, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -13,6 +14,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
 const SDK_PACKAGE_PATH = 'sdks/typescript';
+const SDK_MANIFEST_PATH = `${SDK_PACKAGE_PATH}/package.json`;
 
 const SDK_PACKAGES = [
   { id: 'sdk', path: SDK_PACKAGE_PATH },
@@ -43,31 +45,53 @@ const SHELL_CRATES = [
 ];
 const PUBLIC_REPOSITORY_URL = 'https://github.com/nimiplatform/nimi';
 
-export function resolvePublicRuntimeSurfacePaths(sdkExports, sdkPackagePath = SDK_PACKAGE_PATH) {
-  if (!sdkExports || typeof sdkExports !== 'object') {
-    return [];
+function publicRuntimeExports(sdkExports) {
+  return Object.entries(sdkExports ?? {}).filter(([subpath]) =>
+    /^\.\/(?:runtime|types)(?:\/|$)/u.test(subpath),
+  ).sort(([left], [right]) => left.localeCompare(right));
+}
+
+function exportTargets(target) {
+  if (typeof target === 'string') return [target];
+  return target === null ? [] : Object.values(target).flatMap(exportTargets);
+}
+
+export function resolvePublicRuntimeSurfacePaths(sdkExports, workspaceRoot = repoRoot) {
+  const ts = createRequire(path.join(repoRoot, SDK_MANIFEST_PATH))('typescript');
+  const packageRoot = path.join(workspaceRoot, SDK_PACKAGE_PATH);
+  const pending = [];
+  for (const [subpath, target] of publicRuntimeExports(sdkExports)) {
+    for (const output of exportTargets(target)) {
+      const match = /^\.\/dist\/(.+?)(?:\.d\.ts|\.js)$/u.exec(output);
+      if (!match) throw new Error(`Unsupported SDK export target for ${subpath}: ${output}`);
+      pending.push(path.resolve(packageRoot, `${match[1]}.ts`));
+    }
   }
+  if (pending.length === 0) {
+    throw new Error('@nimiplatform/sdk exports must declare public runtime/type surface paths');
+  }
+
   const paths = new Set();
-  for (const [subpath, target] of Object.entries(sdkExports)) {
-    if (
-      subpath !== './runtime'
-      && !subpath.startsWith('./runtime/')
-      && subpath !== './types'
-      && !subpath.startsWith('./types/')
-    ) {
-      continue;
+  const options = { moduleResolution: ts.ModuleResolutionKind.Bundler };
+  const cache = ts.createModuleResolutionCache(packageRoot, name => name, options);
+  // Track source inputs conservatively, including types brought in by imports and re-exports.
+  while (pending.length > 0) {
+    const source = pending.pop();
+    const relative = path.relative(packageRoot, source);
+    if (relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+      throw new Error(`SDK runtime/type surface source is outside the SDK package: ${source}`);
     }
-    const rawTarget = typeof target === 'string'
-      ? target
-      : (target?.types || target?.import || target?.default || '');
-    const normalized = String(rawTarget || '').trim().replaceAll('\\', '/');
-    const distMatch = normalized.match(/^\.\/dist\/(.+?)(?:\.d\.ts|\.js)$/u);
-    if (!distMatch) {
-      continue;
+    if (paths.has(relative)) continue;
+    paths.add(relative);
+    const { importedFiles } = ts.preProcessFile(readFileSync(source, 'utf8'));
+    for (const { fileName } of importedFiles) {
+      if (!ts.isExternalModuleNameRelative(fileName)) continue;
+      const { resolvedModule } = ts.resolveModuleName(fileName, source, options, ts.sys, cache);
+      if (!resolvedModule) throw new Error(`Cannot resolve ${fileName} from SDK surface source ${relative}`);
+      pending.push(path.normalize(resolvedModule.resolvedFileName));
     }
-    paths.add(path.posix.join(sdkPackagePath, `${distMatch[1]}.ts`));
   }
-  return [...paths].sort((left, right) => left.localeCompare(right));
+  return [...paths].map(relative => `${SDK_PACKAGE_PATH}/${relative.replaceAll('\\', '/')}`).sort();
 }
 
 export function parseSemver(version) {
@@ -179,12 +203,9 @@ function runGit(args) {
 function listGitPaths(args, gitRunner = runGit) {
   const result = gitRunner(args);
   if (result.status !== 0) {
-    return [];
+    throw new Error(`git ${args[0]} failed while checking SDK surface changes: ${result.stderr.trim()}`);
   }
-  return result.stdout
-    .split(/\r?\n/)
-    .map((line) => String(line || '').trim())
-    .filter(Boolean);
+  return result.stdout.split('\0').filter(Boolean);
 }
 
 function parseMajorMinor(version) {
@@ -226,20 +247,12 @@ function checkPublicPackageMetadata(violations, manifest, label, repositoryDirec
   }
 }
 
-function readPackageVersionFromGit(ref, gitRunner = runGit) {
-  const normalizedRef = String(ref || '').trim();
-  if (!normalizedRef) {
-    return '';
-  }
-  const result = gitRunner(['show', `${normalizedRef}:${SDK_PACKAGE_PATH}/package.json`]);
+function readSdkManifestFromGit(ref, gitRunner) {
+  const result = gitRunner(['show', `${ref}:${SDK_MANIFEST_PATH}`]);
   if (result.status !== 0) {
-    return '';
+    throw new Error(`Cannot read SDK manifest at ${ref}: ${result.stderr.trim()}`);
   }
-  try {
-    return String(JSON.parse(result.stdout).version || '').trim();
-  } catch {
-    return '';
-  }
+  return JSON.parse(result.stdout);
 }
 
 function listMergedSdkTagEntries(gitRunner = runGit) {
@@ -251,7 +264,7 @@ function listMergedSdkTagEntries(gitRunner = runGit) {
     'refs/tags/sdk/v*',
   ]);
   if (result.status !== 0) {
-    return [];
+    throw new Error(`Cannot list published SDK tags: ${result.stderr.trim()}`);
   }
   return result.stdout
     .split(/\r?\n/u)
@@ -280,28 +293,39 @@ function latestPublishedSdkRef({
 }
 
 export function detectRuntimeSurfaceVersionContext(
-  currentVersion,
-  surfacePaths,
-  { gitRunner = runGit, overrideRef = process.env.NIMI_PUBLISHED_SDK_REF } = {},
+  sdkManifest,
+  { gitRunner = runGit, overrideRef = process.env.NIMI_PUBLISHED_SDK_REF, workspaceRoot = repoRoot } = {},
 ) {
-  if (!Array.isArray(surfacePaths) || surfacePaths.length === 0) return null;
-  const worktreePaths = listGitPaths(['diff', '--name-only', 'HEAD', '--', ...surfacePaths], gitRunner);
+  const surfacePaths = new Set(resolvePublicRuntimeSurfacePaths(sdkManifest.exports, workspaceRoot));
+  const worktreePaths = [
+    ...listGitPaths(['diff', '--name-only', '-z', 'HEAD', '--', SDK_PACKAGE_PATH], gitRunner),
+    ...listGitPaths(['ls-files', '-z', '--others', '--exclude-standard', '--', SDK_PACKAGE_PATH], gitRunner),
+  ].filter(file => surfacePaths.has(file));
+  const currentExports = JSON.stringify(publicRuntimeExports(sdkManifest.exports));
+  const headSdk = readSdkManifestFromGit('HEAD', gitRunner);
+  const headExports = JSON.stringify(publicRuntimeExports(headSdk.exports));
+  if (currentExports !== headExports) {
+    worktreePaths.push(SDK_MANIFEST_PATH);
+  }
   const baseRef = latestPublishedSdkRef({
     hasWorktreeSurfaceChanges: worktreePaths.length > 0,
     override: overrideRef,
     gitRunner,
   });
   if (!baseRef) return null;
-  const committedPaths = listGitPaths(['diff', '--name-only', `${baseRef}...HEAD`, '--', ...surfacePaths], gitRunner);
+  const baseSdk = readSdkManifestFromGit(baseRef, gitRunner);
+  const committedPaths = listGitPaths(['diff', '--name-only', '-z', `${baseRef}...HEAD`, '--', SDK_PACKAGE_PATH], gitRunner)
+    .filter(file => surfacePaths.has(file));
+  if (headExports !== JSON.stringify(publicRuntimeExports(baseSdk.exports))) {
+    committedPaths.push(SDK_MANIFEST_PATH);
+  }
   const changedSurfacePaths = [...new Set([...committedPaths, ...worktreePaths])];
   if (changedSurfacePaths.length === 0) return null;
-  const baseVersion = readPackageVersionFromGit(baseRef, gitRunner);
-  if (!baseVersion) return null;
   return {
     baseRef,
     changedSurfacePaths,
-    baseVersion,
-    currentVersion,
+    baseVersion: baseSdk.version,
+    currentVersion: sdkManifest.version,
     comparisonLabel: `${baseRef} -> current candidate`,
   };
 }
@@ -504,21 +528,7 @@ async function main() {
     violations.push(`app-tools/package.json nimiScaffoldVersions.appToolsVersion must be "${expectedAppToolsRange}"`);
   }
   if (sdkPackage?.version) {
-    const publicRuntimeSurfacePaths = resolvePublicRuntimeSurfacePaths(sdkPackage.pkg?.exports);
-    if (publicRuntimeSurfacePaths.length === 0) {
-      violations.push('@nimiplatform/sdk exports must declare public runtime/type surface paths');
-    }
-    for (const surfacePath of publicRuntimeSurfacePaths) {
-      try {
-        await fs.access(path.join(repoRoot, surfacePath));
-      } catch {
-        violations.push(`@nimiplatform/sdk exported runtime/type surface file missing: ${surfacePath}`);
-      }
-    }
-    const runtimeSurfaceContext = detectRuntimeSurfaceVersionContext(
-      sdkPackage.version,
-      publicRuntimeSurfacePaths,
-    );
+    const runtimeSurfaceContext = detectRuntimeSurfaceVersionContext(sdkPackage.pkg);
     const versionNotAdvanced = runtimeSurfaceContext
       && !isRuntimeSurfaceVersionAdvanced(
         runtimeSurfaceContext.baseVersion,

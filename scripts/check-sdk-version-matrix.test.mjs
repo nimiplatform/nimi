@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -13,18 +15,12 @@ import {
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-test('resolvePublicRuntimeSurfacePaths derives existing source files from @nimiplatform/sdk exports', () => {
+test('resolvePublicRuntimeSurfacePaths includes sources behind the workspace SDK entrypoints', () => {
   const sdkPkg = JSON.parse(readFileSync(path.join(repoRoot, 'sdks/typescript/package.json'), 'utf8'));
   const surfacePaths = resolvePublicRuntimeSurfacePaths(sdkPkg.exports);
 
-  assert.deepEqual(surfacePaths, [
-    'sdks/typescript/runtime/generated.ts',
-    'sdks/typescript/runtime/host.ts',
-    'sdks/typescript/runtime/index.ts',
-    'sdks/typescript/runtime/remote.ts',
-    'sdks/typescript/runtime/wire-types/index.ts',
-    'sdks/typescript/types/index.ts',
-  ]);
+  assert.ok(surfacePaths.includes('sdks/typescript/runtime/product-control-types.ts'));
+  assert.ok(surfacePaths.includes('sdks/typescript/types/errors.ts'));
   for (const relativePath of surfacePaths) {
     assert.equal(existsSync(path.join(repoRoot, relativePath)), true, `missing exported surface file: ${relativePath}`);
   }
@@ -75,43 +71,73 @@ test('isRuntimeSurfaceVersionAdvanced enforces prerelease progression and major.
   assert.equal(isRuntimeSurfaceVersionAdvanced('0.22.2', '0.22.2'), false);
 });
 
-test('detectRuntimeSurfaceVersionContext resolves baseline tag and changed surface paths cleanly', () => {
-  const surfacePaths = ['sdks/typescript/runtime/index.ts', 'sdks/typescript/runtime/remote.ts'];
-  const gitRunner = (args) => {
-    if (args[0] === 'diff' && args[2] === 'HEAD') {
-      return { status: 0, stdout: '', stderr: '' };
-    }
-    if (args[0] === 'rev-parse') {
-      return { status: 0, stdout: 'head-oid\n', stderr: '' };
-    }
-    if (args[0] === 'for-each-ref') {
-      return {
-        status: 0,
-        stdout: [
-          'sdk/v0.24.0-rc.11\tprev-oid\ttag-obj-11',
-          'sdk/v0.24.0-rc.12\thead-oid\ttag-obj-12',
-        ].join('\n'),
-        stderr: '',
-      };
-    }
-    if (args[0] === 'diff' && args[2] === 'sdk/v0.24.0-rc.11...HEAD') {
-      return { status: 0, stdout: 'sdks/typescript/runtime/remote.ts\n', stderr: '' };
-    }
-    if (args[0] === 'show' && args[1] === 'sdk/v0.24.0-rc.11:sdks/typescript/package.json') {
-      return { status: 0, stdout: JSON.stringify({ version: '0.24.0-rc.11' }), stderr: '' };
-    }
-    return { status: 1, stdout: '', stderr: `unexpected git args: ${args.join(' ')}` };
+function releaseFixture(t) {
+  const workspaceRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-sdk-version-matrix-'));
+  t.after(() => rmSync(workspaceRoot, { recursive: true, force: true }));
+  const packageRoot = path.join(workspaceRoot, 'sdks/typescript');
+  const manifest = {
+    version: '0.24.0-rc.12',
+    exports: {
+      './runtime': { types: './dist/runtime/index.d.ts', import: './dist/runtime/index.js' },
+      './types': './dist/types/index.js',
+    },
   };
+  const write = (file, content) => {
+    const absolute = path.join(packageRoot, file);
+    mkdirSync(path.dirname(absolute), { recursive: true });
+    writeFileSync(absolute, content);
+  };
+  const gitRunner = args => spawnSync('git', args, { cwd: workspaceRoot, encoding: 'utf8' });
+  const git = args => {
+    const result = gitRunner(args);
+    assert.equal(result.status, 0, result.stderr);
+    return result.stdout.trim();
+  };
+  const commit = message => {
+    git(['add', '.']);
+    git(['-c', 'user.name=SDK Test', '-c', 'user.email=sdk@example.invalid', '-c', 'commit.gpgsign=false',
+      '-c', 'core.hooksPath=.git/hooks', 'commit', '-qm', message]);
+  };
+  write('package.json', JSON.stringify(manifest));
+  write('runtime/index.ts', "export type { Record } from './barrel.js';\n");
+  write('runtime/barrel.ts', "import type { Record } from './product-control-types';\nexport type { Record };\n");
+  write('runtime/product-control-types.ts', 'export interface Record { version: 1 }\n');
+  write('runtime/private.test.ts', 'export const testFixture = true;\n');
+  write('types/index.ts', 'export type ReasonCode = string;\n');
+  git(['init', '-q']);
+  commit('Published SDK fixture');
+  const overrideRef = git(['rev-parse', 'HEAD']);
+  const check = () => detectRuntimeSurfaceVersionContext(
+    JSON.parse(readFileSync(path.join(packageRoot, 'package.json'), 'utf8')),
+    { gitRunner, overrideRef, workspaceRoot },
+  );
+  return { check, commit, manifest, write };
+}
 
-  const context = detectRuntimeSurfaceVersionContext('0.24.0-rc.12', surfacePaths, {
-    gitRunner,
-    overrideRef: '',
-  });
-  assert.deepEqual(context, {
-    baseRef: 'sdk/v0.24.0-rc.11',
-    changedSurfacePaths: ['sdks/typescript/runtime/remote.ts'],
-    baseVersion: '0.24.0-rc.11',
-    currentVersion: '0.24.0-rc.12',
-    comparisonLabel: 'sdk/v0.24.0-rc.11 -> current candidate',
-  });
+test('committed changes behind a public re-export require a version advance', t => {
+  const fixture = releaseFixture(t);
+  assert.equal(fixture.check(), null);
+  fixture.write('runtime/product-control-types.ts', 'export interface Record { version: 2 }\n');
+  fixture.commit('Change a re-exported type');
+
+  const context = fixture.check();
+  assert.deepEqual(context?.changedSurfacePaths, ['sdks/typescript/runtime/product-control-types.ts']);
+  assert.equal(isRuntimeSurfaceVersionAdvanced(context.baseVersion, context.currentVersion), false);
+});
+
+test('runtime export removal is detected in the manifest before and after commit', t => {
+  const fixture = releaseFixture(t);
+  fixture.write('runtime/private.test.ts', 'export const testFixture = false;\n');
+  fixture.write('package.json', JSON.stringify({ ...fixture.manifest, description: 'Updated metadata' }));
+  assert.equal(fixture.check(), null);
+
+  fixture.write('package.json', JSON.stringify({
+    ...fixture.manifest,
+    exports: { './runtime': fixture.manifest.exports['./runtime'] },
+  }));
+  assert.deepEqual(fixture.check()?.changedSurfacePaths, ['sdks/typescript/package.json']);
+  fixture.commit('Remove a public export');
+  const context = fixture.check();
+  assert.deepEqual(context?.changedSurfacePaths, ['sdks/typescript/package.json']);
+  assert.equal(isRuntimeSurfaceVersionAdvanced(context.baseVersion, context.currentVersion), false);
 });

@@ -72,7 +72,7 @@ The current workspace manifest declares canonical App ID `nimi.harness` with onl
 
 ## 0.1.0 local installation candidate (historical)
 
-App Tools built and packed `nimi.harness@0.1.0` for macOS arm64. Its first install uses Home’s local package import and a separate storage namespace. The archive weighs 558 MiB. The supervised development journeys above were run with the original development registration. Home installed the candidate and started it under a fresh namespace. A pending file write survived stopping and relaunching the installed App. After approval, the read tool and the on-disk file both returned HARNESS-INSTALL-1811. Opening the new Activity from Home returned to that same installed conversation.
+App Tools built and packed `ai.nimi.harness@0.1.0` for macOS arm64. Its first install uses Home’s local package import and a separate storage namespace. The archive weighs 558 MiB. The supervised development journeys above were run with the original development registration. Home installed the candidate and started it under a fresh namespace. A pending file write survived stopping and relaunching the installed App. After approval, the read tool and the on-disk file both returned HARNESS-INSTALL-1811. Opening the new Activity from Home returned to that same installed conversation.
 
 ## Historical Web and Android development
 
@@ -82,13 +82,13 @@ The following commands and source identities belong to the earlier multi-platfor
 
 Use the two App Tools entry points with the local Realm. In the Harness directory run `pnpm dev` for the supervised PC app and, in a second terminal, `pnpm dev:web -- --realm local`. Set `NIMI_WEB_TLS_KEY` and `NIMI_WEB_TLS_CERT` in the untracked `.env.local` to a development certificate/key valid for 127.0.0.1 and trusted by the test browser. The Web entry is `https://127.0.0.1:4509/`, the local API is `http://127.0.0.1:3002`, and the sign-in UI is `http://localhost:3000`.
 
-The local Realm needs the reviewed test client `nimi.harness.web.dev` for App `nimi.harness`, origin `https://127.0.0.1:4509`, callback `https://127.0.0.1:4509/`, role `app`, and App Access `integration.consume`. A non-production Realm can read its local admission document via `RUNTIME_CLIENT_REGISTRY_PATH`. In Home enable Developer Mode for the PC development registration, select the development provider, and confirm the browser source and the session operations being tested. The PC owns model configuration and file execution. Keep external data connectors ungranted for the attachment test.
+The local Realm needs the reviewed test client `ai.nimi.harness.web.dev` for App `ai.nimi.harness`, origin `https://127.0.0.1:4509`, callback `https://127.0.0.1:4509/`, role `app`, and App Access `integration.consume`. A non-production Realm can read its local admission document via `RUNTIME_CLIENT_REGISTRY_PATH`. In Home enable Developer Mode for the PC development registration, select the development provider, and confirm the browser source and the session operations being tested. The PC owns model configuration and file execution. Keep external data connectors ungranted for the attachment test.
 
 ### PC sessions from Web and Android
 
 The shared remote view uses the public Kit session for each source. The PC remains the owner of the conversation, tools and files. Home grants each operation independently. A client can create a PC session without switching the desktop view, list sessions, send an input, check or stop it by receipt, read its final answer, or review and resolve a pending tool decision. A reply longer than 16,384 characters is shown as a preview. Tool arguments larger than 32 KiB must be reviewed on the PC.
 
-Android development uses the App Tools mobile entry and Capacitor 8. The project compiles against Android SDK Platform 37.0 with AGP 9.1.1 and its Gradle 9.3.1 wrapper; Kit’s OkHttp Android dependency requires API 37. It targets API 36 and supports Android 12+ (API 31). For the local Realm, use the default debug package `ai.nimi.apps.harness.dev`, client `nimi.harness.android.dev` and callback `ai.nimi.apps.harness.dev:/oauth/callback`. Build the APK and print the Gradle signing report on the Mac without selecting a device:
+Android development uses the App Tools mobile entry and Capacitor 8. The project compiles against Android SDK Platform 37.0 with AGP 9.1.1 and its Gradle 9.3.1 wrapper; Kit’s OkHttp Android dependency requires API 37. It targets API 36 and supports Android 12+ (API 31). For the local Realm, use the default debug package `ai.nimi.apps.harness.dev`, client `ai.nimi.harness.android.dev` and callback `ai.nimi.apps.harness.dev:/oauth/callback`. Build the APK and print the Gradle signing report on the Mac without selecting a device:
 
 ```sh
 NIMI_ANDROID_BUILD_ONLY=1 pnpm dev:mobile -- --realm local

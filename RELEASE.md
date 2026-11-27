@@ -64,6 +64,8 @@ Projects upgrading from the Tauri-era SDK (`0.24.0-rc.11`), Kit (`0.24.0-rc.18`)
 
 These source and tooling migrations require no reset of Desktop user data or credentials. For a direct upgrade from Desktop Beta `nimi/v0.2.4`, consult the installable candidate's upgrade results and recovery instructions before relying on data continuity.
 
+If a pre-release Runtime database fails to open with `no such column: is_default` while creating `runtime_ai_config_default`, use the [offline App AIConfig migration](LOCAL_DEVELOPMENT.md#旧版-app-aiconfig-离线迁移) before restarting that Runtime.
+
 ---
 
 ## 4. Third-Party App Release Flow

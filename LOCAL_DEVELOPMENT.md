@@ -100,6 +100,16 @@ macOS 上，在 `pnpm dev:desktop` 的终端按一次 `Ctrl+C`，启动器会让
 
 升级后若提示 `conversation storage requires explicit offline conversion`，停止使用该库的 Runtime，再运行 `pnpm runtime:convert-chat-storage --db <该环境的 memory.db 绝对路径> --confirm-runtime-stopped` 查看是否需要转换。每个环境有自己的库和检查结果。[会话库转换说明](runtime/tools/convert-chat-storage/README.md)
 
+#### 旧版 App AIConfig 离线迁移
+
+复用旧预发布环境的 `memory.db` 时，如果 Runtime 在创建 `runtime_ai_config_default` 索引时报 `no such column: is_default`，先确认报错对应上表所列的库，并停止使用该库的 Runtime。在仓库根目录运行下面的命令，将第二个路径指向一个尚不存在的独立备份文件。macOS 或 Linux 上使用 `python3`。
+
+```sh
+python scripts/migrate-app-aiconfig-records.py "<memory.db 的绝对路径>" "<新备份文件的绝对路径>"
+```
+
+工具将每个所有者的旧配置保存为名为 `Default` 的 `main` 记录，保留配置内容和修订号。备份文件只包含旧 AIConfig 表及其记录。看到 `preserved … owner records` 或 `already current` 后，可启动原环境的 Runtime。
+
 ---
 
 ## 层次化热重载 (Hot Reload) 与变更响应
