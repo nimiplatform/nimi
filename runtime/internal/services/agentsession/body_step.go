@@ -1401,13 +1401,13 @@ func (s *Service) deliverMilestones(ctx context.Context, ref string) error {
 	for rows.Next() {
 		var e entry
 		if err := rows.Scan(&e.DeliveryID, &e.AccountID, &e.AgentBinding, &e.WorkSessionRef, &e.BodyKind, &e.Kind, &e.TopicSummary, &e.paths, &e.contentRestricted); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return err
 		}
 		pending = append(pending, e)
 	}
 	if err := rows.Err(); err != nil {
-		rows.Close()
+		_ = rows.Close()
 		return err
 	}
 	if err := rows.Close(); err != nil {

@@ -311,10 +311,16 @@ func TestProductionUpgradeFencesLegacyCognitionOutboxAndPendingReceiptsForRestri
 	if drained, err := bridge.DrainOne(ctx, agentRef); err != nil || !drained.Drained || drained.OperationID != inFlightReceiptOp {
 		t.Fatalf("pre-upgrade DrainOne receipt seed failed: %+v err=%v", drained, err)
 	}
-	// Row 2: still pending in runtime_cognition_memory_outbox BEFORE upgrade.
-	pendingRestrictedOp := enqueue("up-restricted-pending", "ws_upgrade_restricted", "玉露机密口令-待投队列", 2*time.Minute)
-	// Row 3: ordinary pending pointer behind it.
-	pendingOrdinaryOp := enqueue("up-ordinary-pending", "ws_upgrade_ordinary", "公开升级验证普通会话", 3*time.Minute)
+	// Row 2: a damaged pending payload must not prevent either the session
+	// fence or the ordered Cognition recovery from running.
+	damagedOp := enqueue("up-damaged", "ws_upgrade_ordinary", "待损坏的普通会话", 2*time.Minute)
+	if _, err := backend.DB().ExecContext(ctx, "UPDATE runtime_cognition_memory_outbox SET payload=? WHERE operation_id=?", []byte{0xff}, damagedOp); err != nil {
+		t.Fatalf("damage committed payload: %v", err)
+	}
+	// Row 3: still pending in runtime_cognition_memory_outbox BEFORE upgrade.
+	pendingRestrictedOp := enqueue("up-restricted-pending", "ws_upgrade_restricted", "玉露机密口令-待投队列", 3*time.Minute)
+	// Row 4: ordinary pending pointer behind it.
+	pendingOrdinaryOp := enqueue("up-ordinary-pending", "ws_upgrade_ordinary", "公开升级验证普通会话", 4*time.Minute)
 
 	// 3. Open upgraded production AgentSession service with memoryFacade wired
 	//    (runs migrateNamedHandoffIsolation + installs SessionRestrictionChecker +
@@ -347,6 +353,13 @@ func TestProductionUpgradeFencesLegacyCognitionOutboxAndPendingReceiptsForRestri
 	}
 	if state != "cutoff_non_effecting" || payloadPresent {
 		t.Fatalf("pending restricted outbox row not neutralized: state=%q payloadPresent=%v", state, payloadPresent)
+	}
+	var outcome string
+	if err := backend.DB().QueryRowContext(ctx, "SELECT state, outcome, payload IS NOT NULL FROM runtime_cognition_memory_outbox WHERE operation_id=?", damagedOp).Scan(&state, &outcome, &payloadPresent); err != nil {
+		t.Fatalf("query settled damaged outbox row: %v", err)
+	}
+	if state != "terminated" || outcome != "rejected" || payloadPresent {
+		t.Fatalf("damaged outbox was not rejected by ordered recovery: state=%q outcome=%q payloadPresent=%v", state, outcome, payloadPresent)
 	}
 
 	// Verify Cognition Memory contains ONLY the ordinary session pointer and ZERO private text!

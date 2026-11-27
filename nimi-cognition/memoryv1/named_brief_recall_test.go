@@ -2,6 +2,7 @@ package memoryv1
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 )
@@ -76,7 +77,12 @@ func TestSessionPointerContentFreeAndSlotKeyFilteredRecallIsolation(t *testing.T
 	sharedReq := testRecallRequest(bank, "recall-shared-quota", "发布计划", 2, caps)
 	sharedReq.ScopeTags = []string{ScopeTagSessionPointer}
 	sharedReq.FilterSlotKeys = true
-	sharedReq.AllowedSlotKeys = allowed
+	// The authorization set can outgrow SQLite's host-parameter limit without
+	// adding that many actual Memory or FTS rows.
+	sharedReq.AllowedSlotKeys = append([]string(nil), allowed...)
+	for i := range 40000 {
+		sharedReq.AllowedSlotKeys = append(sharedReq.AllowedSlotKeys, fmt.Sprintf("session_ref:ws_unindexed_%d", i))
+	}
 	sharedRes, err := core.Recall(ctx, sharedReq, nil)
 	if err != nil {
 		t.Fatalf("shared recall errored: %v", err)

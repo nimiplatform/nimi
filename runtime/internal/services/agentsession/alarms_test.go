@@ -59,6 +59,17 @@ func TestStage3AlarmsZeroModelWakeCoalesceAutoSleepBudgetAndDisambiguation(t *te
 	listOtherCtx := testCallerCtx("com.other.app", "subj-other", DomainAgentTriggerDelegate, localappop.OperationAgentTriggerAlarmList)
 	updateParentCtx := testCallerCtx("com.parentos.app", "subj-parentos", DomainAgentTriggerDelegate, localappop.OperationAgentTriggerAlarmUpdate)
 	desktopCreateCtx := testCallerCtx("nimi.desktop", "subj-home", DomainAgentTriggerDelegate, localappop.OperationAgentTriggerAlarmCreate)
+	routeCtx := testCallerCtx("nimi.desktop", "subj-home", DomainAgentLocal, localappop.OperationAgentSessionRouteSubmit)
+	var replyTargets [2]string
+	for i, label := range []string{"morning", "digest"} {
+		res, err := svc.RouteAndSubmitInput(routeCtx, &runtimev1.RouteAndSubmitInputRequest{
+			AgentHandle: "agent-family", RequestId: label, Text: label, EntrySurface: "new_session", WorkspaceRoot: "/work/" + label,
+		})
+		if err != nil || res.GetResolvedWorkSessionRef() == "" {
+			t.Fatalf("create %s alarm target: %+v err=%v", label, res, err)
+		}
+		replyTargets[i] = res.GetResolvedWorkSessionRef()
+	}
 
 	// 1. Authorized App trigger delegation (app_delegation) upserts by (account, publisher, source_object_id) & isolates readers.
 	vacTime := clock.Add(10 * time.Minute).Format(time.RFC3339)
@@ -153,13 +164,14 @@ func TestStage3AlarmsZeroModelWakeCoalesceAutoSleepBudgetAndDisambiguation(t *te
 
 	// 4. Recurring 5-field cron: wake coalescing after 5 days sleep fires AT MOST ONCE, and 3 unacked fires trigger auto-sleep!
 	cronAlarm, err := svc.CreateAlarm(desktopCreateCtx, &runtimev1.CreateAlarmRequest{
-		AgentHandle:      "agent-family",
-		AlarmKind:        runtimev1.AlarmKind_ALARM_KIND_CRON,
-		CronExpr:         "0 9 * * *",
-		TimeZone:         "Asia/Shanghai",
-		TemplateTitle:    "每日晨报",
-		TemplateBody:     "按时喝水",
-		DeliveryChannels: []string{"wechat"},
+		AgentHandle:          "agent-family",
+		TargetWorkSessionRef: replyTargets[0],
+		AlarmKind:            runtimev1.AlarmKind_ALARM_KIND_CRON,
+		CronExpr:             "0 9 * * *",
+		TimeZone:             "Asia/Shanghai",
+		TemplateTitle:        "每日晨报",
+		TemplateBody:         "按时喝水",
+		DeliveryChannels:     []string{"wechat"},
 	})
 	if err != nil {
 		t.Fatalf("create cron alarm: %v", err)
@@ -201,12 +213,13 @@ func TestStage3AlarmsZeroModelWakeCoalesceAutoSleepBudgetAndDisambiguation(t *te
 		ExpiresAt:            clock.Add(time.Hour),
 	})
 	_, err = svc.CreateAlarm(freshDesktopCreateCtx, &runtimev1.CreateAlarmRequest{
-		AgentHandle:   "agent-family",
-		AlarmKind:     runtimev1.AlarmKind_ALARM_KIND_DELAY,
-		DelaySeconds:  10,
-		TemplateTitle: "LLM Summary 1",
-		TemplateBody:  "Digest",
-		RequiresLlm:   true,
+		AgentHandle:          "agent-family",
+		TargetWorkSessionRef: replyTargets[1],
+		AlarmKind:            runtimev1.AlarmKind_ALARM_KIND_DELAY,
+		DelaySeconds:         10,
+		TemplateTitle:        "LLM Summary 1",
+		TemplateBody:         "Digest",
+		RequiresLlm:          true,
 	})
 	if err != nil {
 		t.Fatalf("create llm alarm 1: %v", err)
@@ -237,21 +250,131 @@ func TestStage3AlarmsZeroModelWakeCoalesceAutoSleepBudgetAndDisambiguation(t *te
 	// 6. Reply-reference binding & multi-alarm two-choice disambiguation!
 	// Both cronFire3 and llmFires[0] delivered within the last 6 hours.
 	// With NO reply_to_message_ref -> MUST return AmbiguousAlarms (>= 2) and never guess!
-	amb, err := svc.ResolveAlarmReplyTarget(context.Background(), "acct-1", "agent-family", "", clock)
-	if err != nil {
-		t.Fatalf("ResolveAlarmReplyTarget ambiguous: %v", err)
-	}
-	if amb.MatchedAlarm != nil || len(amb.AmbiguousAlarms) < 2 {
-		t.Fatalf("expected >= 2 ambiguous alarms without reply_to_message_ref, got %+v", amb)
+	reader := accountservice.LocalAppCallerDecision{AccountID: "acct-1", ActivatedDomains: DomainAgentSessionManage}
+	ambiguous, err := svc.resolveAlarmReplyTargets(context.Background(), reader, "agent-family", "", clock)
+	if err != nil || len(ambiguous) != 2 {
+		t.Fatalf("expected 2 choices without reply_to_message_ref, got %+v err=%v", ambiguous, err)
 	}
 	// With exact reply_to_message_ref from cronFire3 -> matches cronAlarm precisely!
 	exactRef := cronFire3[0].Deliveries[0].ProviderMessageRef
-	exact, err := svc.ResolveAlarmReplyTarget(context.Background(), "acct-1", "agent-family", exactRef, clock)
-	if err != nil {
-		t.Fatalf("ResolveAlarmReplyTarget exact: %v", err)
+	exact, err := svc.resolveAlarmReplyTargets(context.Background(), reader, "agent-family", exactRef, clock)
+	if err != nil || len(exact) != 1 || exact[0].GetWorkSessionRef() != replyTargets[0] {
+		t.Fatalf("expected exact match to cronAlarm %q, got %+v err=%v", cronAlarm.GetAlarm().GetAlarmId(), exact, err)
 	}
-	if exact.MatchedAlarm == nil || exact.MatchedAlarm.GetAlarmId() != cronAlarm.GetAlarm().GetAlarmId() {
-		t.Fatalf("expected exact match to cronAlarm %q, got %+v", cronAlarm.GetAlarm().GetAlarmId(), exact)
+}
+
+func TestBoundAlarmContentAndReplyFollowCurrentSessionAccess(t *testing.T) {
+	clock := time.Now().UTC().Truncate(time.Second)
+	const agent = "agent-alarms"
+	svc := newStage2Service(t, Options{
+		Now: func() time.Time { return clock },
+		NamedRecipientResolver: func(context.Context, string, string) (string, error) {
+			return "harness-recipient", nil
+		},
+		NamedRecipientVerifier: func(_ context.Context, _, subject, appID string) (bool, error) {
+			return subject == "harness-recipient" && appID == NamedHarnessAppID, nil
+		},
+	})
+	svc.SetAlarmDeliverySender(func(_ context.Context, _ string, alarm *runtimev1.SessionAlarmRecord, _, title, body string, _ time.Duration) AlarmDeliveryOutcome {
+		return svc.NotifyDesktopAlarm(alarm, title, body)
+	})
+	overview := func(domain string, op localappop.Operation) context.Context {
+		return testCallerCtx("nimi.desktop", "overview-owner", domain, op)
+	}
+	sender := func(domain string, op localappop.Operation) context.Context {
+		return testCallerCtxWithDomains("nimi.zhiyu", "brief-sender", domain, op, DomainAgentLocal, DomainAgentTriggerDelegate, DomainAgentSessionManage)
+	}
+	ordinary, err := svc.RouteAndSubmitInput(overview(DomainAgentLocal, localappop.OperationAgentSessionRouteSubmit), &runtimev1.RouteAndSubmitInputRequest{
+		AgentHandle: agent, RequestId: "ordinary-alarm-session", Text: "Review the calendar", EntrySurface: "pc_work",
+	})
+	if err != nil || ordinary.GetResolvedWorkSessionRef() == "" {
+		t.Fatalf("create ordinary session: %+v err=%v", ordinary, err)
+	}
+	handoff, err := svc.RouteAndSubmitInput(sender(DomainAgentLocal, localappop.OperationAgentSessionRouteSubmit), &runtimev1.RouteAndSubmitInputRequest{
+		AgentHandle: agent, RequestId: "bound-alarm-handoff", Text: "Review draft", EntrySurface: "zhiyu_handoff",
+		HandoffBriefText: "Review the confidential draft", TrustTierHint: "trusted",
+	})
+	if err != nil || handoff.GetResolvedWorkSessionRef() == "" {
+		t.Fatalf("create handoff session: %+v err=%v", handoff, err)
+	}
+	handoffRef := handoff.GetResolvedWorkSessionRef()
+	createAlarm := func(ctx context.Context, ref, title string) *runtimev1.SessionAlarmRecord {
+		t.Helper()
+		response, err := svc.CreateAlarm(ctx, &runtimev1.CreateAlarmRequest{
+			AgentHandle: agent, TargetWorkSessionRef: ref, AlarmKind: runtimev1.AlarmKind_ALARM_KIND_DELAY, DelaySeconds: 1,
+			TemplateTitle: title, TemplateBody: title, TemplatePayloadJson: `{"note":"review draft"}`,
+		})
+		if err != nil || response.GetAlarm() == nil {
+			t.Fatalf("create bound reminder: %+v err=%v", response, err)
+		}
+		return response.GetAlarm()
+	}
+	fireAlarm := func() {
+		t.Helper()
+		clock = clock.Add(2 * time.Second)
+		if result, err := svc.TickAlarms(context.Background(), clock); err != nil || len(result) != 1 {
+			t.Fatalf("fire reminder: %+v err=%v", result, err)
+		}
+	}
+	createAlarm(overview(DomainAgentTriggerDelegate, localappop.OperationAgentTriggerAlarmCreate), ordinary.GetResolvedWorkSessionRef(), "Calendar")
+	fireAlarm()
+	createPrivate := sender(DomainAgentTriggerDelegate, localappop.OperationAgentTriggerAlarmCreate)
+	privateAlarm := createAlarm(createPrivate, handoffRef, "Private draft")
+	overviewList := overview(DomainAgentTriggerDelegate, localappop.OperationAgentTriggerAlarmList)
+	list, err := svc.ListAlarms(overviewList, &runtimev1.ListAlarmsRequest{TargetWorkSessionRef: handoffRef})
+	if err != nil || len(list.GetAlarms()) != 1 {
+		t.Fatalf("overview status: %+v err=%v", list, err)
+	}
+	projected := list.GetAlarms()[0]
+	if projected.GetAlarmId() != privateAlarm.GetAlarmId() || projected.GetStatus() != "active" ||
+		projected.GetTemplateTitle() != "" || projected.GetTemplateBody() != "" || projected.GetTemplatePayloadJson() != "{}" {
+		t.Fatalf("overview should receive the reminder status without the template: %+v", projected)
+	}
+
+	newTitle := "Revised draft"
+	overviewUpdate := overview(DomainAgentTriggerDelegate, localappop.OperationAgentTriggerAlarmUpdate)
+	if _, err := svc.UpdateAlarm(overviewUpdate, &runtimev1.UpdateAlarmRequest{AlarmId: privateAlarm.GetAlarmId(), TemplateTitle: &newTitle}); status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("overview template edit must be denied: %v", err)
+	}
+	paused := "paused"
+	pausedResult, err := svc.UpdateAlarm(overviewUpdate, &runtimev1.UpdateAlarmRequest{AlarmId: privateAlarm.GetAlarmId(), Status: &paused})
+	if err != nil || pausedResult.GetAlarm().GetStatus() != "paused" || pausedResult.GetAlarm().GetTemplateTitle() != "" {
+		t.Fatalf("overview should be able to pause without receiving the template: %+v err=%v", pausedResult, err)
+	}
+	active := "active"
+	update, err := svc.UpdateAlarm(sender(DomainAgentTriggerDelegate, localappop.OperationAgentTriggerAlarmUpdate), &runtimev1.UpdateAlarmRequest{
+		AlarmId: privateAlarm.GetAlarmId(), Status: &active, TemplateTitle: &newTitle,
+	})
+	if err != nil || update.GetAlarm().GetTemplateTitle() != newTitle {
+		t.Fatalf("bound sender should be able to edit: %+v err=%v", update, err)
+	}
+	fireAlarm()
+	attentionReader := accountservice.LocalAppCallerDecision{AccountID: "acct-1", ActivatedDomains: DomainAgentSessionManage}
+	attention, err := svc.Store().ListPendingAttention(context.Background(), "acct-1", clock)
+	if err != nil || len(attention) != 2 {
+		t.Fatalf("read fired reminder attention: %+v err=%v", attention, err)
+	}
+	summaries := make(map[string]string, len(attention))
+	for _, item := range attention {
+		summaries[item.GetWorkSessionRef()] = svc.projectAttentionForReader(context.Background(), attentionReader, item).GetSummaryJson()
+	}
+	if summaries[handoffRef] != "{}" || !strings.Contains(summaries[ordinary.GetResolvedWorkSessionRef()], "Calendar") {
+		t.Fatal("only notifications for content the reader may access should retain their summaries")
+	}
+	orphan := &runtimev1.PendingAttentionRecord{WorkSessionRef: "missing-target", SummaryJson: `{"note":"unresolved"}`}
+	if got := svc.projectAttentionForReader(context.Background(), attentionReader, orphan); got.GetSummaryJson() != "{}" {
+		t.Fatalf("unresolved notification must withhold its summary")
+	}
+
+	for range 5 {
+		createAlarm(createPrivate, handoffRef, "Draft follow-up")
+		fireAlarm()
+	}
+	reply, err := svc.RouteAndSubmitInput(overview(DomainAgentLocal, localappop.OperationAgentSessionRouteSubmit), &runtimev1.RouteAndSubmitInputRequest{
+		AgentHandle: agent, RequestId: "reply-to-visible-alarm", Text: "推迟提醒",
+	})
+	if err != nil || reply.GetResolvedWorkSessionRef() != ordinary.GetResolvedWorkSessionRef() || reply.GetRouteReason() != "l1_alarm_reply_recent_single" {
+		t.Fatalf("the lone visible older reminder should route directly: %+v err=%v", reply, err)
 	}
 }
 

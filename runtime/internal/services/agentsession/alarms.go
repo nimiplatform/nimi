@@ -17,6 +17,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -24,6 +25,7 @@ const (
 	alarmOneShotExpiryWindow         = 24 * time.Hour
 	alarmAutoSleepUnackThreshold     = 3
 	alarmRecentReplyWindow           = 6 * time.Hour
+	maxAlarmReplyTargets             = 5
 	alarmClaimLeaseWindow            = 4 * time.Minute
 	maxOfflineRecallPointers         = 2
 	maxOfflineRecallBytes            = 1536 // 1.5 KiB hard ceiling per v2.1 03 §5.2
@@ -58,15 +60,6 @@ type AlarmFireResult struct {
 	Deliveries     []AlarmDeliveryOutcome
 }
 
-// AlarmReplyResolution binds a user's reply (e.g. "推到明天") to an exact alarm
-// via reply_to_message_ref, or returns candidate alarms for explicit two-choice
-// disambiguation when multiple concurrent alarms fired recently.
-type AlarmReplyResolution struct {
-	MatchedAlarm    *runtimev1.SessionAlarmRecord
-	AmbiguousAlarms []*runtimev1.SessionAlarmRecord
-	Disclaimer      string
-}
-
 func readerCanAccessAlarm(decision accountservice.LocalAppCallerDecision, rec *runtimev1.SessionAlarmRecord) bool {
 	if rec == nil {
 		return false
@@ -77,6 +70,21 @@ func readerCanAccessAlarm(decision accountservice.LocalAppCallerDecision, rec *r
 	// Delegated Apps ONLY see alarms owned by their exact RegisteredAppSubject.
 	scopeKey := subjectScopeKey(decision)
 	return scopeKey != "" && rec.GetSourcePublisher() != "" && rec.GetSourcePublisher() == scopeKey
+}
+
+// @nimi-authority: rule.nimi.runtime.agent-participation.named-pc-handoff-recipient
+func (s *Service) projectAlarmForReader(ctx context.Context, decision accountservice.LocalAppCallerDecision, alarm *runtimev1.SessionAlarmRecord) *runtimev1.SessionAlarmRecord {
+	if s.canReadLinkedSessionContent(ctx, decision, alarm.GetTargetWorkSessionRef()) {
+		return alarm
+	}
+	projected := proto.Clone(alarm).(*runtimev1.SessionAlarmRecord)
+	projected.TemplateTitle = ""
+	projected.TemplateBody = ""
+	projected.TemplatePayloadJson = "{}"
+	projected.SourceObjectId = ""
+	projected.SourceObjectVersion = ""
+	projected.DeliveryChannels = nil
+	return projected
 }
 
 // parseCronField parses a standard 5-field cron component supporting *, */step,
@@ -441,7 +449,7 @@ func (s *Service) CreateAlarm(ctx context.Context, req *runtimev1.CreateAlarmReq
 	targetRef := strings.TrimSpace(req.GetTargetWorkSessionRef())
 	if targetRef != "" {
 		sess, gErr := s.store.GetSession(ctx, decision.AccountID, targetRef)
-		if errors.Is(gErr, errSessionNotFound) || gErr != nil || sess == nil || !readerCanAccessSession(decision, sess.Record) {
+		if gErr != nil || !s.canRouteToSession(ctx, decision, sess) {
 			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AGENT_SESSION_NOT_FOUND)
 		}
 	}
@@ -525,7 +533,6 @@ func (st *Store) UpsertAlarm(ctx context.Context, accountID string, rec *runtime
 				return nil, errLeaseConflict
 			}
 			// Never allow re-submission with the same/older object version to revive cancelled or sleeping delegation.
-			nextStatus := existingStatus
 			if existingStatus == "cancelled" || existingStatus == "sleeping" {
 				if strings.TrimSpace(rec.GetSourceObjectVersion()) == "" || strings.TrimSpace(rec.GetSourceObjectVersion()) == strings.TrimSpace(existingObjVer) {
 					return nil, errLeaseConflict
@@ -534,13 +541,10 @@ func (st *Store) UpsertAlarm(ctx context.Context, accountID string, rec *runtime
 				if existingStatus == "cancelled" {
 					return nil, errLeaseConflict
 				}
-				nextStatus = "active"
-			} else {
-				nextStatus = "active"
 			}
 			rec.AlarmId = existingID
 			rec.Version = existingVersion + 1
-			rec.Status = nextStatus
+			rec.Status = "active"
 			if _, err := tx.ExecContext(ctx, `
 				UPDATE runtime_session_alarm
 				SET agent_binding = ?, target_work_session_ref = ?, alarm_kind = ?,
@@ -552,7 +556,7 @@ func (st *Store) UpsertAlarm(ctx context.Context, accountID string, rec *runtime
 				rec.AgentBinding, rec.TargetWorkSessionRef, int32(rec.AlarmKind),
 				rec.CronExpr, rec.TimeZone, rec.SourceObjectVersion,
 				rec.TemplateTitle, rec.TemplateBody, rec.TemplatePayloadJson,
-				reqLLM, channelsJSON, nextStatus, rec.NextFireAt, rec.Version, rec.ExpiresAt, nowStr,
+				reqLLM, channelsJSON, rec.Status, rec.NextFireAt, rec.Version, rec.ExpiresAt, nowStr,
 				existingID, accountID, existingVersion,
 			); err != nil {
 				return nil, err
@@ -627,7 +631,7 @@ func (s *Service) ListAlarms(ctx context.Context, req *runtimev1.ListAlarmsReque
 	var visible []*runtimev1.SessionAlarmRecord
 	for _, rec := range all {
 		if readerCanAccessAlarm(decision, rec) {
-			visible = append(visible, rec)
+			visible = append(visible, s.projectAlarmForReader(ctx, decision, rec))
 		}
 	}
 	return &runtimev1.ListAlarmsResponse{Alarms: visible}, nil
@@ -683,6 +687,18 @@ func (s *Service) UpdateAlarm(ctx context.Context, req *runtimev1.UpdateAlarmReq
 	}
 	if !readerCanAccessAlarm(decision, existing) {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AGENT_SESSION_NOT_FOUND)
+	}
+	if !s.canReadLinkedSessionContent(ctx, decision, existing.GetTargetWorkSessionRef()) {
+		// An overview manager can stop delivery without editing or rearming
+		// a reminder whose content belongs to another subject.
+		nextStatus := strings.TrimSpace(req.GetStatus())
+		stopsDelivery := nextStatus == "paused" || nextStatus == "sleeping" || nextStatus == "cancelled"
+		editsAlarm := req.FireAt != nil || req.CronExpr != nil || req.TimeZone != nil || req.SourceObjectVersion != nil ||
+			req.TemplateTitle != nil || req.TemplateBody != nil || req.TemplatePayloadJson != nil ||
+			req.RequiresLlm != nil || len(req.GetDeliveryChannels()) != 0 || req.GetResetUnackStreak()
+		if !stopsDelivery || editsAlarm {
+			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+		}
 	}
 	if existing.GetStatus() == "cancelled" || existing.GetStatus() == "expired" {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_CONFLICT)
@@ -775,7 +791,7 @@ func (s *Service) UpdateAlarm(ctx context.Context, req *runtimev1.UpdateAlarmReq
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
-	return &runtimev1.UpdateAlarmResponse{Alarm: updated}, nil
+	return &runtimev1.UpdateAlarmResponse{Alarm: s.projectAlarmForReader(ctx, decision, updated)}, nil
 }
 
 func (s *Service) DeleteAlarm(ctx context.Context, req *runtimev1.DeleteAlarmRequest) (*runtimev1.DeleteAlarmResponse, error) {
@@ -1263,62 +1279,78 @@ func (s *Service) computePostFireSchedule(alarm *runtimev1.SessionAlarmRecord, i
 	return "active", nextFireStr
 }
 
-func (s *Service) ResolveAlarmReplyTarget(ctx context.Context, accountID, agentBinding, replyToMessageRef string, now time.Time) (AlarmReplyResolution, error) {
-	disclaimer := "Modifying this reminder updates only your personal alarm schedule and does not alter third-party App business bookings."
+// @nimi-authority: rule.nimi.runtime.agent-participation.named-pc-handoff-recipient
+func (s *Service) resolveAlarmReplyTargets(ctx context.Context, decision accountservice.LocalAppCallerDecision, agentBinding, replyToMessageRef string, now time.Time) ([]*runtimev1.SessionRouteCandidate, error) {
+	query := `
+		SELECT target.work_session_ref, target.session_kind, target.owner_body_kind,
+		       target.publisher_scope_key, target.is_primary_companion, target.title,
+		       target.handoff_sender_subject, target.handoff_recipient_subject,
+		       target.handoff_recipient_app_id, target.content_restricted,
+		       alarm.source_publisher, alarm.template_title, alarm.last_delivery_at
+		FROM runtime_session_alarm AS alarm
+		JOIN runtime_session AS target ON target.account_id = alarm.account_id
+		 AND target.work_session_ref = alarm.target_work_session_ref
+		 AND target.agent_binding = alarm.agent_binding
+		WHERE alarm.account_id = ? AND alarm.agent_binding = ?
+		  AND target.deleted_at = '' AND target.status NOT IN ('deleting', 'deleted')`
+	args := []any{decision.AccountID, agentBinding}
 	if ref := strings.TrimSpace(replyToMessageRef); ref != "" {
-		var alarmID string
-		err := s.store.readDB.QueryRowContext(ctx, `
-			SELECT d.alarm_id
-			FROM runtime_alarm_delivery d
-			JOIN runtime_session_alarm a ON a.alarm_id = d.alarm_id AND a.account_id = d.account_id
-			WHERE d.account_id = ? AND d.provider_message_ref = ?
-			  AND (? = '' OR a.agent_binding = ?)
-			ORDER BY d.fired_at DESC LIMIT 1`,
-			accountID, ref, strings.TrimSpace(agentBinding), strings.TrimSpace(agentBinding),
-		).Scan(&alarmID)
-		if err == nil && alarmID != "" {
-			rec, getErr := s.store.GetAlarm(ctx, accountID, alarmID)
-			if getErr == nil {
-				return AlarmReplyResolution{MatchedAlarm: rec, Disclaimer: disclaimer}, nil
-			}
-		}
-		// Explicit replyToMessageRef that does not match any alarm delivery must NOT
-		// silently fall back to an unrelated recent alarm!
-		return AlarmReplyResolution{Disclaimer: disclaimer}, nil
+		// An explicit delivery reference selects only its actual alarm.
+		query += ` AND alarm.alarm_id = (
+			SELECT delivery.alarm_id
+			FROM runtime_alarm_delivery AS delivery
+			JOIN runtime_session_alarm AS source ON source.account_id = delivery.account_id
+			 AND source.alarm_id = delivery.alarm_id
+			WHERE delivery.account_id = alarm.account_id AND source.agent_binding = alarm.agent_binding
+			  AND delivery.provider_message_ref = ?
+			ORDER BY delivery.fired_at DESC LIMIT 1
+		)`
+		args = append(args, ref)
+	} else {
+		query += ` AND alarm.last_delivery_at != '' AND alarm.last_delivery_at >= ?
+			AND alarm.status IN ('active', 'sleeping', 'completed')
+			ORDER BY alarm.last_delivery_at DESC, alarm.alarm_id`
+		args = append(args, formatRFC3339(now.UTC().Add(-alarmRecentReplyWindow)))
 	}
-
-	cutoff := formatRFC3339(now.UTC().Add(-alarmRecentReplyWindow))
-	rows, err := s.store.readDB.QueryContext(ctx, `
-		SELECT DISTINCT `+alarmSelectColumns+`
-		FROM runtime_session_alarm
-		WHERE account_id = ? AND agent_binding = ?
-		  AND last_delivery_at != '' AND last_delivery_at >= ?
-		  AND status IN ('active', 'sleeping', 'completed')
-		ORDER BY last_delivery_at DESC LIMIT 5`,
-		accountID, strings.TrimSpace(agentBinding), cutoff,
-	)
+	rows, err := s.store.readDB.QueryContext(ctx, query, args...)
 	if err != nil {
-		return AlarmReplyResolution{}, err
+		return nil, err
 	}
 	defer func() { _ = rows.Close() }()
-	var recent []*runtimev1.SessionAlarmRecord
+	var targets []*runtimev1.SessionRouteCandidate
+	seen := make(map[string]struct{}, maxAlarmReplyTargets)
 	for rows.Next() {
-		rec, _, scanErr := scanAlarmRow(rows)
-		if scanErr != nil {
-			return AlarmReplyResolution{}, scanErr
+		session := &sessionRow{Record: &runtimev1.WorkSessionRecord{}}
+		alarm := &runtimev1.SessionAlarmRecord{}
+		var primary, restricted int
+		if err := rows.Scan(&session.Record.WorkSessionRef, &session.Record.SessionKind, &session.Record.OwnerBodyKind,
+			&session.Record.PublisherScopeKey, &primary, &session.Record.Title,
+			&session.HandoffSenderSubject, &session.HandoffRecipientSubject, &session.HandoffRecipientAppID, &restricted,
+			&alarm.SourcePublisher, &alarm.TemplateTitle, &alarm.LastDeliveryAt); err != nil {
+			return nil, err
 		}
-		recent = append(recent, rec)
+		ref := session.Record.GetWorkSessionRef()
+		if _, duplicate := seen[ref]; duplicate {
+			continue
+		}
+		session.Record.IsPrimaryCompanion = primary != 0
+		session.ContentRestricted = restricted != 0
+		if !readerCanAccessAlarm(decision, alarm) || !s.canRouteToSession(ctx, decision, session) {
+			continue
+		}
+		seen[ref] = struct{}{}
+		targets = append(targets, &runtimev1.SessionRouteCandidate{
+			WorkSessionRef: ref,
+			Title:          firstNonEmpty(alarm.GetTemplateTitle(), session.Record.GetTitle()),
+			SessionKind:    session.Record.GetSessionKind(),
+			OwnerBodyKind:  session.Record.GetOwnerBodyKind(),
+			UpdatedAt:      alarm.GetLastDeliveryAt(),
+		})
+		if len(targets) == maxAlarmReplyTargets {
+			break
+		}
 	}
-	if err := rows.Err(); err != nil {
-		return AlarmReplyResolution{}, err
-	}
-	if len(recent) == 1 {
-		return AlarmReplyResolution{MatchedAlarm: recent[0], Disclaimer: disclaimer}, nil
-	}
-	if len(recent) >= 2 {
-		return AlarmReplyResolution{AmbiguousAlarms: recent, Disclaimer: disclaimer}, nil
-	}
-	return AlarmReplyResolution{Disclaimer: disclaimer}, nil
+	return targets, rows.Err()
 }
 
 // OfflineRecallPointer represents a recalled Cognition v5 session_ref pointer.

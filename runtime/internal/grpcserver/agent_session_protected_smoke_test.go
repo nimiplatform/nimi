@@ -246,7 +246,7 @@ func TestProductionDesktopAlarmChannels(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { svc.Close() })
+	t.Cleanup(func() { _ = svc.Close() })
 	app := smokeLocalAppAppService{
 		appID: "example.alarm", accountID: "test-account", subject: "test-subject",
 		allowedDomains: map[localappop.Domain]bool{"agent.session.manage": true, "agent.trigger.delegate": true},

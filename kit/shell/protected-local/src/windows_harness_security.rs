@@ -1990,9 +1990,9 @@ mod tests {
         let mut snap_root = base.clone();
         for seg in [
             "app-hosts",
-            "cc78e6ab2bf692bf6961ae48eccbf351",
+            "account-fixture-path-segment-001",
             "apps",
-            "4b37ae160005fcfe3a7b0a7ee5089cf5",
+            "apphost-fixture-path-segment-001",
             "user-data",
             "harness",
             "4922e3d4-37c1-4654-b9b4-f2b8c9db1b6e",

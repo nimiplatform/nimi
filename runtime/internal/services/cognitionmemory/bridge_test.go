@@ -265,7 +265,7 @@ func TestReplayKeepsUnidentifiableHeadAndDrainsIndependentAgent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer core.Close()
+	t.Cleanup(func() { _ = core.Close() })
 	bridge := NewBridge(store, newTestOwnerPort(store, core, nil), func(context.Context, Binding) error { return nil })
 	for _, agent := range []string{"agent-a", "agent-b"} {
 		createTestBinding(t, backend, store, agent, true)

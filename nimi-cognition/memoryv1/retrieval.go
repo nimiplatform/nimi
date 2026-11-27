@@ -309,7 +309,10 @@ func (c *Core) recallFTS(ctx context.Context, request RecallRequest, rankAt time
 		ftsArgs = append(ftsArgs, scopeArgs...)
 	}
 	if request.FilterSlotKeys {
-		slotClause, slotArgs := slotKeyFilterClause("m.slot_key", request.AllowedSlotKeys)
+		slotClause, slotArgs, err := slotKeyFilterClause("m.slot_key", request.AllowedSlotKeys)
+		if err != nil {
+			return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallFTS}, err
+		}
 		if slotClause == "" {
 			return RecallResult{Outcome: OutcomeNoHits, Pipeline: PipelineRecallFTS}, nil
 		}
@@ -561,7 +564,10 @@ func (c *Core) recallEmbedding(ctx context.Context, request RecallRequest, port 
 		vecArgs = append(vecArgs, scopeArgs...)
 	}
 	if request.FilterSlotKeys {
-		slotClause, slotArgs := slotKeyFilterClause("m.slot_key", request.AllowedSlotKeys)
+		slotClause, slotArgs, err := slotKeyFilterClause("m.slot_key", request.AllowedSlotKeys)
+		if err != nil {
+			return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallEmbedding}, err
+		}
 		if slotClause == "" {
 			return RecallResult{Outcome: OutcomeNoHits, Pipeline: PipelineRecallEmbedding}, nil
 		}
@@ -770,18 +776,16 @@ func normalizedSlotKeys(slotKeys []string) []string {
 	return cleaned
 }
 
-func slotKeyFilterClause(column string, slotKeys []string) (string, []any) {
+func slotKeyFilterClause(column string, slotKeys []string) (string, []any, error) {
 	cleaned := normalizedSlotKeys(slotKeys)
 	if len(cleaned) == 0 {
-		return "", nil
+		return "", nil, nil
 	}
-	placeholders := make([]string, len(cleaned))
-	args := make([]any, len(cleaned))
-	for i, key := range cleaned {
-		placeholders[i] = "?"
-		args[i] = key
+	encoded, err := json.Marshal(cleaned)
+	if err != nil {
+		return "", nil, fmt.Errorf("encode eligible memory slots: %w", err)
 	}
-	return column + ` IN (` + strings.Join(placeholders, ",") + `)`, args
+	return column + ` IN (SELECT value FROM json_each(?))`, []any{string(encoded)}, nil
 }
 
 func recallTokens(value string) []string {

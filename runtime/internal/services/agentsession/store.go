@@ -611,7 +611,7 @@ func migrateSessionRoutingGoals(ctx context.Context, tx *sql.Tx) error {
 	}
 	type goal struct{ account, session, title string }
 	var goals []goal
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	for rows.Next() {
 		var g goal
 		var text sql.NullString
@@ -3882,7 +3882,7 @@ func (st *Store) sessionMemoryReads(ctx context.Context, account, session string
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var sets []cognitionmemory.MemoryReadSet
 	for rows.Next() {
 		var binding, bank, lifecycle, ref string

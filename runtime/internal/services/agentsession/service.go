@@ -130,10 +130,10 @@ type brainEventNotice struct {
 }
 
 type Service struct {
-	qualifyMemory      MemoryQualifier
-	stepCancels        map[uint64]context.CancelFunc
-	stepSeq            uint64
-	stepWG             sync.WaitGroup
+	qualifyMemory          MemoryQualifier
+	stepCancels            map[uint64]context.CancelFunc
+	stepSeq                uint64
+	stepWG                 sync.WaitGroup
 	bodyNamespaceOwner     func(context.Context, string) (string, error)
 	namedRecipientResolver NamedRecipientResolver
 	namedRecipientVerifier NamedRecipientVerifier
@@ -469,18 +469,23 @@ func (s *Service) projectSessionForReader(ctx context.Context, decision accounts
 	return cloned
 }
 
+// @nimi-authority: rule.nimi.runtime.agent-participation.named-pc-handoff-recipient
+func (s *Service) canReadLinkedSessionContent(ctx context.Context, decision accountservice.LocalAppCallerDecision, workSessionRef string) bool {
+	ref := strings.TrimSpace(workSessionRef)
+	if ref == "" {
+		return true
+	}
+	row, err := s.store.GetSessionIncludingDeleting(ctx, decision.AccountID, ref)
+	return err == nil && s.canRouteToSession(ctx, decision, row)
+}
+
 func (s *Service) projectAttentionForReader(ctx context.Context, decision accountservice.LocalAppCallerDecision, att *runtimev1.PendingAttentionRecord) *runtimev1.PendingAttentionRecord {
-	if att == nil {
-		return nil
+	if att == nil || s.canReadLinkedSessionContent(ctx, decision, att.GetWorkSessionRef()) {
+		return att
 	}
-	if ref := strings.TrimSpace(att.GetWorkSessionRef()); ref != "" {
-		if row, err := s.store.GetSessionIncludingDeleting(ctx, decision.AccountID, ref); err == nil && row != nil && row.ContentRestricted && !s.readerCanAccessSessionContent(ctx, decision, row) {
-			cloned := proto.Clone(att).(*runtimev1.PendingAttentionRecord)
-			cloned.SummaryJson = "{}"
-			return cloned
-		}
-	}
-	return att
+	cloned := proto.Clone(att).(*runtimev1.PendingAttentionRecord)
+	cloned.SummaryJson = "{}"
+	return cloned
 }
 
 func (s *Service) canDeliverOutboxIntent(ctx context.Context, decision accountservice.LocalAppCallerDecision, item outboxIntentItem) bool {

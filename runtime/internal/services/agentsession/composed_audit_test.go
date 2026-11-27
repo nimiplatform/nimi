@@ -665,8 +665,9 @@ func TestComposedHonestDesktopAlarmsAndFailClosedExternalChannels(t *testing.T) 
 	}
 
 	// Unknown replyToMessageRef MUST NOT fall back to the recent alarm!
-	res, err := svc.ResolveAlarmReplyTarget(context.Background(), "acct-1", "agent-1", "nonexistent-msg-ref", clock)
-	if err != nil || res.MatchedAlarm != nil || len(res.AmbiguousAlarms) != 0 {
+	reader := accountservice.LocalAppCallerDecision{AccountID: "acct-1", ActivatedDomains: DomainAgentSessionManage}
+	res, err := svc.resolveAlarmReplyTargets(context.Background(), reader, "agent-1", "nonexistent-msg-ref", clock)
+	if err != nil || len(res) != 0 {
 		t.Fatalf("unknown replyToMessageRef must NOT match unrelated alarm, got %+v err=%v", res, err)
 	}
 

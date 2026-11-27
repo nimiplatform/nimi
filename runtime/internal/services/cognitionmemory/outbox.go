@@ -320,12 +320,11 @@ func (s *Store) NextPending(ctx context.Context, bindingRef string) (OutboxItem,
 	if !ownerEvent || !validRef(item.OperationID) || !validRef(item.EventRef) || item.DeliverySequence == 0 || (capturedLifecycle != "" && capturedLifecycle != item.LifecycleRef) {
 		return OutboxItem{}, ErrConflict
 	}
-	digest, err := hex.DecodeString(requestKey)
-	if err != nil || len(digest) != sha256.Size {
-		return OutboxItem{}, fmt.Errorf("load pending cognition memory event: invalid committed digest")
+	matches, err := outboxPayloadMatchesDigest(payload, requestKey)
+	if err != nil {
+		return OutboxItem{}, fmt.Errorf("load pending cognition memory event: %w", err)
 	}
-	sum := sha256.Sum256(payload)
-	if !bytes.Equal(sum[:], digest) {
+	if !matches {
 		item.damagedDigest = requestKey
 		return item, nil
 	}
@@ -339,6 +338,22 @@ func (s *Store) NextPending(ctx context.Context, bindingRef string) (OutboxItem,
 	envelope.Bank = &runtimev1.CognitionMemoryBankRef{Value: bankRef.String}
 	item.Envelope = envelope
 	return item, nil
+}
+
+func outboxPayloadMatchesDigest(payload []byte, requestKey string) (bool, error) {
+	digest, err := hex.DecodeString(requestKey)
+	if err != nil || len(digest) != sha256.Size {
+		return false, fmt.Errorf("invalid committed digest")
+	}
+	sum := sha256.Sum256(payload)
+	return bytes.Equal(sum[:], digest), nil
+}
+
+func decodeOutboxPayloadForFencing(payload []byte, requestKey string, envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) bool {
+	// Fencing can inspect only authenticated payload bytes. The ordered drain owns
+	// damage settlement and leaves unidentifiable rows pending without using them.
+	matches, err := outboxPayloadMatchesDigest(payload, requestKey)
+	return err == nil && matches && proto.Unmarshal(payload, envelope) == nil
 }
 
 // @nimi-authority: rule.nimi.cognition.runtime-bridge.damaged-handoff
@@ -788,7 +803,7 @@ func (s *Store) NeutralizeSessionOutbox(ctx context.Context, localAgentRef, work
 		// rows where ("session", workSessionRef) is not Sources[0] (or carried on
 		// SessionPointerCommitted) are equally neutralized.
 		rows, err := tx.QueryContext(ctx, `
-			SELECT o.operation_id, o.payload
+			SELECT o.operation_id, o.payload, o.request_key
 			FROM runtime_cognition_memory_outbox o
 			JOIN runtime_cognition_memory_stream s ON s.binding_ref = o.binding_ref
 			WHERE s.local_agent_ref = ? AND o.state = 'pending' AND o.payload IS NOT NULL`,
@@ -799,16 +814,15 @@ func (s *Store) NeutralizeSessionOutbox(ctx context.Context, localAgentRef, work
 		}
 		var extraOps []string
 		for rows.Next() {
-			var opID string
+			var opID, requestKey string
 			var payload []byte
-			if scanErr := rows.Scan(&opID, &payload); scanErr != nil {
+			if scanErr := rows.Scan(&opID, &payload, &requestKey); scanErr != nil {
 				_ = rows.Close()
 				return fmt.Errorf("neutralize session cognition outbox: scan row: %w", scanErr)
 			}
 			var env runtimev1.CognitionMemoryCommittedEventEnvelope
-			if err := proto.Unmarshal(payload, &env); err != nil {
-				_ = rows.Close()
-				return fmt.Errorf("decode pending cognition envelope: %w", err)
+			if !decodeOutboxPayloadForFencing(payload, requestKey, &env) {
+				continue
 			}
 			matched := env.GetSessionPointerCommitted() != nil && env.GetSessionPointerCommitted().GetWorkSessionRef() == workSessionRef
 			if !matched {
@@ -916,7 +930,7 @@ func (s *Store) NeutralizeRestrictedSessionOutbox(ctx context.Context, localAgen
 	var neutralized int64
 	err := s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
 		rows, err := tx.QueryContext(ctx, `
-			SELECT o.operation_id, o.payload
+			SELECT o.operation_id, o.payload, o.request_key
 			FROM runtime_cognition_memory_outbox o
 			JOIN runtime_cognition_memory_stream s ON s.binding_ref = o.binding_ref
 			WHERE s.local_agent_ref = ? AND o.state = 'pending' AND o.payload IS NOT NULL`,
@@ -927,16 +941,15 @@ func (s *Store) NeutralizeRestrictedSessionOutbox(ctx context.Context, localAgen
 		}
 		var ops []string
 		for rows.Next() {
-			var opID string
+			var opID, requestKey string
 			var payload []byte
-			if scanErr := rows.Scan(&opID, &payload); scanErr != nil {
+			if scanErr := rows.Scan(&opID, &payload, &requestKey); scanErr != nil {
 				_ = rows.Close()
 				return fmt.Errorf("neutralize restricted session cognition outbox: scan row: %w", scanErr)
 			}
 			var env runtimev1.CognitionMemoryCommittedEventEnvelope
-			if err := proto.Unmarshal(payload, &env); err != nil {
-				_ = rows.Close()
-				return fmt.Errorf("decode pending cognition envelope: %w", err)
+			if !decodeOutboxPayloadForFencing(payload, requestKey, &env) {
+				continue
 			}
 			for _, ref := range envelopeRestrictedContentSessionRefs(&env) {
 				if ref == workSessionRef {

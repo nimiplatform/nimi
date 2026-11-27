@@ -468,7 +468,7 @@ func (f *Facade) Correct(ctx context.Context, localAgentRef, memoryRef, correcte
 		}
 		if drained.Outcome == memoryv1.OutcomeNoEffect || drained.Outcome == memoryv1.OutcomeRejected {
 			if drained.OperationID == operationID {
-				decision = memoryv1.DecisionResult{Outcome: memoryv1.OutcomeNoEffect, OperationID: operationID}
+				decision = memoryv1.DecisionResult{Outcome: drained.Outcome, OperationID: operationID}
 				break
 			}
 			continue

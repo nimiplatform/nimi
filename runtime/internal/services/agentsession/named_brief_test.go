@@ -3,6 +3,7 @@ package agentsession
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -402,9 +403,9 @@ func TestNamedBriefOverviewOnlyIsolationSearchWatchAndRecall(t *testing.T) {
 	// plus a unique private word ("碧玺密语") in the handoff.
 	normalRouteCtx := testCallerCtxWithDomains("nimi.desktop", "subj-home", DomainAgentLocal, localappop.OperationAgentSessionRouteSubmit, DomainAgentLocal, DomainAgentSessionManage)
 	normResp, err := svc.RouteAndSubmitInput(normalRouteCtx, &runtimev1.RouteAndSubmitInputRequest{
-		AgentHandle: "agent-xiaoman",
-		RequestId:   "req-norm-1",
-		Text:        "公开迭代方案梳理",
+		AgentHandle:  "agent-xiaoman",
+		RequestId:    "req-norm-1",
+		Text:         "公开迭代方案梳理",
 		EntrySurface: "pc_work",
 	})
 	if err != nil {
@@ -426,6 +427,12 @@ func TestNamedBriefOverviewOnlyIsolationSearchWatchAndRecall(t *testing.T) {
 		t.Fatalf("handoff route: %v", err)
 	}
 	handoffRef := handoffResp.GetResolvedWorkSessionRef()
+
+	updateCtx := testCallerCtxWithDomains("com.third.overview", "subj-overview", DomainAgentLocal, localappop.OperationAgentSessionUpdate, DomainAgentSessionManage, DomainAgentLocal)
+	title := "relabel restricted work"
+	if _, err := svc.UpdateSession(updateCtx, &runtimev1.UpdateSessionRequest{WorkSessionRef: handoffRef, Title: &title}); status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("restricted content was mutable through overview access: %v", err)
+	}
 
 	// Start WatchSessionOverview for an overview-only App BEFORE projection update to test both baseline AND live delta.
 	watchCtx, watchCancel := context.WithCancel(
@@ -471,7 +478,9 @@ func TestNamedBriefOverviewOnlyIsolationSearchWatchAndRecall(t *testing.T) {
 		t.Fatal("timed out waiting for live overview delta")
 	}
 	watchCancel()
-	<-watchDone
+	if err := <-watchDone; err != nil && !errors.Is(err, context.Canceled) {
+		t.Fatalf("stop overview watcher: %v", err)
+	}
 
 	// Inspect BOTH baseline & live deltas delivered to overview-only App:
 	// Authorized status MUST be visible, private content MUST be completely redacted!

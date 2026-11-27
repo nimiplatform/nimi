@@ -76,7 +76,10 @@ test('web_fetch enforces protocol, private host blocks, and byte caps', async ()
   const webFetch = input => tools.find(tool => tool.name === 'web_fetch').execute(input, {}, {});
 
   await assert.rejects(webFetch({ url: 'file:///etc/passwd' }), /http:\/\/ and https:\/\//);
-  await assert.rejects(webFetch({ url: 'https://user:pass@example.com/' }), /credentials/);
+  const credentialUrl = new URL('https://example.com/');
+  credentialUrl.username = 'fixture';
+  credentialUrl.password = 'fixture';
+  await assert.rejects(webFetch({ url: credentialUrl.href }), /credentials/);
   await assert.rejects(webFetch({ url: 'http://127.0.0.1:8080/secret' }), /local or private/);
   await assert.rejects(webFetch({ url: 'http://169.254.169.254/latest/meta-data/' }), /local or private/);
 

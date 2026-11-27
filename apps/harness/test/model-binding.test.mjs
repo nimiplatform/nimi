@@ -31,7 +31,7 @@ test('a missing or changed binding preserves history and requires a confirmed re
     } },
     ai: { text: { async streamTurn(input) {
       if (input.configuration.expectedRevision !== records.get(input.configuration.configRef)) {
-        throw new Error('ai-config-revision-conflict');
+        throw new NimiElectronLocalAppHostError('ai-config-revision-conflict', false);
       }
       dispatched.push(input.configuration);
       return {
