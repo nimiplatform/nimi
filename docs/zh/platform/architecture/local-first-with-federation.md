@@ -26,14 +26,21 @@ Realm 和 App 的协调后端处理身份与连接协调；远程 AI 输入、�
 
 关闭客户端只会断开当前连接，不会停止 PC Runtime。连接断开后旧流随即结束；重连后会获取当前句柄，但不会重放业务请求。已接受的持久 Job 继续遵循原有的查询和取消合同。
 
-## 联网条件与后续联邦方向
+## 离线连续性、重新登录条件与后续联邦方向
 
-本地推理可否继续，取决于会话、授权、模型资产及策略是否仍然有效。新登录、主 Runtime 发现、建立连接、续期、Realm 操作和云端推理各自需要相应网络服务。远程接入不代表整个产品可以离线运行。
+Runtime 将本机已建立的可信登录身份与短期在线 Realm 凭据分离，使已登录设备在断网时仍可继续本地工作：
+
+- **已登录设备离线可继续使用的范围**：当本机已完成可信统一账号登录且 Runtime 仍持有有效、未被撤销的本地登录托管记录时，即使 Realm 断联或短期在线 Access Token 在离线期间自然过期，Home 仍可冷启动并保持可用；已准备的本地模型、经授权的本地 App 数据与 LocalAgent 对话按各自归属校验继续运行。对于已安装的官方校验 App，当官方 Registry 不可达时，只要安装身份、账号有效性与本地授权仍然成立，Runtime 会不限时长地复用该精确安装目标上一次经官方核验通过的审批结果（本地缓存读取、启动、重启与失败检查都不会刷新审批时间）。
+- **何时需要在线重新登录**：已过期、已清除或缺失的在线令牌绝不会用于授权在线 Realm、云端账号或受保护的远程接入操作，这些调用会如实返回网络不可用或需要在线认证。若在线刷新出现结果不明确或可能已轮换的情形（例如发出请求后传输中断、Realm 返回 503 无法核验，或重启恢复遇到刷新前崩溃围栏），Runtime 会立即清除并隔离可能已轮换的在线令牌而不重放，同时保留本机可信登录身份；此时需在 Home 重新完成在线认证才能恢复在线 Realm 与远程接入。首次登录、新装或更新官方校验 App、主 Runtime 发现以及云端推理同样需要联网。
+- **退出、吊销与 Kill-Switch 立即生效**：主动退出登录、切换账号、已确认的吊销/封禁/注销，或契约无效的刷新失败会立即使在线凭据与本地登录身份同时失效，并隔离受影响的会话与任务。对于已安装校验 App，一旦观测到生效中的 kill-switch 或 Registry 中不存在该记录，即便之后 Registry 不可达也会立即拦截新的启动与绑定。
 
 更多 Runtime 主机、自动跨主机同步和算力联邦需要独立的架构设计。当前多设备路径是多个客户端消费同一主 Runtime，尚不提供分布式执行调度。
 
 ## Source Basis
 
+- [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
+- [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)
+- [`.nimi/spec/runtime/protected-session.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/protected-session.authority.yaml)
 - [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)
 - [`.nimi/spec/runtime/local-compute.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/local-compute.authority.yaml)
 - [`.nimi/spec/runtime/rpc-foundations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/rpc-foundations.authority.yaml)

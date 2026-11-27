@@ -2,7 +2,7 @@
 
 Runtime 的基础配置与产品控制（Product Control）遵循严格的分层设计：
 
-- `~/.nimi/nimi.json` 是产品控制的权威记录文件，定义数据根目录 `dataRoot.path` 的基准路径。
+- 产品控制（Product Control）的权威记录文件 `nimi.json` 定义数据根目录 `dataRoot.path` 的基准路径：在 Windows 上位于 `%USERPROFILE%\.nimi\nimi.json`，在 macOS 上位于 `~/.nimi/nimi.json`（在 macOS 本地开发 Product Control 命名空间 `.nimi-dev` 下为 `~/.nimi-dev/.nimi/nimi.json`）。
 - 系统受保护区域（如 Windows 上的 `%ProgramData%\Nimi\Runtime\Protected`）保存服务内部凭据、会话状态与验证凭证。
 - Runtime 严格遵循 Product Control 声明的存储根路径，确保平台各层级数据的一致性与安全性。
 

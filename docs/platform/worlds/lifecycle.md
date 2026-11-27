@@ -9,7 +9,7 @@ For field-level definitions and runtime state references, see [Reference → Sta
 Creating a new world in Realm is a privileged operation:
 
 - **Explicit Administrator Grant**: An account must be explicitly granted world creation eligibility by a Realm administrator before it can create a world.
-- **No Implicit Substitutes**: Declaring `realm.data` in an application manifest, holding an active subscription, or already owning other worlds does not grant creation eligibility.
+- **No Implicit Substitutes**: Declaring `realm.data` in an application manifest or already owning other worlds does not grant creation eligibility.
 - **Pre-Check vs. Authoritative Enforcement**: Applications can query creation eligibility through `client.realm.worldCore`, but reading eligibility is only a convenience pre-check—Realm always re-verifies eligibility authoritatively when a `create` request is submitted.
 
 ## Authoring and Resource Operations

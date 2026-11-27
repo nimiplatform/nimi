@@ -10,13 +10,6 @@ The Nimi Home dashboard is your daily command center for AI tasks, apps, and upd
 | **Device AI Readiness** | Local hardware status, model readiness, and Runtime connectivity | Jump to AI settings to configure or troubleshoot models |
 | **Actionable Messages** | Key todos from apps and agents, download progress, and pending updates | Click a card to open the corresponding app context |
 | **Message Center** | Full-width view of loaded updates with source and status filters | Review notifications and completed items in batches |
-| **Moments & Activity** | Community updates, character posts, and social feed | Share posts and interact with updates from friends |
-
-## Community Feed and Moments
-
-Select **Moments** to open the Realm community stream:
-- **Aggregated Feed**: Brings together your own posts, updates from friends, and public posts from verified characters (`PersonaCharacters` and `WorldCharacters`).
-- **Post & React**: Publish posts and interact with the community. Realm manages post visibility (public or friends-only) and verifies author identity.
 
 ## Customizing Your Dashboard Feed
 
@@ -26,7 +19,7 @@ Select **Moments** to open the Realm community stream:
 
 ## Example Workflow: Acting on a Home Todo
 
-1. **Card Appears**: An installed app (such as the NimiDay schedule companion) posts a reminder card to your Home feed.
+1. **Card Appears**: An installed scheduling app posts a reminder card to your Home feed.
 2. **Click to Open**: Clicking the card opens the app window and jumps straight to the relevant item.
 3. **Resolve Task**: Once you confirm or update the item in the app, the card status on Home updates automatically.
 

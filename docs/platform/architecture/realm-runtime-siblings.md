@@ -6,7 +6,7 @@ Realm and Runtime operate as independent, peer authorities.
 | --- | --- | --- |
 | **Identity & Lifecycle** | Persistent Character identity & Character Source definitions | LocalAgent instantiation & on-device lifecycle |
 | **World & AI Compute** | World Source specifications & planned World State/History contracts | Local (Ollama/llama.cpp) & cloud AI model scheduling |
-| **State & Sessions** | Social relationship graphs, economy, and world settings | Active conversations, session state, and Cognition memory mediation |
+| **State & Sessions** | Social relationship graphs and world settings | Active conversations, session state, and Cognition memory mediation |
 | **Security & Policy** | Realm access policies and cloud audit trails | Inference driver selection, token budgets, API keys, and session-scoped app access |
 
 ## Inter-Domain Coordination

@@ -19,7 +19,7 @@ Desktop, Web, and third-party applications do not unilaterally define or mutate 
 - **Owner and Permission Boundaries**: Shared protocol interfaces and SDK methods never authorize an application or world to bypass the resource owner or mutate global state without permission.
 - **Planned Contracts vs. Live Capabilities**:
   - `WorldState` and `WorldHistory` remain planned protocol contracts; they are not an executable full world-state ledger in current Home.
-  - In creator economics, revenue split previews only reflect configuration previews—they do not represent live financial settlement, and creator payouts/withdrawals are not yet connected.
+  - Creator Economy, revenue split preview, subscription, and payout/settlement endpoints are not part of the active Realm API.
 - **Fail-Closed Semantics**: If Realm connectivity is interrupted or a schema mismatch occurs, the platform surfaces explicit unavailable states rather than fabricating local success.
 
 Application developers should access Realm exclusively through `@nimiplatform/sdk` (and Runtime-mediated channels where required), avoiding manual HTTP endpoint stitching or local mock state that mimics authoritative truth.

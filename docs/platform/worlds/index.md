@@ -34,7 +34,7 @@ Worlds work alongside other platform capabilities mediated by Runtime and Realm:
 | --- | --- |
 | **Direct Chat & Presence** | Runtime-admitted realtime channels for human-to-human DirectChat, typing indicators, inbox updates, and Presence |
 | **LocalAgent & Cognition** | LocalAgent dialogue execution in Runtime and per-agent long-term memory managed by Cognition through Runtime |
-| **Social & Economy** | Platform account relationships, permissions, and settlement rails managed by Realm |
+| **Social Graph** | Platform account relationships and resource permissions managed by Realm |
 | **OASIS & Transit** | The `OASIS` system main world and the spatial transit protocol design (see [OASIS](/platform/worlds/oasis)) |
 
 Apps access Realm through a protected host session, manifest `realm.data` declaration, and Runtime admission. Runtime holds Realm credentials and remote realtime connections; apps do not handle raw Bearer tokens, direct HTTP requests, or raw sockets, and generic world event broadcasting or notification streams are not open to apps.

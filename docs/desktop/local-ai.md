@@ -31,7 +31,7 @@ The Runtime-managed Windows and Apple Silicon engine archives both use sd.cpp 10
 
 ## Understanding Status Indicators
 
-- **File Integrity**: Confirms that downloaded bytes match registered checksums so you don't run corrupted weights.
+- **File Integrity**: Confirms that downloaded bytes match registered checksums so you don't run corrupted weights. On Windows local NTFS for managed `llama` text generation, Runtime verifies the complete model file set at import, replacement, and every actual engine load or restart boundary (new start, model switch, idle reload, or crash restart) rather than re-hashing resident weights on every warm turn; manual on-disk edits are detected at the next load or reopen and surface re-import/repair guidance.
 - **Environment Readiness**: Verifies that your hardware, drivers, and runtime dependencies meet the model's requirements.
 - **Default Tag**: Marks the active machine default for a capability. Updating the default Loadout applies to all subsequent Local requests across apps that route to local compute; individual apps cannot override machine-wide Loadouts.
 

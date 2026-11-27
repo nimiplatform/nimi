@@ -19,7 +19,7 @@ This glossary defines core concepts, subsystem roles, and architectural terms us
 - **Nimi Home**: The user entry portal—currently hosted by Desktop—for managing local models, viewing system status, and launching apps in protected host sessions.
 - **Avatar**: A dedicated rendering engine for Live2D and 3D VRM pipelines that consumes Runtime presentation events for lip-sync and expressive motion.
 - **Runtime**: The local background engine that manages local models, hardware drivers, cloud connectors, per-agent memory mediation, and protected execution channels.
-- **Realm**: The server-side service governing global identities, social graphs, world definitions and state contracts, and creator economy rules.
+- **Realm**: The server-side service governing global identities, social graphs, and world definitions and planned state contracts.
 
 ## Architectural Principles and Operational Terms
 

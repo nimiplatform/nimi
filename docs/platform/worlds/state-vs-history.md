@@ -1,6 +1,6 @@
 # State vs History
 
-> Status: Planned contract (design reference). World State (`R-WSTATE-*`) and World History (`R-WHIST-*`) are planned independent Realm contracts, not live callable interfaces. Realm currently exposes no approved controllers or tracked OpenAPI read/write operations for these surfaces, and existing database models do not represent public endpoints. Today, apps interact with world data only through the fixed host-bound `WorldCore`, `WorldCharacter`, `WorldEntity`, and `WorldRelationship` operations.
+> Status: Planned contract (design reference). World State and World History are planned independent Realm contracts, not live callable interfaces. Realm currently exposes no approved controllers or tracked OpenAPI read/write operations for these surfaces, and existing database models do not represent public endpoints. Today, apps interact with world data only through the fixed host-bound `WorldCore`, `WorldCharacter`, `WorldEntity`, and `WorldRelationship` operations.
 
 In the planned world data model, Realm separates two durable records: **state** (what is true in the shared world right now) and **history** (the accepted sequence of what has happened). Neither surface replaces the other, and explicit protocol contracts govern which surface a commit may touch.
 
@@ -8,7 +8,7 @@ In the planned world data model, Realm separates two durable records: **state** 
 
 | Property | Planned Contract |
 | --- | --- |
-| Authority | Realm World State owner (`R-WSTATE-*`) |
+| Authority | Realm World State (planned contract) |
 | Purpose | Durable shared present-state of the world |
 | Scope | `WORLD`, `ENTITY`, `RELATION` (`ENTITY` and `RELATION` do not define a generic JSON structure) |
 | Mutation method | Explicit commit envelope |
@@ -21,7 +21,7 @@ World State is strictly for durable shared facts—for example, a character's cu
 
 | Property | Planned Contract |
 | --- | --- |
-| Authority | Realm World History owner (`R-WHIST-*`) |
+| Authority | Realm World History (planned contract) |
 | Purpose | Canonical record of accepted facts and provenance |
 | Append posture | Explicit append-only |
 | Excluded data | Story traces, raw inference logs, and app-private narrative archives |
@@ -50,9 +50,9 @@ Key authorization rules:
 
 | Rule | Constraint |
 | --- | --- |
-| `REPLAY` prohibits both State commits and History appends | `REPLAY` runs cannot commit to shared World State or append to World History (`R-WHIST-004`); there is no exception allowing replay runs to write shared state |
+| `REPLAY` prohibits both State commits and History appends | `REPLAY` runs cannot commit to shared World State or append to World History; there is no exception allowing replay runs to write shared state |
 | `CANON_MUTATION` requires exact matrix authorization | Even under `CANON_MUTATION`, commits succeed only when the exact `(appId, schemaId, schemaVersion, effectClass, scope)` combination is authorized |
-| App-private narrative archives remain App-owned | Owned privately by the App and excluded from Realm history (`R-WHIST-006`) |
+| App-private narrative archives remain App-owned | Owned privately by the App and excluded from Realm history |
 
 ## Why Two Separate Surfaces
 
@@ -101,7 +101,7 @@ An earlier accepted history entry requires correction:
 A replay consumer re-executes a session under `REPLAY` mode:
 
 1. **Replay executes locally**: The consumer processes events under `REPLAY`.
-2. **Shared writes blocked**: If the replay attempts to submit a commit envelope, Realm rejects both shared World State writes and World History appends (`R-WHIST-004`).
+2. **Shared writes blocked**: If the replay attempts to submit a commit envelope, Realm rejects both shared World State writes and World History appends.
 3. **No state-write exception**: Replay mode has no fallback path for mutating shared state or history.
 
 ### App-Private Narrative Logs
@@ -109,7 +109,7 @@ A replay consumer re-executes a session under `REPLAY` mode:
 An interactive story app maintains session transcripts and local story variables:
 
 1. **Excluded from Realm**: Story control variables, prompt context, render state, and narrative transcripts stay outside Realm World State and World History.
-2. **App-owned storage**: The app persists its private narrative archives in App-owned storage (`R-WHIST-006`).
+2. **App-owned storage**: The app persists its private narrative archives in App-owned storage.
 3. **Clear boundary**: Private story records are never automatically promoted to or represented as canonical world history.
 
 ## Architectural Boundaries
@@ -126,11 +126,11 @@ An interactive story app maintains session transcripts and local story variables
 
 | Concern | Planned Owner |
 | --- | --- |
-| Durable shared present-state | Realm (`R-WSTATE-*`) |
-| Accepted facts and provenance log | Realm (`R-WHIST-*`) |
-| Commit envelope validation | Realm (`R-WSTATE-002`) |
-| Run-mode and `(app, schema, effect, scope)` authorization matrix | Realm (`R-WSTATE-005`) |
-| `effectClass` closed enumeration | Realm (`R-WSTATE-004`) |
+| Durable shared present-state | Realm (World State planned contract) |
+| Accepted facts and provenance log | Realm (World History planned contract) |
+| Commit envelope validation | Realm (commit-envelope contract) |
+| Run-mode and `(app, schema, effect, scope)` authorization matrix | Realm (authorization matrix contract) |
+| `effectClass` closed enumeration | Realm (`effectClass` contract) |
 
 ## Source Basis
 

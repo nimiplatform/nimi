@@ -10,15 +10,15 @@ The Kit package targets SDK `^0.24.0-rc.12` and matching `0.24.0-rc.19` native c
 
 Removes retired Web WalletAuth adapter methods, views, icons, and helpers from `@nimiplatform/kit/auth` (`walletChallenge`, `walletLogin`, `handleWalletLogin`, `AuthViewWalletSelect`, `MetaMaskIcon`, `BinanceIcon`, `OKXIcon`, `parseChainId`, `resolveWalletProvider`, `WalletType`, `WalletProvider`, `showWallet`). Removes `post_liked` server notification filter from `@nimiplatform/kit/core/notifications`, and narrows `@nimiplatform/kit/features/chat/realm` and the Rust `kit/shell/protected-local` carrier to `RESOURCE` attachments without `POST_REF`, `ASSET`, or `BUNDLE`. Update matching Realm, Runtime, native carriers, SDK, and Kit builds together.
 
-## Unreleased — Account changes in idle desktop Apps
+### Account changes in idle desktop Apps
 
 The protected Electron App Host now observes the end of its existing Runtime session while the App is idle. `onSessionInvalidated` lets the App retire old windows, file previews, and work before admitting the next account. Ship the matching native carrier and Runtime implementing the Host-private `WaitLocalAppSessionEnd` operation with this Kit. The renderer continues to use its existing App session API.
 
-## Unreleased — Responsive media with bounded formats
+### Responsive media with bounded formats
 
 `MediaImage` supports the optional Realm `boundedFamily` offer. It measures the slot before choosing a URL and lets the browser reselect when display density changes. The headless image selection exposes the optional bounded source and its largest supplied pixel width for consumers that measure their own slots.
 
-## Unreleased — AI capability icons (next minor)
+### AI capability icons (next minor)
 
 `capabilityIcon(contract)` from `@nimiplatform/kit/ui` returns the default Lucide icon for an AI capability contract. Unknown IDs receive a generic icon. The model configuration list uses the same icons.
 
@@ -63,35 +63,37 @@ The Avatar preview result projection loads independently of its React view. A pa
 
 The native text completion and synchronous output carrier retain optional reported aggregate token usage for the SDK model binding. Use the matching Runtime, SDK and rebuilt native package. Missing usage remains absent, including when a Provider did not return counters. Electron Host validation preserves the new field and accepts the existing uncertain resubmit disposition without hiding it behind a trust error. The macOS source-development carrier is built and checked locally. Windows execution requires its matching build and acceptance.
 
-## Unreleased — Realm human avatar delivery (next 0.x minor)
+## 0.24.0-rc.1 to 0.24.0-rc.5 — Pre-release development history
+
+### Realm human avatar delivery (next 0.x minor)
 
 `ConversationTargetSummary` adds optional `avatarResourceId` and `avatarMedia` fields. Realm human chat projections retain these fields so consumers can display uploaded avatars without treating a delivery URL as resource identity. This is an additive public type change; existing callers remain valid. This source change is not published.
 
-## Unreleased — Open Friends & chat (next 0.x minor)
+### Open Friends & chat (next 0.x minor)
 
 Standard shell callers can pass the parameter-free `{ kind: 'open-contacts' }` to `openDesktopIntent`. A matching running Nimi opens Friends & chat or focuses the current conversation or section. The intent grants no access to Realm data.
 
-## Unreleased — Utopia Habitat Protocol v2 (breaking native carrier, next 0.x minor)
+### Utopia Habitat Protocol v2 (breaking native carrier, next 0.x minor)
 
 Replaces the fixed `island`/`polar-station` Utopia preset and `outdoorOpen` boolean contract with the self-describing `HabitatSpecV1` protocol across `@nimiplatform/sdk/app`, Electron main, and the Rust `protected-local` bridge. `client.utopia.snapshot()` now returns the active `habitat`, `contentDigest`, `habitatActivationId`, `timezone`, `parameterValues`, `openPlaceIds`, `activeEvents`, `lastRelocation`, `residents`, `occupancy`, and `sharedActivities` (including `relocated` and `relocated_partial`). `client.utopia.update()` accepts `activate-habitat`, `restore-default`, `apply-tuning`, `set-public-participation`, `set-solitude`, and `set-timezone` and returns header-only `NimiUtopiaMutationAck`. Update Kit, SDK, Runtime, and the native binding together.
 
-## Unreleased — Character discovery (next 0.x minor)
+### Character discovery (next 0.x minor)
 
 Native and remote App carriers support the SDK Character discovery and acquisition operations. Custom native bindings must implement `localAppCharacterSourceList` and `localAppCharacterSourceConnect`; custom standard shells must expose `agents.listCharacters` and `agents.connectCharacter`. Update matching Runtime, SDK, Kit and native packages together. `open-world` carries one public world reference to Home; no generic URL or account authority is transferred. This source change is not published.
 
-## Unreleased — Partner activity pagination (next 0.x minor)
+### Partner activity pagination (next 0.x minor)
 
 `useAgentActivityReferences` exposes continuation and page-read state and accepts source/open-todo filters while retaining exact Agent correlation and source-object opening. `AgentActivityReferences` also supports a full partner-context panel with empty, partial and todo states. Reading still does not mark records read or resume source work.
 
-## Unreleased — Home partner navigation (next 0.x minor)
+### Home partner navigation (next 0.x minor)
 
 Use `open-partners` with an optional display `query` to open Home partner management. The former `open-explore` / `partners` / `select-partner` pairing rejects; update App callers and the matching SDK, Kit and Desktop together. `open-agent-center` retains its Conversation correlation input and opens Home management without entering Chat. This is a source change, not a published release.
 
-## Unreleased — Native Agent Utopia (next 0.x minor)
+### Native Agent Utopia (next 0.x minor)
 
 Native App sessions can observe Utopia with `agent.utopia.read` and change settings with `agent.utopia.manage`. Update Kit, SDK, Runtime and the native binding together. Custom native bindings must implement the two Utopia methods. Conversation keeps its own `agent.local` access.
 
-## Unreleased — 0.24.0-rc.4 Android coordination reconnect
+### 0.24.0-rc.4 Android coordination reconnect
 
 The narrow Realm HTTP client retains no idle pooled connections. A real Android
 disconnect/connect after idle had reused a socket and failed with EOF before
@@ -102,7 +104,7 @@ reproduce the old reused-socket EOF and verify fresh-request success, single POS
 delivery on failure, cancellation and cookie/redirect isolation. The bounded
 debug diagnostics remain available; real device revalidation is separate.
 
-## Unreleased — 0.24.0-rc.3 Android coordination diagnostics
+### 0.24.0-rc.3 Android coordination diagnostics
 
 Debug Android hosts record only finite endpoint/method, transport phase,
 exception class, connection creation/reuse, cancellation and elapsed time when
@@ -116,7 +118,7 @@ below does not become a new native binary through this Kit-only rebuild. The
 initial rc.2 diagnostic archive is retained; neither candidate is published or
 replaces the frozen Integration archives.
 
-## Unreleased — Windows and macOS source Desktop health isolation
+### Windows and macOS source Desktop health isolation
 
 A development App whose source changed or whose child witness was rejected
 remains unavailable, but no longer makes the verified Runtime appear untrusted in Home.
@@ -124,52 +126,52 @@ Other App witnesses are still checked, and actual Runtime trust failures remain
 fatal. This checkout fix does not replace the frozen Integration RC.1/RC.2
 package archives.
 
-## Unreleased — 0.24.0-rc.1 Integration consumer carrier
+### 0.24.0-rc.1 Integration consumer carrier
 
 The common App scope includes bounded remote Integration consumption. Native provider polls preserve Runtime-derived `consumerRef`; display names do not authorize callers. Update the complete SDK/Kit/native combination before adopting per-consumer provider objects. Web and Android gain no credentials, provider lifetime operations or Integration management authority.
 
-## Unreleased — Runtime presence protocol (breaking, 0.23)
+### Runtime presence protocol (breaking, 0.23)
 
 Use the matching SDK and Runtime register/heartbeat/sync implementation. The former lease/poll contract and generated `leaseExpiresAt` field are removed. Runtime owns presence and authorization maintenance; Kit retains the public App connection lifecycle and never replays business work after reconnecting.
 
-## Unreleased — Bundled Zhiyu Host (breaking native carrier, 0.23)
+### Bundled Zhiyu Host (breaking native carrier, 0.23)
 
 Home can host bundled Zhiyu under its own formal App declaration and session. The main-only `createNimiElectronBundledAppLocalHostOwner` creates a bounded Avatar or Zhiyu client; it grants no Home account or machine controls. Native bundled calls now use `desktopBundledApp*` with the explicit canonical App identity instead of the Avatar-only exports. Update the complete Kit native package, Kit and Runtime together. Ordinary App renderer APIs are unchanged; source-development registrations remain separate from installed bundle identity.
 
-## Unreleased — Android local private-use callbacks (additive, next minor)
+### Android local private-use callbacks (additive, next minor)
 
 Adds the explicitly admitted `android-dev-scheme` carrier for local non-production Realm development. It shares PKCE, context lifetime, Home source consent and the direct Runtime client with the App Link carrier. SDK callback helpers match the entire registered destination, including private-use scheme; Kit's Android adapter requires the installed debug package/signature and declared callback. Production source admission and verified App Links remain unchanged. Update the complete SDK/Kit packages and official login surface together; this is not package publication or a new permission system.
 
-## Unreleased — Session recovery hints (compatible fix)
+### Session recovery hints (compatible fix)
 
 App session issues retain an optional owner-supplied `actionHint`, including denied Desktop session status. Custom access views and the standard gate's expandable details preserve the owner reason and recovery instruction without decoding private errors or inventing a second authorization state.
 
-## Unreleased — Native scope type preservation (next 0.x minor)
+### Native scope type preservation (next 0.x minor)
 
 The shared App session/snapshot/scope types accept the actual client type, with the common remote-safe client as the default. The Desktop factory retains the existing full native App client in its connected snapshot; Web and Android remain on the common operation subset. No runtime permission or account behavior changes. Generated Desktop Apps can adopt the same Kit session/gate as Web without a second native client or a fabricated native type.
 
-## Unreleased — Android container access (next 0.x minor)
+### Android container access (next 0.x minor)
 
 Adds `auth/app/mobile` and the packaged Android Capacitor plugin. Ordinary Web factories now require Realm source kind `web`; Android uses its reviewed App Link source and real installed/OS qualification. Warm callbacks, asynchronous handoff and foreground lifecycle reuse core `app-session`. Android 12+ is the first supported build target; real device acceptance remains separate.
 
-## Unreleased — Shared ordinary App account access (breaking, next 0.x minor)
+### Shared ordinary App account access (breaking, next 0.x minor)
 
 Replaces `core/remote-app-session` with `core/app-session` and adds `auth/app`, `auth/app/web`, `auth/app/desktop`. Identity and Runtime connection are separate; website account binding receives a verified identity result, and SDK invalidation/expiry clears identity-only views too. Migrate Lab, Zhiyu and generated Web entries together. No legacy alias, Mobile carrier or package publication is implied. Runtime connection failures show a user action with expandable technical details; the original error and authentication state remain unchanged.
 
-## Unreleased — Shared remote App composition (additive, next minor)
+### Shared remote App composition (additive, next minor)
 
 Adds `core/app-record-storage` for independent App-owned record documents using existing Runtime asset operations. It replaces client-side whole-history replacement in Lab and generated workbenches; it does not add a storage protocol, transaction system or automatic migration.
 
 The initial source iteration added the remote-only session helper, `core/app-asset-media` and the optional Agent Center browser Resource Pack picker. The remote-only helper is superseded by the shared App access entry above. Lab and Zhiyu share the public SDK contracts and existing UI instead of a synthetic native bridge. These are additive source-build exports; no release or mobile UI support is implied.
 
-## Unreleased — Remote App consumers
+### Remote App consumers
 
 The next coordinated 0.x minor widens Agent Center's optional AI input to the
 Scenario Job operations it actually uses. Native and direct remote App clients
 can share the same Agent Center and conversation components without a fabricated
 native shell. No new operation permission or package publication is implied.
 
-## Unreleased — Explicit SVG author selection
+### Explicit SVG author selection
 
 OpenAI SVG output now requires a Home-owned `svgAuthor` selection on its existing
 managed API-key connection. Select a current text-model catalog item explicitly;
@@ -182,7 +184,7 @@ within one request. A missing component remains unknown. Aggregate measured toke
 sum complete component reports once; a primary-model rate does not price the author.
 No package publication is implied.
 
-## Unreleased — Explicit continuous AI Realtime
+### Explicit continuous AI Realtime
 
 The next coordinated 0.x minor adds `interactionMode: 'continuous'` for exact
 supporting Runtime targets. Omission keeps owner-controlled input semantics.
@@ -203,7 +205,7 @@ is inferred. A native completed session uses the `completed` terminal reason.
 This does not enable Responses/Decisions delegation or the Agent self-intention
 seam for a continuous-only target, and no package publication is implied.
 
-## Unreleased — Managed OSS reference-media storage
+### Managed OSS reference-media storage
 
 The next coordinated 0.x minor adds optional OSS media-storage configuration to
 Connector management. Region, bucket and key prefix are readable; storage keys
@@ -218,7 +220,7 @@ cleanup outcomes are recorded, including unconfirmed outcomes after interrupted
 execution without current authorization. Configuration does not establish actual
 account access, and deletion acknowledgement does not guarantee physical erasure.
 
-## Unreleased — Current model image and media controls
+### Current model image and media controls
 
 The next coordinated 0.x minor adds image complexity, output format, transparent
 markup and GIF frame controls to the generation runner and protected App
@@ -232,7 +234,7 @@ replay may contain provider text; it is continuation data, not a displayable
 answer/summary or an encryption guarantee. Extended video input bounds remain
 subject to exact Runtime target support. No package publication is implied.
 
-## Unreleased — Focused conversation read markers
+### Focused conversation read markers
 
 `ConversationReadMarker` is an additive chat/ui export for Home and protected
 App message surfaces. It reports only the last visibility observation in each
@@ -240,7 +242,7 @@ browser batch while the document is visible and focused; callers still own the
 exact message or activity revision and the read operation. Mounting an overscan
 row is not a read. This new export belongs to the next coordinated 0.x minor.
 
-## Unreleased — Passive chat reading-position restoration
+### Passive chat reading-position restoration
 
 `ConversationPositionRequest` accepts optional `focus: false` for restoring a
 page's reading position while retaining focus on its navigation control. Explicit
@@ -248,7 +250,7 @@ message navigation keeps its existing focus behavior. Initial transcript pinning
 now respects an admitted message position. This compatible type widening belongs
 to the next 0.x minor; no package publication is implied.
 
-## Unreleased — Explicit human read positions
+### Explicit human read positions
 
 Human Chat read operations now require `readThroughMessageId`: callers must pass
 the displayed or explicitly acknowledged message position instead of asking the
@@ -257,7 +259,7 @@ and `markRealmChatRead` callers and rebuild matching SDK/Kit source packages.
 This breaking source change belongs to the next coordinated 0.x minor, not a
 published release.
 
-## Unreleased — Agent Realtime close result preservation
+### Agent Realtime close result preservation
 
 The headless state adds `closeUnconfirmed` when a remote closure has not been
 confirmed. Close failures retain the original scope for explicit retry and block
@@ -287,21 +289,21 @@ delivery, Desktop Open v2, Agent Center controls and Home product lifecycle.
 Update custom carriers and rebuild against the matching Runtime source.
 This component release does not publish a Nimi installer or any App.
 
-## Unreleased — Home product lifecycle (breaking 0.x minor)
+### Home product lifecycle (breaking 0.x minor)
 
 Production Home starts the fixed Runtime on demand and its native lifecycle host adds `stop()`, which resolves only after process termination is observed. Native `NimiDesktopControl` implementations must implement `request_runtime_service_stop`; use matching Runtime and carrier builds with `RequestRuntimeStop`. This host-only operation is not a renderer command or App capability. Explicit product quit closes supervised Apps before Runtime; the terminal-owned D2 development topology remains separate. Rebuild the native carrier and packaged Home together. No package publication is implied.
 
-## Unreleased — Worlds and My partners (0.x minor)
+### Worlds and My partners (0.x minor)
 
 Desktop Open envelopes now require schema version 2. Explore accepts `worlds` with `discover-worlds` or `discover-characters`, and `partners` with `select-partner`; `productIntent` is required. The old Persona section and schema version 1 are rejected. Rebuild matching SDK, Kit, and native carriers together. Home resolves partner management in its own account scope; opening management does not create a Conversation. Agent Center removes the ambiguous global settings gear and retains contextual capability repair actions. No package publication is implied.
 
-## Unreleased — Canonical desktop message actions (breaking 0.x minor)
+### Canonical desktop message actions (breaking 0.x minor)
 
 Home Agent Chat and Zhiyu share contextual message actions, exact text quotations, bounded source navigation, and a renderer-owned playback controller. Consumers mount `useLocalAppConversationPlayback` and `LocalAppConversationPlayer` outside transient menus and virtual message rows, and supply `CanonicalTranscriptView.messageActions`. The former `LocalAppConversationVoiceButton` export and row-owned audio implementation are removed; update callers directly instead of retaining a compatibility wrapper.
 
 Use the matching Runtime, SDK and native carrier with canonical quote/readMessage support. Quotation selectors, pending submission ownership and read-window watermarks must survive the full typed path; a read window never hydrates the live tail. This is source-development work for the next coordinated SDK/Kit minor; it does not publish packages or certify product acceptance.
 
-## 0.22.0 — Realm media delivery (development)
+### 0.22.0 — Realm media delivery (development)
 
 Agent introduction now separates `voiceSampleUrl` (original reference audio), `voiceSampleContentHash` / `voiceSampleMimeType` (verified original facts), and `voicePreviewUrl` (playback). Agent Center's reference-voice view exposes `previewUrl`; cloning continues to use the original and keys managed input by content hash, so renewing its URL does not change input identity. Rebuild native carriers with the matching protocol. Private media capabilities are omitted from durable account identity; Home uses one fenced `getMe` query for live profile/media display.
 
@@ -311,23 +313,21 @@ Human Chat now uses the same canonical media bubble. Consumers with a restricted
 
 Kit `features/media` owns responsive images, avatars and HLS playback. Pass an authorized read-owner refresh callback for expiring media. Preserve `originalUrl` for explicit byte-exact download; `previewUrl` is an audio preview.
 
-## Unreleased — Host-controlled Agent Center Resource Pack visibility (0.x minor)
+### Host-controlled Agent Center Resource Pack visibility (0.x minor)
 
 `AgentCenter` and `AppAgentCenterEntry` add `showResourcePack`, defaulting to `false`. Hosts must explicitly opt in to show the shared Appearance Resource Pack card; Zhiyu enables it and Nimi Chat hides it. Consumers that previously relied on the always-visible card must pass `showResourcePack` to retain it. Canonical selection, permissions, operation availability, preview, Apply, and Clear remain owned by the existing session.
 
-## Unreleased — Agent Center initial-read progress (0.x minor)
+### Agent Center initial-read progress (0.x minor)
 
 Canonical Agent Center snapshots now include `reads`, a read-only completion map for the published manager, shared AIConfig, autonomy, presentation and memory observations. Consumers may show a partial read-only overview during initial loading; pending is not canonical absence or action permission. The original initial mutation gate, per-domain failure handling, explicit refresh and revision checks remain in force. Use the canonical factory and rebuild consumers of the widened snapshot type; there is no wire protocol or Runtime authority change.
 
-## Unreleased — Realm launch hard cut (0.x minor)
+### Realm launch hard cut (0.x minor)
 
 Desktop Account status and event projections now require the Runtime-owned `authorizationRevision` equality value. Use matching Runtime, native carrier, SDK, and Kit builds: authenticated snapshots require a nonempty revision, refresh-pending may carry an empty revision, and other states require an empty revision. Consumers compare the exact opaque value without treating it as authority or a credential. Missing fields are rejected; ordinary Local App auth/currentUser and account mutation responses are unchanged.
 
 Use matching source-built Realm, SDK, Kit and Desktop. Realm Post/feed, user/Post search and recommendations are deferred: their generated operations, handwritten SDK helpers, offline replay and Desktop Activity entry are removed. Explore retains World and Persona catalogs and source actions; exact-handle friend requests use `social.addFriendByHandle`, while full profile reads retain their separate privacy checks. Ordinary friendship, direct messaging and presence remain supported. `open-explore` accepts only `worlds` or `personas`; `activity`/`view-activity` reject. No compatibility route or automatic user-data migration is provided. This changes the next unreleased minor, not the published 0.21.0 package.
 
 Account 2FA setup now sends the actual prepare body and requires the same-session `challengeId` when enabling; callers must retain the prepare response until successful enable.
-
-## Unreleased
 
 ### Home system-entry account observation (0.x minor)
 
@@ -984,7 +984,7 @@ render as before.
   modules or load new state in the callback without resuming old tasks. Routine
   renewal does not replace clients or invoke the callback.
 
-## Unreleased (0.15.3)
+## 0.15.3 (development)
 
 - `CanonicalTranscriptView` no longer keeps the 24px copy gap above
   `emptyStateContent` when every empty-state copy prop is blank. Hosts that draw
@@ -1012,19 +1012,19 @@ render as before.
   cancel their own queues, retries and callbacks in the existing hook. Native
   companion package metadata follows 0.15.3; its native code and ABI are unchanged.
 
-## Unreleased (0.15.2)
+## 0.15.2 (development)
 
 - Keep observing the Runtime activity-open stream while Desktop launches the
   source App. Source confirmation or the Runtime deadline can now finish the
   operation even if the launch acknowledgement remains pending; a launch result
   alone still never proves the source object opened. No API change.
 
-## Unreleased (0.15.1)
+## 0.15.1 (development)
 
 - Preserve `agent-turn-not-active` through Electron Host error validation so
   consumers can refresh the completed work without retrying an unfenced stop.
 
-## Unreleased (0.15.0)
+## 0.15.0 (development)
 
 - Add optional `conversation.interruptTurn({ expectedTurnId })`. Runtime atomically
   refuses `AGENT_TURN_NOT_ACTIVE` when that turn is no longer active, preserving
@@ -1033,14 +1033,14 @@ render as before.
   retains explicit current-Conversation interruption. Upgrade SDK 0.18, Kit and
   matching native 0.15 together before using the field.
 
-## Unreleased (0.14.1)
+## 0.14.1 (development)
 
 - Preserve canonical `role: app` messages in the Electron native Host's snapshot
   and event validation. Apps sharing an Agent can read its Conversation after
   another App's routine commits. Native reference validation also rejects a
   session handle where an `agentBinding` is required. Use matching 0.14.1 native.
 
-## Unreleased (0.14.0)
+## 0.14.0 (development)
 
 - Breaking (0.x minor): carry App-scoped `agentBinding`, typed LocalAgent work
   context, pending skill calls and result submission through the standard
@@ -1050,7 +1050,7 @@ render as before.
   initiating session, Agent, anchor and turn. No provider or identity escapes.
 - Agent Center bounded context status recognizes the Runtime `app_work` lane.
 
-## Unreleased (0.13.0)
+## 0.13.0 (development)
 
 - Carry the synchronous `text-decide` Scenario and per-call control through the
   standard shell (minor). The renderer `ai.scenario.execute(spec, options)` accepts
@@ -1316,7 +1316,7 @@ The project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 with the pre-1.0 discipline documented in `kit/AGENTS.md` §Semver
 Discipline.
 
-## [Unreleased]
+## 0.8.0 (development)
 
 ### Local App text tools (0.8.0)
 

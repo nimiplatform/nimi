@@ -13,7 +13,7 @@ In the Nimi ecosystem, applications collaborate through well-defined, permission
 
 ## Practical Scenario: Querying Free Time Slots from a Calendar App
 
-If a calendar app (such as NimiDay) exposes a structured integration endpoint to query free/busy slots:
+If a calendar app exposes a structured integration endpoint to query free/busy slots:
 
 1. **Discovery & Schema Lookup**: The calling app discovers the capability and its input schema via `client.integration`.
 2. **User Authorization**: If the calling app lacks calendar access, Runtime returns `INTEGRATION_PERMISSION_REQUIRED`, guiding the user to grant standing permission in Home's Integrations workspace before retrying.

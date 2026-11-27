@@ -2,7 +2,7 @@
 
 The SDK boundary ensures application integration remains stable, predictable, and maintainable over time. It is not merely a collection of helper utilities, but an architectural firewall separating public application code from internal owner-domain implementations (Runtime, Realm, Desktop).
 
-Core design specifications are detailed under `S-BOUNDARY-*` and `S-SURFACE-*`.
+Core design specifications live in `.nimi/spec/sdks/client-core.authority.yaml` (scope `sdks.client-core`).
 
 ## Core Boundary Rules
 

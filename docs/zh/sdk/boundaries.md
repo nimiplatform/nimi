@@ -2,7 +2,7 @@
 
 SDK 边界旨在为应用集成提供稳定、明确且可预期的契约保障。它不仅是一套便利的 API 封装，更是隔离应用业务层与平台各底层域（Runtime、Realm、Desktop）私有实现的防护线。
 
-相关的核心设计规范遵循 `S-BOUNDARY-*` 与 `S-SURFACE-*`。
+相关的核心设计规范归口于 `.nimi/spec/sdks/client-core.authority.yaml`（作用域 `sdks.client-core`）。
 
 ## 核心边界准则
 

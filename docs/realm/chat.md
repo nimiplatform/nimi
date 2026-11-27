@@ -23,8 +23,8 @@ Realm Chat is dedicated to direct communication between human participants:
 
 | Subsystem | Coordination Boundary |
 | --- | --- |
-| **Social Graph (`R-SOC-*`)** | Friendship status serves as a precondition for direct messaging; Social manages relations without storing message payloads |
-| **World Semantics (`R-TRUTH-*`)** | Public scene dialogues can optionally archive into world history upon authorized events |
+| **Social Graph (Realm Social)** | Friendship status serves as a precondition for direct messaging; Social manages relations without storing message payloads |
+| **World Semantics (Realm World contracts)** | Public scene dialogues can optionally archive into world history upon authorized events |
 | **Runtime ConversationAnchor** | Agent turn continuity remains managed within Runtime, keeping human messaging and AI dialogue pipelines clearly separated |
 
 ## Related Documentation

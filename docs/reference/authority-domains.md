@@ -7,7 +7,7 @@ Nimi divides its architecture into explicit Authority Domains. Every category of
 | Domain | Authoritative Scope | Explicit Non-Scope |
 | --- | --- | --- |
 | **Platform Protocol** | Cross-world protocol primitives, system safety invariants, wire contracts | Cloud database internals, local inference execution, app business logic |
-| **Realm Server** | Global identities, Character templates, World definitions and planned state/history contracts, social graph, creator economy contracts | Local compute scheduling, local model weights, desktop UI state |
+| **Realm Server** | Global identities, Character templates, World definitions and planned state/history contracts, social graph | Local compute scheduling, local model weights, desktop UI state |
 | **Local Runtime** | Local model inference, cloud connector custody, LocalAgent instantiation, turn continuity, memory mediation, protected session and channel access | Server-side world lore arbitration, product UI rendering |
 | **Cognition** | Per-agent long-term memory, semantic embeddings, memory consolidation | Network transport framing, frontend rendering, hardware driver execution |
 | **SDK** | Public type-safe client interfaces, argument validation, structured error mapping | Backend storage engines, local inference internals, private transports |

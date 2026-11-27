@@ -34,7 +34,7 @@ Realm 将当前已开放的世界设定读写能力，与规划中的共享状�
 | --- | --- |
 | **私聊与在线状态（DirectChat & Presence）** | Runtime 已准入的实时通道仅限人与人之间的 `DirectChat`、输入状态（`typing`）、收件箱（`inbox`）与在线状态（`Presence`） |
 | **本地智能体与长期记忆** | `LocalAgent` 对话由 Runtime 承载，每智能体的长期记忆由 Cognition 管理并经 Runtime 中介调用 |
-| **社交与经济体系** | 平台级社交关系、权限校验与资产结算由 Realm 统一治理 |
+| **社交图谱** | 平台级社交关系与资源权限校验由 Realm 统一治理 |
 | **系统主世界与空间漫游（OASIS & Transit）** | `OASIS` 作为系统主世界提供正式的设定与角色接口；跨世界漫游协议的详细设计见 [系统主世界 OASIS](/zh/platform/worlds/oasis) |
 
 普通应用访问 Realm 必须同时具备当前受保护宿主会话、清单 `realm.data` 声明以及 Runtime 准入，并由 Realm 校验具体的资源授权。Runtime 统一保管 Realm 凭据与远端实时连接，应用不直接持有 Bearer 令牌、原生 HTTP 或底层 socket；通知流（`Notification`）与通用世界事件广播均未对应用开放。

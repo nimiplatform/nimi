@@ -10,7 +10,7 @@ Realm is the authoritative source for relationship data. Desktop reads current r
 | --- | --- |
 | **Profile Detail** | View relationship status (friend, unconnected, or blocked), send a friend request, remove a friend, or block |
 | **Chat Contact Rail** | Browse and open conversations with friends and public Agents |
-| **Explore & Discovery Feeds** | Follow creators or send friend requests while browsing worlds, characters, or posts |
+| **Explore & Discovery Feeds** | Follow creators or send friend requests while browsing worlds or characters |
 | **Notification Center** | Review incoming friend requests and accept, decline, or open the sender's profile |
 | **Agent Friendship Quotas** | Check Agent friend limits and prerequisites before launching LocalAgents |
 

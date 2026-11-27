@@ -2,7 +2,7 @@
 
 > **Status — Design Reference**: `WorldHistory` and `WorldState` are planned independent contracts. They do not currently expose approved controllers or tracked OpenAPI read/write operations, and any existing database models are internal residuals rather than callable interfaces. Today, applications read and manage world settings and characters through `WorldCore`, `WorldCharacter`, `PersonaCharacter`, `WorldEntity`, and `WorldRelationship`.
 
-In Nimi's world modeling architecture, **World History** (`R-WHIST-*`) specifies how a digital world records admitted, occurred facts and their provenance over time. Designed as an **append-only** chronological ledger, it answers the question: *"How did this world evolve into its present state?"*
+In Nimi's world modeling architecture, **World History** specifies how a digital world records admitted, occurred facts and their provenance over time. Designed as an **append-only** chronological ledger, it answers the question: *"How did this world evolve into its present state?"*
 
 Private story logs, ephemeral conversation turns, prompt context, and local application state never automatically become world history. Only explicitly admitted world mutations leave a record on the shared timeline.
 
@@ -10,7 +10,7 @@ Private story logs, ephemeral conversation turns, prompt context, and local appl
 
 | Dimension | Specification | Design Purpose |
 | --- | --- | --- |
-| **Contract Scope** | Realm World History (`R-WHIST-*`) | Records admitted world facts rather than private session or UI state |
+| **Contract Scope** | Realm World History (planned contract) | Records admitted world facts rather than private session or UI state |
 | **Mutability** | Strictly Append-Only | Prevents silent overwrites and retrospective timeline tampering |
 | **Execution Mode** | `REPLAY` vs. `CANON_MUTATION` | Isolates read-only simulation and replay from live world mutations |
 | **Commit Envelope** | `worldId`, `appId`, `sessionId`, `effectClass`, `scope`, `schemaId`, `schemaVersion`, `actorRefs`, `reason`, `evidenceRefs` | Ensures every history entry carries explicit scope, actor provenance, rationale, and evidence |

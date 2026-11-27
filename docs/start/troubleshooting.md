@@ -126,7 +126,7 @@ Android development Scheme and distributed App Link have distinct package, signa
 
 ## CDP Configuration Conflict for a Running Development App
 
-If Home already launched the same development App, a launch requesting different CDP settings returns `local-development-cdp-configuration-conflict`. Stop that App normally in Home, then resume the same registration with its current selector and desired port. Do not create another registration to bypass the conflict or use Home's CDP target as the App acceptance target.
+If Home already launched the same development App, a launch requesting different CDP settings returns `local-development-cdp-configuration-conflict`. Stop that App normally in Home, then resume the same registration with its current `--resume` selector and desired port. Do not create another registration to bypass the conflict or use Home's CDP target as the App acceptance target.
 
 ## Source Basis
 

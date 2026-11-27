@@ -14,11 +14,11 @@ Pairs with the Realm foundation slimdown domain cutover. Removes retired WalletA
 
 An ordinary App with an admitted `agent.work` declaration can use `scope.client.agentWork` to select an Agent, start bounded work, observe its execution, return App tool results and cancel. This requires a primary PC Runtime build that admits all eight Agent Work RPCs on its direct carrier. Earlier direct hosts return `LOCAL_APP_OPERATION_UNSUPPORTED`. After connection loss, read the App's saved results using the new scope and require an explicit new request before starting more work.
 
-## Unreleased — Optional bounded media formats
+### Optional bounded media formats
 
 Realm image-set descriptors can include `boundedFamily` alongside their complete `families`. A responsive renderer can offer it for slots covered at the current pixel density. Consumers using only the complete families keep their previous selection.
 
-## Unreleased — Realm discovery summaries
+### Realm discovery summaries
 
 `worldPublicControllerListCharacterCatalog` now returns summary items with `sourceRef`, `displayName`, `summary`, `worldName`, `relation`, `avatarMedia`, and `avatarUrl` alongside `id`. Use the managed avatar descriptor or the external URL for the list. Fetch a full profile by source reference when the user opens it.
 
@@ -44,69 +44,71 @@ Local App synchronous text output and stream completion preserve optional aggreg
 
 `extractNimiErrorFields` retains the Runtime interruption cause and caller resubmit disposition for typed IPC consumers. The Local App model accepts resolved call/result history after a tool is removed from the current declaration. The matching Runtime preserves schema-invalid DeepSeek tool proposals so the external Harness can return validation feedback.
 
-## Unreleased — Observe live Activity changes (next 0.x minor)
+## 0.24.0-rc.1 to 0.24.0-rc.3 — Pre-release development history
+
+### Observe live Activity changes (next 0.x minor)
 
 An optional `onLiveChange` observer on `createNimiAppActivityView` receives accepted subscription changes after the current list baseline. Initial and continuation pages still update the current view through `onUpdate`.
 
-## Unreleased — Open Contacts & Conversations (next 0.x minor)
+### Open Contacts & Conversations (next 0.x minor)
 
 `NimiDesktopOpenIntent` admits the parameter-free `open-contacts` target in the existing v2 envelope. Use matching Kit and Desktop builds for this target. App code can request the surface without selecting an account, conversation, or recipient.
 
-## Unreleased — Character discovery (next 0.x minor)
+### Character discovery (next 0.x minor)
 
 Formal App clients expose `agents.listCharacters` and `agents.connectCharacter` under the separate `agent.acquire` declaration. They return public Realm source display and ordinary current-session partner references; existing partners are reused by stable Character identity. Conversation continues to require `agent.local`. Custom standard shells must provide both methods; update Runtime, SDK, Kit and native bindings together. Remote declarations need a new admitted source revision, not an implicit grant expansion. `open-world` opens Home's exact public `worldId`. This is source work, not a release.
 
-## Unreleased — Home remote connections
+### Home remote connections
 
 `accountProduct.remoteAccess.getRemoteAccessState` includes current established `connections` with source references and channel-open times. Home can end one exact connection through `disconnectRemoteConnection` with its expected primary binding. Source allowance, other connections and durable job ownership remain separate. This method is Home-only; it is not exposed to remote Apps or remote management clients. Use matching Runtime, SDK, Kit native profiles and Home builds. This is source work, not a published release.
 
-## Unreleased — Home partner navigation (next 0.x minor)
+### Home partner navigation (next 0.x minor)
 
 Use `open-partners` with an optional display `query` to open Home partner management. The former `open-explore` / `partners` / `select-partner` pairing rejects; update App callers and the matching SDK, Kit and Desktop together. `open-agent-center` retains its Conversation correlation input and opens Home management without entering Chat. This is a source change, not a published release.
 
-## Unreleased — Native Agent Utopia (next 0.x minor)
+### Native Agent Utopia (next 0.x minor)
 
 The native App client exposes `utopia.snapshot` and `utopia.update`. Custom `NimiLocalAppStandardShell` implementations must provide both methods in the `utopia` namespace. Use matching Kit, native binding and Runtime builds for protected Utopia operations.
 
-## Unreleased — 0.24.0-rc.2 Integration consumer carrier
+### 0.24.0-rc.2 Integration consumer carrier
 
 Remote App clients expose only Integration catalog/connection discovery and call invoke/get/list/cancel, retaining declaration coverage and standing resource permission. They gain neither provider nor management operations. Provider polls now require Runtime-derived `consumerRef` alongside display copy, so App handlers can bind their own progress/object references to the actual caller. Use the complete matching Runtime, SDK, Kit and native candidates. This is local candidate work, not public publication.
 
 RC.2 projects protobuf-decoded Integration messages, including nested targets and permissions, into the plain DTOs required by the shared operation clients. RC.1 rejected real direct-carrier catalog responses because generated message prototypes are not plain shell objects. The unknown-shell validator remains strict. Existing Kit/native RC.1 bytes can be reused with this SDK repair; update the complete App dependency selection and lockfile without overwriting frozen archives.
 
-## Unreleased — Runtime presence protocol (breaking, 0.23)
+### Runtime presence protocol (breaking, 0.23)
 
 Use SDK, Kit and Runtime builds matching the Realm register/heartbeat/sync contract. Runtime owns lightweight presence heartbeats and on-demand authorization synchronization. The former lease/poll operations and `leaseExpiresAt` projection are removed, including the generated native binding. Update the complete package combination together; applications continue to use the public connection lifecycle rather than maintain a lease themselves.
 
-## Unreleased — Android local private-use callbacks (additive, next minor)
+### Android local private-use callbacks (additive, next minor)
 
 Adds the explicitly admitted `android-dev-scheme` carrier for local non-production Realm development. It shares PKCE, context lifetime, Home source consent and the direct Runtime client with the App Link carrier. SDK callback helpers match the entire registered destination, including private-use scheme; Kit's Android adapter requires the installed debug package/signature and declared callback. Production source admission and verified App Links remain unchanged. Update the complete SDK/Kit packages and official login surface together; this is not package publication or a new permission system.
 
-## Unreleased — World authoring and live activity navigation (next 0.x minor)
+### World authoring and live activity navigation (next 0.x minor)
 
 Remote App clients add the existing WorldCore creator operations and activity open/onOpenRequest. Realm retains independent world-creation authorization and write CAS. Activity navigation with a remote participant requires an already-online source handler; it never launches a PC app or stores a request for reconnect. Apps must stop source handlers with their connection scope.
 
-## Unreleased — Remote Realm resource clients (next 0.x minor)
+### Remote Realm resource clients (next 0.x minor)
 
 The shared ordinary App client adds `realm.worldCore.list/get` and the five owner `realm.personaCharacter` operations, with existing DTO validation and `toProfileInput`. They use the matching Runtime's fixed `realm.data` broker operations. No account credential, endpoint choice, general Realm invocation, world creation or publication lifecycle is exposed by this resource surface.
 
-## Unreleased — Remote App activity publication (next 0.x minor)
+### Remote App activity publication (next 0.x minor)
 
 The shared App client now includes `activity.put`. Remote connections use the existing typed publication, revision and account/publisher rules under declared `app.activity`; a matching Runtime carrier is required. Native App opening and source-open subscriptions remain unavailable remotely. No background business execution or automatic resubmission is added.
 
-## Unreleased — Registered remote source preflight
+### Registered remote source preflight
 
 Adds `readRuntimeClientSource` to `realm/runtime-client`, returning the selected public source through the existing cookie-free transport. Realm source projections include Web/Android kind and optional Android package/signing metadata; these are not device or business permissions.
 
-## Unreleased — Ordinary App consumption and context invalidation
+### Ordinary App consumption and context invalidation
 
 Adds the `NimiAppRuntimeClient` type for actual shared operations, excluding native actions and unsupported realtime. Context reads and connection operations now terminate their local session signal on Realm's exact `RUNTIME_CLIENT_CONTEXT_INVALID`; network uncertainty remains an error without inventing revocation.
 
-## Unreleased — End missing Runtime-client contexts
+### End missing Runtime-client contexts
 
 `RuntimeClientSession.end()` now treats Realm's exact `RUNTIME_CLIENT_CONTEXT_INVALID` response as a terminal context, including records removed by expiry cleanup. Local use is still fenced immediately. Network failures and unrelated authorization errors remain explicit, and an explicit retry remains possible; they are not converted to successful revocation.
 
-## Unreleased — Remote consumer entrypoints (additive, next minor)
+### Remote consumer entrypoints (additive, next minor)
 
 Use `@nimiplatform/sdk/runtime/remote` for direct Runtime connections and
 `@nimiplatform/sdk/realm/runtime-client` for the official Runtime-client login.
@@ -117,7 +119,7 @@ Protocol codecs remain shared; this change does not promise a minimal per-method
 bundle or split the SDK into platform packages. These entries require this source
 build until a matching package is published.
 
-## Unreleased — Direct App storage and LocalAgent clients
+### Direct App storage and LocalAgent clients
 
 The next coordinated 0.x minor extends ordinary `connectRemoteRuntime` App
 connections with App-private JSON storage, supported asset operations, Agent
@@ -136,7 +138,7 @@ direct carrier buffers a bounded request envelope; this is not a live upload
 or upload-resumption contract. High-level `storage.assets.write` keeps its existing
 byte, Blob and async-byte-source inputs.
 
-## Unreleased — Explicit SVG author selection
+### Explicit SVG author selection
 
 OpenAI SVG output now requires a Home-owned `svgAuthor` selection on its existing
 managed API-key connection. Select a current text-model catalog item explicitly;
@@ -149,7 +151,7 @@ within one request. A missing component remains unknown. Aggregate measured toke
 sum complete component reports once; a primary-model rate does not price the author.
 No package publication is implied.
 
-## Unreleased — Explicit continuous AI Realtime
+### Explicit continuous AI Realtime
 
 The next coordinated 0.x minor adds `interactionMode: 'continuous'` for exact
 supporting Runtime targets. Omission keeps owner-controlled input semantics.
@@ -170,7 +172,7 @@ is inferred. A native completed session uses the `completed` terminal reason.
 This does not enable Responses/Decisions delegation or the Agent self-intention
 seam for a continuous-only target, and no package publication is implied.
 
-## Unreleased — Managed OSS reference-media storage
+### Managed OSS reference-media storage
 
 The next coordinated 0.x minor adds optional OSS media-storage configuration to
 Connector management. Region, bucket and key prefix are readable; storage keys
@@ -185,7 +187,7 @@ cleanup outcomes are recorded, including unconfirmed outcomes after interrupted
 execution without current authorization. Configuration does not establish actual
 account access, and deletion acknowledgement does not guarantee physical erasure.
 
-## Unreleased — Current model request and replay contracts
+### Current model request and replay contracts
 
 These source changes belong to the next coordinated 0.x minor with matching
 Runtime, Kit and native carriers; they do not publish a package.
@@ -206,7 +208,7 @@ Runtime, Kit and native carriers; they do not publish a package.
   including owned audio/video references only where the selected target admits
   them. A wider carrier does not imply every model supports every combination.
 
-## Unreleased — Explicit user relationship and account contracts
+### Explicit user relationship and account contracts
 
 Pre-release contract updates for the next coordinated 0.x minor (no dual path or
 package publication is implied):
@@ -220,7 +222,7 @@ package publication is implied):
 
 Regenerate from Realm OpenAPI and update affected callers together.
 
-## Unreleased — Work input bounds and Agent stream cleanup
+### Work input bounds and Agent stream cleanup
 
 - **Work prompt bounds (breaking narrowing)**: Formal App Work prompts are limited to 16,384 UTF-8 bytes before dispatch, matching Runtime. Inputs above that limit—previously accepted by the SDK—now fail explicitly; nothing is truncated, and other field and whole-request budgets are unchanged. This narrowing belongs to the next 0.x minor source release.
 - **Agent stream cleanup (compatible fix)**: Runtime Agent consume streams release their upstream iterators on projection or merge failure without canceling the business execution or replaying work.
@@ -250,17 +252,17 @@ life projections and Home AI observation. Update injected shells together;
 there is no old-carrier fallback. This component release does not publish a
 Runtime installer or any App.
 
-## Unreleased — Worlds and My partners (0.x minor)
+### Worlds and My partners (0.x minor)
 
 Desktop Open envelopes require schema version 2 and an explicit Explore `productIntent`: `worlds` supports `discover-worlds` or `discover-characters`; `partners` supports `select-partner`. Version 1 and the retired Persona section reject. Upgrade SDK, Kit and native carriers together. The Realm World Public facade adds `worldPublicControllerListCharacterCatalog` for the server-paginated union of public Persona and World Character sources; rebuild Runtime with the matching broker policy. No package publication is implied.
 
-## Unreleased — Canonical message quotations (0.x minor)
+### Canonical message quotations (0.x minor)
 
 Protected Conversation sends may carry one exact `quote` selector (`sourceMessageId`, `format`, `startByte`, `endByte`). `conversation.readMessage` reads one currently authorized canonical source with its on-demand quotation text and a bounded navigation window. Its `readWatermark` is independent of live snapshot continuity; never hydrate or reset the live reducer from this window. Runtime validates and commits quotation text and request identity together.
 
 This is a breaking source contract for injected shells: add the exact `readMessage` method, and include `quote: null` or the confirmed quote in every message projection. Rebuild matching Runtime, SDK, Kit and native carriers together; there is no old-shell fallback or implicit text-only substitution. No package publication or product acceptance is implied.
 
-## 0.22.0 — Realm media delivery (development)
+### 0.22.0 — Realm media delivery (development)
 
 Agent introduction now separates `voiceSampleUrl` (original reference audio), `voiceSampleContentHash` / `voiceSampleMimeType` (verified original facts), and `voicePreviewUrl` (playback). Agent Center's reference-voice view exposes `previewUrl`; cloning continues to use the original and keys managed input by content hash, so renewing its URL does not change input identity. Rebuild native carriers with the matching protocol. Private media capabilities are omitted from durable account identity; Home uses one fenced `getMe` query for live profile/media display.
 
@@ -268,19 +270,19 @@ Breaking 0.x change: Resource and attachment reads carry `delivery`, explicit `e
 
 Kit `features/media` owns responsive images, avatars and HLS playback. Pass an authorized read-owner refresh callback for expiring media. Preserve `originalUrl` for explicit byte-exact download; `previewUrl` is an audio preview.
 
-## Unreleased — Realm launch hard cut (0.x minor)
+### Realm launch hard cut (0.x minor)
 
 Use matching source-built Realm, Runtime, SDK, Kit and Desktop. Realm Post/feed, user/Post search and recommendations are deferred: their generated operations, handwritten SDK helpers, offline replay, Runtime broker admission and Desktop Activity entry are removed. Explore retains World and Persona catalogs and source actions. Exact-handle friend requests use `social.addFriendByHandle` and return only `requested`, `accepted` or `unchanged`; complete profile reads retain their separate privacy checks. Rebuild Runtime with the regenerated broker policy to use this operation from Desktop. Ordinary friendship, direct messaging and presence remain supported. `open-explore` accepts only `worlds` or `personas`; `activity`/`view-activity` reject. No compatibility route or automatic user-data migration is provided. This changes the next unreleased minor, not the published 0.21.0 package.
 
 Account 2FA setup now sends the actual prepare body and requires the same-session `challengeId` when enabling; callers must retain the prepare response until successful enable.
 
-## Unreleased — Home AI observation (0.x minor)
+### Home AI observation (0.x minor)
 
 The protected Desktop account-product client adds `accountProduct.audit.getDesktopAIActivitySnapshot`, `subscribeDesktopAIActivity` and `getDesktopAIUsageSummary`. These exact read operations preserve Runtime snapshots, source/time coverage and usage uncertainty. Activity requests are bounded to 100 entries and usage reads use a non-empty half-open UTC interval of at most seven days. No request accepts an account selector; the native account purpose supplies account scope.
 
 Use matching source-built Runtime, native carrier and SDK. Machine audit, ordinary public Runtime clients and App-purpose clients do not gain these reads; there is no generic audit or direct-network fallback. Existing generic RPC Usage remains a separate diagnostic contract, not a replacement for AI attempt accounting. No published package release or historical-data migration is implied.
 
-## SDK 0.22.0 — LocalAgent life frames (development)
+### SDK 0.22.0 — LocalAgent life frames (development)
 
 Use matching source-built Runtime, SDK, Kit, and native builds. This unreleased 0.x hard cut has no compatibility path or automatic migration. LocalAgent no longer owns user commitments, generic natural-language task controls, task timezones, or control outcomes. Existing conversations and Memory are preserved; obsolete local controls are retired only through explicitly reviewed one-time tools.
 
@@ -288,7 +290,7 @@ Life projections distinguish current interaction from simulated activities, leav
 
 Realtime consumers must capture the negotiated input format returned by Runtime. Runtime selects the captured Driver's native PCM rate and matching frame-byte bound before accepting audio; the proposed Open format does not promise to echo that rate. Explicit Agent Realtime close interrupts its unfinished turn—including before an output track exists—while preserving committed self-intentions.
 
-## Unreleased — LocalAgent Conversation recovery and controls
+### Unreleased — LocalAgent Conversation recovery and controls
 
 This source-only 0.x minor hard cut requires matching Runtime, native carrier, SDK, and Kit builds. No package release, automatic migration, or old/new protocol fallback is included. AI Consume-only consumers do not gain LocalAgent management requirements.
 
@@ -300,7 +302,7 @@ Custom LocalAgent carriers must implement `conversation.cancelFollowUp` with its
 
 Background activity output limits use `maxBackgroundOutputTokens`, where positive limits fit the text execution `int32` range. Daily token usage tracks actual reported input plus output over a fixed 24-hour window; it is not a monetary cost cap.
 
-## Unreleased — Conversation context management
+### Conversation context management
 
 Use matching source-built Runtime and Kit/native contracts for this unreleased 0.x minor surface change (not a package publication).
 
@@ -609,14 +611,14 @@ Required changes from 0.15.0:
 - Upgrade Runtime, SDK 0.19, Kit/native npm 0.16 and Rust carriers 0.8 together.
   These local candidate versions do not claim public publication or product acceptance.
 
-## Unreleased (0.18.1)
+## 0.18.1 (development)
 
 - Keep observing the Runtime activity-open stream while Desktop launches the
   source App. Source confirmation or the Runtime deadline can now finish the
   operation even if the launch acknowledgement remains pending; a launch result
   alone still never proves the source object opened. No API change.
 
-## Unreleased (0.18.0)
+## 0.18.0 (development)
 
 - Add optional `conversation.interruptTurn({ expectedTurnId })`. Runtime atomically
   refuses `AGENT_TURN_NOT_ACTIVE` when that turn is no longer active, preserving

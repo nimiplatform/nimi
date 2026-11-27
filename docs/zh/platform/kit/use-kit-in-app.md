@@ -24,7 +24,7 @@ Kit 核心基于 React 19 构建。`react-dom`、`react-i18next` 与 `electron` 
 | 标准 Shell 渲染层桥接与引导模块 | `@nimiplatform/kit/shell/renderer/bridge`、`@nimiplatform/kit/shell/renderer/bootstrap` |
 | Electron 宿主进程桥接 | `@nimiplatform/kit/shell/electron/main`、`@nimiplatform/kit/shell/electron/preload` |
 | 遥测上报与 React 错误边界 (Error Boundary) | `@nimiplatform/kit/telemetry`、`@nimiplatform/kit/telemetry/error-boundary` |
-| Agent Center、聊天、数字人、多模态生成、应用商业化组件 | `@nimiplatform/kit/features/...` 对应功能子路径 |
+| Agent Center、聊天、数字人、模型配置、媒体与多模态生成组件 | `@nimiplatform/kit/features/...` 对应功能子路径 |
 
 Kit 不对外暴露通配符 (Wildcard) 导出，完整的可用子路径请以 `kit/package.json` 中的 `exports` 配置为准。
 

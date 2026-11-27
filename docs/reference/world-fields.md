@@ -47,7 +47,7 @@ Through the existing host bindings (`client.realm.worldCore` and `client.realm.p
 | `WorldEntity` | `list`, `get`, `create` | Fixed typed entity operations. |
 | `WorldRelationship` | `list`, `get` | Read-only for applications; app-side relationship creation is not supported. |
 
-> **World Creation Eligibility**: Creating a new world (`WorldCore.create`) requires an explicit grant from a Realm administrator on the user account. Declaring `realm.data`, holding a subscription, or owning other worlds does not grant creation rights. Checking creation eligibility is informational and does not replace the authoritative permission check performed at creation time.
+> **World Creation Eligibility**: Creating a new world (`WorldCore.create`) requires an explicit grant from a Realm administrator on the user account. Declaring `realm.data` or owning other worlds does not grant creation rights. Checking creation eligibility is informational and does not replace the authoritative permission check performed at creation time.
 
 > **Realtime & Local Agent Boundaries**: Runtime manages all remote realtime connections. Currently admitted realtime channels for applications are limited to person-to-person DirectChat, typing indicators, inbox updates, and Presence; notifications and generic world event broadcasts are not admitted. LocalAgent conversations are handled by the Runtime, with per-agent long-term memory managed by Cognition through Runtime mediation.
 

@@ -104,11 +104,12 @@ When you are ready to release, you have two paths:
 4. After merge the platform verifies the release, makes its assets available and switches the active version. Open `https://nimi.ai/apps/<slug>` and launch `https://<slug>.nimi.xyz` there. The publisher needs no Cloudflare account or per-App DNS record.
 5. Sign in and connect. In Home, open **Settings → Account Security → Remote access**, match the App and origin, and allow the source. Reconnect from the browser if the request timed out. For an App that saves results, perform one user task, disconnect, reconnect with the same account and primary PC, and read the result. A content update retains consent. Changes to the qualified source or its requested capabilities can require another confirmation.
 
-Web and native releases can advance independently. To roll Web back, a maintainer selects a retained, approved release compatible with current policy. For a storage change, verify that version can read data already written by the new version.
+Web and native releases can advance independently. Hosted Web delivery and public directory availability follow explicit Registry publication and suspension state applied in Cloudflare: an active published version keeps serving from the last successfully applied state until an explicit update, rollback, or suspension (there is no 24-hour automatic stop if a sync has not run or fails; sync failures are resolved by operator inspection and manual workflow rerun). Once explicit product suspension or Web-source disablement takes effect in published state, the edge Worker blocks new page and script requests before cache reads while retaining only required existing coordination context cleanup paths; hiding a product from the public directory stays separate from suspension. To roll Web back, a maintainer selects a retained, approved release compatible with current policy. For a storage change, verify that version can read data already written by the new version.
 
 ## Source Basis
 
 - [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)
+- [`.nimi/spec/platform/hosted-web.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/hosted-web.authority.yaml)
 - [`.nimi/spec/platform/remote-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/remote-clients.authority.yaml)
 - [`.nimi/spec/runtime/remote-access.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/remote-access.authority.yaml)
 - [`app-tools/README.md`](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md)

@@ -24,7 +24,7 @@ Kit is built atop React 19. `react-dom`, `react-i18next`, and `electron` are pee
 | Standard shell renderer bridge & bootstrap | `@nimiplatform/kit/shell/renderer/bridge`, `@nimiplatform/kit/shell/renderer/bootstrap` |
 | Electron host process bridge | `@nimiplatform/kit/shell/electron/main`, `@nimiplatform/kit/shell/electron/preload` |
 | Telemetry and React error boundaries | `@nimiplatform/kit/telemetry`, `@nimiplatform/kit/telemetry/error-boundary` |
-| Agent Center, chat, avatar, generation, and commerce surfaces | Specific `@nimiplatform/kit/features/...` subpaths |
+| Agent Center, chat, avatar, model config, media, and generation surfaces | Specific `@nimiplatform/kit/features/...` subpaths |
 
 Kit does not expose wildcard exports; the authoritative list of public entry points is defined in `kit/package.json` under `exports`.
 

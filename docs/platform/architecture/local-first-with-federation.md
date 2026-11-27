@@ -26,14 +26,21 @@ Authorized clients attached to the same LocalAgent consume its Runtime-owned Con
 
 Closing a client ends its live connection, not the PC Runtime. A disconnected stream ends; reconnection obtains current handles and does not replay business requests. Already accepted durable Jobs follow their existing observation and cancellation contracts.
 
-## Connectivity and Future Federation
+## Offline Continuity, Re-Authentication, and Future Federation
 
-Local inference can continue only while the applicable session, authorization, model assets and policies remain valid. New login, primary discovery, connection establishment, authorization renewal, Realm operations and cloud inference depend on their network services. Remote access does not promise whole-product offline operation.
+Runtime separates trusted local sign-in identity from short-lived online Realm credentials so a previously signed-in device remains usable offline:
+
+- **What continues offline on a signed-in device**: When this device has completed trusted unified-account sign-in and Runtime still holds valid, unrevoked local custody, Home can cold-start and stay open during a Realm outage or after the short-lived online Realm access token naturally expires offline. Prepared local models, authorized local App data, and LocalAgent conversations continue under their owner checks. For verified installed Apps, when the official Registry is unreachable, Runtime reuses its last verified official approval for that exact installed target regardless of elapsed time while the installation identity, account validity, and local authorization remain intact (local cache reads, launches, restarts, and failed checks never refresh stored approval timestamps).
+- **When online re-authentication is required**: Expired, cleared, or absent online access tokens are never sent to authorize online Realm, Cloud account, or protected Remote Access operations—those fail honestly as network unavailable or online-auth-required. If an online token refresh produces an ambiguous or possibly-rotated outcome (such as a post-dispatch transport drop, Realm 503 verification unavailability, or restart recovery hitting a pre-refresh crash fence), Runtime immediately clears and fences the potentially rotated online tokens while preserving local sign-in identity; restoring online Realm or Remote Access then requires fresh online re-authentication in Home. First-time sign-in on a device without local custody, new verified App installs/updates, primary discovery, and Cloud inference also require live network services.
+- **Immediate enforcement of logout, revocation, and kill-switch**: Explicit logout, account switching, confirmed revocation, ban, account deletion, or contract-invalid refresh immediately invalidates both online credentials and local authenticated identity and fences affected sessions and work. For verified installed Apps, an observed active kill-switch or absent Registry row immediately blocks new launch and bind even if the Registry later becomes unreachable.
 
 Additional Runtime hosts, automatic cross-host synchronization and compute federation are separate architectural questions. The current multi-device journey is clients consuming one primary Runtime, not a distributed execution scheduler.
 
 ## Source Basis
 
+- [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
+- [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)
+- [`.nimi/spec/runtime/protected-session.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/protected-session.authority.yaml)
 - [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)
 - [`.nimi/spec/runtime/local-compute.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/local-compute.authority.yaml)
 - [`.nimi/spec/runtime/rpc-foundations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/rpc-foundations.authority.yaml)

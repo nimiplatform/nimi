@@ -6,6 +6,55 @@ The format follows Keep a Changelog and Semantic Versioning.
 
 ## [Unreleased]
 
+### Added
+
+- **Offline signed-in continuity & Home re-authentication (D5)**: Runtime now
+  separates trusted local sign-in custody from short-lived online Realm access
+  and refresh tokens so a signed-in device can cold-start Home and keep using
+  prepared local models, local App data, and LocalAgent conversations when
+  offline or after the online access token expires. Ambiguous or possibly
+  rotated refresh outcomes immediately clear and fence potentially rotated
+  online tokens while preserving local sign-in identity, and Home surfaces
+  inline online re-authentication for online Realm and Remote Access recovery;
+  explicit logout, account switching, revocation, ban, and deletion continue to
+  invalidate both online and local identity immediately. Remote Access also
+  sleeps cleanly while idle instead of polling unnecessarily.
+- **Indefinite offline reuse of verified installed App approvals (D1)**: When
+  the official App Registry is unreachable, Runtime reuses its last verified
+  official approval for the exact installed verified target regardless of
+  elapsed time while installation identity, account validity, and local
+  authorization remain intact. Monotonic deny precedence still immediately
+  blocks any observed kill-switch or absent row even when later offline, local
+  reads/launches/restarts never refresh stored timestamps, and new installs or
+  updates still require online Registry verification.
+- **Explicit Hosted Web publish and suspension semantics (D6)**: Hosted Web
+  delivery and public directory availability follow explicit Registry
+  publication and suspension state in Cloudflare. Active published versions
+  keep serving until an explicit update, rollback, or suspension (removing the
+  24-hour staleness auto-stop), while explicit product suspension or Web-source
+  disablement blocks new page and script requests before cache reads.
+
+### Changed (performance & operations)
+
+- **Windows `llama` load- and restart-boundary byte verification (D2)**: For
+  Windows local NTFS managed `llama` `text.generate`, Runtime's `ExecutionHost`
+  verifies the complete bound model file set on import, managed replacement,
+  and every actual engine load, reopen, model switch, idle reload, or
+  Supervisor crash restart, skipping redundant full-set disk hash reads on warm
+  turns of the same verified resident instance while preserving admission
+  capture, dependency validation, managed-mutation invalidation, and
+  cancellation.
+- **Lightweight in-memory ordinary-read audit (D7)**: Ordinary successful
+  non-sensitive health and display reads are aggregated in memory instead of
+  writing a per-call durable audit row, while durable audit recording remains
+  enforced for security-relevant actions, sensitive reads, billing/usage
+  accounting, business writes, and all failures.
+- **Cache-first model recommendations (A1)**, **deferred Web pre-login Runtime
+  and Realm loading (A2)**, **persisted public App Registry browse snapshot
+  with coalesced live refresh (A3)**, and **lightweight periodic Desktop
+  liveness updates (A5)** reduce cold-start latency and unnecessary disk or
+  network churn without changing underlying ownership or durability boundaries.
+
 ### Changed (breaking, `@nimiplatform/sdk` Realm)
 
 - Public world discovery is paginated on Realm. `worldPublicControllerListWorlds`

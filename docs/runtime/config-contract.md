@@ -2,7 +2,7 @@
 
 Runtime configuration and product-level control are strictly separated across distinct planes:
 
-- `~/.nimi/nimi.json` is the authoritative Product Control record that declares `dataRoot.path`.
+- The authoritative Product Control record `nimi.json` declares `dataRoot.path`: `%USERPROFILE%\.nimi\nimi.json` on Windows and `~/.nimi/nimi.json` on macOS (or `~/.nimi-dev/.nimi/nimi.json` under the macOS local-development Product Control namespace `.nimi-dev`).
 - System-protected locations (such as `%ProgramData%\Nimi\Runtime\Protected` on Windows) store internal daemon credentials, session states, and verification proofs.
 - Runtime strictly conforms to the storage roots established by Product Control, ensuring consistency and safety across all platform surfaces.
 

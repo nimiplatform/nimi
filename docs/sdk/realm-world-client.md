@@ -1,6 +1,6 @@
 # Realm Access from an App
 
-User accounts, character personas (Character), virtual worlds (World), social graphs, virtual economies, historical facts, and shared assets are authoritatively managed by Realm. A Nimi App interacts with these assets through the standard `client.realm` methods on its host-bound client. Runtime acts as a secure mediation proxy, handling authorized Realm interactions without leaking sensitive Realm authentication tokens or exposing raw REST/WebSocket transport channels directly to the application layer.
+User accounts, character personas (Character), virtual worlds (World), social graphs, and shared assets are authoritatively managed by Realm. A Nimi App interacts with these assets through the standard `client.realm` methods on its host-bound client. Runtime acts as a secure mediation proxy, handling authorized Realm interactions without leaking sensitive Realm authentication tokens or exposing raw REST/WebSocket transport channels directly to the application layer.
 
 ## Strongly-Typed Domain Operations
 

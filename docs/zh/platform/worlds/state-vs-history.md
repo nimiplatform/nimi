@@ -1,6 +1,6 @@
 # 状态与历史
 
-> 规范状态：规划中契约（设计参考）。世界状态（`R-WSTATE-*`）与世界历史（`R-WHIST-*`）是 Realm 规划中的独立契约，并非当前已上线的可调用接口。当前没有获准的 controller 或纳入跟踪的 OpenAPI 读写操作，现有残留数据库模型也不代表可调用的公开接口。目前普通 App 仅能通过既有宿主绑定的固定接口操作 `WorldCore`、`WorldCharacter`、`WorldEntity` 与 `WorldRelationship`，无法读写或订阅通用世界状态与历史。
+> 规范状态：规划中契约（设计参考）。世界状态与世界历史是 Realm 规划中的独立契约，并非当前已上线的可调用接口。当前没有获准的 controller 或纳入跟踪的 OpenAPI 读写操作，现有残留数据库模型也不代表可调用的公开接口。目前普通 App 仅能通过既有宿主绑定的固定接口操作 `WorldCore`、`WorldCharacter`、`WorldEntity` 与 `WorldRelationship`，无法读写或订阅通用世界状态与历史。
 
 在规划的世界数据模型中，Realm 将持久化的世界记录拆分为两个独立表面：**状态**（State，世界当前的持久共享状况）与**历史**（History，已接纳的发生事实序列）。两者职责分明、不可互相替代，由显式协议契约决定每次提交能够更新哪个表面。
 
@@ -8,7 +8,7 @@
 
 | 属性 | 规划契约定义 |
 | --- | --- |
-| 权威所有者 | Realm World State (`R-WSTATE-*`) |
+| 权威所有者 | Realm 世界状态（规划契约） |
 | 核心定位 | 维护世界持久化的共享当前状态 |
 | 作用域 (`scope`) | `WORLD`、`ENTITY`、`RELATION`（其中 `ENTITY` 与 `RELATION` 没有通用 JSON 结构） |
 | 变更方式 | 显式提交变更信封 (Commit Envelope) |
@@ -21,7 +21,7 @@ World State 仅用于承载持久共享状态，不接收应用内的故事控�
 
 | 属性 | 规划契约定义 |
 | --- | --- |
-| 权威所有者 | Realm World History (`R-WHIST-*`) |
+| 权威所有者 | Realm 世界历史（规划契约） |
 | 核心定位 | 记录已接纳的发生事实与来源依据 |
 | 写入方式 | 显式仅追加 (Append-Only) |
 | 明确排除的数据 | 故事推理轨迹、原始模型输出日志、App 私有叙事存档 |
@@ -50,9 +50,9 @@ World History 只接收经平台接纳的发生事实：哪次提交产生了变
 
 | 规则 | 约束说明 |
 | --- | --- |
-| `REPLAY` 严禁写状态与追加历史 | `REPLAY` 模式一律禁止提交共享 State 和追加 History（`R-WHIST-004`），不存在允许 Replay 写共享状态的例外 |
+| `REPLAY` 严禁写状态与追加历史 | `REPLAY` 模式一律禁止提交共享 State 和追加 History，不存在允许 Replay 写共享状态的例外 |
 | `CANON_MUTATION` 须命中精确授权矩阵 | 即使处于 `CANON_MUTATION` 模式，也必须精确通过 `appId`、`schemaId`、`schemaVersion`、`effectClass`、`scope` 组成的授权矩阵校验 |
-| App 私有故事存档由 App 管理 | 由 App 自行存储维护，不进入 Realm 世界历史（`R-WHIST-006`） |
+| App 私有故事存档由 App 管理 | 由 App 自行存储维护，不进入 Realm 世界历史 |
 
 ## 为什么拆分为两个独立表面
 
@@ -99,7 +99,7 @@ World History 只接收经平台接纳的发生事实：哪次提交产生了变
 回放消费者在 `REPLAY` 模式下重新执行一段流程：
 
 1. **本地执行回放**：系统在 `REPLAY` 模式下重演过程。
-2. **全面拦截共享写入**：一旦尝试提交变更信封，Realm 一律拒绝其共享 State 提交与 History 追加（`R-WHIST-004`）。
+2. **全面拦截共享写入**：一旦尝试提交变更信封，Realm 一律拒绝其共享 State 提交与 History 追加。
 3. **无写状态例外**：`REPLAY` 模式不存在任何可写入共享世界状态或历史的例外通道。
 
 ### 场景五：App 管理私有故事记录
@@ -107,7 +107,7 @@ World History 只接收经平台接纳的发生事实：哪次提交产生了变
 互动叙事类 App 需要保存玩家会话中的故事变量与对话记录：
 
 1. **排除在 Realm 之外**：应用故事运行变量、提示词上下文、渲染状态与私有对话记录均不属于 World State 或 World History。
-2. **App 自有存储**：App 在自有存储中维护叙事日志（`R-WHIST-006`）。
+2. **App 自有存储**：App 在自有存储中维护叙事日志。
 3. **边界清晰**：私有故事记录不会自动转化为世界历史，也不得作为世界历史对外呈现。
 
 ## 关键架构边界
@@ -124,11 +124,11 @@ World History 只接收经平台接纳的发生事实：哪次提交产生了变
 
 | 关注点 | 规划权威所有者 |
 | --- | --- |
-| 持久共享当前状态 | Realm (`R-WSTATE-*`) |
-| 已接纳发生事实与溯源记录 | Realm (`R-WHIST-*`) |
-| 变更信封结构校验 | Realm (`R-WSTATE-002`) |
-| 运行模式与 `(app, schema, effect, scope)` 授权矩阵 | Realm (`R-WSTATE-005`) |
-| `effectClass` 封闭枚举 | Realm (`R-WSTATE-004`) |
+| 持久共享当前状态 | Realm（世界状态规划契约） |
+| 已接纳发生事实与溯源记录 | Realm（世界历史规划契约） |
+| 变更信封结构校验 | Realm（提交信封契约） |
+| 运行模式与 `(app, schema, effect, scope)` 授权矩阵 | Realm（授权矩阵契约） |
+| `effectClass` 封闭枚举 | Realm（`effectClass` 契约） |
 
 ## Source Basis
 

@@ -104,11 +104,12 @@ Kit 的 `auth/app/web` 提供会话工厂，`auth/app` 提供 `NimiAppSessionPro
 4. 合并后，平台核实版本、上传资源并切换线上指针。从 `https://nimi.ai/apps/<slug>` 点击网页入口，确认打开 `https://<slug>.nimi.xyz`。开发者无需 Cloudflare 账号，也无需逐个申请 DNS 记录。
 5. 网页登录后连接主 PC，在 Home 的 **Settings → Account Security → Remote access** 核对应用和来源，点击允许。等待超时可在网页重新连接。对会保存数据的 App，完成一次真实任务，退出后用同一账号连回同一主 PC，检查刚保存的结果。普通内容更新沿用原授权，来源或权限声明有实质变化时需要重新确认。
 
-桌面端和网页端可分别发版。回滚网页时，由维护者选回与当前策略兼容的已审核版本。涉及存档格式变化，应先验证旧版能够读取新版已写入的数据。
+桌面端和网页端可分别发版。平台托管网页的服务交付与公开目录可用性遵循已应用到 Cloudflare 的显式 Registry 发布与暂停状态：已发布的生效版本会持续提供服务，直到有显式更新、回滚或暂停（不会因为超过 24 小时未重新同步或同步任务失败而自动停服；同步失败由运维排查修复后手动重跑工作流）。一旦显式的产品暂停或网页来源停用在发布状态中生效，边缘 Worker 会在读取缓存之前直接拦截新的页面与脚本请求，仅保留既有协调上下文所需的清理路径；将产品从公开目录隐藏与暂停服务相互独立。回滚网页时，由维护者选回与当前策略兼容的已审核版本。涉及存档格式变化，应先验证旧版能够读取新版已写入的数据。
 
 ## Source Basis
 
 - [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)
+- [`.nimi/spec/platform/hosted-web.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/hosted-web.authority.yaml)
 - [`.nimi/spec/platform/remote-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/remote-clients.authority.yaml)
 - [`.nimi/spec/runtime/remote-access.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/remote-access.authority.yaml)
 - [`app-tools/README.md`](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md)

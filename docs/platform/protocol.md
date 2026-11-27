@@ -12,7 +12,7 @@ Each primitive defines a bounded contract surface. A world can implement its own
 | --- | --- |
 | **Timeflow** | Temporal progression, event lifecycle timing, and time-scale coordination across worlds |
 | **Social** | Shared relationship graphs, friendship recognition, and interpersonal interaction contracts |
-| **Economy** | Economic rules, revenue split previews, and value-exchange contracts |
+| **Economy** | Protocol-level value-transfer and exchange contract primitives (no active Realm Creator Economy or settlement API) |
 | **Transit** | Contract semantics for routing and travel between worlds or spatial contexts |
 | **Context** | Shared environmental framing, local scene rules, and situational context |
 | **Presence** | Entity presence, spatial admission, and visibility conditions |
@@ -42,7 +42,7 @@ The platform protocol and Realm serve distinct roles:
 - **Protocol**: Defines the contract grammar and schemas (`Timeflow`, `Social`, `Economy`, `Transit`, `Context`, `Presence`, along with `WorldState` and `WorldHistory` specifications).
 - **Realm**: Persists authoritative global entities and state—such as account identities, the social graph, `WorldCore`, and character settings.
 
-Note on current implementation boundaries: while Realm actively governs global identity, social relationships, `WorldCore`, and character settings today, `WorldState` and `WorldHistory` remain planned contracts rather than an executable full world-state ledger in current Home. Likewise, `Economy` revenue split previews do not equal live settlement, and creator payouts are not yet connected.
+Note on current implementation boundaries: while Realm actively governs global identity, social relationships, `WorldCore`, and character settings today, `WorldState` and `WorldHistory` remain planned contracts rather than an executable full world-state ledger in current Home. Likewise, the active Realm API does not expose Creator Economy, revenue split preview, subscription, or settlement endpoints.
 
 ## Contract Scenario: A Workflow Spanning Multiple Primitives
 
@@ -51,7 +51,7 @@ To see how the six primitives fit together as protocol contracts, consider a des
 - **Timeflow** expresses the event lifecycle from scheduled to active to concluded.
 - **Presence** describes which human users and agents are admitted and visible in the venue.
 - **Social** references existing friendships from Realm and standardizes how new social requests are initiated.
-- **Economy** structures item exchange contracts and revenue split rules.
+- **Economy** defines the protocol-level value-exchange contract shape (no active Realm settlement API).
 - **Transit** defines the target routing contract for participants entering or returning from the world.
 - **Context** broadcasts the festival's active rules and situational framing so participating agents can adapt their behavior.
 

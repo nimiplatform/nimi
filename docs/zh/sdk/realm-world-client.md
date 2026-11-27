@@ -1,6 +1,6 @@
 # App 中的 Realm 访问
 
-用户账号、角色设定 (Character)、虚拟世界 (World)、社交图谱、经济体系、历史事实与公共资产的权威数据统一由 Realm 归口管理。Nimi App 通过宿主绑定客户端导出的 `client.realm` 标准操作与其交互。底层 Runtime 充当安全中介，负责安全代理经授权的 Realm 访问，而无需将敏感的 Realm Token 或原始 REST/WebSocket 传输信道直接暴露给应用层。
+用户账号、角色设定 (Character)、虚拟世界 (World)、社交图谱与公共资产的权威数据统一由 Realm 归口管理。Nimi App 通过宿主绑定客户端导出的 `client.realm` 标准操作与其交互。底层 Runtime 充当安全中介，负责安全代理经授权的 Realm 访问，而无需将敏感的 Realm Token 或原始 REST/WebSocket 传输信道直接暴露给应用层。
 
 ## 强类型专属操作
 

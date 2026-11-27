@@ -1,14 +1,12 @@
 # User Profile and Personal Space
 
-The **Profile** page in Nimi Home brings your public-facing identity and social activity together. Update your display name, avatar and bio, browse posts, collections and likes, or return to the worlds you follow.
+The **Profile** page in Nimi Home brings your public-facing identity and followed worlds together. Update your display name, avatar and bio, or return to the worlds you follow.
 
-## Your Profile and Activity
+## Your Profile
 
 | Area | What it contains |
 | --- | --- |
 | **Profile details** | Display name, avatar, bio and other editable account details |
-| **Posts** | Posts visible under the current account’s access rules |
-| **Collections and Likes** | The corresponding social content, subject to its visibility rules |
 | **Followed Worlds** | Available on your own profile; lists the worlds followed on this device for the current account |
 
 The account ID identifies the human account. Character Source profiles and Runtime LocalAgents use separate views; this page is not an inventory of your private Agent conversations or memory.

@@ -4,7 +4,12 @@ Use Runtime’s audit records to trace a failed request, understand an access re
 
 ## What the Records Contain
 
-Runtime records security-relevant authentication, authorization, execution, lifecycle and resource facts. Diagnostic projections are bounded and redacted: credentials, session proofs, raw private content and provider secrets do not belong in them.
+Runtime distinguishes actions that require **durable** audit rows from ordinary non-sensitive reads:
+
+- **Durable audit records (persisted locally)**: Security-relevant authentication, authorization, credential changes, billing or usage accounting, lifecycle transitions, execution, resource changes, business writes, sensitive reads, failures, and protected host actions write owner-attributed durable audit rows with correlation and timestamp.
+- **Lightweight in-memory aggregation**: Ordinary successful non-sensitive health and display reads do not write a per-call durable audit row; Runtime aggregates them in memory with lightweight counters or failure-only diagnostics while preserving durable audit recording whenever a read is sensitive or any call fails.
+
+Diagnostic projections are bounded and redacted: credentials, session proofs, raw private content and provider secrets do not belong in them.
 
 Records are retained locally under count and encoded-size limits. Oldest records are evicted when those bounds are reached, and repeated identical refusals can share a counted record. Audit storage is not a permanent, exhaustive history of everything an App has done.
 

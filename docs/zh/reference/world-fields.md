@@ -47,7 +47,7 @@ Realm 中的世界数据分为当前已开放的设定模型与规划中的状�
 | `WorldEntity` | `list`、`get`、`create` | 固定类型的世界实体读写操作。 |
 | `WorldRelationship` | `list`、`get` | 仅支持读取；不对应用开放 `WorldRelationship` 创建操作。 |
 
-> **新建世界资格要求**：创建新世界（`WorldCore.create`）需由 Realm 管理员向账号显式授予世界创建资格。声明 `realm.data`、持有订阅或已拥有其他世界均不能替代该资格；创建前的资格查询（eligibility）仅作参考，不替代创建时的正式权限复检。
+> **新建世界资格要求**：创建新世界（`WorldCore.create`）需由 Realm 管理员向账号显式授予世界创建资格。声明 `realm.data` 或已拥有其他世界均不能替代该资格；创建前的资格查询（eligibility）仅作参考，不替代创建时的正式权限复检。
 
 > **实时连接与本地智能体边界**：远端 Realtime 连接由 Runtime 统一托管。目前已准入的实时能力仅限人对人私聊（DirectChat）、输入状态（typing）、收件箱（inbox）与在线状态（Presence），通知（Notification）与通用世界事件广播均未开放。LocalAgent 对话由 Runtime 承载，单 Agent 长期记忆由 Cognition 经 Runtime 中介管理，应用数据不会自动全量同步至世界状态。
 
