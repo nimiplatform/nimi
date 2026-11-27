@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/Microsoft/go-winio"
+	"golang.org/x/sys/windows"
 )
 
 func TestWindowsSourceDirectDesktopConnectionRetainsCompleteClientProcess(t *testing.T) {
@@ -57,6 +58,18 @@ func TestWindowsSourceDirectDesktopConnectionRetainsCompleteClientProcess(t *tes
 		retained.CanonicalExecutablePath != executablePath || retained.ExecutableTrustSetID != windowsSourceExactExecutableTrustSetID {
 		t.Fatalf("source process evidence is incomplete: %+v", retained)
 	}
+}
+
+func TestWindowsSourceCurrentPrincipalRejectsIneligibleHost(t *testing.T) {
+	ineligible := windowsSourcePipeTestHostIneligibility(t)
+	if ineligible == "" {
+		t.Skip("host has the interactive token required by the real pipe tests")
+	}
+	_, _, err := validateWindowsSourceCurrentPrincipal(context.Background())
+	if !IsReason(err, ReasonProtectedLocalRuntimePrincipalRequired) {
+		t.Fatalf("source principal on an ineligible host (%s) returned %v", ineligible, err)
+	}
+	t.Logf("source principal refused on this host: %s", ineligible)
 }
 
 // These tests use isolated pipe names with the same owner-only ACL, the real
@@ -188,11 +201,14 @@ func TestWindowsSourceDesktopReplacementRequiresFullProcessIdentity(t *testing.T
 
 func newWindowsSourceDesktopPipeTestListener(t *testing.T) (*windowsSourceDesktopListener, string) {
 	t.Helper()
+	if ineligible := windowsSourcePipeTestHostIneligibility(t); ineligible != "" {
+		t.Skipf("real source desktop pipe requires a non-elevated interactive console: %s", ineligible)
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	principal, identity, err := validateWindowsSourceCurrentPrincipal(ctx)
 	if err != nil {
 		cancel()
-		t.Fatalf("real current-user source principal is required: %v", err)
+		t.Fatalf("real current-user source principal is required: %v (%v)", err, errors.Unwrap(err))
 	}
 	executable, err := os.Executable()
 	if err != nil {
@@ -219,6 +235,39 @@ func newWindowsSourceDesktopPipeTestListener(t *testing.T) (*windowsSourceDeskto
 		state: &WindowsRuntimeSecurityState{principal: principal, desktopIdentity: identity, expectedDesktopPath: executable}}
 	t.Cleanup(func() { _ = listener.Close() })
 	return listener, pipeName
+}
+
+// Hosted Windows runners may use a service session or an elevated token.
+// Probe these host prerequisites independently of the source principal check.
+func windowsSourcePipeTestHostIneligibility(t *testing.T) string {
+	t.Helper()
+	token, err := windows.OpenCurrentProcessToken()
+	if err != nil {
+		t.Fatalf("open test process token: %v", err)
+	}
+	defer func() { _ = token.Close() }()
+	elevated, err := readWindowsTokenUint32(token, windows.TokenElevation)
+	if err != nil {
+		t.Fatalf("read test process elevation: %v", err)
+	}
+	if elevated != 0 {
+		return "test process is elevated"
+	}
+	sessionID, err := readWindowsTokenUint32(token, windows.TokenSessionId)
+	if err != nil {
+		t.Fatalf("read test process session: %v", err)
+	}
+	if sessionID == 0 || sessionID != windows.WTSGetActiveConsoleSessionId() {
+		return "test process is outside the active console session"
+	}
+	groups, err := readWindowsTokenGroups(token, windows.TokenGroups)
+	if err != nil {
+		t.Fatalf("read test process groups: %v", err)
+	}
+	if !containsEnabledSID(groups, windowsInteractiveLogonSID) && !containsEnabledSID(groups, windowsRemoteInteractiveLogonSID) {
+		return "test process lacks an interactive logon group"
+	}
+	return ""
 }
 
 type windowsSourceDesktopAcceptResult struct {
