@@ -28,6 +28,10 @@
     "dist/**"
   ],
   "type": "module",
+  "sideEffects": [
+    "**/*.css",
+    "./dist/auth/app/mobile.js"
+  ],
   "imports": {
     "#nimi-shell-account-projection": {
       "types": "./dist/shell/shared/runtime-account-projection.d.ts",

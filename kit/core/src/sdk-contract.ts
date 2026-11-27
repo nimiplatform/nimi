@@ -463,7 +463,13 @@ export type MediaDeliveryStateDto = import('@nimiplatform/sdk/realm').RealmModel
 // Shared remote-session orchestration consumes the same public SDK contracts.
 export { prepareRuntimeClientLogin, completeRuntimeClientLogin, readRuntimeClientSource, isRuntimeClientRedirectUri, matchesRuntimeClientCallback } from '@nimiplatform/sdk/realm/runtime-client';
 export type { RuntimeClientIdentity, RuntimeClientLoginOptions, RuntimeClientLoginTransaction, RuntimeClientSession } from '@nimiplatform/sdk/realm/runtime-client';
-export { connectRemoteRuntime } from '@nimiplatform/sdk/runtime/remote';
+// Defer loading the heavy Runtime protobuf + WebRTC carrier until post-login connection starts.
+export async function connectRemoteRuntime(
+  ...args: Parameters<typeof import('@nimiplatform/sdk/runtime/remote').connectRemoteRuntime>
+): ReturnType<typeof import('@nimiplatform/sdk/runtime/remote').connectRemoteRuntime> {
+  const { connectRemoteRuntime: connect } = await import('@nimiplatform/sdk/runtime/remote');
+  return connect(...args);
+}
 export type { RemoteRuntimeAppConnection, RemoteRuntimeConnectOptions } from '@nimiplatform/sdk/runtime/remote';
 
 export type { NimiLocalAppAssetsClient } from '@nimiplatform/sdk/app';

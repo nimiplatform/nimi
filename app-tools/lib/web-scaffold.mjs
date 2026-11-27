@@ -94,8 +94,8 @@ import { createWebNimiAppSession, type NimiRemoteAppConfig } from '@nimiplatform
 import { NimiAppSessionProvider, NimiAccountControl, NimiAppAccessGate } from '@nimiplatform/kit/auth/app';
 import { setNimiRemoteAppClient } from './shell/auth/local-app-client.js';
 import { appTitle } from './shell/auth/app-identity.js';
-import { App } from './shell/App.js';
 import './styles.css';
+const App = React.lazy(() => import('./shell/App.js').then((module) => ({ default: module.App })));
 declare const __NIMI_APP_WEB_CONFIG__: NimiRemoteAppConfig;
 const session = createWebNimiAppSession(__NIMI_APP_WEB_CONFIG__);
 const off = session.subscribe(() => { const state = session.getSnapshot(); setNimiRemoteAppClient(state.runtime.status === 'connected' ? state.runtime.scope : null); });
@@ -104,7 +104,7 @@ root.classList.add('nimi-workbench-host', 'nimi-ui-module--lab'); document.body.
 const reactRoot = createRoot(root);
 reactRoot.render(<React.StrictMode><NimiThemeProvider accentPack="nimi-accent"><TooltipProvider><NimiAppSessionProvider session={session}>
   <div className="flex h-full min-h-0 flex-col"><header className="flex items-center gap-3 border-b p-3"><strong>{appTitle}</strong><NimiAccountControl hideSignedOut language="en" /></header>
-  <NimiAppAccessGate title={appTitle} language="en">{() => <main className="min-h-0 flex-1"><App /></main>}</NimiAppAccessGate></div>
+  <NimiAppAccessGate title={appTitle} language="en">{() => <main className="min-h-0 flex-1"><React.Suspense fallback={null}><App /></React.Suspense></main>}</NimiAppAccessGate></div>
 </NimiAppSessionProvider></TooltipProvider></NimiThemeProvider></React.StrictMode>);
 void session.start();
 if (import.meta.hot) import.meta.hot.dispose(() => { session.dispose(); off(); setNimiRemoteAppClient(null); reactRoot.unmount(); });

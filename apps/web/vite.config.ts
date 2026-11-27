@@ -185,11 +185,10 @@ export default defineConfig(({ mode }) => {
       sourcemap: 'hidden',
       rolldownOptions: {
         treeshake: {
-          // These barrels emit only re-exports. Web Auth and the static Chat
-          // preview need no initialization from unused Runtime/native exports.
-          // The closure test guards these exact entrypoints, not entire packages.
+          // The static Chat preview consumes a re-export-only Kit entry.
+          // The closure test rejects initialization in this exact exception.
           moduleSideEffects: [{
-            test: /[/\\]kit[/\\](?:core[/\\]src[/\\]sdk-contract\.ts|dist[/\\]features[/\\]chat[/\\]ui\.js)$/u,
+            test: /[/\\]kit[/\\]dist[/\\]features[/\\]chat[/\\]ui\.js$/u,
             external: false,
             sideEffects: false,
           }],

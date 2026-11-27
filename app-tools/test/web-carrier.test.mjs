@@ -52,6 +52,9 @@ test('Web scaffold preserves selected feature closure without native shells or d
   assert.equal(pkg.devDependencies['@tauri-apps/cli'], undefined);
   assert.equal(pkg.scripts.dev, 'nimi-app dev --platform web');
   assert.equal(output.filesByPath.has('src/scaffold/generated/host-adapters.tsx'), true);
+  const webMain = output.filesByPath.get('src/main.tsx').content;
+  assert.doesNotMatch(webMain, /^import\s+\{[^}]*\bApp\b[^}]*\}\s+from\s+['"]\.\/shell\/App\.js['"]/mu);
+  assert.match(webMain, /React\.lazy\(\(\)\s*=>\s*import\(['"]\.\/shell\/App\.js['"]\)/u);
   assert.deepEqual(output.lock.features, ['studio-create']);
   const intent = JSON.parse(output.filesByPath.get('.nimi/app-scaffold/intent.json').content);
   assert.deepEqual(buildAppScaffoldSnapshotFromIntent({ intent, versions }).lock, output.lock);

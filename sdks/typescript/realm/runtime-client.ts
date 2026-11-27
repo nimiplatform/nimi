@@ -1,6 +1,4 @@
-import { CoreClient } from '../core-client/index.js';
-import { RealmTypedClient, type RuntimeClientContextDto, type RuntimeClientSourceDto, type RuntimeClientTokenDto, type RuntimeConnectionStateDto } from '../core-generated/realm-typed-client.js';
-import { createRealmFetchTransport } from './fetch-transport.js';
+import type { RealmTypedClient, RuntimeClientContextDto, RuntimeClientSourceDto, RuntimeClientTokenDto, RuntimeConnectionStateDto } from '../core-generated/realm-typed-client.js';
 import { createNimiError, extractNimiErrorFields } from '../types/index.js';
 import { sha256Hex } from '../types/sha256.js';
 
@@ -71,7 +69,8 @@ export interface RuntimeClientLoginTransaction {
 // @nimi-authority: rule.nimi.sdks.realm-consumer.runtime-client-context
 export async function readRuntimeClientSource(options: Pick<RuntimeClientLoginOptions,
   'realmBaseUrl' | 'appId' | 'clientId' | 'redirectUri' | 'fetch'>): Promise<RuntimeClientSourceDto> {
-  const source = await client(options).getRuntimeClientSource({ path: { clientId: options.clientId } });
+  const api = await loadClient(options);
+  const source = await api.getRuntimeClientSource({ path: { clientId: options.clientId } });
   if (source.appId !== options.appId || source.clientId !== options.clientId || source.redirectUri !== options.redirectUri) throw invalidLogin();
   return source;
 }
@@ -120,10 +119,12 @@ export async function completeRuntimeClientLogin(options: RuntimeClientLoginOpti
     reasonCode: 'RUNTIME_CLIENT_LOGIN_CANCELLED', source: 'sdk' });
   const code = callback.searchParams.get('code') || '';
   if (!/^[A-Za-z0-9_-]{43}$/.test(code) || [...callback.searchParams].length !== 2) throw invalidLogin();
-  const token = await client(options).exchangeRuntimeClientCode({ path: {}, body: {
+  const exchangeApi = await loadClient(options);
+  const token = await exchangeApi.exchangeRuntimeClientCode({ path: {}, body: {
     clientId: transaction.clientId, redirectUri: transaction.redirectUri, authorizationCode: code, codeVerifier: transaction.codeVerifier,
   } });
-  const session = new CurrentRuntimeClientSession(options, current, token);
+  const sessionApi = await loadClient(options, token.contextToken);
+  const session = new CurrentRuntimeClientSession(options, current, token, sessionApi);
   if (options.currentUserContext() !== current || token.realmEnvironmentId !== options.realmEnvironmentId
     || token.clientId !== options.clientId || token.appId !== options.appId
     || !token.accountId || !token.contextId || !/^[A-Za-z0-9_-]{43}$/.test(token.contextToken)
@@ -158,11 +159,11 @@ class CurrentRuntimeClientSession implements RuntimeClientSession {
   #revoked = false;
   #ending?: Promise<void>;
 
-  constructor(options: RuntimeClientLoginOptions, owner: string, token: RuntimeClientTokenDto) {
+  constructor(options: RuntimeClientLoginOptions, owner: string, token: RuntimeClientTokenDto, api: RealmTypedClient) {
     this.#options = options; this.#owner = owner;
     this.identity = Object.freeze({ realmEnvironmentId: token.realmEnvironmentId, accountId: token.accountId,
       displayName: token.displayName, appId: token.appId, clientId: token.clientId, contextId: token.contextId, expiresAt: token.expiresAt });
-    this.#api = client(options, token.contextToken);
+    this.#api = api;
   }
 
   get closed(): boolean { return this.#closed; }
@@ -232,7 +233,12 @@ class CurrentRuntimeClientSession implements RuntimeClientSession {
   }
 }
 
-function client(options: Pick<RuntimeClientLoginOptions, 'realmBaseUrl' | 'fetch'>, token?: string): RealmTypedClient {
+async function loadClient(options: Pick<RuntimeClientLoginOptions, 'realmBaseUrl' | 'fetch'>, token?: string): Promise<RealmTypedClient> {
+  const [{ CoreClient }, { RealmTypedClient }, { createRealmFetchTransport }] = await Promise.all([
+    import('../core-client/index.js'),
+    import('../core-generated/realm-typed-client.js'),
+    import('./fetch-transport.js'),
+  ]);
   const fetchImpl = options.fetch ?? globalThis.fetch.bind(globalThis);
   return new RealmTypedClient(new CoreClient({ transport: createRealmFetchTransport({ baseUrl: trustedOrigin(options.realmBaseUrl),
     credentials: 'omit', fetch: (input, init) => fetchImpl(input, { ...init, redirect: 'error', credentials: 'omit' }),
