@@ -397,7 +397,7 @@ func (s *Service) ListApprovedAppCatalogTargets(
 
 // recordObservedCatalogKillSwitches persists official kill-switch blocks
 // observed during a live catalog fetch so a newer deny immediately overrides
-// any prior offline grace allow. It never records or renews an allow result.
+// any stored offline approval. It never records or renews an allow result.
 func (s *Service) recordObservedCatalogKillSwitches(
 	ctx context.Context,
 	targets []publicappregistry.ResolvedApprovedTarget,

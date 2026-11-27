@@ -1020,6 +1020,9 @@ func (s *canonicalGitHubSource) readURL(ctx context.Context, target string, limi
 	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusOK {
 		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 4096))
+		if accept == "application/json" && (response.StatusCode == http.StatusNotFound || response.StatusCode == http.StatusGone) {
+			return nil, fmt.Errorf("read public App Registry document: %w: HTTP %d", ErrInvalidRegistrySnapshot, response.StatusCode)
+		}
 		return nil, fmt.Errorf("request public App Registry document: %w: HTTP %d", ErrRegistryUnavailable, response.StatusCode)
 	}
 	if accept == gitRefsMediaType {

@@ -91,6 +91,7 @@
     "policyRevision": "Registry policy revision",
     "rowAbsent": "The current Catalog no longer lists this App. Your installed copy stays as it is.",
     "readFailed": "The App Catalog could not be read right now. Try again later.",
+    "launchVerificationUnavailable": "Nimi could not verify this installed app with the Registry. Check your connection and try opening it again.",
     "staleWithTime": "Showing the cached App Catalog from {{updatedAt}}. Installing or updating apps requires reconnecting to the Registry.",
     "stale": "Showing the cached App Catalog. Installing or updating apps requires reconnecting to the Registry.",
     "refreshingWithTime": "Showing the cached App Catalog from {{updatedAt}}. Checking for updates…",

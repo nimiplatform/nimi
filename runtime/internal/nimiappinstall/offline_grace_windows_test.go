@@ -222,7 +222,7 @@ func reopenOfflineGraceCoordinator(t *testing.T, client *publicappregistry.Clien
 	return coordinator
 }
 
-func TestVerifiedInstalledLaunchOfflineGraceWindowRestartAndBoundary(t *testing.T) {
+func TestVerifiedInstalledLaunchUsesStoredApprovalAfterLongOutageAndRestart(t *testing.T) {
 	ctx := context.Background()
 	start := time.Date(2026, 11, 27, 12, 0, 0, 0, time.UTC)
 	clock := newControllableTestClock(start)
@@ -234,14 +234,8 @@ func TestVerifiedInstalledLaunchOfflineGraceWindowRestartAndBoundary(t *testing.
 		t.Fatalf("install verified app: %v", err)
 	}
 	handle := installed.Registration.RegistrationHandle
-	initialPolicy, err := kernel.PackageLifecycle().GetVerifiedPolicy(ctx, installed.Release.AppID, installed.Release.ReleaseRef, selector.DescriptorID(), selector.TargetID())
-	if err != nil || initialPolicy.Status != localappkernel.VerifiedPolicyAllowed || !initialPolicy.VerifiedAt.Equal(start) {
-		t.Fatalf("initial policy = %+v err=%v", initialPolicy, err)
-	}
-
-	// Go offline and advance 50 hours, then simulate a full Runtime restart.
 	transport.setOffline(true)
-	clock.Advance(50 * time.Hour)
+	clock.Advance(30 * 24 * time.Hour)
 	dataRoot := kernel.DataRoot()
 	if err := coordinator.Close(); err != nil {
 		t.Fatal(err)
@@ -253,88 +247,65 @@ func TestVerifiedInstalledLaunchOfflineGraceWindowRestartAndBoundary(t *testing.
 	client = publicappregistry.NewCanonicalClient()
 	coordinator = reopenOfflineGraceCoordinator(t, client, kernel, clock)
 
-	// Restart MUST NOT renew the verification timestamp.
-	afterRestart, err := kernel.PackageLifecycle().GetVerifiedPolicy(ctx, installed.Release.AppID, installed.Release.ReleaseRef, selector.DescriptorID(), selector.TargetID())
-	if err != nil || !afterRestart.VerifiedAt.Equal(start) {
-		t.Fatalf("restart altered policy verification timestamp: %+v err=%v", afterRestart, err)
+	prepareAndBind := func(t *testing.T) {
+		t.Helper()
+		callbacks := 0
+		useLaunch := func(launch InstalledLaunch) error {
+			callbacks++
+			if launch.Release.ReleaseRef != installed.Release.ReleaseRef {
+				t.Fatalf("launch release = %s, want %s", launch.Release.ReleaseRef, installed.Release.ReleaseRef)
+			}
+			return nil
+		}
+		if err := coordinator.PrepareInstalledLaunch(ctx, handle, useLaunch); err != nil {
+			t.Fatalf("offline prepare: %v", err)
+		}
+		if err := coordinator.WithInstalledLaunch(ctx, handle, useLaunch); err != nil {
+			t.Fatalf("offline bind: %v", err)
+		}
+		if callbacks != 2 {
+			t.Fatalf("prepare and bind invoked %d callbacks, want 2", callbacks)
+		}
+	}
+	t.Run("past_previous_time_limit", prepareAndBind)
+	t.Run("clock_before_approval", func(t *testing.T) {
+		clock.Set(start.Add(-time.Hour))
+		prepareAndBind(t)
+	})
+
+	stored, err := kernel.PackageLifecycle().GetVerifiedPolicy(ctx, installed.Release.AppID, installed.Release.ReleaseRef, selector.DescriptorID(), selector.TargetID())
+	if err != nil || stored.Status != localappkernel.VerifiedPolicyAllowed || !stored.VerifiedAt.Equal(start) {
+		t.Fatalf("offline use or restart changed approval: %+v err=%v", stored, err)
 	}
 
-	// Just inside the 7 x 24h window (167h59m59s): prepare and bind succeed with grace.
-	clock.Advance(VerifiedOfflineGraceWindow - 50*time.Hour - time.Second)
-	var prepareGrace, bindGrace bool
-	if err := coordinator.PrepareInstalledLaunch(ctx, handle, func(launch InstalledLaunch) error {
-		prepareGrace = launch.PolicyGraceUsed
-		return nil
-	}); err != nil || !prepareGrace {
-		t.Fatalf("prepare within <7*24h grace failed: err=%v grace=%v", err, prepareGrace)
-	}
-	if err := coordinator.WithInstalledLaunch(ctx, handle, func(launch InstalledLaunch) error {
-		bindGrace = launch.PolicyGraceUsed
-		return nil
-	}); err != nil || !bindGrace {
-		t.Fatalf("bind within <7*24h grace failed: err=%v grace=%v", err, bindGrace)
-	}
-	// Offline launches MUST NOT renew VerifiedAt.
-	afterOfflineLaunch, err := kernel.PackageLifecycle().GetVerifiedPolicy(ctx, installed.Release.AppID, installed.Release.ReleaseRef, selector.DescriptorID(), selector.TargetID())
-	if err != nil || !afterOfflineLaunch.VerifiedAt.Equal(start) {
-		t.Fatalf("offline launch renewed VerifiedAt: %+v err=%v", afterOfflineLaunch, err)
-	}
-
-	// Exact 7 x 24h boundary (168h00m00s) MUST reject offline prepare and bind.
-	clock.Advance(time.Second)
-	if err := coordinator.PrepareInstalledLaunch(ctx, handle, func(InstalledLaunch) error {
-		t.Fatal("prepare unexpectedly allowed at exact 7*24h boundary")
-		return nil
-	}); !errors.Is(err, publicappregistry.ErrRegistryUnavailable) {
-		t.Fatalf("exact 7*24h prepare error = %v, want ErrRegistryUnavailable", err)
-	}
-	if err := coordinator.WithInstalledLaunch(ctx, handle, func(InstalledLaunch) error {
-		t.Fatal("bind unexpectedly allowed at exact 7*24h boundary")
-		return nil
-	}); !errors.Is(err, publicappregistry.ErrRegistryUnavailable) {
-		t.Fatalf("exact 7*24h bind error = %v, want ErrRegistryUnavailable", err)
-	}
-
-	// Past 7 x 24h (>168h) MUST also reject offline and never renew timestamp.
-	clock.Advance(time.Second)
-	if err := coordinator.PrepareInstalledLaunch(ctx, handle, func(InstalledLaunch) error {
-		t.Fatal("prepare unexpectedly allowed past 7*24h boundary")
-		return nil
-	}); !errors.Is(err, publicappregistry.ErrRegistryUnavailable) {
-		t.Fatalf(">7*24h prepare error = %v, want ErrRegistryUnavailable", err)
-	}
-	stillOld, err := kernel.PackageLifecycle().GetVerifiedPolicy(ctx, installed.Release.AppID, installed.Release.ReleaseRef, selector.DescriptorID(), selector.TargetID())
-	if err != nil || !stillOld.VerifiedAt.Equal(start) {
-		t.Fatalf("failed refresh renewed VerifiedAt: %+v err=%v", stillOld, err)
-	}
-
-	// Re-verifying online (with UNCHANGED Registry revision!) succeeds and updates VerifiedAt.
 	transport.setOffline(false)
-	reverifiedAt := clock.Advance(2 * time.Hour)
-	if err := coordinator.PrepareInstalledLaunch(ctx, handle, func(launch InstalledLaunch) error {
-		if launch.PolicyGraceUsed {
-			t.Fatal("online re-verification unexpectedly flagged grace")
-		}
-		return nil
-	}); err != nil {
-		t.Fatalf("online re-verification prepare failed: %v", err)
+	reverifiedAt := start.Add(31 * 24 * time.Hour)
+	clock.Set(reverifiedAt)
+	if err := coordinator.PrepareInstalledLaunch(ctx, handle, func(InstalledLaunch) error { return nil }); err != nil {
+		t.Fatalf("online re-verification: %v", err)
 	}
-	refreshed, err := kernel.PackageLifecycle().GetVerifiedPolicy(ctx, installed.Release.AppID, installed.Release.ReleaseRef, selector.DescriptorID(), selector.TargetID())
-	if err != nil || refreshed.Status != localappkernel.VerifiedPolicyAllowed || !refreshed.VerifiedAt.Equal(reverifiedAt) {
-		t.Fatalf("online re-verification did not update VerifiedAt: %+v err=%v", refreshed, err)
+	stored, err = kernel.PackageLifecycle().GetVerifiedPolicy(ctx, installed.Release.AppID, installed.Release.ReleaseRef, selector.DescriptorID(), selector.TargetID())
+	if err != nil || stored.Status != localappkernel.VerifiedPolicyAllowed || !stored.VerifiedAt.Equal(reverifiedAt) {
+		t.Fatalf("online re-verification did not update approval: %+v err=%v", stored, err)
 	}
 
-	// Going offline again within the renewed <7*24h window succeeds.
-	transport.setOffline(true)
-	clock.Advance(24 * time.Hour)
-	if err := coordinator.WithInstalledLaunch(ctx, handle, func(launch InstalledLaunch) error {
-		if !launch.PolicyGraceUsed {
-			t.Fatal("expected offline grace after renewed verification")
+	t.Run("missing_descriptor_is_not_an_outage", func(t *testing.T) {
+		transport.mu.Lock()
+		transport.bumpRevisionLocked()
+		transport.beforeRoundTrip = func(request *http.Request) (*http.Response, error, bool) {
+			if request.URL.Host == "raw.githubusercontent.com" && strings.Contains(request.URL.Path, "/descriptors/") {
+				return fixtureHTTPResponse(request, http.StatusNotFound, nil), nil, true
+			}
+			return nil, nil, false
 		}
-		return nil
-	}); err != nil {
-		t.Fatalf("offline launch after online renewal failed: %v", err)
-	}
+		transport.mu.Unlock()
+		if err := coordinator.PrepareInstalledLaunch(ctx, handle, func(InstalledLaunch) error {
+			t.Fatal("launch used stored approval despite missing descriptor in current Registry snapshot")
+			return nil
+		}); !errors.Is(err, publicappregistry.ErrInvalidRegistrySnapshot) {
+			t.Fatalf("missing descriptor error = %v, want ErrInvalidRegistrySnapshot", err)
+		}
+	})
 }
 
 func TestVerifiedInstalledLaunchMissingPriorPolicyRecordRequiresOnline(t *testing.T) {
@@ -393,15 +364,10 @@ func TestVerifiedInstalledLaunchMissingPriorPolicyRecordRequiresOnline(t *testin
 		t.Fatalf("online launch after missing record failed: %v", err)
 	}
 
-	// Subsequent offline launch within <7*24h now succeeds.
+	// The target can now launch while the Registry is unavailable.
 	transport.setOffline(true)
 	clock.Advance(time.Hour)
-	if err := coordinator.PrepareInstalledLaunch(ctx, handle, func(launch InstalledLaunch) error {
-		if !launch.PolicyGraceUsed {
-			t.Fatal("expected offline grace")
-		}
-		return nil
-	}); err != nil {
+	if err := coordinator.PrepareInstalledLaunch(ctx, handle, func(InstalledLaunch) error { return nil }); err != nil {
 		t.Fatalf("offline launch after establishing record failed: %v", err)
 	}
 }
@@ -430,7 +396,7 @@ func TestVerifiedInstalledLaunchKnownDenyKillSwitchDelistedAndRevocationBeatGrac
 		t.Fatalf("online kill-switch error = %v, want PolicyBlockedError", err)
 	}
 
-	// Going offline within <7*24h MUST still immediately block with PolicyBlockedError.
+	// The observed kill switch still blocks launch when the Registry is unavailable.
 	clock.Advance(time.Hour)
 	transport.setOffline(true)
 	blocked = nil
@@ -459,7 +425,7 @@ func TestVerifiedInstalledLaunchKnownDenyKillSwitchDelistedAndRevocationBeatGrac
 		t.Fatalf("online delisted error = %v, want ErrCatalogAppNotFound", err)
 	}
 
-	// Going offline within <7*24h MUST still immediately block with ErrCatalogAppNotFound.
+	// The observed absent row still blocks launch when the Registry is unavailable.
 	clock.Advance(time.Hour)
 	transport.setOffline(true)
 	if err := coordinator.PrepareInstalledLaunch(ctx, handle, func(InstalledLaunch) error {
@@ -485,7 +451,7 @@ func TestVerifiedInstalledLaunchKnownDenyKillSwitchDelistedAndRevocationBeatGrac
 		t.Fatalf("offline StartUpdate error = %v, want ErrRegistryUnavailable", err)
 	}
 
-	// 4. Installation integrity/identity mismatch immediately blocks even inside <7*24h offline grace.
+	// 4. Installation integrity/identity mismatch immediately blocks while the Registry is offline.
 	exePath := installed.Registration.ProjectRoot + `\payload\example-app.exe`
 	originalExe, err := os.ReadFile(exePath)
 	if err != nil {
@@ -506,7 +472,7 @@ func TestVerifiedInstalledLaunchKnownDenyKillSwitchDelistedAndRevocationBeatGrac
 		t.Fatal(err)
 	}
 
-	// 5. Local revocation (tombstoned registration) immediately blocks even inside <7*24h offline grace.
+	// 5. Local revocation (tombstoned registration) immediately blocks while the Registry is offline.
 	if err := kernel.Registrations().Tombstone(ctx, handle); err != nil {
 		t.Fatal(err)
 	}
@@ -550,7 +516,7 @@ func TestVerifiedInstalledLaunchDenyPersistenceFailureStaysFailClosed(t *testing
 	}
 
 	// Inject real SQLite failure on BOTH UPDATE and DELETE so the stale valid
-	// 7-day allowed row stays physically on disk.
+	// Stored approval stays on disk.
 	execSQLitePolicyDDL(t, dbPath,
 		`CREATE TRIGGER test_fail_policy_update BEFORE UPDATE ON verified_app_policy_verification
 		 BEGIN SELECT RAISE(ABORT, 'simulated sqlite write failure'); END`,
@@ -623,16 +589,11 @@ func TestVerifiedInstalledLaunchDenyPersistenceFailureStaysFailClosed(t *testing
 	// Offline grace is cleanly restored after rev=2 lift.
 	clock.Advance(time.Hour)
 	transport.setOffline(true)
-	if err := coordinator.PrepareInstalledLaunch(ctx, handle, func(launch InstalledLaunch) error {
-		if !launch.PolicyGraceUsed {
-			t.Fatal("expected offline grace after lift")
-		}
-		return nil
-	}); err != nil {
+	if err := coordinator.PrepareInstalledLaunch(ctx, handle, func(InstalledLaunch) error { return nil }); err != nil {
 		t.Fatalf("offline launch after lift failed: %v", err)
 	}
 
-	// 2. Repeat real persistence failure for row_absent over valid persisted 7-day allowed.
+	// 2. Repeat real persistence failure for row_absent over a stored approval.
 	execSQLitePolicyDDL(t, dbPath,
 		`CREATE TRIGGER test_fail_policy_update BEFORE UPDATE ON verified_app_policy_verification
 		 BEGIN SELECT RAISE(ABORT, 'simulated sqlite write failure'); END`,
@@ -738,10 +699,11 @@ func TestVerifiedInstalledLaunchOutOfOrderAllowNeverOverwritesNewerDeny(t *testi
 		<-enteredOldFetch
 
 		// Request B runs while Request A is paused and observes the newer deny.
-		clock.Advance(time.Minute)
 		if mode == "kill-switch" {
+			clock.Advance(time.Minute)
 			transport.setBlocked(true)
 		} else {
+			clock.Advance(-time.Minute)
 			transport.setDelisted(true)
 		}
 		errB := coordinator.PrepareInstalledLaunch(ctx, handle, func(InstalledLaunch) error {
@@ -812,12 +774,7 @@ func TestVerifiedInstalledLaunchOutOfOrderAllowNeverOverwritesNewerDeny(t *testi
 		}
 		clock.Advance(time.Minute)
 		transport.setOffline(true)
-		if err := coordinator.WithInstalledLaunch(ctx, handle, func(launch InstalledLaunch) error {
-			if !launch.PolicyGraceUsed {
-				t.Fatal("expected offline grace after lift/restore")
-			}
-			return nil
-		}); err != nil {
+		if err := coordinator.WithInstalledLaunch(ctx, handle, func(InstalledLaunch) error { return nil }); err != nil {
 			t.Fatalf("offline grace after lift/restore failed: %v", err)
 		}
 	}
@@ -871,6 +828,32 @@ func TestVerifiedInstalledLaunchRestartStaleOnlineAllowRespectsPersistedDeny(t *
 			return c, k
 		}
 
+		// An official absence after restart provides no evidence of a lift.
+		coordinator, kernel = restartCoordinator()
+		staleSeq, staleAt := coordinator.BeginPolicyObservation()
+		transport.setDelisted(true)
+		if err := coordinator.PrepareInstalledLaunch(ctx, handle, func(InstalledLaunch) error {
+			t.Fatal("absent App unexpectedly launched")
+			return nil
+		}); !errors.Is(err, publicappregistry.ErrCatalogAppNotFound) {
+			t.Fatalf("confirmed absence returned %v, want ErrCatalogAppNotFound", err)
+		}
+		// An older in-flight allow cannot use even a higher revision to bypass
+		// the more recent missing-row observation.
+		blocked = nil
+		if err := coordinator.recordVerifiedAllowed(ctx, key, 3, strings.Repeat("f", 40), staleSeq, staleAt); !errors.As(err, &blocked) || blocked.Revision != 2 {
+			t.Fatalf("older allow after absence returned %v, want PolicyBlockedError rev=2", err)
+		}
+		transport.setOffline(true)
+		blocked = nil
+		if err := coordinator.WithInstalledLaunch(ctx, handle, func(InstalledLaunch) error {
+			t.Fatal("missing row displaced a known kill-switch during offline bind")
+			return nil
+		}); !errors.As(err, &blocked) || blocked.Revision != 2 {
+			t.Fatalf("offline bind after absence returned %v, want PolicyBlockedError rev=2", err)
+		}
+		transport.setOffline(false)
+
 		// Check both stale lower rev (1) and stale equal rev (2) after brand-new restarts
 		// (empty in-memory barriers each time).
 		for _, staleRev := range []uint64{1, 2} {
@@ -919,16 +902,13 @@ func TestVerifiedInstalledLaunchRestartStaleOnlineAllowRespectsPersistedDeny(t *
 			}
 		}
 
-		// Strictly higher-revision lift (rev=3 allowed) after restart MUST restore launch + 7-day offline grace.
+		// Strictly higher-revision lift (rev=3 allowed) after restart MUST restore offline launch.
 		coordinator, kernel = restartCoordinator()
 		liftTime := clock.Advance(10 * time.Minute)
 		transport.setKillSwitchState(false, 3, "")
 		prepared := false
-		if err := coordinator.PrepareInstalledLaunch(ctx, handle, func(launch InstalledLaunch) error {
+		if err := coordinator.PrepareInstalledLaunch(ctx, handle, func(InstalledLaunch) error {
 			prepared = true
-			if launch.PolicyGraceUsed {
-				t.Fatal("online lift unexpectedly flagged grace")
-			}
 			return nil
 		}); err != nil || !prepared {
 			t.Fatalf("higher-rev lift rev=3 after restart failed: err=%v prepared=%v", err, prepared)
@@ -938,20 +918,15 @@ func TestVerifiedInstalledLaunchRestartStaleOnlineAllowRespectsPersistedDeny(t *
 			t.Fatalf("DB policy after rev=3 lift = %+v err=%v", stored, err)
 		}
 
-		// Going offline within 7 days succeeds with offline grace.
+		// The newly approved target remains usable offline.
 		transport.setOffline(true)
 		clock.Advance(48 * time.Hour)
-		if err := coordinator.WithInstalledLaunch(ctx, handle, func(launch InstalledLaunch) error {
-			if !launch.PolicyGraceUsed {
-				t.Fatal("expected offline grace after rev=3 lift")
-			}
-			return nil
-		}); err != nil {
+		if err := coordinator.WithInstalledLaunch(ctx, handle, func(InstalledLaunch) error { return nil }); err != nil {
 			t.Fatalf("offline grace after rev=3 lift failed: %v", err)
 		}
 	})
 
-	t.Run("row_absent_stale_equal_and_older_observation_then_newer_restore", func(t *testing.T) {
+	t.Run("row_absence_survives_clock_correction_and_restart_until_official_restore", func(t *testing.T) {
 		ctx := context.Background()
 		start := time.Date(2026, 11, 27, 12, 0, 0, 0, time.UTC)
 		clock := newControllableTestClock(start)
@@ -971,70 +946,55 @@ func TestVerifiedInstalledLaunchRestartStaleOnlineAllowRespectsPersistedDeny(t *
 			targetID:     selector.TargetID(),
 		}
 
-		// Persist row_absent at T1.
-		t1 := clock.Advance(time.Hour)
+		// The old approval was recorded before the host clock was corrected.
+		absentAt := clock.Advance(-time.Hour)
 		transport.setDelisted(true)
-		if err := coordinator.PrepareInstalledLaunch(ctx, handle, func(InstalledLaunch) error {
-			t.Fatal("delisted app unexpectedly launched before restart")
-			return nil
-		}); !errors.Is(err, publicappregistry.ErrCatalogAppNotFound) {
-			t.Fatalf("pre-restart delisted error = %v, want ErrCatalogAppNotFound", err)
-		}
-
-		restartCoordinator := func() (*Coordinator, *localappkernel.Kernel) {
+		assertDenied := func() {
 			t.Helper()
-			if err := coordinator.Close(); err != nil {
-				t.Fatal(err)
+			for _, launch := range []func(context.Context, string, func(InstalledLaunch) error) error{
+				coordinator.PrepareInstalledLaunch, coordinator.WithInstalledLaunch,
+			} {
+				if err := launch(ctx, handle, func(InstalledLaunch) error {
+					t.Fatal("delisted App unexpectedly reached launch callback")
+					return nil
+				}); !errors.Is(err, publicappregistry.ErrCatalogAppNotFound) {
+					t.Fatalf("confirmed Registry absence returned %v, want ErrCatalogAppNotFound", err)
+				}
 			}
-			if err := kernel.Close(); err != nil {
-				t.Fatal(err)
-			}
-			k := reopenOfflineGraceKernel(t, dataRoot, clock)
-			c := reopenOfflineGraceCoordinator(t, publicappregistry.NewCanonicalClient(), k, clock)
-			return c, k
+		}
+		assertDenied()
+		stored, err := kernel.PackageLifecycle().GetVerifiedPolicy(ctx, key.appID, key.releaseRef, key.descriptorID, key.targetID)
+		if err != nil || stored.Status != localappkernel.VerifiedPolicyRowAbsent || !stored.VerifiedAt.Equal(absentAt) {
+			t.Fatalf("stored policy after clock correction and confirmed absence = %+v, err = %v", stored, err)
 		}
 
-		// Restart with clock at T1 (equal) and T1 - 5s (older): stale online allow MUST fail closed.
+		transport.setOffline(true)
+		assertDenied()
+		if err := coordinator.Close(); err != nil {
+			t.Fatal(err)
+		}
+		if err := kernel.Close(); err != nil {
+			t.Fatal(err)
+		}
+		clock.Advance(-time.Hour)
+		kernel = reopenOfflineGraceKernel(t, dataRoot, clock)
+		coordinator = reopenOfflineGraceCoordinator(t, publicappregistry.NewCanonicalClient(), kernel, clock)
+		assertDenied()
+
 		transport.setDelisted(false)
-		for _, obsTime := range []time.Time{t1, t1.Add(-5 * time.Second)} {
-			clock.Set(obsTime)
-			coordinator, kernel = restartCoordinator()
-
-			bindCalled := false
-			err := coordinator.PrepareInstalledLaunch(ctx, handle, func(InstalledLaunch) error {
-				bindCalled = true
-				return nil
-			})
-			if !errors.Is(err, publicappregistry.ErrCatalogAppNotFound) || bindCalled {
-				t.Fatalf("PrepareInstalledLaunch at obsTime=%v vs row_absent@%v: err=%v bindCalled=%v, want ErrCatalogAppNotFound", obsTime, t1, err, bindCalled)
-			}
-
-			// Hydrated barrier MUST also block a second launch at the same tick <= T1 (WithInstalledLaunch).
-			err = coordinator.WithInstalledLaunch(ctx, handle, func(InstalledLaunch) error {
-				bindCalled = true
-				return nil
-			})
-			if !errors.Is(err, publicappregistry.ErrCatalogAppNotFound) || bindCalled {
-				t.Fatalf("WithInstalledLaunch at obsTime=%v vs row_absent@%v: err=%v bindCalled=%v, want ErrCatalogAppNotFound", obsTime, t1, err, bindCalled)
-			}
-		}
-
-		// Strictly newer observation (> T1) restores launch and offline grace.
-		clock.Set(t1.Add(time.Second))
+		assertDenied()
+		// Only a successfully verified official restore changes the outcome,
+		// even if the corrected clock still puts it before the stored absence.
+		transport.setOffline(false)
 		if err := coordinator.PrepareInstalledLaunch(ctx, handle, func(InstalledLaunch) error { return nil }); err != nil {
-			t.Fatalf("strictly newer online restore after row_absent failed: %v", err)
+			t.Fatalf("official online restore after row absence failed: %v", err)
 		}
 		transport.setOffline(true)
-		clock.Advance(24 * time.Hour)
-		if err := coordinator.WithInstalledLaunch(ctx, handle, func(launch InstalledLaunch) error {
-			if !launch.PolicyGraceUsed {
-				t.Fatal("expected offline grace after row_absent restore")
-			}
-			return nil
-		}); err != nil {
-			t.Fatalf("offline grace after row_absent restore failed: %v", err)
+		clock.Advance(30 * 24 * time.Hour)
+		if err := coordinator.WithInstalledLaunch(ctx, handle, func(InstalledLaunch) error { return nil }); err != nil {
+			t.Fatalf("long offline launch after verified restoration failed: %v", err)
 		}
-		stored, err := kernel.PackageLifecycle().GetVerifiedPolicy(ctx, key.appID, key.releaseRef, key.descriptorID, key.targetID)
+		stored, err = kernel.PackageLifecycle().GetVerifiedPolicy(ctx, key.appID, key.releaseRef, key.descriptorID, key.targetID)
 		if err != nil || stored.Status != localappkernel.VerifiedPolicyAllowed {
 			t.Fatalf("DB policy after restore = %+v err=%v", stored, err)
 		}
@@ -1232,31 +1192,21 @@ func TestVerifiedInstalledLaunchStalledRegistryUnderDeadlineFallsBackToOfflineGr
 
 	// 1. Both PrepareInstalledLaunch and WithInstalledLaunch under a short parent deadline
 	// (modeling the 15s rebind deadline vs 15s Registry timeout) MUST bound the probe and
-	// succeed via 7-day offline grace before the parent deadline expires.
+	// succeed using stored approval before the parent deadline expires.
 	for _, mode := range []string{"prepare", "bind"} {
 		t.Run("stalled_registry_"+mode, func(t *testing.T) {
 			parentCtx, parentCancel := context.WithTimeout(ctx, 400*time.Millisecond)
 			defer parentCancel()
 			parentDeadline, _ := parentCtx.Deadline()
 
-			var graceUsed bool
 			var runErr error
 			if mode == "prepare" {
-				runErr = coordinator.PrepareInstalledLaunch(parentCtx, handle, func(launch InstalledLaunch) error {
-					graceUsed = launch.PolicyGraceUsed
-					return nil
-				})
+				runErr = coordinator.PrepareInstalledLaunch(parentCtx, handle, func(InstalledLaunch) error { return nil })
 			} else {
-				runErr = coordinator.WithInstalledLaunch(parentCtx, handle, func(launch InstalledLaunch) error {
-					graceUsed = launch.PolicyGraceUsed
-					return nil
-				})
+				runErr = coordinator.WithInstalledLaunch(parentCtx, handle, func(InstalledLaunch) error { return nil })
 			}
 			if runErr != nil {
 				t.Fatalf("%s under stalled Registry failed: %v (parent ctx.Err=%v)", mode, runErr, parentCtx.Err())
-			}
-			if !graceUsed {
-				t.Fatalf("%s did not record PolicyGraceUsed=true on stalled Registry fallback", mode)
 			}
 			probeDL := time.Unix(0, lastProbeDeadline.Load())
 			if !probeDL.Before(parentDeadline) {
@@ -1307,26 +1257,7 @@ func TestVerifiedInstalledLaunchStalledRegistryUnderDeadlineFallsBackToOfflineGr
 		}
 	})
 
-	// 3. Expired (>= 7*24h) persisted allow under stalled Registry MUST fail closed with ErrRegistryUnavailable.
-	t.Run("expired_grace_under_stalled_registry_fails_closed", func(t *testing.T) {
-		clock.Set(start.Add(VerifiedOfflineGraceWindow))
-		defer clock.Set(start.Add(2 * time.Hour))
-
-		parentCtx, parentCancel := context.WithTimeout(ctx, 400*time.Millisecond)
-		defer parentCancel()
-		runErr := coordinator.WithInstalledLaunch(parentCtx, handle, func(InstalledLaunch) error {
-			t.Fatal("expired grace unexpectedly invoked bind")
-			return nil
-		})
-		if !errors.Is(runErr, publicappregistry.ErrRegistryUnavailable) {
-			t.Fatalf("expired grace stalled Registry error = %v, want ErrRegistryUnavailable", runErr)
-		}
-		if parentCtx.Err() != nil {
-			t.Fatalf("expired grace check exhausted parent deadline: %v", parentCtx.Err())
-		}
-	})
-
-	// 4. Known persisted ban (policy_blocked and row_absent) MUST still fail closed under stalled Registry.
+	// 3. Known persisted ban (policy_blocked and row_absent) MUST still fail closed under stalled Registry.
 	t.Run("known_bans_under_stalled_registry_fail_closed", func(t *testing.T) {
 		// Record known kill-switch online first, then re-enable stall.
 		transport.mu.Lock()
@@ -1354,11 +1285,15 @@ func TestVerifiedInstalledLaunchStalledRegistryUnderDeadlineFallsBackToOfflineGr
 			t.Fatalf("stalled Registry with known kill-switch = %v, want PolicyBlockedError rev=2", err)
 		}
 
-		// Record known delisted/row_absent online, then re-enable stall.
+		// Lift the explicit block before exercising a standalone missing row.
 		transport.mu.Lock()
 		transport.beforeRoundTrip = nil
 		transport.mu.Unlock()
 		clock.Advance(time.Hour)
+		transport.setKillSwitchState(false, 3, "")
+		if err := coordinator.WithInstalledLaunch(ctx, handle, func(InstalledLaunch) error { return nil }); err != nil {
+			t.Fatalf("lift prior kill-switch: %v", err)
+		}
 		transport.setDelisted(true)
 		if err := coordinator.WithInstalledLaunch(ctx, handle, func(InstalledLaunch) error { return nil }); !errors.Is(err, publicappregistry.ErrCatalogAppNotFound) {
 			t.Fatalf("seed delisted error = %v, want ErrCatalogAppNotFound", err)

@@ -273,7 +273,7 @@ export function createAppsPanelProjectionReloader(input: {
         if (disposed || catalogRevision !== revision) return;
         const next = normalizeCatalogTargetsResponse(response);
         catalog = next;
-        if (!force && !awaitOnly && next.refreshInProgress) {
+        if (!awaitOnly && next.refreshInProgress) {
           startCatalogAwaitFollowUp(revision);
         }
       }).catch((error: unknown) => {
@@ -623,7 +623,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
 export function installedLaunchFailureMessage(run: { readonly message: string; readonly reasonCode?: string }, t: TFunction): string {
   const carrier = `${run.reasonCode ?? ''} ${run.message}`;
   if (carrier.includes('APP_CATALOG_ROW_ABSENT')) return t('Apps.catalog.rowAbsent');
-  if (carrier.includes('APP_CATALOG_UNAVAILABLE')) return t('Apps.catalog.readFailed');
+  if (carrier.includes('APP_CATALOG_UNAVAILABLE')) return t('Apps.catalog.launchVerificationUnavailable');
   return run.message || run.reasonCode || 'Installed App launch failed';
 }
 

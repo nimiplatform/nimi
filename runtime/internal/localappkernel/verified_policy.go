@@ -45,10 +45,10 @@ type VerifiedPolicyVerification struct {
 	// ObservedAt is the optional timestamp captured before the official Registry
 	// fetch began. When zero, VerifiedAt is used for precedence comparison.
 	ObservedAt time.Time
-	// AllowEqualTimestampRestore may be set only when an in-process monotonic
-	// observation sequence confirms a strictly newer allowed check at the exact
-	// same clock tick as a prior row_absent observation.
-	AllowEqualTimestampRestore bool
+	// OrderedObservation indicates that the installed App coordinator has
+	// resolved observation order before writing a row presence or absence.
+	// VerifiedAt still records the actual clock time for that observation.
+	OrderedObservation bool
 }
 
 // PublicCatalogBrowseSnapshot persists Runtime's last validated display-only
@@ -191,7 +191,7 @@ func (store *PackageLifecycleStore) RecordVerifiedPolicy(ctx context.Context, re
 	effective := record
 	effective.VerifiedAt = time.Unix(0, record.VerifiedAt.UTC().UnixNano()).UTC()
 	effective.ObservedAt = time.Time{}
-	effective.AllowEqualTimestampRestore = false
+	effective.OrderedObservation = false
 	return effective, nil
 }
 
@@ -199,8 +199,9 @@ func (store *PackageLifecycleStore) RecordVerifiedPolicy(ctx context.Context, re
 // (release_ref, descriptor_id, target_id):
 // - Strictly higher PolicyRevision wins; incoming allow with lower revision never overwrites.
 // - On equal PolicyRevision, policy_blocked is never overwritten by allow (a real lift increments revision).
-// - row_absent is only superseded by allow whose pre-fetch ObservedAt is strictly newer (or same tick with coordinator sequence proof).
-// - Deny (policy_blocked / row_absent) supersedes allow with <= revision (or ObservedAt >= existing.VerifiedAt for row_absent).
+// - The installed App coordinator orders row presence and absence by its own sequence.
+// - Without that ordering, an observed row restoration must have a strictly newer timestamp.
+// - A kill-switch deny supersedes allow with an equal or lower policy revision.
 // - allowed -> allowed at same PolicyRevision advances VerifiedAt only monotonically forward.
 func reconcileVerifiedPolicy(existing, incoming VerifiedPolicyVerification) (VerifiedPolicyVerification, bool) {
 	incomingObs := incoming.ObservedAt.UTC()
@@ -222,8 +223,7 @@ func reconcileVerifiedPolicy(existing, incoming VerifiedPolicyVerification) (Ver
 			}
 			return incoming, true
 		case VerifiedPolicyRowAbsent:
-			strictlyNewer := incomingObs.After(existingAt) || (incoming.AllowEqualTimestampRestore && incomingObs.Equal(existingAt))
-			if !strictlyNewer {
+			if !incoming.OrderedObservation && !incomingObs.After(existingAt) {
 				return existing, false
 			}
 			return incoming, true
@@ -273,14 +273,17 @@ func reconcileVerifiedPolicy(existing, incoming VerifiedPolicyVerification) (Ver
 		}
 
 	case VerifiedPolicyRowAbsent:
+		// An absent row supplies no kill-switch revision or lift. Keep any
+		// explicit block until a higher-revision official approval is observed.
+		if existing.Status == VerifiedPolicyBlocked {
+			return existing, false
+		}
+		if incoming.OrderedObservation {
+			return incoming, true
+		}
 		switch existing.Status {
 		case VerifiedPolicyAllowed:
 			if !incomingObs.Before(existingAt) {
-				return incoming, true
-			}
-			return existing, false
-		case VerifiedPolicyBlocked:
-			if incomingObs.After(existingAt) {
 				return incoming, true
 			}
 			return existing, false

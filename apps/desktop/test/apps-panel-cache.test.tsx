@@ -23,12 +23,13 @@ test('Apps remount reuses artwork and catalog, refreshes local changes, and resp
   await initI18n();
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference: () => undefined });
-  const counts = { icon: 0, readme: 0, info: 0, catalog: 0, inventory: 0 };
+  const counts = { icon: 0, readme: 0, info: 0, catalog: 0, catalogFollowUp: 0, inventory: 0 };
   let revision = 1;
   let present = true;
   let inventoryGate: Promise<void> = Promise.resolve();
   let catalogGate: Promise<void> = Promise.resolve();
   let catalogFails = false;
+  let catalogStillRefreshing = false;
   let catalogVersion = '1.0.0';
   let aiEligible = false;
   const aiReadSignals: AbortSignal[] = [];
@@ -51,10 +52,14 @@ test('Apps remount reuses artwork and catalog, refreshes local changes, and resp
     }),
     listCommittedReleases: async () => [], listPackageJobs: async () => [], cancelPackageJob: async () => {},
     readAppAIConfig: async (_appId, options) => { aiReadSignals.push(options.signal); return aiRead(); },
-    listApprovedCatalogTargets: async () => {
+    listApprovedCatalogTargets: async (options) => {
       counts.catalog++;
+      if (options?.awaitRefresh) counts.catalogFollowUp++;
       await catalogGate;
       if (catalogFails) throw Error('Catalog unavailable');
+      if (catalogStillRefreshing && !options?.awaitRefresh) {
+        return { targets: [], stale: true, updatedAtUnixMs: 123, refreshInProgress: true };
+      }
       const target: ApprovedAppCatalogTarget = { appId: 'example.remote', displayName: 'Remote app', version: catalogVersion,
         approvedTargetSelector: new Uint8Array([Number(catalogVersion[0])]),
         appAccess: [], capabilityContractRefs: [], requiredStandardizedFeatureRefs: [], osStorageDisclosures: [],
@@ -168,6 +173,19 @@ test('Apps remount reuses artwork and catalog, refreshes local changes, and resp
     assert.equal(pendingRetry.aborted, true, 'explicit retry supersedes the previous read instead of reusing it');
     rejectOldAI(Error('Late pre-retry read failure')); await settle();
     assert.equal(loaded().entries.find(entry => entry.localDevelopment)?.aiConfigSummary?.healthPosture, 'healthy');
+
+    await show(false);
+    client.removeQueries({ queryKey: cachedCatalog.queryKey });
+    catalogStillRefreshing = true;
+    catalogGate = new Promise(resolve => { releaseCatalog = resolve; });
+    const beforeCatalogOverlap = counts.catalog;
+    await show(true); await settle();
+    assert.equal(counts.catalog, beforeCatalogOverlap + 1);
+    await act(async () => state.retryProjection());
+    releaseCatalog(); await settle();
+    assert.equal(counts.catalogFollowUp, 1, 'retry joining a cache-first read still awaits its live refresh');
+    assert.equal(loaded().catalogStatus, 'loaded');
+    assert.equal(loaded().catalogRefreshInProgress, undefined);
 
     await show(false); client.clear();
     inventoryGate = new Promise(() => {});

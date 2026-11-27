@@ -18,13 +18,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/publicappregistry"
 )
 
-// VerifiedOfflineGraceWindow is the fixed upper bound for honoring a persisted
-// official Registry approval during temporary official Registry unreachability.
-// Elapsed time must be strictly less than this window (< 7 x 24 hours).
-// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040a
-// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040c
-const VerifiedOfflineGraceWindow = 7 * 24 * time.Hour
-
 var ErrInstalledLaunch = errors.New("installed App launch is unavailable")
 
 // InstalledLaunch is host-private material resolved by Runtime. It is
@@ -38,7 +31,6 @@ type InstalledLaunch struct {
 	CarrierExecutablePath   string
 	CarrierExecutableDigest protectedlocal.Identifier
 	Arguments               []string
-	PolicyGraceUsed         bool
 	expected                nimiapppackage.Expected
 }
 
@@ -154,7 +146,7 @@ func (coordinator *Coordinator) withInstalledLaunch(ctx context.Context, handle 
 		packageExpected.ExecutionProfileRef != release.ExecutionProfileRef || config.DisplayName != registration.DisplayName || !equalTextList(packageExpected.AppAccess, registration.RawDeclaration) {
 		return ErrInstalledLaunch
 	}
-	policyGraceUsed := false
+	usedStoredApproval := false
 	var verifiedKey verifiedPolicyKey
 	if registration.SourceClass == localappkernel.SourceClassVerified {
 		if coordinator.registry == nil {
@@ -170,11 +162,11 @@ func (coordinator *Coordinator) withInstalledLaunch(ctx context.Context, handle 
 			descriptorID: selector.DescriptorID(),
 			targetID:     selector.TargetID(),
 		}
-		graceUsed, err := coordinator.enforceVerifiedInstalledPolicy(ctx, release, selector, packageExpected, expectedOS, expectedArch)
+		storedApproval, err := coordinator.enforceVerifiedInstalledPolicy(ctx, release, selector, packageExpected, expectedOS, expectedArch)
 		if err != nil {
 			return err
 		}
-		policyGraceUsed = graceUsed
+		usedStoredApproval = storedApproval
 	} else {
 		if !strings.HasPrefix(release.ReleaseRef, localPackageLineageBase) {
 			return ErrInstalledLaunch
@@ -193,7 +185,6 @@ func (coordinator *Coordinator) withInstalledLaunch(ctx context.Context, handle 
 		CarrierExecutablePath:   entry,
 		CarrierExecutableDigest: digest,
 		Arguments:               []string{},
-		PolicyGraceUsed:         policyGraceUsed,
 		expected:                packageExpected,
 	}
 	if managedWeb {
@@ -238,7 +229,7 @@ func (coordinator *Coordinator) withInstalledLaunch(ctx context.Context, handle 
 		return err
 	}
 	if registration.SourceClass == localappkernel.SourceClassVerified {
-		if err := coordinator.verifyFinalBindPolicy(ctx, verifiedKey, policyGraceUsed); err != nil {
+		if err := coordinator.verifyFinalBindPolicy(ctx, verifiedKey, usedStoredApproval); err != nil {
 			return err
 		}
 	}
@@ -267,6 +258,7 @@ type verifiedPolicyDenyBarrier struct {
 	observedSeq      uint64
 	observedAt       time.Time
 	persisted        bool
+	lastAbsentSeq    uint64
 }
 
 type verifiedPolicyAllowedWatermark struct {
@@ -444,6 +436,7 @@ func (coordinator *Coordinator) hydratePersistedDenyBarrier(
 	}
 	existing, hasExisting := coordinator.policyDenyBarriers[key]
 	if !hasExisting || shouldHydratePersistedDenyBarrier(existing, hydrated) {
+		hydrated.lastAbsentSeq = existing.lastAbsentSeq
 		coordinator.policyDenyBarriers[key] = hydrated
 	}
 }
@@ -452,25 +445,16 @@ func denyBarrierSupersedesAllowed(
 	barrier verifiedPolicyDenyBarrier,
 	policyRevision uint64,
 	observedSeq uint64,
-	observedAt time.Time,
 ) bool {
+	if barrier.lastAbsentSeq != 0 && observedSeq <= barrier.lastAbsentSeq {
+		return true
+	}
 	switch barrier.status {
 	case localappkernel.VerifiedPolicyBlocked:
 		// Under p-napp-043d, lifting a kill-switch strictly increments kill_switch.revision.
 		return policyRevision <= barrier.policyRevision
 	case localappkernel.VerifiedPolicyRowAbsent:
-		if policyRevision < barrier.policyRevision {
-			return true
-		}
-		if barrier.observedSeq == 0 {
-			// Hydrated from SQLite across restart without an in-process sequence proof:
-			// require strictly newer pre-fetch observation timestamp, matching SQLite reconciliation.
-			return !observedAt.UTC().After(barrier.observedAt.UTC())
-		}
-		if observedSeq <= barrier.observedSeq {
-			return true
-		}
-		return observedAt.UTC().Before(barrier.observedAt.UTC())
+		return policyRevision < barrier.policyRevision
 	default:
 		return true
 	}
@@ -532,9 +516,20 @@ func (coordinator *Coordinator) recordObservedPolicyDeny(
 		observedAt:       observedAt,
 		persisted:        false,
 	}
+	if status == localappkernel.VerifiedPolicyRowAbsent {
+		incoming.lastAbsentSeq = observedSeq
+	}
 	shouldPersist := true
 	if existing, hasExisting := coordinator.policyDenyBarriers[key]; hasExisting {
-		if shouldUpdateDenyBarrier(existing, incoming) {
+		if existing.status == localappkernel.VerifiedPolicyBlocked && status == localappkernel.VerifiedPolicyRowAbsent {
+			// Keep the explicit block and its revision, while fencing any allow
+			// whose read started before this newer absence.
+			existing.lastAbsentSeq = max(existing.lastAbsentSeq, observedSeq)
+			coordinator.policyDenyBarriers[key] = existing
+			incoming = existing
+			shouldPersist = !existing.persisted
+		} else if shouldUpdateDenyBarrier(existing, incoming) {
+			incoming.lastAbsentSeq = max(existing.lastAbsentSeq, incoming.lastAbsentSeq)
 			if incoming.registryRevision == "" && existing.registryRevision != "" &&
 				incoming.status == existing.status && incoming.policyRevision == existing.policyRevision {
 				incoming.registryRevision = existing.registryRevision
@@ -569,10 +564,7 @@ func shouldUpdateDenyBarrier(existing, incoming verifiedPolicyDenyBarrier) bool 
 		// Upgrading row_absent -> policy_blocked when revision is higher or observation is at least as new.
 		return incoming.policyRevision > existing.policyRevision || incoming.observedSeq >= existing.observedSeq
 	case localappkernel.VerifiedPolicyRowAbsent:
-		if existing.status == localappkernel.VerifiedPolicyBlocked {
-			return incoming.observedSeq > existing.observedSeq && incoming.observedAt.After(existing.observedAt)
-		}
-		return incoming.observedSeq >= existing.observedSeq && !incoming.observedAt.Before(existing.observedAt)
+		return incoming.observedSeq > existing.observedSeq
 	default:
 		return false
 	}
@@ -582,7 +574,8 @@ func sameDenyBarrierVersion(a, b verifiedPolicyDenyBarrier) bool {
 	return a.status == b.status &&
 		a.policyRevision == b.policyRevision &&
 		a.observedSeq == b.observedSeq &&
-		a.observedAt.Equal(b.observedAt)
+		a.observedAt.Equal(b.observedAt) &&
+		a.lastAbsentSeq == b.lastAbsentSeq
 }
 
 func (coordinator *Coordinator) persistDenyBarrierLocked(
@@ -594,16 +587,17 @@ func (coordinator *Coordinator) persistDenyBarrierLocked(
 		return
 	}
 	effective, err := coordinator.lifecycle.RecordVerifiedPolicy(ctx, localappkernel.VerifiedPolicyVerification{
-		AppID:            key.appID,
-		ReleaseRef:       key.releaseRef,
-		DescriptorID:     key.descriptorID,
-		TargetID:         key.targetID,
-		Status:           snapshot.status,
-		PolicyReason:     snapshot.reason,
-		PolicyRevision:   snapshot.policyRevision,
-		RegistryRevision: snapshot.registryRevision,
-		VerifiedAt:       snapshot.observedAt,
-		ObservedAt:       snapshot.observedAt,
+		AppID:              key.appID,
+		ReleaseRef:         key.releaseRef,
+		DescriptorID:       key.descriptorID,
+		TargetID:           key.targetID,
+		Status:             snapshot.status,
+		PolicyReason:       snapshot.reason,
+		PolicyRevision:     snapshot.policyRevision,
+		RegistryRevision:   snapshot.registryRevision,
+		VerifiedAt:         snapshot.observedAt,
+		ObservedAt:         snapshot.observedAt,
+		OrderedObservation: snapshot.status == localappkernel.VerifiedPolicyRowAbsent,
 	})
 	if err == nil {
 		coordinator.policyMu.Lock()
@@ -628,6 +622,7 @@ func (coordinator *Coordinator) persistDenyBarrierLocked(
 						observedSeq:      0,
 						observedAt:       effective.VerifiedAt.UTC(),
 						persisted:        true,
+						lastAbsentSeq:    current.lastAbsentSeq,
 					}
 				}
 			case localappkernel.VerifiedPolicyAllowed:
@@ -725,7 +720,7 @@ func (coordinator *Coordinator) checkOfflineDenyBarrier(ctx context.Context, key
 func (coordinator *Coordinator) verifyFinalBindPolicy(
 	ctx context.Context,
 	key verifiedPolicyKey,
-	policyGraceUsed bool,
+	usedStoredApproval bool,
 ) error {
 	coordinator.policyPersistMu.Lock()
 	defer coordinator.policyPersistMu.Unlock()
@@ -743,7 +738,7 @@ func (coordinator *Coordinator) verifyFinalBindPolicy(
 			return err
 		}
 		if errors.Is(err, localappkernel.ErrVerifiedPolicyNotFound) {
-			if policyGraceUsed {
+			if usedStoredApproval {
 				return publicappregistry.ErrRegistryUnavailable
 			}
 			return nil
@@ -755,12 +750,6 @@ func (coordinator *Coordinator) verifyFinalBindPolicy(
 		coordinator.hydratePersistedDenyBarrier(key, record)
 		return verifiedPolicyDenyError(record)
 	case localappkernel.VerifiedPolicyAllowed:
-		if policyGraceUsed {
-			elapsed := coordinator.now().Sub(record.VerifiedAt)
-			if elapsed < 0 || elapsed >= VerifiedOfflineGraceWindow {
-				return publicappregistry.ErrRegistryUnavailable
-			}
-		}
 		return nil
 	default:
 		return ErrInstalledLaunch
@@ -784,14 +773,14 @@ func (coordinator *Coordinator) recordVerifiedAllowed(
 	watermark, hasWatermark := coordinator.policyAllowedWatermarks[key]
 	coordinator.policyMu.Unlock()
 
-	if hasBarrier && denyBarrierSupersedesAllowed(barrier, policyRevision, observedSeq, observedAt) {
+	if hasBarrier && denyBarrierSupersedesAllowed(barrier, policyRevision, observedSeq) {
 		if !barrier.persisted {
 			coordinator.persistDenyBarrierLocked(context.WithoutCancel(ctx), key, barrier)
 			coordinator.policyMu.Lock()
 			barrier, hasBarrier = coordinator.policyDenyBarriers[key]
 			coordinator.policyMu.Unlock()
 		}
-		if hasBarrier && denyBarrierSupersedesAllowed(barrier, policyRevision, observedSeq, observedAt) {
+		if hasBarrier && denyBarrierSupersedesAllowed(barrier, policyRevision, observedSeq) {
 			return denyBarrierError(barrier)
 		}
 	}
@@ -800,23 +789,17 @@ func (coordinator *Coordinator) recordVerifiedAllowed(
 		// Stale out-of-order allow behind a newer already-recorded allow; do not overwrite.
 		return nil
 	}
-	allowEqualTimestampRestore := hasBarrier &&
-		barrier.status == localappkernel.VerifiedPolicyRowAbsent &&
-		barrier.observedSeq > 0 &&
-		observedSeq > barrier.observedSeq &&
-		observedAt.Equal(barrier.observedAt.UTC())
-
 	effective, persistErr := coordinator.lifecycle.RecordVerifiedPolicy(ctx, localappkernel.VerifiedPolicyVerification{
-		AppID:                      key.appID,
-		ReleaseRef:                 key.releaseRef,
-		DescriptorID:               key.descriptorID,
-		TargetID:                   key.targetID,
-		Status:                     localappkernel.VerifiedPolicyAllowed,
-		PolicyRevision:             policyRevision,
-		RegistryRevision:           registryRevision,
-		VerifiedAt:                 observedAt,
-		ObservedAt:                 observedAt,
-		AllowEqualTimestampRestore: allowEqualTimestampRestore,
+		AppID:              key.appID,
+		ReleaseRef:         key.releaseRef,
+		DescriptorID:       key.descriptorID,
+		TargetID:           key.targetID,
+		Status:             localappkernel.VerifiedPolicyAllowed,
+		PolicyRevision:     policyRevision,
+		RegistryRevision:   registryRevision,
+		VerifiedAt:         observedAt,
+		ObservedAt:         observedAt,
+		OrderedObservation: true,
 	})
 	if persistErr != nil {
 		if coordinator.logger != nil {
@@ -875,7 +858,7 @@ func (coordinator *Coordinator) recordVerifiedAllowed(
 		}
 	}
 	if currentBarrier, stillHasBarrier := coordinator.policyDenyBarriers[key]; stillHasBarrier &&
-		!denyBarrierSupersedesAllowed(currentBarrier, effectiveRev, observedSeq, effectiveAt) {
+		!denyBarrierSupersedesAllowed(currentBarrier, effectiveRev, observedSeq) {
 		delete(coordinator.policyDenyBarriers, key)
 	}
 	coordinator.policyMu.Unlock()
@@ -924,10 +907,9 @@ func verifiedPolicyRevalidateProbeContext(ctx context.Context) (context.Context,
 
 // enforceVerifiedInstalledPolicy verifies official Registry policy for an exact
 // installed verified target and persists the official result across restarts.
-// Only temporary official Registry unreachability may honor a persisted allow
-// strictly within VerifiedOfflineGraceWindow (< 7 x 24h) without renewing its
-// timestamp. Known kill-switch, absent-row, expired, or missing records block
-// immediately.
+// When the Registry is unavailable, a stored approval for that exact target
+// remains usable without a time limit. An observed denial or missing approval
+// still blocks, and offline use never changes the stored verification.
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040a
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040c
 func (coordinator *Coordinator) enforceVerifiedInstalledPolicy(
@@ -1022,11 +1004,6 @@ func (coordinator *Coordinator) enforceVerifiedInstalledPolicy(
 		coordinator.hydratePersistedDenyBarrier(key, record)
 		return false, publicappregistry.ErrCatalogAppNotFound
 	case localappkernel.VerifiedPolicyAllowed:
-		elapsed := coordinator.now().Sub(record.VerifiedAt)
-		if elapsed < 0 || elapsed >= VerifiedOfflineGraceWindow {
-			return false, err
-		}
-		// Never renew VerifiedAt on offline grace hits.
 		return true, nil
 	default:
 		return false, err

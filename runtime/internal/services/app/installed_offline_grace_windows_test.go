@@ -308,7 +308,7 @@ func buildServiceGraceRegistryDocs(t *testing.T, appID, version string, pkgBytes
 	}
 }
 
-func TestInstalledAppPrepareAndBindOfflineGraceAccountPermissionsAndKillSwitch(t *testing.T) {
+func TestInstalledAppPrepareAndBindOfflineApprovalAccountPermissionsAndKillSwitch(t *testing.T) {
 	ctx := context.Background()
 	appID := "publisher.grace-app"
 	version := "1.0.0"
@@ -430,27 +430,27 @@ func TestInstalledAppPrepareAndBindOfflineGraceAccountPermissionsAndKillSwitch(t
 		}, childLiveness, nil
 	}
 
-	// 1. Go offline at T0 + 24h (<7*24h): PrepareInstalledAppLaunch + BindLocalAppProcess succeed.
+	// 1. The exact verified target still prepares and binds after 30 days offline.
 	transport.setOffline(true)
-	advance(24 * time.Hour)
+	advance(30 * 24 * time.Hour)
 	prepared, err := service.PrepareInstalledAppLaunch(desktopCtx, &runtimev1.PrepareInstalledAppLaunchRequest{
 		LaunchSelector: []byte(handle),
 	})
 	if err != nil || len(prepared.GetLaunchId()) == 0 {
-		t.Fatalf("offline prepare within <7*24h failed: resp=%+v err=%v", prepared, err)
+		t.Fatalf("offline prepare after 30 days failed: resp=%+v err=%v", prepared, err)
 	}
 	bound, err := service.BindLocalAppProcess(desktopCtx, &runtimev1.BindLocalAppProcessRequest{
 		LaunchId: prepared.GetLaunchId(), ChildProcessId: 6001,
 	})
 	if err != nil || bound.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
-		t.Fatalf("offline bind within <7*24h failed: resp=%+v err=%v", bound, err)
+		t.Fatalf("offline bind after 30 days failed: resp=%+v err=%v", bound, err)
 	}
 	_ = childLiveness.Close()
 	if _, err := service.EndInstalledAppRun(desktopCtx, &runtimev1.EndInstalledAppRunRequest{LaunchId: prepared.GetLaunchId()}); err != nil {
 		t.Fatalf("end installed run: %v", err)
 	}
 
-	// 2. Signed-out / expired account immediately blocks PrepareInstalledAppLaunch even within <7*24h grace.
+	// 2. A stored approval does not authorize a signed-out account.
 	account.signOut()
 	_, err = service.PrepareInstalledAppLaunch(desktopCtx, &runtimev1.PrepareInstalledAppLaunchRequest{LaunchSelector: []byte(handle)})
 	reason, _ := grpcerr.ExtractReasonCode(err)
@@ -540,30 +540,22 @@ func TestInstalledAppPrepareAndBindOfflineGraceAccountPermissionsAndKillSwitch(t
 		t.Fatal(err)
 	}
 
-	// 6. Exact 7 x 24h boundary offline blocks PrepareInstalledAppLaunch with APP_CATALOG_UNAVAILABLE.
-	advance(nimiappinstall.VerifiedOfflineGraceWindow - 24*time.Hour)
-	_, err = service.PrepareInstalledAppLaunch(desktopCtx, &runtimev1.PrepareInstalledAppLaunchRequest{LaunchSelector: []byte(handle)})
-	reason, _ = grpcerr.ExtractReasonCode(err)
-	if status.Code(err) != codes.Unavailable || reason != runtimev1.ReasonCode_APP_CATALOG_UNAVAILABLE {
-		t.Fatalf("exact 7*24h boundary error = code:%s reason:%s err:%v", status.Code(err), reason, err)
-	}
-
-	// 7. Re-verifying online allows Prepare + Bind again.
+	// 6. Reconnecting re-verifies the installed target before prepare and bind.
 	transport.setOffline(false)
 	advance(time.Hour)
 	prepared, err = service.PrepareInstalledAppLaunch(desktopCtx, &runtimev1.PrepareInstalledAppLaunchRequest{LaunchSelector: []byte(handle)})
 	if err != nil {
-		t.Fatalf("online prepare after expiry failed: %v", err)
+		t.Fatalf("online prepare after reconnect failed: %v", err)
 	}
 	if _, err := service.BindLocalAppProcess(desktopCtx, &runtimev1.BindLocalAppProcessRequest{LaunchId: prepared.GetLaunchId(), ChildProcessId: 6005}); err != nil {
-		t.Fatalf("online bind after expiry failed: %v", err)
+		t.Fatalf("online bind after reconnect failed: %v", err)
 	}
 	_ = childLiveness.Close()
 	if _, err := service.EndInstalledAppRun(desktopCtx, &runtimev1.EndInstalledAppRunRequest{LaunchId: prepared.GetLaunchId()}); err != nil {
 		t.Fatal(err)
 	}
 
-	// 8. Known kill-switch observed via live catalog fetch immediately blocks subsequent offline launch.
+	// 7. Known kill-switch observed via live catalog fetch immediately blocks subsequent offline launch.
 	transport.setBlocked(true)
 	if _, err := service.ListApprovedAppCatalogTargets(ctx, &runtimev1.ListApprovedAppCatalogTargetsRequest{ForceRefresh: true}); err != nil {
 		t.Fatalf("live catalog fetch with kill-switch failed: %v", err)
@@ -576,7 +568,7 @@ func TestInstalledAppPrepareAndBindOfflineGraceAccountPermissionsAndKillSwitch(t
 		t.Fatalf("offline prepare after catalog-observed kill-switch = code:%s reason:%s err:%v", status.Code(err), reason, err)
 	}
 
-	// 9. Lift kill-switch with incremented revision, then verify concurrent catalog kill-switch
+	// 8. Lift kill-switch with incremented revision, then verify concurrent catalog kill-switch
 	// beats an in-flight older PrepareInstalledAppLaunch allow AND deny persistence failures stay fail-closed
 	// for both PrepareInstalledAppLaunch and BindLocalAppProcess.
 	transport.setOffline(false)
@@ -643,7 +635,7 @@ func TestInstalledAppPrepareAndBindOfflineGraceAccountPermissionsAndKillSwitch(t
 	<-enteredOldLaunch
 
 	// Inject SQLite write+delete failure so catalog-observed kill-switch fails to persist on disk,
-	// leaving the prior valid 7-day allow row physically in SQLite.
+	// leaving the prior approval in SQLite.
 	rawDB, err := sql.Open("sqlite", dbPath+"?_pragma=busy_timeout(5000)")
 	if err != nil {
 		t.Fatal(err)
@@ -720,7 +712,7 @@ func TestInstalledAppPrepareAndBindOfflineGraceAccountPermissionsAndKillSwitch(t
 		t.Fatal(err)
 	}
 
-	// 10. Stalled Registry under a short caller deadline MUST fall back to 7-day offline grace
+	// 9. Stalled Registry under a short caller deadline can use the stored approval
 	// before exhausting the parent deadline, while explicit parent cancellation still fails closed.
 	transport.setOffline(false)
 	transport.setBlocked(false)

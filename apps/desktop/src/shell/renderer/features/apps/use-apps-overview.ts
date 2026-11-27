@@ -39,6 +39,7 @@ export function useAppsOverviewQuery(source: DesktopAppsProjectionSource, option
   const catalog = useQuery({
     queryKey: overviewCatalogKey,
     staleTime: 15_000,
+    networkMode: 'always',
     enabled: options.enabled,
     queryFn: async (): Promise<DesktopAppsCatalogProjection> => {
       const forceRefresh = forceNextCatalogRefreshRef.current;

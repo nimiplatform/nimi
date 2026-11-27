@@ -91,6 +91,7 @@
     "policyRevision": "Registry 策略修订",
     "rowAbsent": "当前目录已不再列出此应用，已安装的副本保持不变。",
     "readFailed": "现在无法读取应用目录，请稍后再试。",
+    "launchVerificationUnavailable": "Nimi 无法通过应用注册表验证此已安装应用。请检查网络连接后重试。",
     "staleWithTime": "当前显示缓存的应用目录（更新于 {{updatedAt}}）。安装或更新应用需要重新连接官方目录。",
     "stale": "当前显示缓存的应用目录。安装或更新应用需要重新连接官方目录。",
     "refreshingWithTime": "当前显示缓存的应用目录（更新于 {{updatedAt}}）。正在检查更新…",

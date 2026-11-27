@@ -146,13 +146,23 @@ test('conflicting catalog rows fail only the remote projection', async () => {
   } finally { await view.cleanup(); }
 });
 
-test('offline browser state does not pause local Runtime inventory', async () => {
+test('offline browser state still reads local Runtime inventory and stored Catalog', async () => {
   let catalogReads = 0;
-  const view = await mountOverview({ ...localSource(), listApprovedCatalogTargets: async () => { catalogReads += 1; return []; } }, false);
+  const target = { appId: 'example.installed', version: '2.0.0' } as ApprovedAppCatalogTarget;
+  const view = await mountOverview({
+    ...localSource(),
+    listApprovedCatalogTargets: async () => {
+      catalogReads += 1;
+      return { targets: [target], stale: true, updatedAtUnixMs: 123 };
+    },
+  }, false);
   try {
     assert.equal(view.state().isPending, false);
     assert.equal(view.loaded().entries.length, 1);
-    assert.equal(view.loaded().catalogStatus, 'unavailable');
-    assert.equal(catalogReads, 0);
+    assert.equal(view.loaded().catalogStatus, 'stale');
+    assert.equal(view.loaded().catalogUpdatedAtUnixMs, 123);
+    assert.equal(view.loaded().entries[0]?.catalogTarget?.version, '2.0.0');
+    assert.equal(view.loaded().entries[0]?.catalogStale, true);
+    assert.equal(catalogReads, 1);
   } finally { await view.cleanup(); }
 });
