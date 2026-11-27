@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -647,16 +646,21 @@ func newLocalAppSessionFixtureWithRandom(t testing.TB, domains []string, project
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = kernel.Close() })
+	shell := runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON
 	input := localappkernel.RegisterDevelopmentInput{
 		AppID: "nimi.test.session", DisplayName: "Session Test", SourceRef: "source-1",
 		ProjectRoot: "/tmp/nimi-session-test", ManifestPath: "/tmp/nimi-session-test/nimi.app.yaml",
-		ShellKind: 1, RawDeclaration: append([]string(nil), domains...),
+		ShellKind: int32(shell), RawDeclaration: append([]string(nil), domains...),
 		HostExecutableDigest: "host-digest-1",
 	}
 	if projectRoot != "" {
-		input.ProjectRoot = projectRoot
-		input.ManifestPath = filepath.Join(projectRoot, "nimi.app.yaml")
-		input.SourceRef, err = localDevelopmentCanonicalProjectFileID(projectRoot)
+		project, err := resolveLocalDevelopmentProject(projectRoot, input.AppID, shell)
+		if err != nil {
+			t.Fatal(err)
+		}
+		input.ProjectRoot = project.ProjectRoot
+		input.ManifestPath = project.ManifestPath
+		input.SourceRef, err = localDevelopmentCanonicalProjectFileID(project.ProjectRoot)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -678,7 +682,7 @@ func newLocalAppSessionFixtureWithRandom(t testing.TB, domains []string, project
 		ExecutableTrustSetID: "session-test-trust",
 	}
 	if projectRoot != "" {
-		process.CanonicalExecutablePath = localDevelopmentProjectHostAliasPath(projectRoot, runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON)
+		process.CanonicalExecutablePath = localDevelopmentProjectHostAliasPath(input.ProjectRoot, shell)
 	}
 	liveness := &localAppSessionTestLiveness{revoked: make(chan struct{})}
 	connection, err := protectedlocal.EstablishLocalAppConnection(ctx, localAppSessionTestVerifier{peer: protectedlocal.VerifiedLocalAppLaunchPeer{
