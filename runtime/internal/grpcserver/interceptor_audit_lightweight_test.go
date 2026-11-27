@@ -105,7 +105,7 @@ func TestLightweightReadAllowlistInvariantsAndFailClosedClassification(t *testin
 
 	// Every allowlisted lightweight unary read must exist on g, must never be a
 	// write or protected-capability method, and must fail closed to durable on error.
-	for method := range lightweightAuditUnaryReadMethods {
+	for method := range ordinaryAuditUnaryReads {
 		if !registeredUnary[method] {
 			t.Errorf("allowlisted lightweight unary method %q is not a registered unary RPC on g", method)
 		}
@@ -115,17 +115,17 @@ func TestLightweightReadAllowlistInvariantsAndFailClosedClassification(t *testin
 		if _, required := protectedCapabilityForUnary(method, nil); required {
 			t.Errorf("allowlisted lightweight unary method %q must not require a protected capability", method)
 		}
-		if classifyUnaryAuditMode(method, true) != auditRecordLightweightOnSuccess {
-			t.Errorf("classifyUnaryAuditMode(%q, true) != lightweight", method)
+		if requiresDurableAudit(method, true, ordinaryAuditUnaryReads) {
+			t.Errorf("ordinary unary read %q requires durable audit on success", method)
 		}
-		if classifyUnaryAuditMode(method, false) != auditRecordDurable {
-			t.Errorf("classifyUnaryAuditMode(%q, false) must stay durable for failure attribution", method)
+		if !requiresDurableAudit(method, false, ordinaryAuditUnaryReads) {
+			t.Errorf("ordinary unary read %q must retain durable failure attribution", method)
 		}
 	}
 
 	// Every allowlisted lightweight stream read must exist on g as a stream, must
 	// never be a write or protected-capability method, and must fail closed on error.
-	for method := range lightweightAuditStreamReadMethods {
+	for method := range ordinaryAuditStreamReads {
 		if !registeredStream[method] {
 			t.Errorf("allowlisted lightweight stream method %q is not a registered stream RPC on g", method)
 		}
@@ -135,11 +135,11 @@ func TestLightweightReadAllowlistInvariantsAndFailClosedClassification(t *testin
 		if _, required := protectedCapabilityForStream(method, nil); required {
 			t.Errorf("allowlisted lightweight stream method %q must not require a protected capability", method)
 		}
-		if classifyStreamAuditMode(method, true) != auditRecordLightweightOnSuccess {
-			t.Errorf("classifyStreamAuditMode(%q, true) != lightweight", method)
+		if requiresDurableAudit(method, true, ordinaryAuditStreamReads) {
+			t.Errorf("ordinary stream read %q requires durable audit on success", method)
 		}
-		if classifyStreamAuditMode(method, false) != auditRecordDurable {
-			t.Errorf("classifyStreamAuditMode(%q, false) must stay durable for failure attribution", method)
+		if !requiresDurableAudit(method, false, ordinaryAuditStreamReads) {
+			t.Errorf("ordinary stream read %q must retain durable failure attribution", method)
 		}
 	}
 
@@ -207,7 +207,7 @@ func TestLightweightReadAllowlistInvariantsAndFailClosedClassification(t *testin
 		"/nimi.runtime.v1.RuntimeLocalService/UnclassifiedRead",
 	}
 	for _, method := range mustStayDurableUnary {
-		if classifyUnaryAuditMode(method, true) != auditRecordDurable {
+		if !requiresDurableAudit(method, true, ordinaryAuditUnaryReads) {
 			t.Errorf("unary method %q must stay durably audited on success", method)
 		}
 	}
@@ -225,7 +225,7 @@ func TestLightweightReadAllowlistInvariantsAndFailClosedClassification(t *testin
 		"/nimi.runtime.v1.RuntimeFutureService/WatchUnclassified",
 	}
 	for _, method := range mustStayDurableStream {
-		if classifyStreamAuditMode(method, true) != auditRecordDurable {
+		if !requiresDurableAudit(method, true, ordinaryAuditStreamReads) {
 			t.Errorf("stream method %q must stay durably audited on success", method)
 		}
 	}
@@ -274,10 +274,8 @@ func TestUnaryAuditInterceptorLightweightReadSkipsSQLiteAndAuditsFailures(t *tes
 		"x-nimi-trace-id", "trace-lightweight-ok",
 	))
 
-	totalOrdinaryCalls := 0
 	for _, tc := range ordinaryReads {
 		for i := 0; i < tc.calls; i++ {
-			totalOrdinaryCalls++
 			resp, err := interceptor(ctx, tc.req, &grpc.UnaryServerInfo{FullMethod: tc.method}, func(context.Context, any) (any, error) {
 				return tc.resp, nil
 			})
@@ -296,25 +294,6 @@ func TestUnaryAuditInterceptorLightweightReadSkipsSQLiteAndAuditsFailures(t *tes
 	}
 	if events := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{}); len(events.GetEvents()) != 0 {
 		t.Fatalf("ListEvents returned %d durable rows, want 0", len(events.GetEvents()))
-	}
-
-	// Lightweight diagnostics must capture all aggregated counts accurately.
-	diag := store.SnapshotLightweightReads()
-	if diag.TotalCount != uint64(totalOrdinaryCalls) || len(diag.Summaries) != len(ordinaryReads) {
-		t.Fatalf("lightweight diagnostics = total:%d buckets:%d, want total:%d buckets:%d",
-			diag.TotalCount, len(diag.Summaries), totalOrdinaryCalls, len(ordinaryReads))
-	}
-	byMethod := make(map[string]auditlog.ReadDiagnosticSummary, len(diag.Summaries))
-	for _, summary := range diag.Summaries {
-		byMethod[summary.FullMethod] = summary
-	}
-	if healthSummary := byMethod["/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth"]; healthSummary.Count != 4 ||
-		healthSummary.Domain != "runtime.audit" ||
-		healthSummary.Operation != "get_runtime_health" ||
-		healthSummary.AppID != "nimi.desktop" ||
-		healthSummary.CallerKind != runtimev1.CallerKind_CALLER_KIND_DESKTOP_CORE ||
-		healthSummary.LastTraceID != "trace-lightweight-ok" {
-		t.Fatalf("unexpected GetRuntimeHealth lightweight summary: %+v", healthSummary)
 	}
 
 	// RecordUsage in-memory stats must remain preserved for lightweight reads.
@@ -363,9 +342,6 @@ func TestUnaryAuditInterceptorLightweightReadSkipsSQLiteAndAuditsFailures(t *tes
 		failedEvent.GetPayload().GetFields()["success"].GetBoolValue() {
 		t.Fatalf("unexpected failed ordinary read durable record: %+v", failedEvent)
 	}
-	if got := store.SnapshotLightweightReads().TotalCount; got != uint64(totalOrdinaryCalls) {
-		t.Fatalf("failed read must not increment lightweight read total: got=%d want=%d", got, totalOrdinaryCalls)
-	}
 }
 
 func TestStreamAuditInterceptorLightweightReadSkipsSQLiteAndAuditsFailures(t *testing.T) {
@@ -399,10 +375,6 @@ func TestStreamAuditInterceptorLightweightReadSkipsSQLiteAndAuditsFailures(t *te
 	}
 	if got := countDurableAuditRows(t, backend.DB()); got != 0 {
 		t.Fatalf("durable SQLite audit rows = %d, want 0", got)
-	}
-	diag := store.SnapshotLightweightReads()
-	if diag.TotalCount != 3 || len(diag.Summaries) != 3 {
-		t.Fatalf("lightweight stream diagnostics = total:%d buckets:%d, want total:3 buckets:3", diag.TotalCount, len(diag.Summaries))
 	}
 	usage := mustListUsageStats(t, store, &runtimev1.ListUsageStatsRequest{
 		Capability: "runtime.audit.subscribe_runtime_health_events",
@@ -540,9 +512,6 @@ func TestAuditInterceptorPreservesDurableTrailForSensitiveReadsAndMutations(t *t
 	if got := countDurableAuditRows(t, backend.DB()); got != wantDurable {
 		t.Fatalf("durable SQLite audit rows = %d, want %d", got, wantDurable)
 	}
-	if got := store.SnapshotLightweightReads().TotalCount; got != 0 {
-		t.Fatalf("sensitive/mutating/unclassified calls leaked into lightweight diagnostics: %d", got)
-	}
 
 	allEvents := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{PageSize: 50})
 	if len(allEvents.GetEvents()) != wantDurable {
@@ -608,7 +577,7 @@ func TestAuditInterceptorRealPublicGRPCChainLightweightReadVsSensitiveRead(t *te
 	t.Cleanup(func() {
 		_ = server.Stop(context.Background())
 		_ = listener.Close()
-		<-serveDone
+		_ = <-serveDone
 	})
 
 	conn, err := grpc.NewClient(
@@ -648,9 +617,6 @@ func TestAuditInterceptorRealPublicGRPCChainLightweightReadVsSensitiveRead(t *te
 
 	if got := countDurableAuditRows(t, server.persistenceBackend.DB()); got != 0 {
 		t.Fatalf("ordinary reads over real gRPC server wrote %d durable audit rows, want 0", got)
-	}
-	if snap := server.AuditStore().SnapshotLightweightReads(); snap.TotalCount != 8 {
-		t.Fatalf("real gRPC lightweight read total = %d, want 8", snap.TotalCount)
 	}
 
 	// Sensitive read over the exact same real gRPC server MUST persist durably.
@@ -693,7 +659,6 @@ func TestAuditInterceptorConcurrentLightweightReadsAndDurableWrites(t *testing.T
 				case <-stopObservers:
 					return
 				default:
-					_ = store.SnapshotLightweightReads()
 					_, _ = store.ListEvents(&runtimev1.ListAuditEventsRequest{PageSize: 20})
 					_, _ = store.ListUsage(&runtimev1.ListUsageStatsRequest{PageSize: 20})
 				}
@@ -805,13 +770,7 @@ func TestAuditInterceptorConcurrentLightweightReadsAndDurableWrites(t *testing.T
 	close(stopObservers)
 	observerWG.Wait()
 
-	wantLightweight := uint64(ordinaryWorkers * ordinaryReadsEach)
 	wantDurable := int64(ordinaryWorkers*ordinaryFailuresEach + sensitiveWorkers*sensitiveReadsEach + mutationWorkers*mutationsEach)
-
-	diag := store.SnapshotLightweightReads()
-	if diag.TotalCount != wantLightweight {
-		t.Fatalf("concurrent lightweight read total = %d, want %d", diag.TotalCount, wantLightweight)
-	}
 	if got := backend.writeTx.Load(); got != wantDurable {
 		t.Fatalf("concurrent durable WriteTx count = %d, want %d", got, wantDurable)
 	}

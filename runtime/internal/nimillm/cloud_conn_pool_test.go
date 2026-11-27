@@ -41,6 +41,26 @@ func (f funcEndpointResolver) LookupHost(ctx context.Context, host string) ([]st
 	return f(ctx, host)
 }
 
+func TestCloudOutboundPoolReportsDNSFailureAsUnavailableBeforeDial(t *testing.T) {
+	const endpoint = "https://api.openai.test/v1"
+	provider := NewCloudProvider(CloudConfig{})
+	dnsErr := &net.DNSError{Err: "temporary failure", Name: "api.openai.test", IsTemporary: true}
+	provider.connPool.resolver = funcEndpointResolver(func(context.Context, string) ([]string, error) {
+		return nil, dnsErr
+	})
+	provider.connPool.dialFn = func(context.Context, string, string) (net.Conn, error) {
+		t.Error("a request with no validated peer must not dial")
+		return nil, errors.New("unexpected dial")
+	}
+	spec := &runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}}}
+	target := &RemoteTarget{ProviderType: "openai", Endpoint: endpoint, APIKey: "test-key", ConnectorID: "conn-dns", ProviderModelID: "gpt-4o-mini"}
+	_, _, _, _, err := provider.GenerateTextScenarioWithTarget(context.Background(), "gpt-4o-mini", spec, "", target, textwire.Directives{})
+	reason, _ := grpcerr.ExtractReasonCode(err)
+	if status.Code(err) != codes.Unavailable || reason != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE || !errors.Is(err, dnsErr) {
+		t.Fatalf("DNS lookup failure = %v, want typed provider unavailable with DNS cause", err)
+	}
+}
+
 func generateTestTLSBundle(t testing.TB, dnsNames ...string) (*x509.CertPool, *x509.Certificate, tls.Certificate) {
 	t.Helper()
 	caKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
@@ -218,7 +238,13 @@ func TestCloudOutboundPoolReusesTLSConnectionForIdenticalBoundary(t *testing.T) 
 		AllowLoopbackEndpoint: true,
 	})
 	defer provider.CloseIdleConnections()
-	provider.connPool.resolver = funcEndpointResolver(func(_ context.Context, lookupHost string) ([]string, error) {
+	type lookupContextKey struct{}
+	var lookups atomic.Int32
+	provider.connPool.resolver = funcEndpointResolver(func(ctx context.Context, lookupHost string) ([]string, error) {
+		lookups.Add(1)
+		if ctx.Value(lookupContextKey{}) != host {
+			return nil, fmt.Errorf("missing caller context at endpoint validation")
+		}
 		if strings.EqualFold(lookupHost, host) {
 			return []string{"127.0.0.1"}, nil
 		}
@@ -242,7 +268,8 @@ func TestCloudOutboundPoolReusesTLSConnectionForIdenticalBoundary(t *testing.T) 
 	}
 
 	var reusedCount, tlsHandshakes atomic.Int32
-	tracedCtx := httptrace.WithClientTrace(context.Background(), &httptrace.ClientTrace{
+	requestCtx := context.WithValue(context.Background(), lookupContextKey{}, host)
+	tracedCtx := httptrace.WithClientTrace(requestCtx, &httptrace.ClientTrace{
 		GotConn: func(info httptrace.GotConnInfo) {
 			if info.Reused {
 				reusedCount.Add(1)
@@ -283,6 +310,9 @@ func TestCloudOutboundPoolReusesTLSConnectionForIdenticalBoundary(t *testing.T) 
 	}
 
 	totalRequests := int32(requestCount + 2)
+	if got := lookups.Load(); got != totalRequests {
+		t.Fatalf("endpoint validations = %d, want one per send (%d)", got, totalRequests)
+	}
 	if stats.requests.Load() != totalRequests {
 		t.Fatalf("server requests = %d, want %d", stats.requests.Load(), totalRequests)
 	}
@@ -1020,9 +1050,15 @@ func TestCloudOutboundPoolEnforcesSSRFRebindingRotationHostAndRedirectGuards(t *
 		provider := NewCloudProvider(CloudConfig{HTTPTimeout: 5 * time.Second, AllowLoopbackEndpoint: false})
 		defer provider.CloseIdleConnections()
 		spec := &runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hi"}}}
+		credentialURL := (&url.URL{
+			Scheme: "https",
+			Host:   "api.openai.com",
+			Path:   "/v1",
+			User:   url.UserPassword("fixture", "fixture"),
+		}).String()
 		for _, badURL := range []string{
 			"http://api.openai.com/v1",
-			"https://user:pass@api.openai.com/v1",
+			credentialURL,
 			"http://169.254.169.254/v1",
 		} {
 			_, _, _, _, err := provider.GenerateTextScenarioWithTarget(context.Background(), "gpt-4o-mini", spec, "", &RemoteTarget{
@@ -1347,7 +1383,7 @@ func BenchmarkCloudOutboundTLSReuseVsOneShot(b *testing.B) {
 
 func mustParseURL(t testing.TB, raw string) *url.URL {
 	t.Helper()
-	parsed, err := parseNormalizedEndpointURL(raw)
+	parsed, err := url.Parse(raw)
 	if err != nil {
 		t.Fatal(err)
 	}

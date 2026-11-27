@@ -90,11 +90,11 @@ func (h *ProviderTextHost) ExecuteText(
 	spec := request.Spec()
 	var attempt *aitelemetry.Attempt
 	defer func() { finishCloudAttempt(attempt, response.Usage, executionErr) }()
+	mayDispatch := func() { NotifyImmediateDispatch(ctx) }
 	if invocation, serialized := request.TextBehavior(); invocation != nil {
 		dispatchCtx := nimillm.WithTextBehaviorDispatchObserver(ctx, func() {
-			NotifyImmediateDispatch(ctx)
 			attempt = aitelemetry.Begin(ctx)
-		})
+		}, mayDispatch)
 		result, err := h.transport.ExecuteTextBehaviorWithTarget(dispatchCtx, request.ProviderModelID(), remoteTarget, invocation, serialized, nil)
 		if err != nil {
 			return capabilitydriver.CloudTextTransportResponse{Usage: result.Usage}, h.auditedError(audit, dispatchExit(ctx, "error"), err)
@@ -104,10 +104,9 @@ func (h *ProviderTextHost) ExecuteText(
 		}
 		return capabilitydriver.CloudTextTransportResponse{Items: result.Items, Usage: result.Usage, FinishReason: result.FinishReason}, nil
 	}
-	NotifyImmediateDispatch(ctx)
 	attempt = aitelemetry.Begin(ctx)
 	text, toolCalls, usage, finish, err := h.transport.GenerateTextScenarioWithTarget(
-		ctx,
+		nimillm.WithProviderDispatchObserver(ctx, mayDispatch),
 		request.ProviderModelID(),
 		spec,
 		nimillm.ComposeInputText(spec.GetSystemPrompt(), spec.GetInput()),
@@ -148,11 +147,11 @@ func (h *ProviderTextHost) StreamText(
 	}
 	var attempt *aitelemetry.Attempt
 	defer func() { finishCloudAttempt(attempt, response.Usage, executionErr) }()
+	mayDispatch := func() { NotifyImmediateDispatch(ctx) }
 	if invocation, serialized := request.TextBehavior(); invocation != nil {
 		dispatchCtx := nimillm.WithTextBehaviorDispatchObserver(ctx, func() {
-			NotifyImmediateDispatch(ctx)
 			attempt = aitelemetry.Begin(ctx)
-		})
+		}, mayDispatch)
 		result, err := h.transport.ExecuteTextBehaviorWithTarget(dispatchCtx, request.ProviderModelID(), remoteTarget, invocation, serialized, onDelta)
 		if err != nil {
 			return capabilitydriver.CloudTextTransportResponse{Usage: result.Usage}, h.auditedError(audit, dispatchExit(ctx, "error"), err)
@@ -162,11 +161,10 @@ func (h *ProviderTextHost) StreamText(
 		}
 		return capabilitydriver.CloudTextTransportResponse{Items: result.Items, Usage: result.Usage, FinishReason: result.FinishReason}, nil
 	}
-	NotifyImmediateDispatch(ctx)
 	attempt = aitelemetry.Begin(ctx)
 	var text strings.Builder
 	usage, finish, err := h.transport.StreamGenerateTextScenarioWithTarget(
-		ctx,
+		nimillm.WithProviderDispatchObserver(ctx, mayDispatch),
 		request.ProviderModelID(),
 		request.Spec(),
 		func(part string) error {

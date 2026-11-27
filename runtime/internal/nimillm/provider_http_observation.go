@@ -20,6 +20,21 @@ var providerRequestIDHeaders = []string{"x-request-id", "request-id", "x-goog-re
 
 var providerRequestIDPattern = regexp.MustCompile(`^[A-Za-z0-9_.:-]{1,128}$`)
 
+type providerDispatchObserverKey struct{}
+
+// WithProviderDispatchObserver observes when an HTTP request obtains a new or
+// reused connection or a WebSocket speech request is about to write its first
+// task frame. Neither observation proves provider receipt.
+func WithProviderDispatchObserver(ctx context.Context, observe func()) context.Context {
+	if observe == nil {
+		return ctx
+	}
+	ctx = context.WithValue(ctx, providerDispatchObserverKey{}, observe)
+	return httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
+		GotConn: func(httptrace.GotConnInfo) { observe() },
+	})
+}
+
 // providerHTTPObservation records how far one provider request got through
 // connect, TLS, request write and first response byte, for diagnostics. It
 // keeps only the backend name, method, path, phase timings, connection reuse,

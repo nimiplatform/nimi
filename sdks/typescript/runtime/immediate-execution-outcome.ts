@@ -18,6 +18,10 @@ const IMMEDIATE_EXECUTION_METHODS = new Set<string>([
   '/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn',
 ]);
 
+// Keep the transport's non-submission observation attached to the error across
+// SDK projections. A reason code or message alone cannot establish this fact.
+const notSubmittedFailures = new WeakSet<NimiError>();
+
 const TRUSTWORTHY_NON_BILLING_REJECTIONS = new Set<string>([
   'AI_INPUT_INVALID',
   'AI_PROVIDER_AUTH_FAILED',
@@ -28,6 +32,7 @@ const TRUSTWORTHY_NON_BILLING_REJECTIONS = new Set<string>([
   'AI_CONTENT_FILTER_BLOCKED',
   'AI_CONFIG_INVALID',
   'AI_CONFIG_NOT_FOUND',
+  'AI_CONFIG_REVISION_CONFLICT',
   'AI_CONNECTOR_CREDENTIAL_MISSING',
   'AI_CONNECTOR_DISABLED',
   'AI_CONNECTOR_NOT_FOUND',
@@ -159,7 +164,11 @@ function isTrustworthyNonBillingRejection(error: NimiError): boolean {
     || error.actionHint === NIMI_LOCAL_OUTCOME_UNCERTAIN_ACTION_HINT) {
     return false;
   }
-  return TRUSTWORTHY_NON_BILLING_REJECTIONS.has(normalizeReasonToken(error.reasonCode));
+  const reason = normalizeReasonToken(error.reasonCode);
+  return TRUSTWORTHY_NON_BILLING_REJECTIONS.has(reason)
+    || (error.source === 'runtime'
+      && error.actionHint === NIMI_CALLER_MAY_RESUBMIT_ACTION_HINT
+      && (reason === 'AI_PROVIDER_UNAVAILABLE' || reason === 'AI_PROVIDER_TIMEOUT'));
 }
 
 function isAbortLikeError(error: unknown): boolean {
@@ -261,9 +270,10 @@ export function projectImmediateExecutionFailure(
     );
   }
 
-  if (!context.submitted) {
+  if (!context.submitted || notSubmittedFailures.has(normalized)) {
+    let outcome = normalized;
     if (abortLike && (normalized.details?.canceled !== true || normalized.cause === undefined)) {
-      return createNimiError({
+      outcome = createNimiError({
         message: normalized.message,
         code: normalized.code,
         reasonCode: normalized.reasonCode,
@@ -279,7 +289,8 @@ export function projectImmediateExecutionFailure(
         ...(rawCause !== undefined ? { cause: rawCause } : {}),
       });
     }
-    return normalized;
+    notSubmittedFailures.add(outcome);
+    return outcome;
   }
 
   if (isTrustworthyNonBillingRejection(normalized)) {

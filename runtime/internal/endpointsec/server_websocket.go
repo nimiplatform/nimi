@@ -3,6 +3,7 @@ package endpointsec
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -26,7 +27,7 @@ func DialServerWebSocket(ctx context.Context, endpoint string, headers http.Head
 	return dialServerWebSocket(ctx, endpoint, headers, allowLoopback, net.DefaultResolver, nil, nil)
 }
 
-func dialServerWebSocket(ctx context.Context, endpoint string, headers http.Header, allowLoopback bool, resolver hostResolver, dial dialContextFunc, security *tls.Config) (*websocket.Conn, net.Conn, error) {
+func dialServerWebSocket(ctx context.Context, endpoint string, headers http.Header, allowLoopback bool, resolver HostResolver, dial dialContextFunc, security *tls.Config) (*websocket.Conn, net.Conn, error) {
 	parsed, err := url.Parse(endpoint)
 	if err != nil || parsed.Scheme != "wss" && parsed.Scheme != "ws" {
 		return nil, nil, fmt.Errorf("%w: invalid server WebSocket URL", ErrWebSocketEndpoint)
@@ -44,8 +45,11 @@ func dialServerWebSocket(ctx context.Context, endpoint string, headers http.Head
 	}
 	bounded, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	validatedURL, addresses, err := resolveValidatedEndpoint(bounded, resolver, validated.String(), allowLoopback)
+	validatedURL, addresses, err := ResolveValidatedEndpoint(bounded, resolver, validated.String(), allowLoopback)
 	if err != nil {
+		if errors.Is(err, ErrDNSResolution) {
+			return nil, nil, err
+		}
 		return nil, nil, fmt.Errorf("%w: %w", ErrWebSocketEndpoint, err)
 	}
 	if dial == nil {

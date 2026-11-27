@@ -188,7 +188,7 @@ func (r testResolver) LookupHost(ctx context.Context, host string) ([]string, er
 
 func TestResolveValidatedEndpoint_RejectsHTTPNonLoopbackHostBeforeDNS(t *testing.T) {
 	called := false
-	_, _, err := resolveValidatedEndpoint(context.Background(), testResolver{
+	_, _, err := ResolveValidatedEndpoint(context.Background(), testResolver{
 		lookup: func(ctx context.Context, host string) ([]string, error) {
 			called = true
 			return []string{"127.0.0.1"}, nil
@@ -206,7 +206,7 @@ func TestResolveValidatedEndpoint_UsesCallerContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, _, err := resolveValidatedEndpoint(ctx, testResolver{
+	_, _, err := ResolveValidatedEndpoint(ctx, testResolver{
 		lookup: func(ctx context.Context, host string) ([]string, error) {
 			<-ctx.Done()
 			return nil, ctx.Err()
@@ -218,7 +218,7 @@ func TestResolveValidatedEndpoint_UsesCallerContext(t *testing.T) {
 }
 
 func TestResolveValidatedEndpoint_FiltersUnsafeIPsFromMixedResults(t *testing.T) {
-	_, safeIPs, err := resolveValidatedEndpoint(context.Background(), testResolver{
+	_, safeIPs, err := ResolveValidatedEndpoint(context.Background(), testResolver{
 		lookup: func(ctx context.Context, host string) ([]string, error) {
 			return []string{"169.254.1.1", "8.8.8.8", "fe80::1"}, nil
 		},
@@ -394,9 +394,9 @@ func TestPinnedTransportDisjointRegionalAndWorkspaceIPsWithRealTLS(t *testing.T)
 	}
 
 	regionalURL := "https://" + net.JoinHostPort(regionalHost, regionalPort) + "/api/v1/services/aigc/multimodal-generation/generation"
-	parsedRegional, regionalIPs, err := resolveValidatedEndpoint(context.Background(), disjointResolver, regionalURL, true)
+	parsedRegional, regionalIPs, err := ResolveValidatedEndpoint(context.Background(), disjointResolver, regionalURL, true)
 	if err != nil {
-		t.Fatalf("resolveValidatedEndpoint(regional): %v", err)
+		t.Fatalf("ResolveValidatedEndpoint(regional): %v", err)
 	}
 	if len(regionalIPs) != 1 || regionalIPs[0] != "127.0.0.1" {
 		t.Fatalf("unexpected regional IP set: %#v", regionalIPs)
@@ -445,7 +445,7 @@ func TestPinnedTransportDisjointRegionalAndWorkspaceIPsWithRealTLS(t *testing.T)
 
 	// Negative 1: regional target connected to a peer serving ONLY the workspace host certificate fails TLS verification.
 	wrongCertURL := "https://" + net.JoinHostPort(regionalHost, workspacePort) + "/api/v1/services/aigc/multimodal-generation/generation"
-	parsedWrongCert, wrongCertIPs, err := resolveValidatedEndpoint(context.Background(), disjointResolver, wrongCertURL, true)
+	parsedWrongCert, wrongCertIPs, err := ResolveValidatedEndpoint(context.Background(), disjointResolver, wrongCertURL, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -471,7 +471,7 @@ func TestPinnedTransportDisjointRegionalAndWorkspaceIPsWithRealTLS(t *testing.T)
 			}
 		},
 	}
-	if _, _, err := resolveValidatedEndpoint(context.Background(), blockedRegionalResolver, regionalURL, true); err == nil {
+	if _, _, err := ResolveValidatedEndpoint(context.Background(), blockedRegionalResolver, regionalURL, true); err == nil {
 		t.Fatal("expected regional host resolving to link-local IP to be rejected")
 	}
 }

@@ -15,6 +15,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/nimiplatform/nimi/runtime/internal/endpointsec"
 )
 
 const (
@@ -26,12 +28,7 @@ const (
 	defaultCloudConnTLSHandshakeTimeout  = 10 * time.Second
 )
 
-type endpointHostResolver interface {
-	LookupHost(ctx context.Context, host string) ([]string, error)
-}
-
 type validatedEndpointDestination struct {
-	parsed    *url.URL
 	scheme    string
 	host      string // normalized lowercase hostname (TLS SNI / pinned host)
 	port      string // effective port ("443", "80", or explicit)
@@ -40,12 +37,6 @@ type validatedEndpointDestination struct {
 }
 
 type validatedDialPolicyKey struct{}
-
-type validatedDialPolicy struct {
-	scheme        string
-	allowLoopback bool
-	allowedIPs    map[string]struct{}
-}
 
 // cloudConnectionScope carries only non-secret isolation metadata and SHA-256
 // digests derived from a request-scoped RemoteTarget. Raw API keys and header
@@ -227,7 +218,7 @@ type cloudConnectionPool struct {
 	idleTTL    time.Duration
 
 	// Test/instrumentation hooks; nil in production.
-	resolver           endpointHostResolver
+	resolver           endpointsec.HostResolver
 	dialFn             func(ctx context.Context, network, addr string) (net.Conn, error)
 	tlsConfigForOrigin func(scheme, host, port string) (*x509.CertPool, string)
 	now                func() time.Time
@@ -271,22 +262,28 @@ func (p *cloudConnectionPool) dialFunc() func(ctx context.Context, network, addr
 	return dialer.DialContext
 }
 
-func (p *cloudConnectionPool) resolveAndValidate(ctx context.Context, rawURL string, allowLoopback bool) (validatedEndpointDestination, error) {
-	var resolver endpointHostResolver
-	if p != nil {
-		resolver = p.resolver
-	}
-	return resolveAndValidateEndpoint(ctx, resolver, rawURL, allowLoopback)
-}
-
 func (p *cloudConnectionPool) roundTrip(request *http.Request, scope *cloudConnectionScope, allowLoopback bool) (*http.Response, error) {
 	if p == nil || request == nil || request.URL == nil || scope == nil {
 		return nil, fmt.Errorf("nimillm: invalid pooled outbound request")
 	}
-	dest, err := p.resolveAndValidate(request.Context(), request.URL.String(), allowLoopback)
+	parsed, safeIPs, err := endpointsec.ResolveValidatedEndpoint(request.Context(), p.resolver, request.URL.String(), allowLoopback)
 	if err != nil {
+		if ctxErr := request.Context().Err(); ctxErr != nil {
+			return nil, ctxErr
+		}
 		p.evictIdleForOrigin(request.URL, allowLoopback)
-		return nil, wrapSecuredEndpointForbidden(err)
+		return nil, mapSecuredEndpointValidationError(err)
+	}
+	allowedIPs := make(map[string]struct{}, len(safeIPs))
+	for _, ip := range safeIPs {
+		allowedIPs[ip] = struct{}{}
+	}
+	dest := validatedEndpointDestination{
+		scheme:    parsed.Scheme,
+		host:      strings.ToLower(parsed.Hostname()),
+		port:      effectiveURLPort(parsed),
+		safeIPs:   safeIPs,
+		safeIPSet: allowedIPs,
 	}
 
 	var rootCAs *x509.CertPool
@@ -308,11 +305,7 @@ func (p *cloudConnectionPool) roundTrip(request *http.Request, scope *cloudConne
 
 	entry := p.acquireEntry(isolationKey, dest, rootCAs)
 
-	dialCtx := context.WithValue(request.Context(), validatedDialPolicyKey{}, validatedDialPolicy{
-		scheme:        dest.scheme,
-		allowLoopback: allowLoopback,
-		allowedIPs:    dest.safeIPSet,
-	})
+	dialCtx := context.WithValue(request.Context(), validatedDialPolicyKey{}, allowedIPs)
 	pooledReq := request.Clone(dialCtx)
 	// Clearing GetBody on a non-empty-body HTTP/1.1 POST ensures Go's
 	// http.Transport.shouldRetryRequest returns false even if an idle socket
@@ -417,27 +410,20 @@ func (p *cloudConnectionPool) newEntry(isolationKey cloudConnPoolKey, dest valid
 		ForceAttemptHTTP2:   false,
 		Protocols:           protocols,
 		DialContext: func(dialCtx context.Context, network, _ string) (net.Conn, error) {
-			policy, ok := dialCtx.Value(validatedDialPolicyKey{}).(validatedDialPolicy)
-			if !ok || len(policy.allowedIPs) == 0 {
+			allowedIPs, ok := dialCtx.Value(validatedDialPolicyKey{}).(map[string]struct{})
+			if !ok || len(allowedIPs) == 0 {
 				return nil, fmt.Errorf("nimillm: pooled dial missing current request validation")
 			}
 			latched := entry.latchedPeerIP()
 			if latched != "" {
-				if _, allowed := policy.allowedIPs[latched]; !allowed {
+				if _, allowed := allowedIPs[latched]; !allowed {
 					return nil, fmt.Errorf("nimillm: pinned peer %s is not in current validated address set", latched)
-				}
-				if err := validateDialIP(latched, policy.scheme, policy.allowLoopback); err != nil {
-					return nil, err
 				}
 				return dialFn(dialCtx, network, net.JoinHostPort(latched, port))
 			}
 			var lastErr error
 			for _, ip := range safeIPsCopy {
-				if _, allowed := policy.allowedIPs[ip]; !allowed {
-					continue
-				}
-				if err := validateDialIP(ip, policy.scheme, policy.allowLoopback); err != nil {
-					lastErr = err
+				if _, allowed := allowedIPs[ip]; !allowed {
 					continue
 				}
 				conn, err := dialFn(dialCtx, network, net.JoinHostPort(ip, port))
@@ -653,96 +639,6 @@ func (b *pooledResponseBody) Close() error {
 	return err
 }
 
-func resolveAndValidateEndpoint(ctx context.Context, resolver endpointHostResolver, rawURL string, allowLoopback bool) (validatedEndpointDestination, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	if resolver == nil {
-		resolver = net.DefaultResolver
-	}
-	parsed, err := parseNormalizedEndpointURL(rawURL)
-	if err != nil {
-		return validatedEndpointDestination{}, err
-	}
-	host := strings.ToLower(parsed.Hostname())
-	port := effectiveURLPort(parsed)
-	if parsed.Scheme != "https" {
-		if parsed.Scheme != "http" || !allowLoopback {
-			return validatedEndpointDestination{}, fmt.Errorf("endpointsec: HTTPS required for endpoint %q", rawURL)
-		}
-		if !isLoopbackEndpointHost(host) {
-			return validatedEndpointDestination{}, fmt.Errorf("endpointsec: HTTP endpoint host %q is not loopback", host)
-		}
-	}
-	ips, err := resolver.LookupHost(ctx, host)
-	if err != nil {
-		return validatedEndpointDestination{}, fmt.Errorf("endpointsec: DNS resolution failed for %q: %w", host, err)
-	}
-	safeIPs := make([]string, 0, len(ips))
-	safeIPSet := make(map[string]struct{}, len(ips))
-	for _, ipStr := range ips {
-		ip := net.ParseIP(ipStr)
-		if ip == nil {
-			continue
-		}
-		if parsed.Scheme == "http" && !ip.IsLoopback() {
-			return validatedEndpointDestination{}, fmt.Errorf("endpointsec: resolved IP %s for %q is not loopback", ipStr, host)
-		}
-		if !allowLoopback && ip.IsLoopback() {
-			if parsed.Scheme == "http" {
-				return validatedEndpointDestination{}, fmt.Errorf("endpointsec: resolved IP %s for %q is loopback and allow_loopback_provider_endpoint=false", ipStr, host)
-			}
-			continue
-		}
-		if err := checkEndpointIP(ip); err != nil {
-			if parsed.Scheme == "http" {
-				return validatedEndpointDestination{}, fmt.Errorf("endpointsec: resolved IP %s for %q is blocked: %w", ipStr, host, err)
-			}
-			continue
-		}
-		canonical := ip.String()
-		if _, dup := safeIPSet[canonical]; dup {
-			continue
-		}
-		safeIPSet[canonical] = struct{}{}
-		safeIPs = append(safeIPs, canonical)
-	}
-	if len(safeIPs) == 0 {
-		return validatedEndpointDestination{}, fmt.Errorf("endpointsec: no safe IP found for %q", host)
-	}
-	return validatedEndpointDestination{
-		parsed:    parsed,
-		scheme:    parsed.Scheme,
-		host:      host,
-		port:      port,
-		safeIPs:   safeIPs,
-		safeIPSet: safeIPSet,
-	}, nil
-}
-
-func parseNormalizedEndpointURL(rawURL string) (*url.URL, error) {
-	trimmed := strings.TrimSpace(rawURL)
-	if trimmed == "" {
-		return nil, fmt.Errorf("endpointsec: empty URL")
-	}
-	parsed, err := url.Parse(trimmed)
-	if err != nil {
-		return nil, fmt.Errorf("endpointsec: invalid URL %q: %w", trimmed, err)
-	}
-	if parsed.Host == "" {
-		return nil, fmt.Errorf("endpointsec: URL %q has no host", trimmed)
-	}
-	if parsed.User != nil {
-		return nil, fmt.Errorf("endpointsec: URL %q must not contain userinfo", trimmed)
-	}
-	scheme := strings.ToLower(parsed.Scheme)
-	if scheme != "http" && scheme != "https" {
-		return nil, fmt.Errorf("endpointsec: unsupported scheme %q in URL %q", scheme, trimmed)
-	}
-	parsed.Scheme = scheme
-	return parsed, nil
-}
-
 func effectiveURLPort(u *url.URL) string {
 	if explicit := u.Port(); explicit != "" {
 		return explicit
@@ -751,55 +647,4 @@ func effectiveURLPort(u *url.URL) string {
 		return "443"
 	}
 	return "80"
-}
-
-func validateDialIP(ipStr, scheme string, allowLoopback bool) error {
-	ip := net.ParseIP(ipStr)
-	if err := checkEndpointIP(ip); err != nil {
-		return fmt.Errorf("endpointsec: dial IP %s is blocked: %w", ipStr, err)
-	}
-	if scheme == "http" && !ip.IsLoopback() {
-		return fmt.Errorf("endpointsec: dial IP %s is not loopback for http", ipStr)
-	}
-	if !allowLoopback && ip.IsLoopback() {
-		return fmt.Errorf("endpointsec: dial IP %s is loopback and allow_loopback_provider_endpoint=false", ipStr)
-	}
-	return nil
-}
-
-// checkEndpointIP enforces the exact Phase 1 IP baseline from rule.nimi.runtime.security-core.r033:
-// rejects unspecified, link-local IPv4 (169.254.0.0/16), link-local IPv6 (fe80::/10),
-// and ULA IPv6 (fc00::/7).
-func checkEndpointIP(ip net.IP) error {
-	if ip == nil {
-		return fmt.Errorf("invalid IP address")
-	}
-	if ip.IsUnspecified() {
-		return fmt.Errorf("unspecified address")
-	}
-	if ip4 := ip.To4(); ip4 != nil {
-		if ip4[0] == 169 && ip4[1] == 254 {
-			return fmt.Errorf("link-local IPv4 address")
-		}
-		return nil
-	}
-	if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
-		return fmt.Errorf("link-local IPv6 address")
-	}
-	if len(ip) >= 1 && (ip[0]&0xfe) == 0xfc {
-		return fmt.Errorf("ULA IPv6 address (fc00::/7)")
-	}
-	return nil
-}
-
-func isLoopbackEndpointHost(host string) bool {
-	lower := strings.ToLower(strings.TrimSpace(host))
-	if lower == "localhost" {
-		return true
-	}
-	ip := net.ParseIP(host)
-	if ip == nil {
-		return false
-	}
-	return ip.IsLoopback()
 }

@@ -127,7 +127,7 @@ const embedding = createNimiRuntimeEmbeddingClient({
     async executeScenario(request) {
       embeddingCalls.push(request);
       return {
-        output: { output: { oneofKind: 'textEmbed', textEmbed: { vectors: [{ values: [0.1, 0.2] }] } } },
+        output: { output: { oneofKind: 'textEmbed', textEmbed: { vectors: [{ values: [0.1, 0.2] }], spaceId: 'consumer-embedding-space' } } },
         finishReason: 1,
         usage: { inputTokens: '1', outputTokens: '0', computeMs: '2' },
         routeDecision: 1,
@@ -140,6 +140,7 @@ const embedding = createNimiRuntimeEmbeddingClient({
 });
 const embedded = await embedding.embedText({ values: ['consumer query'] });
 assert.deepEqual(embedded.embeddings, [[0.1, 0.2]]);
+assert.equal(embedded.spaceId, 'consumer-embedding-space');
 assert.deepEqual(embeddingCalls[0].head, {
   appId: 'consumer-app',
   subjectUserId: 'consumer-user',

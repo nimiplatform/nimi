@@ -80,6 +80,7 @@ type scenarioJobRecord struct {
 	job                     *runtimev1.ScenarioJob
 	resolvedAssembly        *localResolvedAssembly
 	cloudAssembly           *cloudResolvedAssembly
+	ephemeralCustody        bool
 	ephemeralCustodyRelease func()
 	localAppOwner           *localAppJobOwner
 	musicSubmission         *localAppMusicSubmission
@@ -129,6 +130,17 @@ func (record *scenarioJobRecord) takeEphemeralCustodyRelease() func() {
 	release := record.ephemeralCustodyRelease
 	record.ephemeralCustodyRelease = nil
 	return release
+}
+
+// The durable nonterminal assembly retains its opaque reference until a
+// terminal write commits, even if the live worker already released the secret.
+func (record *scenarioJobRecord) detachEphemeralCustodyRef() string {
+	if !record.ephemeralCustody || record.cloudAssembly == nil {
+		return ""
+	}
+	ref := record.cloudAssembly.CredentialCustodyRef
+	record.cloudAssembly.CredentialCustodyRef = ""
+	return ref
 }
 
 func runModelAssetReleases(releases []func()) {
@@ -333,15 +345,16 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsWithCustodyModeChecke
 		job:                     cloneScenarioJob(job),
 		resolvedAssembly:        capturedAssembly,
 		cloudAssembly:           capturedCloudAssembly,
+		ephemeralCustody:        releaseEphemeralCustody != nil,
 		ephemeralCustodyRelease: releaseEphemeralCustody,
 		localAppOwner:           cloneLocalAppJobOwner(owner),
-		musicSubmission:  cloneLocalAppMusicSubmission(submission),
-		events:           make([]*runtimev1.ScenarioJobEvent, 0, 8),
-		subscribers:      make(map[uint64]chan *runtimev1.ScenarioJobEvent),
-		done:             make(chan struct{}),
-		cancel:           cancel,
-		createdAt:        nowTime,
-		updatedAt:        nowTime,
+		musicSubmission:         cloneLocalAppMusicSubmission(submission),
+		events:                  make([]*runtimev1.ScenarioJobEvent, 0, 8),
+		subscribers:             make(map[uint64]chan *runtimev1.ScenarioJobEvent),
+		done:                    make(chan struct{}),
+		cancel:                  cancel,
+		createdAt:               nowTime,
+		updatedAt:               nowTime,
 	}
 	if job.GetExecutionMode() == runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB {
 		record.dispatchPossible = proto.Bool(job.GetSubmissionOutcome() == runtimev1.ScenarioJobSubmissionOutcome_SCENARIO_JOB_SUBMISSION_OUTCOME_ACCEPTED)
@@ -893,9 +906,8 @@ func (s *scenarioJobStore) transitionWithResults(
 		record.resultCandidate = nil
 	}
 	clearedEphemeralCustodyRef := ""
-	if record.ephemeralCustodyRelease != nil && isTerminalScenarioJobStatus(record.job.GetStatus()) && record.cloudAssembly != nil && strings.TrimSpace(record.cloudAssembly.CredentialCustodyRef) != "" {
-		clearedEphemeralCustodyRef = record.cloudAssembly.CredentialCustodyRef
-		record.cloudAssembly.CredentialCustodyRef = ""
+	if isTerminalScenarioJobStatus(record.job.GetStatus()) {
+		clearedEphemeralCustodyRef = record.detachEphemeralCustodyRef()
 	}
 	var persistenceErr error
 	var ids []string
@@ -1555,11 +1567,15 @@ func (s *scenarioJobStore) finishExecution(jobID string) (bool, error) {
 	record.executionStarted = false
 	cancel := record.cancel
 	record.cancel = nil
+	// Ephemeral credentials belong to live execution, independently of the
+	// durability of the last trustworthy Job status.
+	if releaseEphemeral := record.takeEphemeralCustodyRelease(); releaseEphemeral != nil {
+		defer releaseEphemeral()
+	}
 	if record.cancelRequested && !isTerminalScenarioJobStatus(record.job.GetStatus()) {
 		previousJob := cloneScenarioJob(record.job)
 		previousUpdatedAt := record.updatedAt
 		previousTerminalAt := record.terminalAt
-		clearedEphemeralCustodyRef := ""
 		record.job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
 		applyScenarioDispatchFacts(record)
 		record.job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
@@ -1569,10 +1585,7 @@ func (s *scenarioJobStore) finishExecution(jobID string) (bool, error) {
 		record.updatedAt = nowTime
 		record.terminalAt = nowTime
 		record.job.UpdatedAt = timestamppb.New(nowTime)
-		if record.ephemeralCustodyRelease != nil && record.cloudAssembly != nil && strings.TrimSpace(record.cloudAssembly.CredentialCustodyRef) != "" {
-			clearedEphemeralCustodyRef = record.cloudAssembly.CredentialCustodyRef
-			record.cloudAssembly.CredentialCustodyRef = ""
-		}
+		clearedEphemeralCustodyRef := record.detachEphemeralCustodyRef()
 		persistErr := s.retainTerminalMusicLocked(record)
 		if persistErr == nil {
 			persistErr = s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistCancellation, JobID: id, Status: record.job.GetStatus()})
@@ -1599,12 +1612,8 @@ func (s *scenarioJobStore) finishExecution(jobID string) (bool, error) {
 		s.pruneLocked(nowTime)
 	}
 	var releases []func()
-	var releaseEphemeral func()
 	if isTerminalScenarioJobStatus(record.job.GetStatus()) {
 		releases = record.takeModelAssetUses()
-		if record.cloudAssembly == nil || strings.TrimSpace(record.cloudAssembly.CredentialCustodyRef) == "" {
-			releaseEphemeral = record.takeEphemeralCustodyRelease()
-		}
 	}
 	var releaseWork func()
 	if record.localAppOwner != nil && record.localAppOwner.workPermit != nil {
@@ -1612,9 +1621,6 @@ func (s *scenarioJobStore) finishExecution(jobID string) (bool, error) {
 	}
 	s.mu.Unlock()
 	runModelAssetReleases(releases)
-	if releaseEphemeral != nil {
-		releaseEphemeral()
-	}
 	if cancel != nil {
 		cancel()
 	}

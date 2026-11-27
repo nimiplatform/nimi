@@ -191,6 +191,46 @@ function toCallOptions(timeoutMs: number | undefined): CallOptions {
   return { deadline: Date.now() + timeoutMs };
 }
 
+async function waitForImmediateRuntimeConnection(
+  grpc: GrpcModule,
+  client: Client,
+  request: RuntimeNodeGrpcBridgeRequest,
+  options: CallOptions,
+): Promise<void> {
+  if (!isImmediateExecutionMethod(request.methodId)) return;
+  const channel = client.getChannel();
+  const states = grpc.connectivityState;
+  while (!request.signal?.aborted) {
+    const state = channel.getConnectivityState(true);
+    if (state === states.READY) return;
+    if (state === states.TRANSIENT_FAILURE || state === states.SHUTDOWN) {
+      throw toTransportError(
+        'RUNTIME_GRPC_UNAVAILABLE',
+        'Could not connect to Runtime before submitting the request.',
+        { methodId: request.methodId },
+        { actionHint: 'retry_or_check_runtime_daemon', retryable: true },
+      );
+    }
+    await new Promise<void>((resolve, reject) => {
+      const onAbort = () => resolve();
+      request.signal?.addEventListener('abort', onAbort, { once: true });
+      channel.watchConnectivityState(state, options.deadline ?? Infinity, (error) => {
+        request.signal?.removeEventListener('abort', onAbort);
+        if (error) {
+          reject(toTransportError(
+            'RUNTIME_GRPC_DEADLINE_EXCEEDED',
+            'The deadline expired before connecting to Runtime.',
+            { methodId: request.methodId },
+            { actionHint: 'retry_or_check_runtime_daemon', retryable: true },
+          ));
+        } else {
+          resolve();
+        }
+      });
+    });
+  }
+}
+
 function assertMethodKind(methodId: string, actual: string, expected: string): void {
   if (actual !== expected) {
     throw toTransportError(
@@ -244,6 +284,8 @@ export function createRuntimeNodeGrpcTransport(
       return options.bridge.unary(request);
     }
     const runtime = await ensureRuntime();
+    const callOptions = toCallOptions(request.timeoutMs);
+    await waitForImmediateRuntimeConnection(runtime.grpc, runtime.client, request, callOptions);
     return new Promise<Uint8Array>((resolve, reject) => {
       let responseBytes: Uint8Array | undefined;
       let statusSeen = false;
@@ -294,7 +336,7 @@ export function createRuntimeNodeGrpcTransport(
         (value) => Uint8Array.from(value),
         request.body,
         toGrpcMetadata(runtime.grpc, request.metadata),
-        toCallOptions(request.timeoutMs),
+        callOptions,
         (error: ServiceError | null, response?: Uint8Array) => {
           if (error) {
             rejectOnce(normalizeServiceError(runtime.grpc, error));
@@ -366,6 +408,8 @@ export function createRuntimeNodeGrpcTransport(
       return options.bridge.serverStream(request);
     }
     const runtime = await ensureRuntime();
+    const callOptions = toCallOptions(request.timeoutMs);
+    await waitForImmediateRuntimeConnection(runtime.grpc, runtime.client, request, callOptions);
     if (request.signal?.aborted) {
       throw toTransportError(
         'OPERATION_ABORTED',
@@ -384,7 +428,7 @@ export function createRuntimeNodeGrpcTransport(
       (value) => Uint8Array.from(value),
       request.body,
       toGrpcMetadata(runtime.grpc, request.metadata),
-      toCallOptions(request.timeoutMs),
+      callOptions,
     );
     return nodeGrpcReadableStream(
       runtime.grpc,

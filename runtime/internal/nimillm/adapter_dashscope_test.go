@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -383,6 +384,7 @@ func testBackendStreamSynthesizeSpeechDashScopeCosyVoiceUsesWebSocketProtocol(t 
 	}
 	captureCh := make(chan capture, 1)
 	errCh := make(chan error, 1)
+	var dispatches atomic.Int32
 	server := httptest.NewServer(websocket.Handler(func(conn *websocket.Conn) {
 		var got capture
 		got.authHeader = strings.TrimSpace(conn.Request().Header.Get("Authorization"))
@@ -399,6 +401,10 @@ func testBackendStreamSynthesizeSpeechDashScopeCosyVoiceUsesWebSocketProtocol(t 
 
 		var ok bool
 		if got.run, ok = receive("run-task"); !ok {
+			return
+		}
+		if dispatches.Load() != 1 {
+			errCh <- fmt.Errorf("provider received run-task before dispatch observation")
 			return
 		}
 		runHeader, _ := got.run["header"].(map[string]any)
@@ -459,7 +465,8 @@ func testBackendStreamSynthesizeSpeechDashScopeCosyVoiceUsesWebSocketProtocol(t 
 	backend := newBackend("cloud-dashscope", server.URL, "test-api-key", nil, 10*time.Second, nil, false, true)
 	var chunks [][]byte
 	started := time.Now()
-	usage, finish, err := backend.StreamSynthesizeSpeech(context.Background(), model, &runtimev1.SpeechSynthesizeScenarioSpec{
+	ctx := WithProviderDispatchObserver(context.Background(), func() { dispatches.Add(1) })
+	usage, finish, err := backend.StreamSynthesizeSpeech(ctx, model, &runtimev1.SpeechSynthesizeScenarioSpec{
 		Text:         "你好，Nimi。",
 		Language:     "zh",
 		AudioFormat:  "mp3",

@@ -150,7 +150,7 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 			return rpcctx.ServerShutdownError()
 		}
 		if firstPacketTimedOut.Load() && !firstPacketSeen.Load() {
-			cause = grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
+			cause = grpcerr.WrapWithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, cause, grpcerr.ReasonOptions{})
 		}
 		if deliveryCause := deliveryFailure.durableCause(); deliveryCause != nil {
 			cause = deliveryCause

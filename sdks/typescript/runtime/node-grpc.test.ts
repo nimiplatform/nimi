@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import { getEventListeners } from 'node:events';
+import { createServer } from 'node:net';
 import * as grpc from '@grpc/grpc-js';
 import test from 'node:test';
+import { createNimiRuntimeAIModel } from '../core/ai';
+import { textPart } from '../core/contracts';
 
 import {
   AccountEventType,
@@ -21,7 +24,7 @@ import {
   ListAgentsRequest,
   ListAgentsResponse,
 } from '../core-generated/runtime-protobuf/runtime/v1/agent_service';
-import { StreamScenarioEvent } from '../core-generated/runtime-protobuf/runtime/v1/ai';
+import { ExecuteScenarioRequest, ExecuteScenarioResponse, StreamScenarioEvent, StreamScenarioRequest } from '../core-generated/runtime-protobuf/runtime/v1/ai';
 import { Runtime } from './index';
 import { createRuntimeNodeGrpcTransport, type RuntimeNodeGrpcBridge } from './node-grpc';
 import { ReasonCode } from '../types';
@@ -358,6 +361,92 @@ test('node-grpc Runtime transport rejects authorization in caller metadata', asy
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_TRANSPORT_INVALID
       && String((error as { message?: string }).message || '').includes('transport auth channel'),
   );
+});
+
+test('node-grpc reports an unavailable Runtime before submitting immediate AI calls', async () => {
+  const socket = createServer();
+  await new Promise<void>((resolve, reject) => {
+    socket.once('error', reject);
+    socket.listen(0, '127.0.0.1', resolve);
+  });
+  const address = socket.address();
+  assert.ok(address && typeof address === 'object');
+  await new Promise<void>((resolve, reject) => {
+    socket.close((error) => error ? reject(error) : resolve());
+  });
+  const runtime = new Runtime({
+    transport: { type: 'node-grpc', endpoint: `127.0.0.1:${address.port}` },
+  });
+  const request = {
+    head: { appId: 'nimi.app', subjectUserId: 'user-1', timeoutMs: 5000 },
+    scenarioType: ScenarioType.TEXT_GENERATE,
+    extensions: [],
+  };
+  const verifyFailure = (error: unknown) => {
+    const failure = error as { reasonCode?: string; interruption?: unknown; message?: string };
+    assert.equal(failure.reasonCode, 'RUNTIME_GRPC_UNAVAILABLE');
+    assert.equal(failure.interruption, undefined);
+    assert.doesNotMatch(failure.message ?? '', /charges/i);
+    return true;
+  };
+  await assert.rejects(runtime.ai.executeScenario({ ...request, executionMode: ExecutionMode.SYNC }), verifyFailure);
+  const stream = runtime.ai.streamScenario({ ...request, executionMode: ExecutionMode.STREAM });
+  await assert.rejects(stream[Symbol.asyncIterator]().next(), verifyFailure);
+
+  const model = createNimiRuntimeAIModel({ runtime, appId: 'nimi.app', timeoutMs: 5000 });
+  const input = { messages: [{ role: 'user' as const, content: [textPart('Say hello.')] }] };
+  await assert.rejects(model.generateText(input), verifyFailure);
+  await assert.rejects(model.streamText(input)[Symbol.asyncIterator]().next(), verifyFailure);
+});
+
+test('the public model preserves uncertain outcomes after a loopback gRPC server receives its calls', async (t) => {
+  const server = new grpc.Server();
+  t.after(() => server.forceShutdown());
+  const unavailable = { code: grpc.status.UNAVAILABLE, details: 'connection lost during execution' };
+  let receivedUnary = 0;
+  let receivedStream = 0;
+  server.addService({
+    execute: {
+      path: '/nimi.runtime.v1.RuntimeAiService/ExecuteScenario', requestStream: false, responseStream: false,
+      requestSerialize: (value: ExecuteScenarioRequest) => Buffer.from(ExecuteScenarioRequest.toBinary(value)),
+      requestDeserialize: (bytes: Buffer) => ExecuteScenarioRequest.fromBinary(bytes),
+      responseSerialize: (value: ExecuteScenarioResponse) => Buffer.from(ExecuteScenarioResponse.toBinary(value)),
+      responseDeserialize: (bytes: Buffer) => ExecuteScenarioResponse.fromBinary(bytes),
+    },
+    stream: {
+      path: '/nimi.runtime.v1.RuntimeAiService/StreamScenario', requestStream: false, responseStream: true,
+      requestSerialize: (value: StreamScenarioRequest) => Buffer.from(StreamScenarioRequest.toBinary(value)),
+      requestDeserialize: (bytes: Buffer) => StreamScenarioRequest.fromBinary(bytes),
+      responseSerialize: (value: StreamScenarioEvent) => Buffer.from(StreamScenarioEvent.toBinary(value)),
+      responseDeserialize: (bytes: Buffer) => StreamScenarioEvent.fromBinary(bytes),
+    },
+  }, {
+    execute: (_call: unknown, callback: grpc.sendUnaryData<ExecuteScenarioResponse>) => {
+      receivedUnary += 1;
+      callback(unavailable);
+    },
+    stream: (call: grpc.ServerWritableStream<StreamScenarioRequest, StreamScenarioEvent>) => {
+      receivedStream += 1;
+      call.emit('error', unavailable);
+    },
+  });
+  const port = await new Promise<number>((resolve, reject) => {
+    server.bindAsync('127.0.0.1:0', grpc.ServerCredentials.createInsecure(), (error, value) => error ? reject(error) : resolve(value));
+  });
+  const runtime = new Runtime({ transport: { type: 'node-grpc', endpoint: `127.0.0.1:${port}` } });
+  const model = createNimiRuntimeAIModel({ runtime, appId: 'nimi.app', timeoutMs: 5000 });
+  const input = { messages: [{ role: 'user' as const, content: [textPart('Say hello.')] }] };
+  const verifyFailure = (error: unknown) => {
+    const failure = error as { retryable?: boolean; interruption?: { resubmitDisposition?: string }; message?: string };
+    assert.equal(failure.retryable, false);
+    assert.equal(failure.interruption?.resubmitDisposition, 'outcome-uncertain');
+    assert.match(failure.message ?? '', /charges/i);
+    return true;
+  };
+  await assert.rejects(model.generateText(input), verifyFailure);
+  await assert.rejects(model.streamText(input)[Symbol.asyncIterator]().next(), verifyFailure);
+  assert.equal(receivedUnary, 1);
+  assert.equal(receivedStream, 1);
 });
 
 test('node-grpc projects OUTCOME_UNCERTAIN without inferring restart when submitted immediate AI call loses transport', async () => {

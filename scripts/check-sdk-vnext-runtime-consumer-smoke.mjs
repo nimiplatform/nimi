@@ -74,8 +74,8 @@ const transport = {
   async unary(request) {
     lastUnaryRequest = request;
     request.responseMetadataObserver?.({ 'x-nimi-runtime-version': '0.6.0' });
-    assert.equal(request.methodId, '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth');
-    return { status: 3 };
+    assert.equal(request.methodId, '/nimi.runtime.v1.RuntimeAiService/ListScenarioProfiles');
+    return { profiles: [] };
   },
   async *serverStream(request) {
     request.responseMetadataObserver?.({ 'x-nimi-runtime-version': '0.6.0' });
@@ -95,8 +95,8 @@ const nodeGrpcRuntime = createRuntime({
     bridge: {
       async unary(request) {
         assert.equal(request.endpoint, '127.0.0.1:46371');
-        assert.equal(request.methodId, '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth');
-        return Uint8Array.from([8, RuntimeHealthStatus.READY]);
+        assert.equal(request.methodId, '/nimi.runtime.v1.RuntimeAiService/ListScenarioProfiles');
+        return new Uint8Array();
       },
       async *serverStream() {
         throw new Error('unexpected node-grpc bridge stream');
@@ -104,7 +104,7 @@ const nodeGrpcRuntime = createRuntime({
     },
   },
 });
-assert.equal((await nodeGrpcRuntime.ready()).status, RuntimeHealthStatus.READY);
+assert.deepEqual(await nodeGrpcRuntime.ai.listScenarioProfiles({}), { profiles: [] });
 assert.equal(RUNTIME_AI_METHODS.includes('executeScenario'), true);
 assert.equal(ScenarioType.TEXT_GENERATE, 1);
 assert.deepEqual([...NIMI_FIRST_RUN_PHASES], ['storage']);
@@ -126,12 +126,31 @@ assert.equal(buildRuntimeAgentRequestContext({
   runtimeSourceRef: 'agent-1',
   localAgentRef: 'local-agent:runtime-owned-1',
 }).appId, 'consumer.app');
-const health = await runtime.ready({ metadata: { traceId: 'trace-consumer' } });
-assert.equal(health.status, 3);
+for (const operation of [() => runtime.health(), () => runtime.ready(), () => nodeGrpcRuntime.ready()]) {
+  await assert.rejects(operation, {
+    reasonCode: 'SDK_RUNTIME_METHOD_UNAVAILABLE',
+    actionHint: 'use_admitted_protected_runtime_carrier',
+  });
+}
+assert.equal(lastUnaryRequest, undefined);
+assert.deepEqual(await runtime.ai.listScenarioProfiles({}, { metadata: { traceId: 'trace-consumer' } }), { profiles: [] });
 assert.equal(lastUnaryRequest.metadata.appId, 'consumer.app');
 assert.equal(lastUnaryRequest.metadata.traceId, 'trace-consumer');
 assert.equal(runtime.runtimeVersion(), '0.6.0');
 assert.equal(runtime.versionCompatibility().state, 'compatible');
+
+const hostRuntime = createRuntime({
+  hostOwnedIdentity: true,
+  transport: {
+    async unary(request) {
+      assert.equal(request.methodId, '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth');
+      assert.equal(request.metadata.traceId, 'trace-machine');
+      return { status: RuntimeHealthStatus.READY };
+    },
+    async *serverStream() {},
+  },
+});
+assert.equal((await hostRuntime.ready({ metadata: { traceId: 'trace-machine' } })).status, RuntimeHealthStatus.READY);
 assert.equal('RuntimeCore' in runtimeModule, false);
 assert.equal('core' in runtime, false);
 assert.equal(Object.getPrototypeOf(runtime.generated), null);
@@ -173,13 +192,13 @@ const incompatible = createRuntime({
   transport: {
     async unary(request) {
       request.responseMetadataObserver?.({ 'x-nimi-runtime-version': '1.0.0' });
-      return { status: 3 };
+      return { profiles: [] };
     },
     async *serverStream() {},
   },
 });
 await assert.rejects(
-  () => incompatible.ready(),
+  () => incompatible.ai.listScenarioProfiles({}),
   (error) => isNimiError(error) && error.reasonCode === 'SDK_RUNTIME_VERSION_INCOMPATIBLE',
 );
 
@@ -213,10 +232,10 @@ import {
 
 const transport: CoreTransport = {
   async unary<Response>() {
-    return { status: 3 } as Response;
+    return { profiles: [] } as Response;
   },
   async *serverStream<Response>() {
-    yield { status: 3 } as Response;
+    yield { profiles: [] } as Response;
   },
 };
 
@@ -225,7 +244,8 @@ const runtime: Runtime = createRuntime({
   transport,
 });
 const compatibility: RuntimeVersionCompatibilityStatus = runtime.versionCompatibility();
-const health: Promise<GetRuntimeHealthResponse> = runtime.ready();
+const hostRuntime = createRuntime({ hostOwnedIdentity: true, transport });
+const health: Promise<GetRuntimeHealthResponse> = hostRuntime.ready();
 const localIdentity: RuntimeLocalAgentIdentityProjection = buildRuntimeAgentRequestContext({
   runtimeAppId: 'consumer.app',
   subjectUserId: 'user-1',

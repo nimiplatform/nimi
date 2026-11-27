@@ -485,13 +485,8 @@ func (b *Backend) usesSecuredTransport() bool {
 
 func (b *Backend) newRequest(ctx context.Context, method string, endpoint string, body io.Reader) (*http.Request, error) {
 	if b.enforceEndpointSecurity && !b.usesSecuredTransport() {
-		if err := endpointsec.ValidateEndpoint(ctx, endpoint, b.allowLoopbackEndpoint); err != nil {
-			return nil, grpcerr.WrapWithReasonCode(
-				codes.FailedPrecondition,
-				runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN,
-				err,
-				grpcerr.ReasonOptions{Message: "provider endpoint is not permitted"},
-			)
+		if err := ValidateProviderEndpoint(ctx, endpoint, b.allowLoopbackEndpoint); err != nil {
+			return nil, err
 		}
 	}
 	request, err := http.NewRequestWithContext(ctx, method, endpoint, body)

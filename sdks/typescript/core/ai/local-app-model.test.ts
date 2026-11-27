@@ -357,6 +357,27 @@ test('structured response constraints reach the formal text carrier', async () =
   assert.deepEqual(f.inputs[0].responseFormat, responseFormat);
 });
 
+test('Local App model preserves a structured configuration conflict before dispatch', async () => {
+  const reason = 'ai-config-revision-conflict';
+  for (const structured of [true, false]) {
+    const failure = new Error(reason);
+    if (structured) Object.assign(failure, { reasonCode: reason, retryable: false });
+    const model = createNimiLocalAppTextModel({ text: { async streamTurn() { throw failure; } } });
+    await assert.rejects(model.generateText({ messages: [user] }), (error: unknown) => {
+      assert.ok(isNimiError(error));
+      if (structured) {
+        assert.equal(error.reasonCode, reason);
+        assert.equal(error.message, reason);
+        assert.equal(error.interruption, undefined);
+      } else {
+        assert.equal(error.interruption?.resubmitDisposition, 'outcome-uncertain');
+        assert.match(error.message, /charges/);
+      }
+      return true;
+    });
+  }
+});
+
 test('abort closes the active carrier and projects OUTCOME_UNCERTAIN alongside cancel cause', async () => {
   const waiting = Promise.withResolvers<void>();
   const closed = Promise.withResolvers<void>();

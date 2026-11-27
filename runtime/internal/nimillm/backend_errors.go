@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/endpointsec"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
@@ -236,6 +237,9 @@ func MapProviderRequestError(err error) error {
 	if err == nil {
 		return nil
 	}
+	if errors.Is(err, endpointsec.ErrWebSocketEndpoint) {
+		return wrapSecuredEndpointForbidden(err)
+	}
 	if reason, typed := grpcerr.ExtractReasonCode(err); typed {
 		switch reason {
 		case runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND, runtimev1.ReasonCode_AI_CONNECTOR_DISABLED, runtimev1.ReasonCode_AI_CONNECTOR_INVALID, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED:
@@ -264,7 +268,8 @@ func MapProviderRequestError(err error) error {
 			Message:    "provider request timed out",
 		})
 	}
-	if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
 		return grpcerr.WrapWithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, err, grpcerr.ReasonOptions{
 			ActionHint: "retry_or_check_provider_endpoint",
 			Message:    "provider request timed out",

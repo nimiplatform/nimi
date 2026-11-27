@@ -18,12 +18,14 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/bundledavatar"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	auditservice "github.com/nimiplatform/nimi/runtime/internal/services/audit"
 	authservice "github.com/nimiplatform/nimi/runtime/internal/services/auth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -353,7 +355,10 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 		authservice.WithDesktopSessionManager(manager),
 	)
 	accountService := &protectedDesktopAccountTestService{}
-	auditService := &protectedDesktopAuditTestService{}
+	healthState := health.NewState()
+	healthState.SetStatus(health.StatusReady, "ready")
+	healthState.SetActivity(3, 2)
+	auditService := &protectedDesktopAuditTestService{healthService: auditservice.New(healthState, slog.Default())}
 	localService := &protectedDesktopLocalTestService{}
 	appService := &protectedDesktopAppTestService{}
 	runtimeControlService := &protectedDesktopRuntimeControlTestService{}
@@ -435,6 +440,10 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH || auditService.projectionCalled {
 		t.Fatalf("audit projection without Desktop session reason = %v (present=%v), called=%v err=%v", reason, ok, auditService.projectionCalled, err)
 	}
+	_, err = auditClient.GetRuntimeHealth(machineContext, &runtimev1.GetRuntimeHealthRequest{})
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH {
+		t.Fatalf("health request without Desktop session reason = %v (present=%v), err=%v", reason, ok, err)
+	}
 	dependencyJobCallsWithoutSession := []struct {
 		name string
 		call func() error
@@ -477,6 +486,10 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 	}
 	if len(response.GetDesktopSessionId()) != protectedlocal.IdentifierBytes || len(response.GetRuntimeBootEpoch()) != protectedlocal.IdentifierBytes {
 		t.Fatalf("protected response lengths: session=%d epoch=%d", len(response.GetDesktopSessionId()), len(response.GetRuntimeBootEpoch()))
+	}
+	healthResponse, err := auditClient.GetRuntimeHealth(machineContext, &runtimev1.GetRuntimeHealthRequest{})
+	if err != nil || healthResponse.GetStatus() != runtimev1.RuntimeHealthStatus_RUNTIME_HEALTH_STATUS_READY || healthResponse.GetQueueDepth() != 3 {
+		t.Fatalf("GetRuntimeHealth protected carrier = (%+v, %v)", healthResponse, err)
 	}
 
 	_, err = client.RegisterExternalPrincipal(context.Background(), &runtimev1.RegisterExternalPrincipalRequest{})
@@ -949,9 +962,14 @@ func (*protectedDesktopAccountTestService) BindAuthenticatedRuntimeGeneration(co
 
 type protectedDesktopAuditTestService struct {
 	runtimev1.UnimplementedRuntimeAuditServiceServer
+	healthService              *auditservice.Service
 	projectionCalled           bool
 	authorizationDecisionBound bool
 	rawCalled                  bool
+}
+
+func (service *protectedDesktopAuditTestService) GetRuntimeHealth(ctx context.Context, req *runtimev1.GetRuntimeHealthRequest) (*runtimev1.GetRuntimeHealthResponse, error) {
+	return service.healthService.GetRuntimeHealth(ctx, req)
 }
 
 func (s *protectedDesktopAuditTestService) ListDesktopAuditEvents(ctx context.Context, _ *runtimev1.ListDesktopAuditEventsRequest) (*runtimev1.ListDesktopAuditEventsResponse, error) {

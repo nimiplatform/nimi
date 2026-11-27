@@ -12,7 +12,6 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/endpointsec"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/oklog/ulid/v2"
 	"golang.org/x/net/websocket"
@@ -114,6 +113,11 @@ func (b *Backend) streamDashScopeRealtimeTTS(
 
 	startedAt := time.Now()
 	taskID := strings.ToLower(ulid.Make().String())
+	// The handshake alone does not start synthesis. Mark possible dispatch
+	// before writing the first task frame so a partial write stays uncertain.
+	if observe, _ := ctx.Value(providerDispatchObserverKey{}).(func()); observe != nil {
+		observe()
+	}
 	if err := websocket.JSON.Send(connection, dashScopeRealtimeTTSRunTaskPayload(taskID, modelID, spec, scenarioExtensions)); err != nil {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, MapProviderRequestError(err)
 	}
@@ -389,15 +393,7 @@ func validateDashScopeRealtimeTTSWebSocketURL(ctx context.Context, targetURL str
 	default:
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	if err := endpointsec.ValidateEndpoint(ctx, parsed.String(), allowLoopback); err != nil {
-		return grpcerr.WrapWithReasonCode(
-			codes.FailedPrecondition,
-			runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN,
-			err,
-			grpcerr.ReasonOptions{Message: "provider streaming endpoint is not permitted"},
-		)
-	}
-	return nil
+	return ValidateProviderEndpoint(ctx, parsed.String(), allowLoopback)
 }
 
 func dashScopeRealtimeTTSReadTimeout(scenarioExtensions map[string]any) time.Duration {

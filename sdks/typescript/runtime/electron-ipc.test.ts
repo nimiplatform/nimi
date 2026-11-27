@@ -10,7 +10,8 @@ import {
   GetRuntimeHealthRequest,
   GetRuntimeHealthResponse,
 } from '../core-generated/runtime-protobuf/runtime/v1/audit';
-import { createRuntimeElectronIpcTransport, createNimiRuntimeAgentConsumeClient, Runtime } from './index';
+import { createNimiDesktopFirstPartyRuntimeClients, createRuntimeElectronIpcTransport, createNimiRuntimeAgentConsumeClient, Runtime } from './index';
+import { textPart } from '../core/contracts';
 import { ReasonCode } from '../types';
 
 type ElectronInvoke = (command: string, payload?: unknown) => Promise<unknown>;
@@ -301,6 +302,18 @@ test('electron-ipc Runtime transport fails closed when invoke is unavailable and
         return true;
       },
     );
+    const desktop = createNimiDesktopFirstPartyRuntimeClients({ appId: 'nimi.desktop', transport: { type: 'electron-ipc' } });
+    const model = desktop.externalAIHost.createTextModel();
+    const input = { messages: [{ role: 'user' as const, content: [textPart('Say hello.')] }] };
+    const beforeSubmission = (error: unknown) => {
+      const failure = error as { code?: string; message?: string; interruption?: unknown };
+      assert.equal(failure.code, 'SDK_RUNTIME_ELECTRON_INVOKE_MISSING');
+      assert.equal(failure.interruption, undefined);
+      assert.doesNotMatch(failure.message ?? '', /charges/i);
+      return true;
+    };
+    await assert.rejects(model.generateText(input), beforeSubmission);
+    await assert.rejects(model.streamText(input)[Symbol.asyncIterator]().next(), beforeSubmission);
   } finally {
     restore();
     if (previousTauri) {

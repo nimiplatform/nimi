@@ -692,8 +692,8 @@ func TestSynchronousCloudReducedWritesPreserveCancellationRestartOutcomeAndReten
 			id := "quota-fill-" + time.Now().Format("150405.000000") + "-" + string(rune('a'+(i%26))) + string(rune('a'+(i/26)))
 			h.store.jobs[id] = &scenarioJobRecord{
 				job: &runtimev1.ScenarioJob{
-					JobId: id,
-					Head:  &runtimev1.ScenarioRequestHead{AppId: "app.cloud.write-budget", SubjectUserId: "user-001"},
+					JobId:  id,
+					Head:   &runtimev1.ScenarioRequestHead{AppId: "app.cloud.write-budget", SubjectUserId: "user-001"},
 					Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
 				},
 			}
@@ -795,49 +795,46 @@ func TestImmediateCloudEphemeralCustodyReleasedAcrossAllTerminationPaths(t *test
 		}
 	})
 
-	t.Run("retryPendingTerminal via GetScenarioJob releases ephemeral custody after transient failure", func(t *testing.T) {
-		h, ctx, effective := newHarness(t)
-		var failTerminal atomic.Bool
+	t.Run("ExecuteScenario releases ephemeral custody when terminal writes fail", func(t *testing.T) {
+		var providerCalls atomic.Int32
+		h := newSyncCloudWriteAuditHarness(t, func(w http.ResponseWriter, _ *http.Request) {
+			providerCalls.Add(1)
+			http.Error(w, "provider failed", http.StatusServiceUnavailable)
+		})
+		ctx := scenarioJobUserContext("app.cloud.write-budget", "user-001")
+		var jobID string
 		h.store.persistenceFailure = func(attempt scenarioJobPersistenceAttempt) error {
-			if failTerminal.Load() && attempt.Operation == scenarioJobPersistTransition && attempt.Status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED {
+			if attempt.Operation == scenarioJobPersistTransition && attempt.Status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED {
+				jobID = attempt.JobID
 				return errors.New("injected transient terminal persistence failure")
 			}
 			return nil
 		}
-		job, _, err := h.fixture.service.captureImmediateCloudScenarioJob(
-			ctx, h.execReq.GetHead(), runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
-			runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, effective.modelResolved(), nil, effective.resolvedAssembly,
-		)
-		if err != nil {
-			t.Fatalf("captureImmediateCloudScenarioJob: %v", err)
+		if _, err := h.fixture.service.ExecuteScenario(ctx, h.execReq); err == nil {
+			t.Fatal("ExecuteScenario succeeded despite the provider failure")
 		}
-		ref, err := connector.CredentialCustodyRefForJob(job.GetJobId())
+		if providerCalls.Load() != 1 || jobID == "" {
+			t.Fatalf("ExecuteScenario did not reach the provider and terminal persistence: calls=%d job=%q", providerCalls.Load(), jobID)
+		}
+		ref, err := connector.CredentialCustodyRefForJob(jobID)
 		if err != nil {
 			t.Fatal(err)
 		}
-		failTerminal.Store(true)
-		h.fixture.service.finishCloudScenarioJobFailure(ctx, job.GetJobId(), grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE))
-		h.fixture.service.finishScenarioJobExecution(job.GetJobId())
-
-		// While terminal persistence is still pending, custody stays intact for retry.
-		if current, _ := h.store.get(job.GetJobId()); isTerminalScenarioJobStatus(current.GetStatus()) {
-			t.Fatalf("expected nonterminal job with pendingTerminal, got %s", current.GetStatus())
+		if current, _ := h.store.get(jobID); current.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING {
+			t.Fatalf("last committed Job status = %s, want RUNNING", current.GetStatus())
 		}
-		if secret, err := h.fixture.service.connStore.LoadCredentialCustody(ref); err != nil || secret == "" {
-			t.Fatalf("custody released before pendingTerminal committed: secret=%q err=%v", secret, err)
+		if secret, err := h.fixture.service.connStore.LoadCredentialCustody(ref); err != nil || secret != "" {
+			t.Fatalf("ephemeral custody retained after ExecuteScenario: present=%t err=%v", secret != "", err)
 		}
 
-		failTerminal.Store(false)
-		resp, err := h.fixture.service.GetScenarioJob(ctx, &runtimev1.GetScenarioJobRequest{JobId: job.GetJobId()})
+		h.store.persistenceFailure = nil
+		resp, err := h.fixture.service.GetScenarioJob(ctx, &runtimev1.GetScenarioJobRequest{JobId: jobID})
 		if err != nil || resp.GetJob().GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED {
 			t.Fatalf("GetScenarioJob retryPendingTerminal = %+v err=%v", resp, err)
 		}
-		assembly, ok := h.store.cloudResolvedAssembly(job.GetJobId())
+		assembly, ok := h.store.cloudResolvedAssembly(jobID)
 		if !ok || assembly == nil || assembly.CredentialCustodyRef != "" {
 			t.Fatalf("assembly after retryPendingTerminal = %+v ok=%v, want empty custody ref", assembly, ok)
-		}
-		if secret, err := h.fixture.service.connStore.LoadCredentialCustody(ref); err != nil || secret != "" {
-			t.Fatalf("ephemeral custody leaked after retryPendingTerminal: secret=%q err=%v", secret, err)
 		}
 	})
 

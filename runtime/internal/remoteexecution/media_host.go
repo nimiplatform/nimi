@@ -348,6 +348,7 @@ func cloneRemoteHeaders(input map[string]string) map[string]string {
 	return out
 }
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.r122
 func (h *ProviderMediaHost) StreamSpeech(
 	ctx context.Context,
 	connectorRecord connector.ConnectorRecord,
@@ -386,7 +387,7 @@ func (h *ProviderMediaHost) StreamSpeech(
 		backendModelID = request.ProviderModelID()
 	}
 	extensions := nimillm.ScenarioExtensionPayloadForType(mapped.GetScenarioType(), mapped.GetExtensions())
-	NotifyImmediateDispatch(ctx)
+	dispatchCtx := nimillm.WithProviderDispatchObserver(ctx, func() { NotifyImmediateDispatch(ctx) })
 	attempt := aitelemetry.Begin(ctx)
 	var reportedUsage *runtimev1.UsageStats
 	defer func() { finishCloudAttempt(attempt, reportedUsage, executionErr) }()
@@ -395,7 +396,7 @@ func (h *ProviderMediaHost) StreamSpeech(
 		if request.Adapter() == capabilitydriver.CloudMediaAdapterMistralSpeech {
 			streamSpeech = backend.StreamMistralSpeech
 		}
-		usage, finish, streamErr := streamSpeech(ctx, backendModelID, spec, extensions, func(chunk nimillm.SpeechStreamChunk) error {
+		usage, finish, streamErr := streamSpeech(dispatchCtx, backendModelID, spec, extensions, func(chunk nimillm.SpeechStreamChunk) error {
 			mimeType := strings.TrimSpace(chunk.MIMEType)
 			if mimeType == "" && len(chunk.Bytes) > 0 {
 				mimeType = nimillm.ResolveSpeechArtifactMIME(spec, chunk.Bytes)
@@ -416,7 +417,7 @@ func (h *ProviderMediaHost) StreamSpeech(
 		}
 		return capabilitydriver.CloudMediaTransportResponse{Usage: usage, FinishReason: finish, Streamed: true}, nil
 	}
-	payload, usage, synthErr := backend.SynthesizeSpeech(ctx, backendModelID, spec, extensions)
+	payload, usage, synthErr := backend.SynthesizeSpeech(dispatchCtx, backendModelID, spec, extensions)
 	reportedUsage = usage
 	if synthErr != nil {
 		return capabilitydriver.CloudMediaTransportResponse{}, h.auditedError(audit, dispatchExit(ctx, "error"), synthErr)

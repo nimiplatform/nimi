@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"errors"
+	"net"
 	"strconv"
 	"strings"
 	"sync"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/endpointsec"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	"google.golang.org/grpc"
@@ -257,6 +259,30 @@ func isUncertainCloudImmediateError(ctx context.Context, err error) bool {
 	return true
 }
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.r122
+func immediateProviderConnectionError(ctx context.Context, err error) error {
+	tracker := immediateExecutionTrackerFromContext(ctx)
+	if tracker == nil || !tracker.isCloud.Load() || tracker.dispatchPossible.Load() {
+		return err
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || (reason != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE && reason != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT) {
+		return err
+	}
+	var dialError *net.OpError
+	var dnsError *net.DNSError
+	if !(errors.As(err, &dialError) && dialError.Op == "dial") &&
+		!errors.Is(err, endpointsec.ErrDNSResolution) && !errors.As(err, &dnsError) {
+		return err
+	}
+	retryable := true
+	return grpcerr.WrapWithReasonCode(status.Code(err), reason, err, grpcerr.ReasonOptions{
+		ActionHint: callerMayResubmitActionHint,
+		Retryable:  &retryable,
+		Message:    "The Runtime could not connect to the cloud provider.",
+	})
+}
+
 func (s *Service) projectImmediateExecutionError(ctx context.Context, err error) error {
 	if err == nil {
 		return nil
@@ -277,7 +303,7 @@ func (s *Service) projectImmediateExecutionError(ctx context.Context, err error)
 	if isUncertainCloudImmediateError(ctx, err) {
 		return outcomeUncertainExecutionError(err, false)
 	}
-	return err
+	return immediateProviderConnectionError(ctx, err)
 }
 
 func executionInterruptionFromError(err error) *runtimev1.ExecutionInterruption {

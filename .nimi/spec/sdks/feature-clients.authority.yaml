@@ -734,16 +734,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.package-plane
-  - id: rule.nimi.sdks.feature-clients.r099
-    kind: rule
-    title: The OpenAI adapter is a strict chat bridge
-    modality: must
-    statement: The OpenAI-compatible adapter v1 is a strict Chat Completions compatible migration bridge only, the supported endpoint shape is chat.completions.create in non-streaming and streaming modes, supported inputs are common chat generation parameters, function-tool definitions, tool_choice, response_format, and the message roles system, developer, user, assistant, and tool, tool semantics return OpenAI-style tool_calls without executing tools inside the adapter, the unsupported surfaces are the responses, completions, and embeddings endpoints, OpenAI built-in tools, file search, web search, code interpreter, stored chat completion CRUD, logprobs, more than one choice, general OpenAI API compatibility, and Runtime REST bypass promises, and unsupported behavior fails closed with SDK_ADAPTER_FEATURE_UNSUPPORTED.
-    condition: Whenever the OpenAI-compatible adapter handles requests.
-    failure: Fail closed with the unsupported feature code on unsupported surfaces.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.feature-clients.package-plane
   - id: rule.nimi.sdks.feature-clients.r101
     kind: rule
     title: Local App text candidate generation is one bounded typed operation

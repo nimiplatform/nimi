@@ -110,8 +110,8 @@ func TestCloudProviderWithTargetLoopbackPolicy(t *testing.T) {
 		ProviderModelID: "gpt-4o-mini",
 		AllowLoopback:   false,
 	}, textwire.Directives{})
-	if status.Code(err) != codes.Unavailable {
-		t.Fatalf("expected unavailable when loopback not allowed, got: %v", err)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN || status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected a typed endpoint rejection when loopback is disabled, got: %v", err)
 	}
 
 	text, _, _, _, err := provider.GenerateTextScenarioWithTarget(context.Background(), "gpt-4o-mini", req, "hello", &RemoteTarget{

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
@@ -18,7 +19,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func setupManagedCloudTextOutcomeFixture(t *testing.T, handler http.HandlerFunc) (*managedCloudScenarioTestFixture, *runtimev1.ExecuteScenarioRequest, *runtimev1.StreamScenarioRequest) {
+func setupManagedCloudTextOutcomeFixture(t *testing.T, handler http.HandlerFunc) (*managedCloudScenarioTestFixture, *runtimev1.ExecuteScenarioRequest, *runtimev1.StreamScenarioRequest, *httptest.Server) {
 	t.Helper()
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
@@ -63,7 +64,7 @@ func setupManagedCloudTextOutcomeFixture(t *testing.T, handler http.HandlerFunc)
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
 		Spec:          spec,
 	}
-	return &fixture, execReq, streamReq
+	return &fixture, execReq, streamReq, server
 }
 
 func assertOutcomeUncertainError(t *testing.T, err error, wantCause runtimev1.ExecutionInterruptionCause, wantReason runtimev1.ReasonCode) {
@@ -101,7 +102,7 @@ func assertOutcomeUncertainError(t *testing.T, err error, wantCause runtimev1.Ex
 func TestCloudImmediateTrustworthySuccessAnd4xxRejectionAreNotOutcomeUncertain(t *testing.T) {
 	var failAuth atomic.Bool
 	var calls atomic.Int32
-	fixture, execReq, _ := setupManagedCloudTextOutcomeFixture(t, func(w http.ResponseWriter, _ *http.Request) {
+	fixture, execReq, _, _ := setupManagedCloudTextOutcomeFixture(t, func(w http.ResponseWriter, _ *http.Request) {
 		calls.Add(1)
 		if failAuth.Load() {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -133,12 +134,103 @@ func TestCloudImmediateTrustworthySuccessAnd4xxRejectionAreNotOutcomeUncertain(t
 	}
 }
 
+func TestCloudImmediateDialFailureHasNoBillingUncertainty(t *testing.T) {
+	fixture, execReq, streamReq, provider := setupManagedCloudTextOutcomeFixture(t, http.NotFound)
+	provider.Close()
+	ctx := scenarioJobUserContext("app.cloud.outcome", "user-001")
+	_, err := fixture.service.ExecuteScenario(ctx, execReq)
+	reason, _ := grpcerr.ExtractReasonCode(err)
+	metadata, _ := grpcerr.ExtractReasonMetadata(err)
+	if status.Code(err) != codes.Unavailable || reason != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE ||
+		metadata["action_hint"] != callerMayResubmitActionHint || executionInterruptionFromError(err) != nil {
+		t.Fatalf("ExecuteScenario refused provider connection = %v, want typed unavailable with safe resubmit hint", err)
+	}
+
+	stream := &mockScenarioEventStream{ctx: ctx}
+	if err := fixture.service.StreamScenario(streamReq, stream); err != nil {
+		t.Fatalf("StreamScenario refused provider connection returned %v instead of a terminal failure event", err)
+	}
+	if len(stream.events) == 0 {
+		t.Fatal("StreamScenario emitted no events")
+	}
+	failed := stream.events[len(stream.events)-1].GetFailed()
+	if failed.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE ||
+		failed.GetActionHint() != callerMayResubmitActionHint || failed.GetInterruption() != nil {
+		t.Fatalf("StreamScenario refused provider connection = %v, want unavailable with safe resubmit hint", failed)
+	}
+}
+
+func TestCloudImmediateSpeechStreamDistinguishesConnectionFailureFromLostOutcome(t *testing.T) {
+	for _, dispatched := range []bool{false, true} {
+		name := "no provider connection"
+		if dispatched {
+			name = "connection lost after provider received request"
+		}
+		t.Run(name, func(t *testing.T) {
+			var calls atomic.Int32
+			provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/v1/audio/speech" {
+					http.NotFound(w, r)
+					return
+				}
+				calls.Add(1)
+				conn, _, err := w.(http.Hijacker).Hijack()
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				_ = conn.Close()
+			}))
+			t.Cleanup(provider.Close)
+			fixture := newManagedCloudScenarioTestFixture(t, "mistral", capabilitydriver.MistralVoxtralTTS3, provider.URL+"/v1", Config{
+				AllowLoopbackEndpoint: true,
+			})
+			if !dispatched {
+				provider.Close()
+			}
+			ctx := withCloudScenarioTestIntent(scenarioJobUserContext("app-1", "user-001"), "audio.synthesize", fixture.targetRef)
+			stream := &mockScenarioEventStream{ctx: ctx}
+			err := fixture.service.StreamScenario(&runtimev1.StreamScenarioRequest{
+				Head:          &runtimev1.ScenarioRequestHead{AppId: "app-1", SubjectUserId: "user-001", TimeoutMs: 10_000},
+				ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+				ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+				Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
+					Text:        "Check the speech outcome.",
+					AudioFormat: "mp3",
+					VoiceRef: &runtimev1.VoiceReference{
+						Kind:      runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET,
+						Reference: &runtimev1.VoiceReference_PresetVoiceId{PresetVoiceId: "voice_3142"},
+					},
+				}}},
+			}, stream)
+			if err != nil || len(stream.events) != 2 {
+				t.Fatalf("expected start and terminal failure, got %v, err=%v", stream.events, err)
+			}
+			if started := stream.events[0].GetStarted(); started.GetVoiceOutputMode() != runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_NATIVE_STREAM {
+				t.Fatalf("expected native speech stream, got %v", started)
+			}
+			failed := stream.events[1].GetFailed()
+			if failed.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
+				t.Fatalf("expected provider unavailable, got %v", failed)
+			}
+			if dispatched {
+				if failed.GetInterruption().GetResubmitDisposition() != runtimev1.ExecutionResubmitDisposition_EXECUTION_RESUBMIT_DISPOSITION_OUTCOME_UNCERTAIN ||
+					failed.GetActionHint() != outcomeUncertainActionHint || calls.Load() != 1 {
+					t.Fatalf("expected one attempted provider request and unknown outcome, got %v after %d requests", failed, calls.Load())
+				}
+			} else if failed.GetInterruption() != nil || failed.GetActionHint() != callerMayResubmitActionHint || calls.Load() != 0 {
+				t.Fatalf("expected confirmed pre-dispatch failure, got %v after %d requests", failed, calls.Load())
+			}
+		})
+	}
+}
+
 func TestCloudImmediateRuntimeRestartAfterDispatchReportsOutcomeUncertainWithoutReplay(t *testing.T) {
 	dispatched := make(chan struct{})
 	release := make(chan struct{})
 	var calls atomic.Int32
 
-	fixture, execReq, _ := setupManagedCloudTextOutcomeFixture(t, func(w http.ResponseWriter, r *http.Request) {
+	fixture, execReq, _, _ := setupManagedCloudTextOutcomeFixture(t, func(w http.ResponseWriter, r *http.Request) {
 		calls.Add(1)
 		select {
 		case <-dispatched:
@@ -187,7 +279,7 @@ func TestCloudImmediateRuntimeRunningTimeoutReportsActualCauseAndOutcomeUncertai
 	release := make(chan struct{})
 	var calls atomic.Int32
 
-	fixture, execReq, _ := setupManagedCloudTextOutcomeFixture(t, func(w http.ResponseWriter, r *http.Request) {
+	fixture, execReq, _, _ := setupManagedCloudTextOutcomeFixture(t, func(w http.ResponseWriter, r *http.Request) {
 		calls.Add(1)
 		select {
 		case <-dispatched:
@@ -218,7 +310,7 @@ func TestCloudImmediateRuntimeRunningCancelAfterDispatchPreservesCancelAndOutcom
 	release := make(chan struct{})
 	var calls atomic.Int32
 
-	fixture, execReq, _ := setupManagedCloudTextOutcomeFixture(t, func(w http.ResponseWriter, r *http.Request) {
+	fixture, execReq, _, _ := setupManagedCloudTextOutcomeFixture(t, func(w http.ResponseWriter, r *http.Request) {
 		calls.Add(1)
 		select {
 		case <-dispatched:
@@ -260,7 +352,7 @@ func TestCloudImmediateRuntimeRunningCancelAfterDispatchPreservesCancelAndOutcom
 
 func TestCloudStreamPartialDropAndRestartReportOutcomeUncertainWithoutFabricatedCompletion(t *testing.T) {
 	var calls atomic.Int32
-	fixture, _, streamReq := setupManagedCloudTextOutcomeFixture(t, func(w http.ResponseWriter, r *http.Request) {
+	fixture, _, streamReq, _ := setupManagedCloudTextOutcomeFixture(t, func(w http.ResponseWriter, r *http.Request) {
 		calls.Add(1)
 		w.Header().Set("Content-Type", "text/event-stream")
 		w.WriteHeader(http.StatusOK)

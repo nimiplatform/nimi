@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
@@ -76,10 +76,10 @@ func (h *ProviderDecideHost) ExecuteDecide(
 		return capabilitydriver.CloudDecideTransportResponse{}, h.auditedDecideError(audit, "error", err)
 	}
 	defer clearRequestScopedProviderTarget(remoteTarget)
-	NotifyImmediateDispatch(ctx)
 	attempt := aitelemetry.Begin(ctx)
 	defer func() { finishCloudAttempt(attempt, nil, executionErr) }()
-	body, err := h.transport.DecideWithTarget(ctx, request.ProviderModelID(), request.Body(), remoteTarget)
+	dispatchCtx := nimillm.WithProviderDispatchObserver(ctx, func() { NotifyImmediateDispatch(ctx) })
+	body, err := h.transport.DecideWithTarget(dispatchCtx, request.ProviderModelID(), request.Body(), remoteTarget)
 	if err != nil {
 		return capabilitydriver.CloudDecideTransportResponse{}, h.auditedDecideError(audit, dispatchExit(ctx, "error"), err)
 	}

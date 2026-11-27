@@ -473,10 +473,20 @@ export class Runtime {
     return requireCommittedRuntimeMaterialization(response);
   }
 
-  health(request: GetRuntimeHealthRequest = {}, options: RuntimeTypedCallOptions = {}): Promise<GetRuntimeHealthResponse> {
-    return (this.desktopMachineProduct ?? this.audit).getRuntimeHealth(request, options);
+  /** Reads detailed Runtime health on the admitted Desktop machine transport. */
+  async health(request: GetRuntimeHealthRequest = {}, options: RuntimeTypedCallOptions = {}): Promise<GetRuntimeHealthResponse> {
+    if (!this.desktopMachineProduct) {
+      throw createNimiError({
+        message: 'Detailed Runtime health requires the protected Desktop machine transport.',
+        reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
+        actionHint: 'use_admitted_protected_runtime_carrier',
+        source: 'sdk',
+      });
+    }
+    return this.desktopMachineProduct.getRuntimeHealth(request, options);
   }
 
+  /** Requires a READY result from the protected Desktop machine health operation. */
   async ready(options: RuntimeReadyOptions = {}): Promise<GetRuntimeHealthResponse> {
     const { request, ...callOptions } = options;
     const health = await this.health(request ?? {}, callOptions);

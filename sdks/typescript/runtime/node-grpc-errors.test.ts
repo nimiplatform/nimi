@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { ReasonCode } from '../types';
+import { projectImmediateExecutionFailure } from './immediate-execution-outcome';
 import { collectResponseMetadata, normalizeServiceError } from './node-grpc-errors';
 
 type ErrorInfoInput = {
@@ -115,6 +116,34 @@ test('normalizeServiceError decodes nimi ErrorInfo fields from grpc-status-detai
     grpcCode: grpc.status.UNAVAILABLE,
     grpcDetails: publicMessage,
   });
+});
+
+test('immediate execution preserves a Runtime-proven provider connection failure', () => {
+  const message = 'The Runtime could not connect to the cloud provider.';
+  for (const actionHint of ['resubmit_request', 'check_provider_endpoint_or_local_runtime_health']) {
+    const error = createServiceError(
+      grpc.status.UNAVAILABLE,
+      message,
+      encodeStatus(grpc.status.UNAVAILABLE, message, {
+        reason: ReasonCode.AI_PROVIDER_UNAVAILABLE,
+        metadata: { action_hint: actionHint, retryable: 'true' },
+      }),
+    );
+    const projected = projectImmediateExecutionFailure(normalizeServiceError(grpc, error), {
+      methodId: '/nimi.runtime.v1.RuntimeAiService/ExecuteScenario',
+      submitted: true,
+    });
+    assert.equal(projected.reasonCode, ReasonCode.AI_PROVIDER_UNAVAILABLE);
+    if (actionHint === 'resubmit_request') {
+      assert.equal(projected.message, message);
+      assert.equal(projected.actionHint, actionHint);
+      assert.equal(projected.retryable, true);
+      assert.equal(projected.interruption, undefined);
+    } else {
+      assert.equal(projected.interruption?.resubmitDisposition, 'outcome-uncertain');
+      assert.match(projected.message, /charges/);
+    }
+  }
 });
 
 test('normalizeServiceError maps typed Runtime restart interruption detail', () => {

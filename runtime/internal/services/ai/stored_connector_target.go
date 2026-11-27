@@ -6,7 +6,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
-	"github.com/nimiplatform/nimi/runtime/internal/endpointsec"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
@@ -59,10 +58,8 @@ func resolveStoredConnectorTarget(ctx context.Context, connectorID string, connS
 	if endpoint == "" {
 		endpoint = connector.ResolveEndpoint(rec.Provider, "")
 	}
-	if err := endpointsec.ValidateEndpoint(ctx, endpoint, allowLoopback); err != nil {
-		return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN, err, grpcerr.ReasonOptions{
-			Message: "connector endpoint is not allowed",
-		})
+	if err := nimillm.ValidateProviderEndpoint(ctx, endpoint, allowLoopback); err != nil {
+		return nil, err
 	}
 	return &nimillm.RemoteTarget{
 		ProviderType: rec.Provider, Endpoint: endpoint, APIKey: resolvedCredential.APIKey,

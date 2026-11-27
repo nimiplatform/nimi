@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"math"
 	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
@@ -84,14 +84,14 @@ func (h *ProviderEmbedHost) ExecuteEmbed(
 	vectors := make([]*structpb.ListValue, 0, len(inputs))
 	var inputTokens, outputTokens int64
 	completeUsage := true
+	dispatchCtx := nimillm.WithProviderDispatchObserver(ctx, func() { NotifyImmediateDispatch(ctx) })
 	for offset := 0; offset < len(inputs); offset += batchSize {
 		if err := ctx.Err(); err != nil {
 			return capabilitydriver.CloudEmbedTransportResponse{}, h.auditedEmbedError(audit, dispatchExit(ctx, "error"), err)
 		}
 		batch := inputs[offset:min(offset+batchSize, len(inputs))]
-		NotifyImmediateDispatch(ctx)
 		attempt := aitelemetry.Begin(ctx)
-		values, reportedUsage, err := h.transport.EmbedWithTarget(ctx, request.ProviderModelID(), batch, request.Dimensions(), request.Protocol(), request.Purpose(), remoteTarget)
+		values, reportedUsage, err := h.transport.EmbedWithTarget(dispatchCtx, request.ProviderModelID(), batch, request.Dimensions(), request.Protocol(), request.Purpose(), remoteTarget)
 		finishCloudAttempt(attempt, reportedUsage, err)
 		if err != nil {
 			return capabilitydriver.CloudEmbedTransportResponse{}, h.auditedEmbedError(audit, dispatchExit(ctx, "error"), err)

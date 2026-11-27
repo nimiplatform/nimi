@@ -61,18 +61,7 @@ func newUnaryAuditInterceptor(store *auditlog.Store) grpc.UnaryServerInterceptor
 		}
 		usage, _ := inferUsage(resp)
 
-		if classifyUnaryAuditMode(fullMethod, success) == auditRecordLightweightOnSuccess {
-			store.RecordLightweightRead(auditlog.ReadDiagnosticInput{
-				Timestamp:  startedAt,
-				FullMethod: fullMethod,
-				AppID:      appID,
-				Domain:     domain,
-				Operation:  operation,
-				Capability: capability,
-				CallerKind: callerKind,
-				TraceID:    traceID,
-			})
-		} else {
+		if requiresDurableAudit(fullMethod, success, ordinaryAuditUnaryReads) {
 			payload := map[string]any{
 				"grpc_method": fullMethod, "model_id": modelID, "success": success, "kind": "unary",
 			}
@@ -158,18 +147,7 @@ func newStreamAuditInterceptor(store *auditlog.Store) grpc.StreamServerIntercept
 		reasonCode := reasonCodeFromError(err)
 		success := err == nil && reasonCode == runtimev1.ReasonCode_ACTION_EXECUTED
 
-		if classifyStreamAuditMode(fullMethod, success) == auditRecordLightweightOnSuccess {
-			store.RecordLightweightRead(auditlog.ReadDiagnosticInput{
-				Timestamp:  startedAt,
-				FullMethod: fullMethod,
-				AppID:      appID,
-				Domain:     domain,
-				Operation:  operation,
-				Capability: capability,
-				CallerKind: callerKind,
-				TraceID:    traceID,
-			})
-		} else {
+		if requiresDurableAudit(fullMethod, success, ordinaryAuditStreamReads) {
 			payload := map[string]any{
 				"grpc_method": fullMethod, "model_id": modelID, "success": success, "kind": "stream",
 			}

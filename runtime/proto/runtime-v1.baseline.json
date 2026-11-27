@@ -213,7 +213,7 @@
       "reason": "Authorized pre-release Realm foundation slimdown hard cut retires Post references and Asset/Bundle chat attachment targets; only RESOURCE attachments remain supported. Removed wire numbers and names stay reserved; deploy matching Realm, Runtime, native carriers, SDK, and Kit together.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
-        "heading": "Unreleased \u2014 Realm foundation slimdown (breaking, next 0.x minor)"
+        "heading": "Realm foundation slimdown (0.24.0-rc.12, breaking)"
       }
     },
     {
@@ -223,7 +223,7 @@
       "reason": "Authorized pre-release Realm foundation slimdown hard cut retires Post references and Asset/Bundle chat attachment targets; only RESOURCE attachments remain supported. Removed wire numbers and names stay reserved; deploy matching Realm, Runtime, native carriers, SDK, and Kit together.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
-        "heading": "Unreleased \u2014 Realm foundation slimdown (breaking, next 0.x minor)"
+        "heading": "Realm foundation slimdown (0.24.0-rc.12, breaking)"
       }
     },
     {
@@ -233,7 +233,7 @@
       "reason": "Authorized pre-release Realm foundation slimdown hard cut retires Post references and Asset/Bundle chat attachment targets; only RESOURCE attachments remain supported. Removed wire numbers and names stay reserved; deploy matching Realm, Runtime, native carriers, SDK, and Kit together.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
-        "heading": "Unreleased \u2014 Realm foundation slimdown (breaking, next 0.x minor)"
+        "heading": "Realm foundation slimdown (0.24.0-rc.12, breaking)"
       }
     },
     {
@@ -243,7 +243,7 @@
       "reason": "Authorized pre-release Realm foundation slimdown hard cut retires Post references and Asset/Bundle chat attachment targets; only RESOURCE attachments remain supported. Removed wire numbers and names stay reserved; deploy matching Realm, Runtime, native carriers, SDK, and Kit together.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
-        "heading": "Unreleased \u2014 Realm foundation slimdown (breaking, next 0.x minor)"
+        "heading": "Realm foundation slimdown (0.24.0-rc.12, breaking)"
       }
     },
     {
@@ -253,7 +253,7 @@
       "reason": "Authorized pre-release Realm foundation slimdown hard cut retires Post references and Asset/Bundle chat attachment targets; only RESOURCE attachments remain supported. Removed wire numbers and names stay reserved; deploy matching Realm, Runtime, native carriers, SDK, and Kit together.",
       "migration": {
         "file": "sdks/typescript/CHANGELOG.md",
-        "heading": "Unreleased \u2014 Realm foundation slimdown (breaking, next 0.x minor)"
+        "heading": "Realm foundation slimdown (0.24.0-rc.12, breaking)"
       }
     }
   ]

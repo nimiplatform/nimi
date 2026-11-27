@@ -2,6 +2,7 @@ package nimillm
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -39,7 +40,7 @@ func newSecuredHTTPRequest(ctx context.Context, method string, targetURL string,
 
 func newSecuredHTTPClient(ctx context.Context, targetURL string, allowLoopback bool) (*http.Client, error) {
 	// Fail fast when the configured endpoint itself is forbidden before constructing a request.
-	if err := validateSecuredProviderEndpoint(ctx, targetURL, allowLoopback); err != nil {
+	if err := ValidateProviderEndpoint(ctx, targetURL, allowLoopback); err != nil {
 		return nil, err
 	}
 	client := httpClientWithOutboundGate(ctx, &http.Client{Timeout: defaultHTTPTimeout})
@@ -57,9 +58,18 @@ func wrapSecuredEndpointForbidden(err error) error {
 	)
 }
 
-func validateSecuredProviderEndpoint(ctx context.Context, targetURL string, allowLoopback bool) error {
+func mapSecuredEndpointValidationError(err error) error {
+	if errors.Is(err, endpointsec.ErrDNSResolution) {
+		return MapProviderRequestError(err)
+	}
+	return wrapSecuredEndpointForbidden(err)
+}
+
+// ValidateProviderEndpoint applies the endpoint policy and reports lookup
+// failures as provider connection errors.
+func ValidateProviderEndpoint(ctx context.Context, targetURL string, allowLoopback bool) error {
 	if err := endpointsec.ValidateEndpoint(ctx, targetURL, allowLoopback); err != nil {
-		return wrapSecuredEndpointForbidden(err)
+		return mapSecuredEndpointValidationError(err)
 	}
 	return nil
 }
@@ -67,7 +77,10 @@ func validateSecuredProviderEndpoint(ctx context.Context, targetURL string, allo
 func securedProviderTransport(ctx context.Context, targetURL string, allowLoopback bool) (*http.Transport, error) {
 	transport, err := endpointsec.NewPinnedTransport(ctx, targetURL, allowLoopback)
 	if err != nil {
-		return nil, wrapSecuredEndpointForbidden(err)
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, ctxErr
+		}
+		return nil, mapSecuredEndpointValidationError(err)
 	}
 	return transport, nil
 }

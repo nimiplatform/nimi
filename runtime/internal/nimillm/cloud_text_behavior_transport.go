@@ -20,11 +20,28 @@ import (
 
 type textBehaviorDispatchObserverKey struct{}
 
-// WithTextBehaviorDispatchObserver lets the execution owner observe the actual
-// text POST boundary, after account-model admission and request construction.
-// Inventory reads and requests rejected before dispatch never call observer.
-func WithTextBehaviorDispatchObserver(ctx context.Context, observer func()) context.Context {
-	return context.WithValue(ctx, textBehaviorDispatchObserverKey{}, observer)
+type textBehaviorDispatchObserver struct {
+	start       func()
+	mayDispatch func()
+}
+
+// WithTextBehaviorDispatchObserver observes preparation and possible dispatch
+// of the text POST. Account-model inventory reads are outside this observation.
+func WithTextBehaviorDispatchObserver(ctx context.Context, start, mayDispatch func()) context.Context {
+	return context.WithValue(ctx, textBehaviorDispatchObserverKey{}, textBehaviorDispatchObserver{start, mayDispatch})
+}
+
+func observeTextBehaviorDispatch(request *http.Request) *http.Request {
+	ctx := request.Context()
+	if observer, ok := ctx.Value(textBehaviorDispatchObserverKey{}).(textBehaviorDispatchObserver); ok {
+		if observer.start != nil {
+			observer.start()
+		}
+		if observer.mayDispatch != nil {
+			return request.WithContext(WithProviderDispatchObserver(ctx, observer.mayDispatch))
+		}
+	}
+	return request
 }
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.anthropic-messages-text-behaviors
@@ -233,11 +250,8 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	if err := ctx.Err(); err != nil {
 		return textbehavior.NormalizedResult{}, MapProviderRequestError(err)
 	}
-	if observer, _ := ctx.Value(textBehaviorDispatchObserverKey{}).(func()); observer != nil {
-		observer()
-	}
 	started := time.Now()
-	response, err := backend.do(request)
+	response, err := backend.do(observeTextBehaviorDispatch(request))
 	if err != nil {
 		return textbehavior.NormalizedResult{}, MapProviderRequestError(err)
 	}

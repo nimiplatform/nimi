@@ -6,6 +6,7 @@ package endpointsec
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -16,6 +17,9 @@ import (
 )
 
 type dialContextFunc func(ctx context.Context, network, addr string) (net.Conn, error)
+
+// ErrDNSResolution identifies a lookup failure, distinct from endpoint policy rejection.
+var ErrDNSResolution = errors.New("endpointsec: DNS resolution failed")
 
 // @nimi-authority: definition.nimi.runtime.security-core.endpoint-security-plane
 // @nimi-authority: rule.nimi.runtime.security-core.r033
@@ -28,7 +32,7 @@ type dialContextFunc func(ctx context.Context, network, addr string) (net.Conn, 
 //   - Link-local (169.254.0.0/16, fe80::/10) and ULA (fc00::/7) addresses
 //     are always blocked.
 func ValidateEndpoint(ctx context.Context, rawURL string, allowLoopback bool) error {
-	_, _, err := resolveValidatedEndpoint(ctx, net.DefaultResolver, rawURL, allowLoopback)
+	_, _, err := ResolveValidatedEndpoint(ctx, net.DefaultResolver, rawURL, allowLoopback)
 	return err
 }
 
@@ -54,7 +58,7 @@ func ValidateWebSocketEndpoint(ctx context.Context, rawURL string, allowLoopback
 // Returns an error if the URL fails validation or DNS resolution yields
 // only blocked addresses.
 func NewPinnedTransport(ctx context.Context, rawURL string, allowLoopback bool) (*http.Transport, error) {
-	parsed, safeIPs, err := resolveValidatedEndpoint(ctx, net.DefaultResolver, rawURL, allowLoopback)
+	parsed, safeIPs, err := ResolveValidatedEndpoint(ctx, net.DefaultResolver, rawURL, allowLoopback)
 	if err != nil {
 		return nil, err
 	}
@@ -106,11 +110,14 @@ func newPinnedTransport(parsed *url.URL, safeIPs []string, dialFn dialContextFun
 	return transport
 }
 
-type hostResolver interface {
+// HostResolver resolves the actual destination before an outbound request.
+type HostResolver interface {
 	LookupHost(ctx context.Context, host string) ([]string, error)
 }
 
-func resolveValidatedEndpoint(ctx context.Context, resolver hostResolver, rawURL string, allowLoopback bool) (*url.URL, []string, error) {
+// ResolveValidatedEndpoint returns the destination and its canonical, validated
+// peer addresses for pinned transports. A nil resolver uses the system resolver.
+func ResolveValidatedEndpoint(ctx context.Context, resolver HostResolver, rawURL string, allowLoopback bool) (*url.URL, []string, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -134,10 +141,11 @@ func resolveValidatedEndpoint(ctx context.Context, resolver hostResolver, rawURL
 
 	ips, err := resolver.LookupHost(ctx, host)
 	if err != nil {
-		return nil, nil, fmt.Errorf("endpointsec: DNS resolution failed for %q: %w", host, err)
+		return nil, nil, fmt.Errorf("%w for %q: %w", ErrDNSResolution, host, err)
 	}
 
 	safeIPs := make([]string, 0, len(ips))
+	seen := make(map[string]struct{}, len(ips))
 	for _, ipStr := range ips {
 		ip := net.ParseIP(ipStr)
 		if ip == nil {
@@ -158,7 +166,11 @@ func resolveValidatedEndpoint(ctx context.Context, resolver hostResolver, rawURL
 			}
 			continue
 		}
-		safeIPs = append(safeIPs, ipStr)
+		canonical := ip.String()
+		if _, exists := seen[canonical]; !exists {
+			seen[canonical] = struct{}{}
+			safeIPs = append(safeIPs, canonical)
+		}
 	}
 	if len(safeIPs) == 0 {
 		return nil, nil, fmt.Errorf("endpointsec: no safe IP found for %q", host)

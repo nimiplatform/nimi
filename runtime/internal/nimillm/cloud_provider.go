@@ -2,7 +2,6 @@ package nimillm
 
 import (
 	"context"
-	"log/slog"
 	"net/url"
 	"strings"
 	"time"
@@ -311,23 +310,14 @@ func (p *CloudProvider) backendFromTarget(target *RemoteTarget) *Backend {
 }
 
 func (p *CloudProvider) newTargetBackend(name string, baseURL string, target *RemoteTarget, timeout time.Duration, allowLoopback bool) *Backend {
-	if p == nil || p.connPool == nil {
-		return NewSecuredBackendWithHeaders(name, baseURL, target.APIKey, target.Headers, timeout, allowLoopback)
-	}
 	normalized := normalizeBackendBaseURL(baseURL)
 	if normalized == "" {
 		return nil
 	}
-	started := time.Now()
-	if _, err := p.connPool.resolveAndValidate(context.Background(), normalized, allowLoopback); err != nil {
-		slog.Warn("provider endpoint resolution failed", "backend", name,
-			"failure_class", endpointResolutionFailureClass(err), "elapsed_ms", time.Since(started).Milliseconds())
-		return nil
-	}
+	// The transport validates the actual URL using the request context before
+	// every send. Constructing the backend does not resolve its origin.
 	origin, err := url.Parse(normalized)
 	if err != nil {
-		slog.Warn("provider endpoint resolution failed", "backend", name,
-			"failure_class", endpointResolutionFailureClass(err), "elapsed_ms", time.Since(started).Milliseconds())
 		return nil
 	}
 	transport := &securedHTTPTransport{
@@ -336,9 +326,5 @@ func (p *CloudProvider) newTargetBackend(name string, baseURL string, target *Re
 		pool:          p.connPool,
 		poolScope:     newCloudConnectionScope(target),
 	}
-	backend := newBackend(name, normalized, target.APIKey, target.Headers, timeout, transport, true, allowLoopback)
-	if backend != nil {
-		backend.endpointResolve = time.Since(started)
-	}
-	return backend
+	return newBackend(name, normalized, target.APIKey, target.Headers, timeout, transport, true, allowLoopback)
 }

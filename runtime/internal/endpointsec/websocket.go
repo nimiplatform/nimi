@@ -22,7 +22,7 @@ func DialWebSocket(ctx context.Context, config *websocket.Config, allowLoopback 
 	return dialWebSocket(ctx, config, allowLoopback, net.DefaultResolver, nil)
 }
 
-func dialWebSocket(ctx context.Context, config *websocket.Config, allowLoopback bool, resolver hostResolver, dial dialContextFunc) (*websocket.Conn, net.Conn, error) {
+func dialWebSocket(ctx context.Context, config *websocket.Config, allowLoopback bool, resolver HostResolver, dial dialContextFunc) (*websocket.Conn, net.Conn, error) {
 	if config == nil || config.Location == nil || config.Origin == nil {
 		return nil, nil, fmt.Errorf("%w: incomplete configuration", ErrWebSocketEndpoint)
 	}
@@ -39,8 +39,11 @@ func dialWebSocket(ctx context.Context, config *websocket.Config, allowLoopback 
 	// deadline. A successful connection is detached from this handshake context.
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	parsed, addresses, err := resolveValidatedEndpoint(ctx, resolver, endpoint.String(), allowLoopback)
+	parsed, addresses, err := ResolveValidatedEndpoint(ctx, resolver, endpoint.String(), allowLoopback)
 	if err != nil {
+		if errors.Is(err, ErrDNSResolution) {
+			return nil, nil, err
+		}
 		return nil, nil, fmt.Errorf("%w: %w", ErrWebSocketEndpoint, err)
 	}
 	if dial == nil {

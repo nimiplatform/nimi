@@ -71,11 +71,8 @@ func (p *CloudProvider) executeBedrockTextBehavior(ctx context.Context, model st
 	if err := ctx.Err(); err != nil {
 		return textbehavior.NormalizedResult{}, err
 	}
-	if observer, _ := ctx.Value(textBehaviorDispatchObserverKey{}).(func()); observer != nil {
-		observer()
-	}
 	started := time.Now()
-	response, err := backend.do(request)
+	response, err := backend.do(observeTextBehaviorDispatch(request))
 	if err != nil {
 		return textbehavior.NormalizedResult{}, MapProviderRequestError(err)
 	}

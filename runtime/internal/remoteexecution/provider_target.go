@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/endpointsec"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
@@ -99,11 +98,11 @@ func requestScopedProviderTarget(
 	}
 	endpoint := strings.TrimSpace(connectorRecord.Endpoint)
 	endpoint, workspace := materializeDashScopeSpeechEndpoint(endpoint, target)
-	if err := endpointsec.ValidateEndpoint(ctx, endpoint, allowLoopback); err != nil {
+	if err := nimillm.ValidateProviderEndpoint(ctx, endpoint, allowLoopback); err != nil {
 		credential.MediaStorage.Clear()
 		credential.APIKey = ""
 		credential.Headers = nil
-		return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN, err, grpcerr.ReasonOptions{Message: "connector endpoint is not allowed"})
+		return nil, err
 	}
 	if workspace != "" {
 		credential.Headers = cloneRemoteHeaders(credential.Headers)
