@@ -275,10 +275,7 @@ function DiscoveryAppCard({
         )}
 
         {card.origin ? (
-          <span
-            data-nimi-material="glass-thin"
-            className="nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)] pointer-events-none absolute left-2.5 top-2.5 rounded-full bg-black/72 px-2.5 py-0.5 text-[11px] font-medium text-white"
-          >
+          <span className="pointer-events-none absolute left-2.5 top-2.5 rounded-full bg-black/75 px-2.5 py-0.5 text-[11px] font-medium text-white">
             {t(`Apps.storefront.origin.${card.origin}`)}
           </span>
         ) : null}

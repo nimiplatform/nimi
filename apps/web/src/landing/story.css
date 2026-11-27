@@ -1127,7 +1127,7 @@ body:has(.story-site) .story-stage-guide :is(a, button):focus-visible {
   padding: 6px 10px 6px 18px;
   border-radius: 9999px;
   border-color: rgba(13, 13, 13, 0.05);
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.07), 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 .story-site > .story-nav .story-brand,
@@ -1503,7 +1503,7 @@ body:has(.story-site) .story-stage-guide {
   padding: 7px 8px 7px 11px;
   border-radius: 9999px;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(15, 18, 24, 0.94);
+  background: rgba(15, 18, 24, 0.96);
   color: #f8fafc;
   box-shadow: 0 18px 40px -10px rgba(15, 23, 42, 0.42), 0 4px 12px rgba(15, 23, 42, 0.2);
   transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);

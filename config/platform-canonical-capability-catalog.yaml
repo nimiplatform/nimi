@@ -401,6 +401,9 @@ capabilities:
     section: image
     editorKind: null
     sourceRef: {table: local-adapter-routing, capability: image.upscale}
+    additionalRuntimeTables:
+      - table: provider-capabilities
+        capability: image.upscale
     i18nKeys:
       title: AIConfig.capability.imageUpscale.title
       subtitle: AIConfig.capability.imageUpscale.subtitle
@@ -417,6 +420,9 @@ capabilities:
     section: video
     editorKind: null
     sourceRef: {table: local-adapter-routing, capability: video.upscale}
+    additionalRuntimeTables:
+      - table: provider-capabilities
+        capability: video.upscale
     i18nKeys:
       title: AIConfig.capability.videoUpscale.title
       subtitle: AIConfig.capability.videoUpscale.subtitle

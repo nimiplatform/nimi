@@ -399,10 +399,7 @@ export function WorldSceneViewer({
                     className="block h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02] motion-reduce:transform-none motion-reduce:transition-none"
                     onUnavailable={() => hideMedia(asset.id)}
                   />
-                  <span
-                    data-nimi-material="glass-thin"
-                    className="nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)] pointer-events-none absolute right-2.5 bottom-2.5 inline-flex items-center gap-1 rounded-full bg-black/72 px-2.5 py-1 text-[11px] font-medium text-white opacity-90 transition-opacity duration-150 group-hover:opacity-100"
-                  >
+                  <span className="pointer-events-none absolute right-2.5 bottom-2.5 inline-flex items-center gap-1 rounded-full bg-black/75 px-2.5 py-1 text-[11px] font-medium text-white opacity-90 transition-opacity duration-150 group-hover:opacity-100">
                     <Expand size={12} aria-hidden />
                     {t('WorldDetail.discovery.enlarge')}
                   </span>

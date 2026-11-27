@@ -172,7 +172,7 @@ export const accountCenterCopy = {
   overviewUtilityAccountTitle: ['Profile & account security', '账号资料与安全'],
   overviewUtilityAccountBody: ['Edit your profile, manage friends, privacy, two-step verification, and data.', '资料、好友隐私、密码两步验证与数据导出'],
   overviewUtilityHomeTitle: ['Nimi Home & story worlds', 'Nimi Home 与故事世界'],
-  overviewUtilityHomeBody: ['Meet resident companions, listen to voices, or update the desktop app.', '更新桌面端、试听伙伴原声或浏览完整生态目录'],
+  overviewUtilityHomeBody: ['Meet resident companions, listen to voices, or update Nimi Home.', '更新 Nimi Home、试听伙伴原声或浏览完整生态目录'],
   overviewRuntimeLoadError: ['Could not check your primary host right now. You can still download Nimi Home or retry below.', '暂时无法读取主设备绑定状态。你仍可下载 Nimi Home，或点击重试。'],
   overviewStatusSecurity: ['Account security', '登录与安全'],
   overviewStatusManage: ['Manage', '去设置'],

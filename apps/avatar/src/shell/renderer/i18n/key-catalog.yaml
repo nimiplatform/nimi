@@ -91,7 +91,7 @@ namespaces: &avatar_i18n_key_entries
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
 
   - id: degraded
-    spec_anchor: "rule.nimi.avatar.embodiment.r022"
+    spec_anchor: "rule.nimi.avatar.embodiment.r075"
     description: "Degraded surface: badge / title / summary / recovery + diagnostics for every composition state."
     keys:
       - key: Avatar.degraded.surface_aria
@@ -369,7 +369,7 @@ namespaces: &avatar_i18n_key_entries
         usage: "src/shell/renderer/context-menu/avatar-context-menu.tsx"
 
   - id: shell
-    spec_anchor: "rule.nimi.avatar.embodiment.r021"
+    spec_anchor: "definition.nimi.avatar.embodiment.product-boundary"
     description: "Shell-wide labels."
     keys:
       - key: Avatar.shell.companion_aria

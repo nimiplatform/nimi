@@ -12,7 +12,7 @@ use crate::{
     LocalAppReasonCode,
 };
 
-// @nimi-authority: rule.nimi.runtime.agent-participation.p-agp-011
+// @nimi-authority: rule.nimi.runtime.agent-participation.body-step-symbiosis
 const BODY_STEP_METHOD_ID: &str = "/nimi.runtime.v1.AgentSessionService/StreamLocalAgentBodyStep";
 const BODY_STEP_MAX_REQUEST_BYTES: usize = 2 * 1024 * 1024;
 const BODY_STEP_MAX_TIMEOUT: Duration = Duration::from_secs(600);

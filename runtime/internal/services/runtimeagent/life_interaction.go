@@ -64,7 +64,6 @@ func (l *agentLifeState) beginInteraction(sourceID string, now time.Time, advanc
 // beginNonDisruptiveSessionInteraction records a concurrent pc_work or alarm
 // session activity in ActiveInteractions without interrupting ongoing companion
 // activities or altering BehavioralPosture.
-// @nimi-authority: rule.nimi.runtime.agent-participation.multi-session-life
 func (l *agentLifeState) beginNonDisruptiveSessionInteraction(sourceID string, now time.Time) error {
 	if sourceID == "" {
 		return nil

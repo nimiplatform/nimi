@@ -3,7 +3,7 @@
 //   - Shared isSensitivePath() across read, write, edit, delete, grep, glob, and workspace-files
 //   - Case-folded control-plane file wall (at any depth, normalized against workspaceRoot) forcing allow_once
 //   - Free Shell minimal environment allowlist + recursive .env* secret canary extraction & streaming redaction
-// @nimi-authority: rule.nimi.harness.security-gates.workspace-execution-env
+// @nimi-authority: rule.nimi.harness.assistant.security-gates
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 

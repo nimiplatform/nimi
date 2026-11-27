@@ -711,7 +711,7 @@ function normalizeStandaloneSourceFiles(targetDir, sources) {
       .replace(/^const nimiRepoRoot\s*=.*\r?\n/gmu, '')
       .replace(/^const nimiSdkSourceRoot\s*=.*\r?\n/gmu, '')
       .replace(/^const nimiKitSourceRoot\s*=.*\r?\n/gmu, '')
-      .replace(/^\s*\|\|\s*normalizedId\.includes\(['"]\/nimi-realm\/nimi\/(?:sdks\/typescript|kit)\/['"]\)\r?\n/gmu, '')
+      .replace(/^\s*\|\|\s*normalizedId\.includes\(['"](?:\/[^/'"]+)*\/nimi\/(?:sdks\/typescript|kit)\/['"]\)\r?\n/gmu, '')
       .replace(/^\s*\{\s*find:\s*\/\^@nimiplatform\\\/(?:sdk|kit).*replacement:\s*path\.resolve\(nimi(?:Sdk|Kit)SourceRoot.*\r?\n/gmu, '')
       .replace(/\n\s*server:\s*\{\s*\n\s*fs:\s*\{\s*\n\s*allow:\s*\[\s*\n\s*appRoot,\s*\n\s*nimiRepoRoot,\s*\n\s*\],\s*\n\s*\},\s*\n\s*\},?/mu, '\n');
     if (!content.includes('appRoot')) content = content.replace(/^const appRoot\s*=.*\r?\n/gmu, '');
@@ -735,7 +735,7 @@ function assertNoStandaloneParentSources(targetDir, sources) {
     if (!hasProjectFile(targetDir, relativePath, sources)) continue;
     const source = readProjectText(targetDir, relativePath, sources);
     if (
-      /nimiRepoRoot|nimiSdkSourceRoot|nimiKitSourceRoot|\/nimi-realm\/nimi\/(?:sdks|kit)\//u.test(source)
+      /nimiRepoRoot|nimiSdkSourceRoot|nimiKitSourceRoot|(?:\/[^/'"]+)*\/nimi\/(?:sdks|kit)\//u.test(source)
       || /find:\s*\/\^@nimiplatform\\\/(?:sdk|kit)(?:\\\/|\$)/u.test(source)
       || /server\s*:\s*\{[\s\S]*?fs\s*:\s*\{[\s\S]*?allow\s*:/u.test(source)
       || /@source\s+["'][^"']*\/nimi\/kit\//u.test(source)

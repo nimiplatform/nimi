@@ -60,6 +60,5 @@ Runtime 会为各个阶段提供具体的诊断反馈，让开发者和高级用
 - [`.nimi/spec/desktop/ai-consumption.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/ai-consumption.authority.yaml)
 - [`.nimi/spec/runtime/rpc-foundations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/rpc-foundations.authority.yaml)
 - [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)
-- [`.nimi/spec/runtime/media-upscale.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/media-upscale.authority.yaml)
 - [`config/runtime-managed-image-backend-packages.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/runtime-managed-image-backend-packages.yaml)
 - [`runtime/catalog/source/providers/local`](https://github.com/nimiplatform/nimi/blob/main/runtime/catalog/source/providers/local)

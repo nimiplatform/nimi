@@ -115,7 +115,6 @@
     "check:no-ai-profile-provider-model-constants": "node scripts/check-no-ai-profile-provider-model-constants.mjs",
     "check:no-desktop-as-user-facing-name": "node scripts/check-no-desktop-as-user-facing-name.mjs",
     "check:home-shell-no-runtime-internal-import": "node scripts/check-home-shell-no-runtime-internal-import.mjs",
-    "check:home-shell-aiscoperef-required": "node scripts/check-home-shell-aiscoperef-required.mjs",
     "check:install-gateway-no-admission-authority": "node scripts/check-install-gateway-no-admission-authority.mjs",
     "check:no-app-realm-rest-bypass": "node scripts/check-no-app-realm-rest-bypass.mjs",
     "check:app-identity-surfaces": "node scripts/check-app-identity-surfaces.mjs",

@@ -60,6 +60,5 @@ When an application submits an inference task:
 - [`.nimi/spec/desktop/ai-consumption.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/ai-consumption.authority.yaml)
 - [`.nimi/spec/runtime/rpc-foundations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/rpc-foundations.authority.yaml)
 - [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)
-- [`.nimi/spec/runtime/media-upscale.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/media-upscale.authority.yaml)
 - [`config/runtime-managed-image-backend-packages.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/runtime-managed-image-backend-packages.yaml)
 - [`runtime/catalog/source/providers/local`](https://github.com/nimiplatform/nimi/blob/main/runtime/catalog/source/providers/local)

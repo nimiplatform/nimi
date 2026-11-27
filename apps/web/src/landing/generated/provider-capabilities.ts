@@ -2,7 +2,7 @@
  * @generated
  * Sources:
  *   config/runtime-provider-capabilities.yaml
- *     sha256: 90b40c5728131cbca400b20c5fb231448155b7da8e369b8c18f2f1f53bbc0daf
+ *     sha256: a14dacf51b220fef2e0636b89abd1be22c0f7f906d3046b6dd1d50119c82c609
  *   config/runtime-provider-catalog.yaml
  *     sha256: 639e1efe3ad8e9f7ee28104301e256f15e712f6c0dae9658e34703868a98427b
  * Generator: apps/web/scripts/generate-landing-data.mjs
@@ -30,6 +30,7 @@ export type AdmittedCapability =
   | "audio.transcribe"
   | "audio.voice.convert"
   | "image.generate"
+  | "image.upscale"
   | "music.generate"
   | "music.transcribe"
   | "realtime.interact"
@@ -37,6 +38,7 @@ export type AdmittedCapability =
   | "text.embed"
   | "text.generate"
   | "video.generate"
+  | "video.upscale"
   | "vision.locate"
   | "voice.create"
   | "world.generate";
@@ -49,6 +51,7 @@ export const ADMITTED_CAPABILITIES = [
   "audio.transcribe",
   "audio.voice.convert",
   "image.generate",
+  "image.upscale",
   "music.generate",
   "music.transcribe",
   "realtime.interact",
@@ -56,6 +59,7 @@ export const ADMITTED_CAPABILITIES = [
   "text.embed",
   "text.generate",
   "video.generate",
+  "video.upscale",
   "vision.locate",
   "voice.create",
   "world.generate",
@@ -291,7 +295,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: false,
     endpointRequirement: "empty_string_only",
     inventoryMode: "static_source",
-    capabilities: ["audio.separate", "audio.synthesize", "audio.transcribe", "audio.voice.convert", "image.generate", "music.generate", "music.transcribe", "text.embed", "text.generate", "video.generate", "vision.locate", "voice.create"],
+    capabilities: ["audio.separate", "audio.synthesize", "audio.transcribe", "audio.voice.convert", "image.generate", "image.upscale", "music.generate", "music.transcribe", "text.embed", "text.generate", "video.generate", "video.upscale", "vision.locate", "voice.create"],
     sources: ["K-LOCAL-001", "K-LOCAL-002", "K-MCAT-027"],
   },
   {

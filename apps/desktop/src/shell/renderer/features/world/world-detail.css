@@ -659,7 +659,7 @@
   top: 0;
   z-index: 10;
   padding: 10px 28px;
-  background: color-mix(in srgb, var(--world-reader-bg) 90%, transparent);
+  background: color-mix(in srgb, var(--world-reader-bg) 96%, transparent);
   border-bottom: 1px solid var(--world-reader-rule);
 }
 
@@ -1109,7 +1109,7 @@
   position: sticky;
   bottom: 0;
   z-index: 5;
-  background: color-mix(in srgb, var(--world-reader-bg) 92%, transparent);
+  background: color-mix(in srgb, var(--world-reader-bg) 96%, transparent);
   border-top: 1px solid var(--world-reader-rule);
 }
 

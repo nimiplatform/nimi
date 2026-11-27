@@ -12,7 +12,8 @@
  *   element: __<element>
  *   modifier: --<modifier>
  *
- * Per rule.nimi.avatar.embodiment.r022 the shell renders exactly one of:
+ * Per definition.nimi.avatar.embodiment.product-boundary and
+ * rule.nimi.avatar.embodiment.r075 the shell renders exactly one of:
  * embodiment-stage under ready,
  * OR degraded-surface under loading / degraded:* / error:* /
  * relaunch-pending. Retired `.avatar-stage*`, `.avatar-shell--*`,

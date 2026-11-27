@@ -320,7 +320,7 @@ const alarmSelectColumns = `
 
 // CreateAlarm creates a deterministic alarm (`at`, `delay`, `cron`) or an
 // authorized App trigger delegation (`app_delegation`, NEVER abusing app.activity).
-// @nimi-authority: rule.nimi.runtime.agent-participation.deterministic-alarms
+// @nimi-authority: rule.nimi.runtime.agent-participation.r008
 func (s *Service) CreateAlarm(ctx context.Context, req *runtimev1.CreateAlarmRequest) (*runtimev1.CreateAlarmResponse, error) {
 	decision, err := s.authorize(ctx, localappop.OperationAgentTriggerAlarmCreate)
 	if err != nil {
@@ -997,7 +997,7 @@ func (st *Store) claimAlarmOccurrence(ctx context.Context, accountID, alarmID, o
 //   - Fatigue auto-sleep at unack_streak >= 3 (incremented ONLY on successful delivery!)
 //   - Atomic pre-execution daily background LLM token budget reservation when requires_llm == true
 //
-// @nimi-authority: rule.nimi.runtime.agent-participation.deterministic-alarms
+// @nimi-authority: rule.nimi.runtime.agent-participation.r008
 func (s *Service) TickAlarms(ctx context.Context, now time.Time) ([]AlarmFireResult, error) {
 	nowUTC := now.UTC()
 	nowStr := formatRFC3339(nowUTC)

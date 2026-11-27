@@ -267,7 +267,12 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       table: 'local-adapter-routing',
       capability: 'image.upscale',
     }),
-    additionalRuntimeTables: Object.freeze([]),
+    additionalRuntimeTables: Object.freeze([
+      Object.freeze({
+        table: 'provider-capabilities',
+        capability: 'image.upscale',
+      }),
+    ]),
     i18nKeys: Object.freeze({
       title: 'AIConfig.capability.imageUpscale.title',
       subtitle: 'AIConfig.capability.imageUpscale.subtitle',
@@ -517,7 +522,12 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       table: 'local-adapter-routing',
       capability: 'video.upscale',
     }),
-    additionalRuntimeTables: Object.freeze([]),
+    additionalRuntimeTables: Object.freeze([
+      Object.freeze({
+        table: 'provider-capabilities',
+        capability: 'video.upscale',
+      }),
+    ]),
     i18nKeys: Object.freeze({
       title: 'AIConfig.capability.videoUpscale.title',
       subtitle: 'AIConfig.capability.videoUpscale.subtitle',

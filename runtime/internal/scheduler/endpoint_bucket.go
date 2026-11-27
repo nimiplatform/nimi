@@ -11,7 +11,7 @@ import (
 )
 
 // Priority defines execution priority within a physical inference endpoint bucket.
-// @nimi-authority: rule.nimi.runtime.agent-participation.endpoint-bucketed-scheduler
+// @nimi-authority: rule.nimi.runtime.agent-participation.shared-execution-admission
 type Priority uint8
 
 const (

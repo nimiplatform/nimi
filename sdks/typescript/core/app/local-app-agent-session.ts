@@ -62,7 +62,7 @@ function assertAgentSessionMethod(methodId: unknown): asserts methodId is string
   }
 }
 
-// @nimi-authority: rule.nimi.runtime.agent-participation.p-agp-011
+// @nimi-authority: rule.nimi.platform.core-protocol.agent-session-operations
 export function createNimiLocalAppAgentSessionClient(
   shell: NimiLocalAppAgentSessionShell,
 ): NimiLocalAppAgentSessionClient {

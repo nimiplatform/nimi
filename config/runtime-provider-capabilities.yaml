@@ -344,11 +344,13 @@ providers:
       - audio.transcribe
       - audio.voice.convert
       - image.generate
+      - image.upscale
       - music.generate
       - music.transcribe
       - text.embed
       - text.generate
       - video.generate
+      - video.upscale
       - vision.locate
       - voice.create
     sources:

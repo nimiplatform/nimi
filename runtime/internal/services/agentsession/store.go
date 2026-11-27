@@ -38,7 +38,7 @@ var (
 // Store manages the physically isolated sessions.db (WAL + synchronous=FULL)
 // with a single-writer pool and a concurrent read-only pool for FTS5 BM25
 // routing queries outside write transactions.
-// @nimi-authority: rule.nimi.runtime.agent-participation.sessions-db-isolation
+// @nimi-authority: rule.nimi.runtime.agent-participation.r001
 type Store struct {
 	path    string
 	writeDB *sql.DB

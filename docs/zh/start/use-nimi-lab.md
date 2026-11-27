@@ -91,7 +91,6 @@ Web 端提供已实现的 AI 工作台、App AIConfig、运行记录、Agent Cen
 - [`apps/lab/src/lab/lab-non-success.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-non-success.ts)
 - [`apps/lab/NIMI_APP.md`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/NIMI_APP.md)
 - [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)
-- [`.nimi/spec/runtime/media-upscale.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/media-upscale.authority.yaml)
 - [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)
 - [`apps/lab/src/lab/lab-only/upscale.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-only/upscale.ts)
 - [`apps/lab/src/studio-modules/studio-media/parameter-panel.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/studio-modules/studio-media/parameter-panel.tsx)

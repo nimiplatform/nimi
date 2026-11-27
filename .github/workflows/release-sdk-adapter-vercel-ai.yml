@@ -112,7 +112,7 @@ jobs:
           shopt -s nullglob
           tarballs=(dist/component-release/sdk-adapter-vercel-ai/*.tgz)
           test "${#tarballs[@]}" -eq 1
-          npm publish "${tarballs[0]}" --access public --dry-run
+          npm publish "${tarballs[0]}" --access public --tag "$(node scripts/release/component-version.mjs --npm-tag sdks/typescript/adapters/vercel-ai/package.json)" --dry-run
       - name: Require published SDK for tag publication
         if: steps.release.outputs.production == 'true'
         run: |
@@ -179,5 +179,5 @@ jobs:
             remote_sha1="$(printf '%s' "${remote_sha1}" | tr -d '"[:space:]')"
             test "${remote_sha1}" = "${local_sha1}"
           else
-            npm publish "${tarballs[0]}" --access public --provenance
+            npm publish "${tarballs[0]}" --access public --tag "$(node scripts/release/component-version.mjs --npm-tag sdks/typescript/adapters/vercel-ai/package.json)" --provenance
           fi

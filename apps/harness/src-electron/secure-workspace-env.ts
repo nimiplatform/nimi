@@ -7,7 +7,7 @@
 //   Gate 6: Overlapping workspace write mutex + persistent pre-write snapshots & conflict-checked restore
 //   Gate 7: Redirected Spill directory (2 GiB / 14d recursive LRU) + 256 KiB UTF-8 byte frame ceiling
 // Fail-closed invariant (Fork 4): on Windows & macOS, missing native security host NEVER silently falls back.
-// @nimi-authority: rule.nimi.harness.security-gates.workspace-execution-env
+// @nimi-authority: rule.nimi.harness.assistant.security-gates
 import { createHash, randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';

@@ -51,8 +51,6 @@ import {
 } from '../domain/visit-journal.js';
 import { MAX_UTOPIA_ZHIYU_DRAFT_CHARS } from '../domain/desktop-open.js';
 
-// @nimi-authority: rule.nimi.runtime.agent-service.canonical-agent-conversation-authority
-
 export type LocalChatDraftState = Readonly<{
   readonly agentHandle: NimiUtopiaResident['agentHandle'];
   readonly displayName: string;
@@ -160,6 +158,7 @@ type MountedConversation = {
   pending?: Promise<boolean>;
 };
 
+// @nimi-authority: rule.nimi.runtime.agent-service.r010
 function LazyMountedFormalConversation(props: {
   readonly agentHandle: NimiUtopiaResident['agentHandle'];
   readonly displayName: string;
