@@ -64,7 +64,7 @@ func (f *Facade) CommitSessionPointer(
 		return false, errors.New("commit session pointer: missing or invalid milestone delivery ID")
 	}
 	summary := strings.TrimSpace(topicSummary)
-	if !validRef(localAgentRef) || !validRef(workSessionRef) || summary == "" {
+	if !validRef(localAgentRef) || !validRef(workSessionRef) {
 		return false, nil
 	}
 	if isTaintedSessionPointerSource(bodyKind) {
@@ -78,6 +78,18 @@ func (f *Facade) CommitSessionPointer(
 
 	unlock := f.bridge.lockAgent(localAgentRef)
 	defer unlock()
+
+	if summary != "" {
+		if checker := f.bridge.getSessionRestrictionChecker(); checker != nil {
+			restricted, checkErr := checker(ctx, localAgentRef, workSessionRef)
+			if checkErr != nil {
+				return false, fmt.Errorf("commit session pointer: check restricted session: %w", checkErr)
+			}
+			if restricted {
+				summary = ""
+			}
+		}
+	}
 
 	key := sessionPointerThrottleKey{localAgentRef: localAgentRef, workSessionRef: workSessionRef}
 	f.pointerThrottleMu.Lock()
@@ -342,4 +354,63 @@ func (f *Facade) ForgetSessionLineage(ctx context.Context, localAgentRef, workSe
 	_ = f.store.disposeSettledOutboxCopies(ctx, localAgentRef)
 	clearThrottle()
 	return uint32(len(outcome.AffectedMemoryRefs)), neutralized, nil
+}
+
+// SetSessionRestrictionChecker installs the fail-closed restricted-session
+// checker on this Facade's Bridge so neither publication nor outbox replay can
+// deliver content-bearing payloads for content-restricted named handoffs into
+// general Memory or indexes.
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.session-pointer-and-delete-session
+func (f *Facade) SetSessionRestrictionChecker(checker SessionRestrictionChecker) {
+	if f == nil || f.bridge == nil {
+		return
+	}
+	f.bridge.SetSessionRestrictionChecker(checker)
+}
+
+// FenceRestrictedSessionLegacyReplay neutralizes pre-migration pending
+// content-bearing outbox envelopes and already-received (not yet remembered)
+// content-bearing Cognition receipts for a content-restricted named handoff
+// session without recording a deleted-session cutoff.
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.session-pointer-and-delete-session
+func (f *Facade) FenceRestrictedSessionLegacyReplay(ctx context.Context, localAgentRef, workSessionRef string) (int64, error) {
+	if f == nil || f.store == nil || !validRef(localAgentRef) || !validRef(workSessionRef) {
+		return 0, nil
+	}
+	unlock := func() {}
+	if f.bridge != nil {
+		unlock = f.bridge.lockAgent(localAgentRef)
+	}
+	defer unlock()
+
+	neutralized, err := f.store.NeutralizeRestrictedSessionOutbox(ctx, localAgentRef, workSessionRef)
+	if err != nil {
+		return 0, err
+	}
+	if f.owner == nil {
+		return neutralized, nil
+	}
+	binding, err := f.store.BindingForAgent(ctx, localAgentRef)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return neutralized, nil
+		}
+		return neutralized, err
+	}
+	if binding.BankRef == "" {
+		return neutralized, nil
+	}
+	if f.authorize != nil {
+		if err := f.authorize(ctx, binding); err != nil {
+			// Still keep the neutralized Runtime outbox state intact when the
+			// agent is currently unauthorized/terminating.
+			return neutralized, nil
+		}
+	}
+	receipts, err := f.owner.NeutralizeRestrictedPendingReceiptsBySource(ctx, binding.BindingRef, binding.BankRef, workSessionRef)
+	if err != nil {
+		return neutralized, err
+	}
+	neutralized += receipts
+	return neutralized, nil
 }

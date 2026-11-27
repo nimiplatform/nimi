@@ -23,6 +23,8 @@ type RecallRequest struct {
 	Query             string
 	Limit             int
 	ScopeTags         []string
+	FilterSlotKeys    bool
+	AllowedSlotKeys   []string
 	Capabilities      CapabilitySnapshot
 }
 
@@ -40,6 +42,8 @@ type recallRouteRequest struct {
 	Query             string
 	Limit             int
 	ScopeTags         []string
+	FilterSlotKeys    bool
+	AllowedSlotKeys   []string
 }
 
 type AIEmbeddingRequest struct {
@@ -116,6 +120,9 @@ func (c *Core) RebuildFTS(ctx context.Context, bankRef string) error {
 		return fmt.Errorf("rebuild memory fts: clear prior index: %w", err)
 	}
 	for _, item := range items {
+		if strings.TrimSpace(item.content) == "" {
+			continue
+		}
 		if _, err := tx.ExecContext(ctx, `INSERT INTO memory_fts(memory_ref, bank_ref, content) VALUES(?, ?, ?)`, item.ref, bankRef, ftsIndexedContent(item.content)); err != nil {
 			return fmt.Errorf("rebuild memory fts: index memory: %w", err)
 		}
@@ -165,18 +172,22 @@ func (c *Core) Recall(ctx context.Context, request RecallRequest, port Embedding
 	if descriptor.Name == PipelineRecallEmbedding {
 		revision = "embedding-1"
 	}
-	if _, err := c.bindRoute(ctx, routeBindingRequest{OperationID: request.OperationID, OperationKind: "recall", BankRef: request.BankRef, Pipeline: descriptor.Name, AlgorithmRevision: revision, Snapshot: request.Capabilities, OperationRequest: recallRouteRequest{IncludeRecentLife: request.IncludeRecentLife, BindingRef: request.BindingRef, LifecycleRef: request.LifecycleRef, Subject: request.Subject, Query: request.Query, Limit: request.Limit, ScopeTags: request.ScopeTags}}); err != nil {
+	if _, err := c.bindRoute(ctx, routeBindingRequest{OperationID: request.OperationID, OperationKind: "recall", BankRef: request.BankRef, Pipeline: descriptor.Name, AlgorithmRevision: revision, Snapshot: request.Capabilities, OperationRequest: recallRouteRequest{IncludeRecentLife: request.IncludeRecentLife, BindingRef: request.BindingRef, LifecycleRef: request.LifecycleRef, Subject: request.Subject, Query: request.Query, Limit: request.Limit, ScopeTags: request.ScopeTags, FilterSlotKeys: request.FilterSlotKeys, AllowedSlotKeys: request.AllowedSlotKeys}}); err != nil {
 		return RecallResult{Outcome: errorOutcome(err), Pipeline: descriptor.Name}, err
 	}
 	var result RecallResult
-	switch descriptor.Name {
-	case PipelineRecallFTS:
-		result, err = c.recallFTS(ctx, request)
-	case PipelineRecallEmbedding:
-		result, err = c.recallEmbedding(ctx, request, port)
-	default:
-		err = contractError(OutcomeUnsupported, "recall_pipeline")
-		result = RecallResult{Outcome: OutcomeUnsupported}
+	if request.FilterSlotKeys && len(normalizedSlotKeys(request.AllowedSlotKeys)) == 0 {
+		result = RecallResult{Outcome: OutcomeNoHits, Pipeline: descriptor.Name}
+	} else {
+		switch descriptor.Name {
+		case PipelineRecallFTS:
+			result, err = c.recallFTS(ctx, request)
+		case PipelineRecallEmbedding:
+			result, err = c.recallEmbedding(ctx, request, port)
+		default:
+			err = contractError(OutcomeUnsupported, "recall_pipeline")
+			result = RecallResult{Outcome: OutcomeUnsupported}
+		}
 	}
 	if err == nil && request.IncludeRecentLife {
 		result, err = c.includeRecentLife(ctx, request, result)
@@ -276,8 +287,19 @@ func (c *Core) recallFTS(ctx context.Context, request RecallRequest) (RecallResu
 		ftsSQL += ` AND ` + scopeClause
 		ftsArgs = append(ftsArgs, scopeArgs...)
 	}
-	ftsSQL += ` ORDER BY bm25(memory_fts), m.updated_at DESC LIMIT ?`
-	ftsArgs = append(ftsArgs, request.Limit)
+	if request.FilterSlotKeys {
+		slotClause, slotArgs := slotKeyFilterClause("m.slot_key", request.AllowedSlotKeys)
+		if slotClause == "" {
+			return RecallResult{Outcome: OutcomeNoHits, Pipeline: PipelineRecallFTS}, nil
+		}
+		// Match ONLY eligible slots; rank strictly over the eligible set so
+		// excluded legacy rows never influence IDF, order, or result limits.
+		ftsSQL += ` AND ` + slotClause + ` ORDER BY m.updated_at DESC, m.memory_ref ASC`
+		ftsArgs = append(ftsArgs, slotArgs...)
+	} else {
+		ftsSQL += ` ORDER BY bm25(memory_fts), m.updated_at DESC LIMIT ?`
+		ftsArgs = append(ftsArgs, request.Limit)
+	}
 	rows, err := tx.QueryContext(ctx, ftsSQL, ftsArgs...)
 	if err != nil {
 		return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallFTS}, fmt.Errorf("recall memory fts: query: %w", err)
@@ -285,6 +307,9 @@ func (c *Core) recallFTS(ctx context.Context, request RecallRequest) (RecallResu
 	hits, err := scanMemories(rows)
 	if err != nil {
 		return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallFTS}, err
+	}
+	if request.FilterSlotKeys && len(hits) > 0 {
+		hits = rankEligibleFTSMemories(request.Query, hits, request.Limit)
 	}
 	if err := populateLineageTx(ctx, tx, hits); err != nil {
 		return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallFTS}, err
@@ -511,6 +536,14 @@ func (c *Core) recallEmbedding(ctx context.Context, request RecallRequest, port 
 		vecSQL += ` AND ` + scopeClause
 		vecArgs = append(vecArgs, scopeArgs...)
 	}
+	if request.FilterSlotKeys {
+		slotClause, slotArgs := slotKeyFilterClause("m.slot_key", request.AllowedSlotKeys)
+		if slotClause == "" {
+			return RecallResult{Outcome: OutcomeNoHits, Pipeline: PipelineRecallEmbedding}, nil
+		}
+		vecSQL += ` AND ` + slotClause
+		vecArgs = append(vecArgs, slotArgs...)
+	}
 	rows, err := tx.QueryContext(ctx, vecSQL, vecArgs...)
 	if err != nil {
 		return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallEmbedding}, fmt.Errorf("recall memory embedding: load vectors: %w", err)
@@ -699,6 +732,127 @@ func scopeTagFilterClause(column string, scopeTags []string) (string, []any) {
 		args[i] = tag
 	}
 	return column + ` IN (` + strings.Join(placeholders, ",") + `)`, args
+}
+
+func normalizedSlotKeys(slotKeys []string) []string {
+	if len(slotKeys) == 0 {
+		return nil
+	}
+	cleaned := make([]string, 0, len(slotKeys))
+	seen := make(map[string]struct{}, len(slotKeys))
+	for _, raw := range slotKeys {
+		key := strings.TrimSpace(raw)
+		if key == "" {
+			continue
+		}
+		if _, dup := seen[key]; dup {
+			continue
+		}
+		seen[key] = struct{}{}
+		cleaned = append(cleaned, key)
+	}
+	return cleaned
+}
+
+func slotKeyFilterClause(column string, slotKeys []string) (string, []any) {
+	cleaned := normalizedSlotKeys(slotKeys)
+	if len(cleaned) == 0 {
+		return "", nil
+	}
+	placeholders := make([]string, len(cleaned))
+	args := make([]any, len(cleaned))
+	for i, key := range cleaned {
+		placeholders[i] = "?"
+		args[i] = key
+	}
+	return column + ` IN (` + strings.Join(placeholders, ",") + `)`, args
+}
+
+func recallTokens(value string) []string {
+	raw := ftsQuery(value)
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, " OR ")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		tok := strings.Trim(part, `"`)
+		if tok != "" {
+			out = append(out, tok)
+		}
+	}
+	return out
+}
+
+// rankEligibleFTSMemories ranks already-authorized eligible memories using ONLY
+// statistics from the eligible candidate set so excluded legacy rows can never
+// alter BM25 IDF, ordering, or result slots.
+func rankEligibleFTSMemories(query string, hits []Memory, limit int) []Memory {
+	qTokens := recallTokens(query)
+	if len(qTokens) == 0 {
+		if limit > 0 && len(hits) > limit {
+			return hits[:limit]
+		}
+		return hits
+	}
+	type docInfo struct {
+		mem    Memory
+		counts map[string]int
+		length int
+	}
+	docs := make([]docInfo, len(hits))
+	df := make(map[string]int, len(qTokens))
+	totalLen := 0
+	for i, hit := range hits {
+		toks := recallTokens(hit.Content)
+		counts := make(map[string]int, len(toks))
+		for _, t := range toks {
+			counts[t]++
+		}
+		for _, qt := range qTokens {
+			if counts[qt] > 0 {
+				df[qt]++
+			}
+		}
+		docs[i] = docInfo{mem: hit, counts: counts, length: len(toks)}
+		totalLen += len(toks)
+	}
+	n := float64(len(docs))
+	avgLen := 1.0
+	if len(docs) > 0 && totalLen > 0 {
+		avgLen = float64(totalLen) / n
+	}
+	const k1, b = 1.2, 0.75
+	scored := make([]scoredMemory, len(docs))
+	for i, doc := range docs {
+		score := 0.0
+		for _, qt := range qTokens {
+			tf := float64(doc.counts[qt])
+			if tf == 0 {
+				continue
+			}
+			idf := math.Log((n-float64(df[qt])+0.5)/(float64(df[qt])+0.5) + 1.0)
+			score += idf * ((tf * (k1 + 1.0)) / (tf + k1*(1.0-b+b*(float64(doc.length)/avgLen))))
+		}
+		scored[i] = scoredMemory{memory: doc.mem, score: score}
+	}
+	sort.SliceStable(scored, func(i, j int) bool {
+		if scored[i].score != scored[j].score {
+			return scored[i].score > scored[j].score
+		}
+		if !scored[i].memory.UpdatedAt.Equal(scored[j].memory.UpdatedAt) {
+			return scored[i].memory.UpdatedAt.After(scored[j].memory.UpdatedAt)
+		}
+		return scored[i].memory.MemoryRef < scored[j].memory.MemoryRef
+	})
+	if limit > 0 && len(scored) > limit {
+		scored = scored[:limit]
+	}
+	out := make([]Memory, len(scored))
+	for i := range scored {
+		out[i] = scored[i].memory
+	}
+	return out
 }
 
 func scanMemories(rows *sql.Rows) ([]Memory, error) {

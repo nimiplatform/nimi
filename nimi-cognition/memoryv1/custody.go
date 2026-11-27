@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 type operationRow struct {
@@ -236,7 +237,7 @@ func committedFactContainsForbiddenMemory(fact CommittedFact) bool {
 	case EventKindRelationship:
 		return fact.Relationship != nil && forbiddenMemoryContent(fact.Relationship.BoundedFact)
 	case EventKindSessionPointer:
-		return fact.SessionPointer != nil && forbiddenMemoryContent(fact.SessionPointer.TopicSummary)
+		return fact.SessionPointer != nil && strings.TrimSpace(fact.SessionPointer.TopicSummary) != "" && forbiddenMemoryContent(fact.SessionPointer.TopicSummary)
 	}
 	return false
 }
@@ -337,7 +338,7 @@ func validateCommittedFact(fact CommittedFact) error {
 			return contractError(OutcomeInvalid, "relationship_fact")
 		}
 	case EventKindSessionPointer:
-		if fact.SessionPointer == nil || !validOpaqueRef(fact.SessionPointer.WorkSessionRef) || !validContent(fact.SessionPointer.TopicSummary) {
+		if fact.SessionPointer == nil || !validOpaqueRef(fact.SessionPointer.WorkSessionRef) || (fact.SessionPointer.TopicSummary != "" && !validContent(fact.SessionPointer.TopicSummary)) {
 			return contractError(OutcomeInvalid, "session_pointer_fact")
 		}
 		if fact.SessionPointer.ScopeTag != "" && fact.SessionPointer.ScopeTag != ScopeTagSessionPointer {
@@ -488,6 +489,19 @@ func (c *Core) ReceiveNoOpCutoff(
 // sourceValue), eliminating the in-flight DrainOne memory resurrection window.
 // @nimi-authority: rule.nimi.cognition.runtime-bridge.session-pointer-and-delete-session
 func (c *Core) NeutralizePendingReceiptsBySource(ctx context.Context, bindingRef, bankRef, sourceKind, sourceValue string) (int64, error) {
+	return c.neutralizePendingReceiptsBySource(ctx, bindingRef, bankRef, sourceKind, sourceValue, false)
+}
+
+// NeutralizeRestrictedPendingReceiptsBySource wipes payload and settles as
+// no_effect any already-received (not yet remembered) content-bearing
+// memory_receipts for a content-restricted named handoff session, while
+// leaving already content-free opaque session pointers untouched.
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.session-pointer-and-delete-session
+func (c *Core) NeutralizeRestrictedPendingReceiptsBySource(ctx context.Context, bindingRef, bankRef, workSessionRef string) (int64, error) {
+	return c.neutralizePendingReceiptsBySource(ctx, bindingRef, bankRef, "session", workSessionRef, true)
+}
+
+func (c *Core) neutralizePendingReceiptsBySource(ctx context.Context, bindingRef, bankRef, sourceKind, sourceValue string, contentBearingOnly bool) (int64, error) {
 	if !validOpaqueRef(bindingRef) || !validOpaqueRef(bankRef) || sourceKind == "" || sourceValue == "" {
 		return 0, contractError(OutcomeInvalid, "neutralize_pending_receipt_input")
 	}
@@ -523,13 +537,16 @@ func (c *Core) NeutralizePendingReceiptsBySource(ctx context.Context, bindingRef
 		if !matched && sourceKind == "session" && req.Fact.SessionPointer != nil && req.Fact.SessionPointer.WorkSessionRef == sourceValue {
 			matched = true
 		}
-		if !matched && sourceKind == "session" && req.Fact.Correction != nil {
+		if !matched && !contentBearingOnly && sourceKind == "session" && req.Fact.Correction != nil {
 			var err error
 			matched, err = requestHasSessionCutoffTx(ctx, tx, req, nil)
 			if err != nil {
 				_ = rows.Close()
 				return 0, err
 			}
+		}
+		if matched && contentBearingOnly && req.Fact.Kind == EventKindSessionPointer && req.Fact.SessionPointer != nil && strings.TrimSpace(req.Fact.SessionPointer.TopicSummary) == "" {
+			matched = false
 		}
 		if matched {
 			matchingOps = append(matchingOps, opID)

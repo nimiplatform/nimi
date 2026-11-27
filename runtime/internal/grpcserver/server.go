@@ -920,10 +920,15 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	logger.Info("runtime in-process mode enabled")
 
 	cognitionSvc := composeCognitionV1Owner(logger, cfg)
-	var memoryFacade *cognitionmemory.Facade
+	var (
+		memoryStore       *cognitionmemory.Store
+		memoryBridge      *cognitionmemory.Bridge
+		memoryFacade      *cognitionmemory.Facade
+		memoryTermination *cognitionmemory.TerminationService
+	)
 	if cognitionSvc != nil {
 		cognitionSvc.SetAgentSourceEmbeddingExecutor(newAgentSourceEmbeddingExecutor(agentSvc, aiSvc))
-		memoryStore := cognitionmemory.NewStore(backend)
+		memoryStore = cognitionmemory.NewStore(backend)
 		memoryStore.SetEmbeddingDisposer(cognitionMemoryPayloadDisposer(aiSvc))
 		memoryStore.SetAgentEmbeddingDisposer(aiSvc.DisposeAgentMemoryEmbeddingPayloads)
 		memoryCapabilities := newCognitionMemoryCapabilityProvider(backend, agentSvc, aiSvc, memoryStore)
@@ -935,7 +940,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 				return snapshot, err
 			},
 		)
-		memoryBridge := cognitionmemory.NewBridge(memoryStore, memoryOwner, agentSvc.AuthorizeCognitionMemoryBinding)
+		memoryBridge = cognitionmemory.NewBridge(memoryStore, memoryOwner, agentSvc.AuthorizeCognitionMemoryBinding)
 		memoryFacade = cognitionmemory.NewFacade(
 			memoryStore,
 			memoryOwner,
@@ -943,7 +948,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 			agentSvc.AuthorizeCognitionMemoryBinding,
 			memoryCapabilities,
 		)
-		memoryTermination := cognitionmemory.NewTerminationService(memoryStore, memoryOwner)
+		memoryTermination = cognitionmemory.NewTerminationService(memoryStore, memoryOwner)
 		rootActivationID, active, activationErr := localSvc.CurrentProductControlRootActivationID()
 		if activationErr != nil {
 			return nil, fmt.Errorf("resolve Cognition Memory root activation: %w", activationErr)
@@ -957,9 +962,25 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 				logger.Info("Cognition Memory non-portable jobs fenced for data-root activation")
 			}
 		}
+	}
+	var agentSessionSvc *agentsession.Service
+	if protected != nil {
+		// Open sessions.db (running migrateNamedHandoffIsolation) and fence any
+		// pre-migration content-bearing Cognition Memory outbox rows/receipts for
+		// restricted named handoffs BEFORE ConfigureCognitionMemory starts draining.
+		var sessionErr error
+		agentSessionSvc, sessionErr = openProductionAgentSessionService(cfg, logger, aiSvc, agentSvc, memoryFacade, localAppKernel)
+		if sessionErr != nil {
+			return nil, fmt.Errorf("initialize AgentSession owner: %w", sessionErr)
+		}
+	}
+	if cognitionSvc != nil {
 		if err := agentSvc.ConfigureCognitionMemory(memoryStore, memoryBridge, memoryFacade, memoryTermination); err != nil {
 			return nil, fmt.Errorf("configure Cognition Memory owner path: %w", err)
 		}
+	}
+	if agentSessionSvc != nil {
+		startProductionAgentSessionBackgroundWork(agentSessionSvc)
 	}
 	agentSvc.SetSourceCognitionBridge(cognitionSvc)
 	// Observe terminal Account deletion only after the complete local fence and
@@ -1085,13 +1106,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 			return false
 		}
 	}
-	var agentSessionSvc *agentsession.Service
 	if protected != nil {
-		var err error
-		agentSessionSvc, err = buildProductionAgentSessionService(cfg, logger, aiSvc, agentSvc, memoryFacade, localAppKernel)
-		if err != nil {
-			return nil, fmt.Errorf("initialize AgentSession owner: %w", err)
-		}
 		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, realmRealtimeSvc, auditSvc, localSvc, aiSvc, agentSvc, connSvc, externalAgentSvc, appSvc, appSvc, artifactSvc, protected.DesktopSessions, accountSvc, appOwnerAdmission, appSvc, rpcRegistry, desktopRefusals)
 		runtimev1.RegisterRuntimeAppPackageServiceServer(protectedGRPCServer, appSvc)
 		localAppGRPCServer = newProtectedLocalAppRPCServer(runtimeControlSvc, authSvc, accountSvc, realmRealtimeSvc, localSvc, aiSvc, agentSvc, appSvc, rpcRegistry, localAppRefusals)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"hash/fnv"
 	"log/slog"
 	"path/filepath"
@@ -21,6 +22,22 @@ import (
 )
 
 func buildProductionAgentSessionService(
+	cfg config.Config,
+	logger *slog.Logger,
+	aiSvc *aiservice.Service,
+	agentSvc *runtimeagentservice.Service,
+	memoryFacade *cognitionmemory.Facade,
+	kernel *localappkernel.Kernel,
+) (*agentsession.Service, error) {
+	svc, err := openProductionAgentSessionService(cfg, logger, aiSvc, agentSvc, memoryFacade, kernel)
+	if err != nil {
+		return nil, err
+	}
+	startProductionAgentSessionBackgroundWork(svc)
+	return svc, nil
+}
+
+func openProductionAgentSessionService(
 	cfg config.Config,
 	logger *slog.Logger,
 	aiSvc *aiservice.Service,
@@ -144,30 +161,38 @@ func buildProductionAgentSessionService(
 				in.Session.GetTrustTier() == "trusted" &&
 				in.Session.GetSessionKind() == "general_inbox" &&
 				strings.TrimSpace(in.UserText) != "" {
-				recallRes, recallErr := memoryFacade.Recall(ctx, cognitionmemory.RecallIntent{
-					NoModelWork:   true,
-					LocalAgentRef: in.Session.GetAgentBinding(),
-					Query:         in.UserText,
-					Limit:         4,
-					ScopeTags:     []string{memoryv1.ScopeTagSessionPointer},
-				})
-				if recallErr == nil && len(recallRes.Hits) > 0 {
-					ptrs := make([]agentsession.OfflineRecallPointer, 0, len(recallRes.Hits))
-					for i, hit := range recallRes.Hits {
-						ref := strings.TrimPrefix(strings.TrimSpace(hit.SlotKey), "session_ref:")
-						if ref == "" || ref == hit.SlotKey {
-							continue
+				// Authorize eligible non-restricted sessions BEFORE Cognition matches or ranks
+				// pointers so hidden brief content in legacy pointers never affects hits,
+				// ordering, or result limits.
+				eligibleSlots, slotErr := svcRef.EligibleOfflineRecallSlotKeys(ctx, in.CallerDecision, in.Session.GetAgentBinding())
+				if slotErr == nil && len(eligibleSlots) > 0 {
+					recallRes, recallErr := memoryFacade.Recall(ctx, cognitionmemory.RecallIntent{
+						NoModelWork:     true,
+						LocalAgentRef:   in.Session.GetAgentBinding(),
+						Query:           in.UserText,
+						Limit:           4,
+						ScopeTags:       []string{memoryv1.ScopeTagSessionPointer},
+						FilterSlotKeys:  true,
+						AllowedSlotKeys: eligibleSlots,
+					})
+					if recallErr == nil && len(recallRes.Hits) > 0 {
+						ptrs := make([]agentsession.OfflineRecallPointer, 0, len(recallRes.Hits))
+						for i, hit := range recallRes.Hits {
+							ref := strings.TrimPrefix(strings.TrimSpace(hit.SlotKey), "session_ref:")
+							if ref == "" || ref == hit.SlotKey {
+								continue
+							}
+							ptrs = append(ptrs, agentsession.OfflineRecallPointer{
+								WorkSessionRef: ref,
+								TopicSummary:   hit.Content,
+								Score:          float64(len(recallRes.Hits) - i),
+							})
 						}
-						ptrs = append(ptrs, agentsession.OfflineRecallPointer{
-							WorkSessionRef: ref,
-							TopicSummary:   hit.Content,
-							Score:          float64(len(recallRes.Hits) - i),
-						})
-					}
-					if len(ptrs) > 0 {
-						// Always authorize recall strictly against the real caller decision!
-						if frame, _, err := svcRef.BuildOfflineSessionRecallInjection(ctx, in.CallerDecision, in.Session.GetAgentBinding(), ptrs); err == nil {
-							offlineRecall = frame
+						if len(ptrs) > 0 {
+							// Always authorize recall strictly against the real caller decision!
+							if frame, _, err := svcRef.BuildOfflineSessionRecallInjection(ctx, in.CallerDecision, in.Session.GetAgentBinding(), ptrs); err == nil {
+								offlineRecall = frame
+							}
 						}
 					}
 				}
@@ -247,6 +272,74 @@ func buildProductionAgentSessionService(
 			}
 			return kernel.Registrations().BodyNamespaceOwner(ctx, ns)
 		},
+		NamedRecipientResolver: func(ctx context.Context, accountID, appID string) (string, error) {
+			if kernel == nil || strings.TrimSpace(accountID) == "" || strings.TrimSpace(appID) == "" {
+				return "", agentsession.ErrNamedRecipientUnavailable
+			}
+			statuses, err := kernel.Registrations().ListStatuses(ctx)
+			if err != nil {
+				return "", err
+			}
+			var matched []string
+			for _, st := range statuses {
+				if !st.Available || st.State != localappkernel.RegistrationStateActive || st.SourceClass == localappkernel.SourceClassRemote {
+					continue
+				}
+				if st.AppID != appID {
+					continue
+				}
+				reg, err := kernel.Registrations().GetBySubject(ctx, st.RegisteredAppSubject)
+				if err != nil || reg.State != localappkernel.RegistrationStateActive {
+					continue
+				}
+				hasBodyPC := false
+				for _, domain := range reg.ActivatedDomains {
+					if domain == agentsession.DomainAgentBodyPC {
+						hasBodyPC = true
+						break
+					}
+				}
+				if !hasBodyPC {
+					continue
+				}
+				matched = append(matched, reg.RegisteredAppSubject)
+			}
+			if len(matched) == 0 {
+				return "", agentsession.ErrNamedRecipientUnavailable
+			}
+			if len(matched) > 1 {
+				return "", agentsession.ErrNamedRecipientAmbiguous
+			}
+			return matched[0], nil
+		},
+		NamedRecipientVerifier: func(ctx context.Context, accountID, subject, appID string) (bool, error) {
+			if kernel == nil || strings.TrimSpace(accountID) == "" || strings.TrimSpace(subject) == "" {
+				return false, nil
+			}
+			reg, err := kernel.Registrations().GetBySubject(ctx, subject)
+			if err != nil {
+				if errors.Is(err, localappkernel.ErrNotFound) || errors.Is(err, localappkernel.ErrRegistrationUnavailable) || errors.Is(err, localappkernel.ErrRegistrationTombstoned) {
+					return false, nil
+				}
+				return false, err
+			}
+			if reg.State != localappkernel.RegistrationStateActive || reg.SourceClass == localappkernel.SourceClassRemote {
+				return false, nil
+			}
+			if appID != "" && reg.AppID != appID {
+				return false, nil
+			}
+			st, err := kernel.Registrations().Status(ctx, reg.RegistrationHandle)
+			if err != nil || !st.Available {
+				return false, nil
+			}
+			for _, domain := range reg.ActivatedDomains {
+				if domain == agentsession.DomainAgentBodyPC {
+					return true, nil
+				}
+			}
+			return false, nil
+		},
 		AlarmDeliverySender:      alarmDeliverySender,
 		SupportedDeliveryChannel: isDesktopDeliveryChannel,
 		AlarmLLMRunner:           alarmLLMRunner,
@@ -257,6 +350,24 @@ func buildProductionAgentSessionService(
 	}
 	svcRef = svc
 
+	if memoryFacade != nil {
+		// Install fail-closed restricted-session fencing before any outbox replay
+		// or publication can deliver legacy content-bearing named handoff payloads
+		// into general Cognition Memory or indexes.
+		memoryFacade.SetSessionRestrictionChecker(svc.IsSessionContentRestricted)
+		restrictedSessions, listErr := svc.ListRestrictedSessions(context.Background())
+		if listErr != nil {
+			_ = svc.Close()
+			return nil, fmt.Errorf("list restricted sessions for Cognition Memory fencing: %w", listErr)
+		}
+		for _, item := range restrictedSessions {
+			if _, fenceErr := memoryFacade.FenceRestrictedSessionLegacyReplay(context.Background(), item.AgentBinding, item.WorkSessionRef); fenceErr != nil {
+				_ = svc.Close()
+				return nil, fmt.Errorf("fence legacy Cognition Memory replay for restricted session %s: %w", item.WorkSessionRef, fenceErr)
+			}
+		}
+	}
+
 	if agentSvc != nil {
 		agentSvc.SetAgentTerminatedHook(func(ctx context.Context, accountID, localAgentRef string) {
 			if err := svc.EnqueueAndPurgeAgent(ctx, accountID, localAgentRef); err != nil && logger != nil {
@@ -264,10 +375,16 @@ func buildProductionAgentSessionService(
 			}
 		})
 	}
+	return svc, nil
+}
+
+func startProductionAgentSessionBackgroundWork(svc *agentsession.Service) {
+	if svc == nil {
+		return
+	}
 	// Run immediate startup reconciliation for any sessions stuck in 'deleting'
 	// or any agents terminated before SetAgentTerminatedHook was registered.
 	_ = svc.RecoverPendingDeletions(context.Background())
 	_ = svc.RecoverPendingAgentPurges(context.Background())
 	svc.StartAlarmTicker(context.Background(), 15*time.Second)
-	return svc, nil
 }

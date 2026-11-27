@@ -39,6 +39,8 @@ type RecallIntent struct {
 	Query             string
 	Limit             int
 	ScopeTags         []string
+	FilterSlotKeys    bool
+	AllowedSlotKeys   []string
 }
 
 type InspectIntent struct {
@@ -198,7 +200,28 @@ func (f *Facade) Recall(ctx context.Context, intent RecallIntent) (RecallOutcome
 	if limit <= 0 {
 		limit = 8
 	}
-	result, err := f.owner.Recall(ctx, &runtimev1.CognitionMemoryRecallRequest{
+	recallCtx := ctx
+	var allowedSlots map[string]struct{}
+	if intent.FilterSlotKeys {
+		allowedSlots = make(map[string]struct{}, len(intent.AllowedSlotKeys))
+		cleaned := make([]string, 0, len(intent.AllowedSlotKeys))
+		for _, raw := range intent.AllowedSlotKeys {
+			key := strings.TrimSpace(raw)
+			if key == "" {
+				continue
+			}
+			if _, dup := allowedSlots[key]; dup {
+				continue
+			}
+			allowedSlots[key] = struct{}{}
+			cleaned = append(cleaned, key)
+		}
+		if len(cleaned) == 0 {
+			return RecallOutcome{Outcome: memoryv1.OutcomeNoHits, OperationID: operationID}, nil
+		}
+		recallCtx = withRecallSlotKeyFilter(ctx, recallSlotKeyFilter{Enabled: true, AllowedSlotKeys: cleaned})
+	}
+	result, err := f.owner.Recall(recallCtx, &runtimev1.CognitionMemoryRecallRequest{
 		ContractVersion:   memoryv1.ContractVersion,
 		BankBinding:       &runtimev1.CognitionMemoryBankBindingRef{Value: binding.BindingRef},
 		Bank:              &runtimev1.CognitionMemoryBankRef{Value: binding.BankRef},
@@ -217,7 +240,15 @@ func (f *Facade) Recall(ctx context.Context, intent RecallIntent) (RecallOutcome
 		if mapErr != nil {
 			return RecallOutcome{Outcome: memoryv1.OutcomeFailed, OperationID: operationID}, mapErr
 		}
+		if intent.FilterSlotKeys {
+			if _, ok := allowedSlots[strings.TrimSpace(item.SlotKey)]; !ok {
+				continue
+			}
+		}
 		mapped = append(mapped, item)
+	}
+	if intent.FilterSlotKeys && outcome == memoryv1.OutcomeReady && len(mapped) == 0 {
+		outcome = memoryv1.OutcomeNoHits
 	}
 	read := MemoryReadSet{BindingRef: binding.BindingRef, BankRef: binding.BankRef, LifecycleRef: binding.LifecycleRef}
 	for _, hit := range mapped {

@@ -89,6 +89,7 @@ import { ZhiyuResourcePackStatusNotice } from '../../resource-pack/ZhiyuResource
 import type { ZhiyuResourcePackPresentationState } from '../../resource-pack/presentation-controller';
 import { ZhiyuAgentActivityReferences } from './ZhiyuAgentActivityReferences';
 import { ZhiyuHarnessHandoffDialog } from './ZhiyuHarnessHandoffDialog';
+import { hasZhiyuHarnessHandoffBridge } from './zhiyu-harness-handoff';
 
 export type ZhiyuAgentChatSurfaceProps = {
   readonly discovery?: import('react').ReactNode;
@@ -850,7 +851,7 @@ export function ZhiyuAgentChatSurface({
                     onAvatarLaunch={onAvatarLaunch}
                     onOpenAppearance={openAppearanceConfig}
                     onOpenBehavior={openBehaviorConfig}
-                    onOpenHarnessHandoff={hasCurrentPartner ? () => setHarnessHandoffOpen(true) : undefined}
+                    onOpenHarnessHandoff={hasCurrentPartner && hasZhiyuHarnessHandoffBridge() ? () => setHarnessHandoffOpen(true) : undefined}
                   />
                 )}
                 trailingSlot={(
@@ -916,8 +917,9 @@ export function ZhiyuAgentChatSurface({
       </div>
       </div>
       <ZhiyuHarnessHandoffDialog
-        key={evidence.localAgent.agentHandle ?? ''}
+        key={`${evidence.auth.accountId ?? ''}:${evidence.localAgent.agentHandle ?? ''}`}
         open={harnessHandoffOpen}
+        accountScopeKey={evidence.auth.accountId ?? null}
         partnerName={currentPartnerName}
         agentHandle={evidence.localAgent.agentHandle ?? null}
         currentDraft={draft}

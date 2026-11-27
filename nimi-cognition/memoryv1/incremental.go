@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 // @nimi-authority: rule.nimi.cognition.memory.r004
@@ -54,6 +55,9 @@ func (c *Core) prepareEmbeddingDelta(ctx context.Context, operationID, bankRef s
 				_ = rows.Close()
 				return
 			}
+			if strings.TrimSpace(content) == "" {
+				continue
+			}
 			refs, texts = append(refs, ref), append(texts, content)
 		}
 		err = errors.Join(rows.Err(), rows.Close())
@@ -100,6 +104,9 @@ func (c *Core) advanceFTSDelta(ctx context.Context, tx *sql.Tx, bankRef string, 
 			}
 			if err != nil {
 				return err
+			}
+			if strings.TrimSpace(content) == "" {
+				continue
 			}
 			if _, err := tx.ExecContext(ctx, `INSERT INTO memory_fts(memory_ref,bank_ref,content) VALUES(?,?,?)`, ref, bankRef, ftsIndexedContent(content)); err != nil {
 				return err

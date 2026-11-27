@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"unicode/utf8"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -43,14 +44,27 @@ func readerCanAccessSession(decision accountservice.LocalAppCallerDecision, rec 
 		(rec.GetPublisherScopeKey() == scopeKey || strings.HasPrefix(rec.GetPublisherScopeKey(), "channel:"+strings.TrimSpace(decision.RegisteredAppSubject)+":"))
 }
 
-func visibilityForReader(decision accountservice.LocalAppCallerDecision) readerVisibilityFilter {
+func (s *Service) visibilityForReader(ctx context.Context, decision accountservice.LocalAppCallerDecision) readerVisibilityFilter {
+	readerSub := strings.TrimSpace(decision.RegisteredAppSubject)
+	recipientAuthorized := false
+	if readerSub != "" && decision.HasActivatedDomain(DomainAgentBodyPC) {
+		if ok, err := s.verifyNamedRecipient(ctx, decision.AccountID, readerSub, NamedHarnessAppID); err == nil && ok {
+			recipientAuthorized = true
+		}
+	}
 	if hasSessionManage(decision) {
-		return readerVisibilityFilter{FullAccount: true}
+		return readerVisibilityFilter{
+			FullAccount:         true,
+			ReaderSubject:       readerSub,
+			RecipientAuthorized: recipientAuthorized,
+		}
 	}
 	return readerVisibilityFilter{
-		IncludeCompanion: hasCompanionScope(decision),
-		SubjectScopeKey:  subjectScopeKey(decision),
-		ChannelPrefix:    "channel:" + strings.TrimSpace(decision.RegisteredAppSubject) + ":",
+		IncludeCompanion:    hasCompanionScope(decision),
+		SubjectScopeKey:     subjectScopeKey(decision),
+		ChannelPrefix:       "channel:" + readerSub + ":",
+		ReaderSubject:       readerSub,
+		RecipientAuthorized: recipientAuthorized,
 	}
 }
 
@@ -257,8 +271,12 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 		}
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	} else if existing != nil {
-		if existing.WorkSessionRecord != nil && !readerCanAccessSession(decision, existing.WorkSessionRecord) {
-			existing.WorkSessionRecord = nil
+		if existing.WorkSessionRecord != nil {
+			if !readerCanAccessSession(decision, existing.WorkSessionRecord) {
+				existing.WorkSessionRecord = nil
+			} else if row, gErr := s.store.GetSessionIncludingDeleting(ctx, decision.AccountID, existing.WorkSessionRecord.GetWorkSessionRef()); gErr == nil && row != nil {
+				existing.WorkSessionRecord = s.projectSessionForReader(ctx, decision, row)
+			}
 		}
 		return existing, nil
 	}
@@ -337,7 +355,7 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 			if err != nil {
 				return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 			}
-			if !readerCanAccessSession(decision, sess.Record) {
+			if !readerCanAccessSession(decision, sess.Record) || (sess.ContentRestricted && !s.readerCanAccessSessionContent(ctx, decision, sess)) {
 				return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AGENT_SESSION_NOT_FOUND)
 			}
 			targetRow = sess
@@ -427,7 +445,7 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 		if err != nil {
 			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 		}
-		if !readerCanAccessSession(decision, src.Record) {
+		if !readerCanAccessSession(decision, src.Record) || (src.ContentRestricted && !s.readerCanAccessSessionContent(ctx, decision, src)) {
 			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AGENT_SESSION_NOT_FOUND)
 		}
 		// Never promote untrusted/external channel sessions into a trusted PC workspace!
@@ -469,21 +487,36 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 		routeReason = "l2_light_qa_promoted_to_pc_work"
 	}
 
-	if targetRow == nil && !forceGeneralInbox && strings.TrimSpace(req.GetHandoffBriefText()) != "" {
+	if targetRow == nil && !forceGeneralInbox && (entrySurface == "zhiyu_handoff" || strings.TrimSpace(req.GetHandoffBriefText()) != "") {
+		briefText := strings.TrimSpace(req.GetHandoffBriefText())
+		if briefText == "" || utf8.RuneCountInString(briefText) > MaxHandoffBriefRunes {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
+		recipientSubject, rErr := s.resolveNamedRecipient(ctx, decision.AccountID, NamedHarnessAppID)
+		if rErr != nil {
+			if errors.Is(rErr, ErrNamedRecipientAmbiguous) {
+				return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_SESSION_CONFLICT)
+			}
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+		}
 		permMode := "plan-readonly"
 		if req.GetWorkspaceWritable() && strings.TrimSpace(req.GetWorkspaceRoot()) != "" && hasSessionManage(decision) {
 			permMode = "workspace-edit"
 		}
 		targetRow = &sessionRow{
-			AccountID:    decision.AccountID,
-			TopicSummary: deriveSessionTitle(req.GetHandoffBriefText(), req.GetWorkspaceRoot()),
+			AccountID:               decision.AccountID,
+			TopicSummary:            "",
+			HandoffSenderSubject:    strings.TrimSpace(decision.RegisteredAppSubject),
+			HandoffRecipientSubject: recipientSubject,
+			HandoffRecipientAppID:   NamedHarnessAppID,
+			ContentRestricted:       true,
 			Record: &runtimev1.WorkSessionRecord{
 				WorkSessionRef:    newID("ws"),
 				AgentBinding:      agentBinding,
 				SessionKind:       "pc_work",
 				OwnerBodyKind:     DefaultPCNamespace,
 				PublisherScopeKey: callerScope,
-				Title:             deriveSessionTitle(req.GetHandoffBriefText(), req.GetWorkspaceRoot()),
+				Title:             deriveSessionTitle(firstNonEmpty(req.GetText(), briefText), req.GetWorkspaceRoot()),
 				Status:            "active",
 				TrustTier:         "trusted",
 				WorkspaceRoot:     strings.TrimSpace(req.GetWorkspaceRoot()),
@@ -505,7 +538,7 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 				return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 			}
 		}
-		if existing != nil && readerCanAccessSession(decision, existing.Record) {
+		if existing != nil && readerCanAccessSession(decision, existing.Record) && (!existing.ContentRestricted || s.readerCanAccessSessionContent(ctx, decision, existing)) {
 			targetRow = existing
 			existingTargetUpdate = true
 			routeReason = "l2_workspace_root_match"
@@ -540,13 +573,14 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 
 	// --- Layer 3: Local FTS5 Chinese Bigram BM25 + low-entropy short follow-up gate (strictly OUTSIDE write tx!) ---
 	if targetRow == nil && !forceGeneralInbox && strings.TrimSpace(req.GetText()) != "" && !forceNewSession {
-		matches, err := s.store.QueryFTSCandidates(ctx, decision.AccountID, agentBinding, req.GetText(), 5)
+		readerVis := s.visibilityForReader(ctx, decision)
+		matches, err := s.store.QueryFTSCandidates(ctx, decision.AccountID, agentBinding, req.GetText(), readerVis, 5)
 		if err != nil {
 			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 		}
 		var visible []ftsMatch
 		for _, m := range matches {
-			if readerCanAccessSession(decision, m.Row.Record) {
+			if readerCanAccessSession(decision, m.Row.Record) && (!m.Row.ContentRestricted || s.readerCanAccessSessionContent(ctx, decision, m.Row)) {
 				visible = append(visible, m)
 			}
 		}
@@ -583,28 +617,36 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 				heuristicDowngraded = true
 			}
 		} else if isLowEntropyShortFollowUp(req.GetText()) {
-			recentRows, _, _, listErr := s.store.ListSessions(ctx, decision.AccountID, agentBinding, false, []string{"pc_work"}, "active", "", visibilityForReader(decision), 4, "")
-			if listErr == nil && len(recentRows) >= 2 {
-				topN := len(recentRows)
-				if topN > 3 {
-					topN = 3
+			recentRows, _, _, listErr := s.store.ListSessions(ctx, decision.AccountID, agentBinding, false, []string{"pc_work"}, "active", "", readerVis, 8, "")
+			if listErr == nil {
+				var contentVisible []*sessionRow
+				for _, r := range recentRows {
+					if !r.ContentRestricted || s.readerCanAccessSessionContent(ctx, decision, r) {
+						contentVisible = append(contentVisible, r)
+					}
 				}
-				candidates := make([]*runtimev1.SessionRouteCandidate, 0, topN)
-				for _, r := range recentRows[:topN] {
-					candidates = append(candidates, &runtimev1.SessionRouteCandidate{
-						WorkSessionRef: r.Record.GetWorkSessionRef(),
-						Title:          r.Record.GetTitle(),
-						SessionKind:    r.Record.GetSessionKind(),
-						OwnerBodyKind:  r.Record.GetOwnerBodyKind(),
-						UpdatedAt:      r.Record.GetUpdatedAt(),
-						Score:          0.5,
-					})
+				if len(contentVisible) >= 2 {
+					topN := len(contentVisible)
+					if topN > 3 {
+						topN = 3
+					}
+					candidates := make([]*runtimev1.SessionRouteCandidate, 0, topN)
+					for _, r := range contentVisible[:topN] {
+						candidates = append(candidates, &runtimev1.SessionRouteCandidate{
+							WorkSessionRef: r.Record.GetWorkSessionRef(),
+							Title:          r.Record.GetTitle(),
+							SessionKind:    r.Record.GetSessionKind(),
+							OwnerBodyKind:  r.Record.GetOwnerBodyKind(),
+							UpdatedAt:      r.Record.GetUpdatedAt(),
+							Score:          0.5,
+						})
+					}
+					return &runtimev1.RouteAndSubmitInputResponse{
+						Outcome:     runtimev1.RouteAndSubmitOutcome_ROUTE_AND_SUBMIT_OUTCOME_AMBIGUOUS_CANDIDATES,
+						RouteReason: "l3_low_entropy_followup_ambiguous",
+						Candidates:  candidates,
+					}, nil
 				}
-				return &runtimev1.RouteAndSubmitInputResponse{
-					Outcome:     runtimev1.RouteAndSubmitOutcome_ROUTE_AND_SUBMIT_OUTCOME_AMBIGUOUS_CANDIDATES,
-					RouteReason: "l3_low_entropy_followup_ambiguous",
-					Candidates:  candidates,
-				}, nil
 			}
 		}
 	}
@@ -635,7 +677,7 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 			}
 			routeReason = "l2_new_pc_work"
 		} else {
-			inbox, err := s.store.FindActiveGeneralInbox(ctx, decision.AccountID, agentBinding, visibilityForReader(decision), now)
+			inbox, err := s.store.FindActiveGeneralInbox(ctx, decision.AccountID, agentBinding, s.visibilityForReader(ctx, decision), now)
 			if err != nil {
 				return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 			}
@@ -711,7 +753,27 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 
 	if targetRow.Record.GetOwnerBodyKind() != "" && targetRow.Record.GetOwnerBodyKind() != "brain" {
 		ns := targetRow.Record.GetOwnerBodyKind()
-		deviceID, online, err := s.store.FindActiveCarrierDevice(ctx, decision.AccountID, ns, now)
+		var (
+			deviceID string
+			online   bool
+		)
+		if targetRow.ContentRestricted {
+			targetSub := strings.TrimSpace(targetRow.HandoffRecipientSubject)
+			targetApp := firstNonEmpty(targetRow.HandoffRecipientAppID, NamedHarnessAppID)
+			if targetSub == "" {
+				return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+			}
+			ok, vErr := s.verifyNamedRecipient(ctx, decision.AccountID, targetSub, targetApp)
+			if vErr != nil || !ok {
+				return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+			}
+			deviceID, online, err = s.store.FindActiveCarrierForSubject(ctx, decision.AccountID, ns, targetSub, now)
+			commitIn.OutboxRecipientSubject = targetSub
+			commitIn.OutboxRecipientAppID = targetApp
+			commitIn.OutboxRecipientRequired = true
+		} else {
+			deviceID, online, err = s.store.FindActiveCarrierDevice(ctx, decision.AccountID, ns, now)
+		}
 		if err != nil {
 			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 		}
@@ -798,6 +860,9 @@ func (s *Service) RouteAndSubmitInput(ctx context.Context, req *runtimev1.RouteA
 		}
 		s.notifyOverviewChange(decision.AccountID, []*runtimev1.WorkSessionRecord{targetRow.Record}, nil)
 	}
+	if resp != nil && resp.WorkSessionRecord != nil {
+		resp.WorkSessionRecord = s.projectSessionForReader(ctx, decision, targetRow)
+	}
 	return resp, nil
 }
 
@@ -820,7 +885,7 @@ func (s *Service) SplitOrRedirectInput(ctx context.Context, req *runtimev1.Split
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
-	if !readerCanAccessSession(decision, src.Record) {
+	if !readerCanAccessSession(decision, src.Record) || (src.ContentRestricted && !s.readerCanAccessSessionContent(ctx, decision, src)) {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AGENT_SESSION_NOT_FOUND)
 	}
 	targetKind := strings.ToLower(strings.TrimSpace(req.GetTargetSessionKind()))
@@ -1039,8 +1104,9 @@ func (s *Service) GetSession(ctx context.Context, req *runtimev1.GetSessionReque
 	if !readerCanAccessSession(decision, sess.Record) {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AGENT_SESSION_NOT_FOUND)
 	}
-	out := &runtimev1.GetSessionResponse{WorkSessionRecord: sess.Record}
-	if req.GetIncludeRecentEvents() {
+	contentAllowed := s.readerCanAccessSessionContent(ctx, decision, sess)
+	out := &runtimev1.GetSessionResponse{WorkSessionRecord: s.projectSessionForReader(ctx, decision, sess)}
+	if req.GetIncludeRecentEvents() && contentAllowed {
 		limit := int(req.GetMaxEvents())
 		if limit <= 0 || limit > 200 {
 			limit = 50
@@ -1075,7 +1141,7 @@ func (s *Service) ListSessions(ctx context.Context, req *runtimev1.ListSessionsR
 		req.GetSessionKinds(),
 		req.GetStatusFilter(),
 		req.GetSearchQuery(),
-		visibilityForReader(decision),
+		s.visibilityForReader(ctx, decision),
 		int(req.GetPageSize()),
 		req.GetPageToken(),
 	)
@@ -1084,7 +1150,7 @@ func (s *Service) ListSessions(ctx context.Context, req *runtimev1.ListSessionsR
 	}
 	items := make([]*runtimev1.WorkSessionRecord, 0, len(rows))
 	for _, r := range rows {
-		items = append(items, r.Record)
+		items = append(items, s.projectSessionForReader(ctx, decision, r))
 	}
 	return &runtimev1.ListSessionsResponse{
 		Items:             items,
@@ -1137,7 +1203,7 @@ func (s *Service) UpdateSession(ctx context.Context, req *runtimev1.UpdateSessio
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
 	s.notifyOverviewChange(decision.AccountID, []*runtimev1.WorkSessionRecord{updated.Record}, nil)
-	return &runtimev1.UpdateSessionResponse{WorkSessionRecord: updated.Record}, nil
+	return &runtimev1.UpdateSessionResponse{WorkSessionRecord: s.projectSessionForReader(ctx, decision, updated)}, nil
 }
 
 func (s *Service) completeSessionDeletion(ctx context.Context, accountID string, existing *sessionRow) (*sessionRow, string, uint32, error) {
@@ -1268,13 +1334,14 @@ func (s *Service) WatchSessionOverview(req *runtimev1.WatchSessionOverviewReques
 		s.overviewMu.Lock()
 		defer s.overviewMu.Unlock()
 		token := ""
+		readerVis := s.visibilityForReader(ctx, decision)
 		for {
-			rows, _, next, err := s.store.ListSessions(ctx, decision.AccountID, agentFilter, req.GetIncludeArchived(), nil, "", "", visibilityForReader(decision), 200, token)
+			rows, _, next, err := s.store.ListSessions(ctx, decision.AccountID, agentFilter, req.GetIncludeArchived(), nil, "", "", readerVis, 200, token)
 			if err != nil {
 				return err
 			}
 			for _, row := range rows {
-				visibleSessions = append(visibleSessions, row.Record)
+				visibleSessions = append(visibleSessions, s.projectSessionForReader(ctx, decision, row))
 			}
 			if next == "" {
 				break
@@ -1287,7 +1354,7 @@ func (s *Service) WatchSessionOverview(req *runtimev1.WatchSessionOverviewReques
 		}
 		for _, item := range att {
 			if (agentFilter == "" || agentFilter == item.GetAgentBinding()) && readerCanAccessAttention(decision, item) {
-				visibleAtt = append(visibleAtt, item)
+				visibleAtt = append(visibleAtt, s.projectAttentionForReader(ctx, decision, item))
 			}
 		}
 		_, activePCCarrierAppID, carrierOnline, err = s.store.FindActiveCarrier(ctx, decision.AccountID, DefaultPCNamespace, s.now().UTC())
@@ -1349,7 +1416,7 @@ func (s *Service) SubscribeBrainSessionEvents(req *runtimev1.SubscribeBrainSessi
 	if err != nil {
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
-	if !readerCanAccessSession(decision, sess.Record) {
+	if !readerCanAccessSession(decision, sess.Record) || (sess.ContentRestricted && !s.readerCanAccessSessionContent(ctx, decision, sess)) {
 		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AGENT_SESSION_NOT_FOUND)
 	}
 
@@ -1445,7 +1512,7 @@ func (s *Service) StopBrainSessionTurn(ctx context.Context, req *runtimev1.StopB
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 	}
-	if !readerCanAccessSession(decision, sess.Record) {
+	if !readerCanAccessSession(decision, sess.Record) || (sess.ContentRestricted && !s.readerCanAccessSessionContent(ctx, decision, sess)) {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AGENT_SESSION_NOT_FOUND)
 	}
 	stopped := s.cancelBrainTurnExpected(ref, req.GetExpectedTurnRef())

@@ -466,3 +466,216 @@ func TestSessionPointerAuditRecoveryScopeTagAndCutoffFences(t *testing.T) {
 		t.Fatalf("ProcessRemember on cutoff_noop must return OutcomeNoEffect, got %+v err=%v", noopRes, err)
 	}
 }
+
+func TestSessionPointerContentFreeAndSlotKeyFilterFacadeRecall(t *testing.T) {
+	ctx := context.Background()
+	backend := openTestBackend(t, filepath.Join(t.TempDir(), "local-state.json"))
+	store := NewStore(backend)
+	const agentRef = "agent-named-brief-facade"
+	_ = createTestBinding(t, backend, store, agentRef, true)
+	owner, err := memoryv1.Open(t.TempDir())
+	if err != nil {
+		t.Fatalf("open Cognition owner: %v", err)
+	}
+	t.Cleanup(func() { _ = owner.Close() })
+	authorize := func(context.Context, Binding) error { return nil }
+	ownerPort := newTestOwnerPort(store, owner, nil)
+	bridge := NewBridge(store, ownerPort, authorize)
+	facade := NewFacade(store, ownerPort, bridge, authorize, func(context.Context, Binding) (memoryv1.CapabilitySnapshot, memoryv1.EmbeddingPort, error) {
+		return memoryv1.CapabilitySnapshot{ConfigRevision: 1, Available: []memoryv1.Capability{memoryv1.CapabilityFTSIndex}}, nil, nil
+	})
+
+	baseTime := time.Date(2026, 11, 25, 10, 0, 0, 0, time.UTC)
+	// Content-free named-handoff pointer commits cleanly with empty summary.
+	committed, err := facade.CommitSessionPointer(ctx, "named-empty-1", agentRef, "ws_named_1", "completed", "", "os.pc.workspace", baseTime)
+	if err != nil || !committed {
+		t.Fatalf("content-free CommitSessionPointer failed: committed=%v err=%v", committed, err)
+	}
+	// Normal pointer + simulated legacy restricted pointer with private term.
+	if _, err := facade.CommitSessionPointer(ctx, "norm-1", agentRef, "ws_norm_1", "completed", "春季发布清单审核", "os.pc.workspace", baseTime); err != nil {
+		t.Fatalf("commit norm-1: %v", err)
+	}
+	if _, err := facade.CommitSessionPointer(ctx, "legacy-priv-1", agentRef, "ws_legacy_priv", "completed", "朱砂秘钥 春季发布清单审核 春季发布清单审核", "os.pc.workspace", baseTime); err != nil {
+		t.Fatalf("commit legacy-priv-1: %v", err)
+	}
+
+	// Private word filtered out via AllowedSlotKeys returns OutcomeNoHits.
+	privRes, err := facade.Recall(ctx, RecallIntent{
+		NoModelWork:     true,
+		LocalAgentRef:   agentRef,
+		Query:           "朱砂秘钥",
+		Limit:           4,
+		ScopeTags:       []string{memoryv1.ScopeTagSessionPointer},
+		FilterSlotKeys:  true,
+		AllowedSlotKeys: []string{"session_ref:ws_norm_1"},
+	})
+	if err != nil || privRes.Outcome != memoryv1.OutcomeNoHits || len(privRes.Hits) != 0 {
+		t.Fatalf("filtered private recall must return OutcomeNoHits, got %+v err=%v", privRes, err)
+	}
+
+	// Shared word with Limit=1 still returns eligible ws_norm_1 even though hidden legacy has higher TF.
+	sharedRes, err := facade.Recall(ctx, RecallIntent{
+		NoModelWork:     true,
+		LocalAgentRef:   agentRef,
+		Query:           "春季发布清单审核",
+		Limit:           1,
+		ScopeTags:       []string{memoryv1.ScopeTagSessionPointer},
+		FilterSlotKeys:  true,
+		AllowedSlotKeys: []string{"session_ref:ws_norm_1"},
+	})
+	if err != nil || sharedRes.Outcome != memoryv1.OutcomeReady || len(sharedRes.Hits) != 1 || sharedRes.Hits[0].SlotKey != "session_ref:ws_norm_1" {
+		t.Fatalf("filtered shared recall must return eligible ws_norm_1 without hidden quota interference: %+v err=%v", sharedRes, err)
+	}
+}
+
+func TestRestrictedSessionLegacyOutboxReplayExcludesPrivateContentWhileAdvancingOrdinaryPointers(t *testing.T) {
+	ctx := context.Background()
+	backend := openTestBackend(t, filepath.Join(t.TempDir(), "local-state.json"))
+	store := NewStore(backend)
+	const agentRef = "agent-legacy-replay-fence"
+	binding := createTestBinding(t, backend, store, agentRef, true)
+	core, err := memoryv1.Open(t.TempDir())
+	if err != nil {
+		t.Fatalf("open Cognition owner: %v", err)
+	}
+	t.Cleanup(func() { _ = core.Close() })
+	authorize := func(context.Context, Binding) error { return nil }
+	ownerPort := newTestOwnerPort(store, core, nil)
+	bridge := NewBridge(store, ownerPort, authorize)
+	facade := NewFacade(store, ownerPort, bridge, authorize, func(context.Context, Binding) (memoryv1.CapabilitySnapshot, memoryv1.EmbeddingPort, error) {
+		return memoryv1.CapabilitySnapshot{ConfigRevision: 1, Available: []memoryv1.Capability{memoryv1.CapabilityFTSIndex}}, nil, nil
+	})
+
+	baseTime := time.Date(2026, 11, 25, 10, 0, 0, 0, time.UTC)
+	enqueuePending := func(deliveryID, sessionRef, summary string, offset time.Duration) string {
+		opID := "cmop_" + deliveryID
+		env := &runtimev1.CognitionMemoryCommittedEventEnvelope{
+			Event:       &runtimev1.CognitionMemoryEventRef{Value: "cmevt_" + deliveryID},
+			Operation:   &runtimev1.CognitionMemoryOperationRef{Value: opID},
+			Subjects:    []*runtimev1.CognitionMemorySubjectRef{{Kind: "account_subject", Value: binding.AccountSubjectRef}},
+			Sources:     []*runtimev1.CognitionMemorySourceRef{{Kind: "session", Value: sessionRef}},
+			CommittedAt: timestamppb.New(baseTime.Add(offset)),
+			Fact: &runtimev1.CognitionMemoryCommittedEventEnvelope_SessionPointerCommitted{
+				SessionPointerCommitted: &runtimev1.CognitionMemorySessionPointerCommitted{
+					WorkSessionRef: sessionRef,
+					ScopeTag:       memoryv1.ScopeTagSessionPointer,
+					SlotKey:        "session_ref:" + sessionRef,
+					TopicSummary:   summary,
+					BodyKind:       "os.pc.workspace",
+				},
+			},
+		}
+		if err := store.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+			_, err := store.EnqueueCommittedEventTx(tx, agentRef, env)
+			return err
+		}); err != nil {
+			t.Fatalf("seed legacy pending envelope %s: %v", deliveryID, err)
+		}
+		return opID
+	}
+
+	restrictedOp1 := enqueuePending("legacy-restricted-1", "ws_restricted_legacy", "朱砂暗语-旧待投机密摘要", 1*time.Minute)
+	ordinaryOp1 := enqueuePending("legacy-ordinary-1", "ws_ordinary_1", "公开常规工作计划摘要", 2*time.Minute)
+	restrictedOp2 := enqueuePending("legacy-restricted-2", "ws_restricted_legacy", "朱砂暗语-第二条旧待投", 3*time.Minute)
+	ordinaryOp2 := enqueuePending("legacy-ordinary-2", "ws_ordinary_2", "公开第二个任务进展", 4*time.Minute)
+
+	// 1. Fail-closed: lookup error blocks delivery without leaking.
+	facade.SetSessionRestrictionChecker(func(_ context.Context, _, _ string) (bool, error) {
+		return false, errors.New("sessions.db temporarily unavailable")
+	})
+	if err := bridge.ReplayStartup(ctx); err == nil {
+		t.Fatal("expected ReplayStartup to fail closed when restriction checker errors")
+	}
+
+	// 2. Real restriction predicate: restricted envelopes neutralized, ordinary pointers advance in order.
+	facade.SetSessionRestrictionChecker(func(_ context.Context, _, workSessionRef string) (bool, error) {
+		return workSessionRef == "ws_restricted_legacy", nil
+	})
+	if err := bridge.ReplayStartup(ctx); err != nil {
+		t.Fatalf("ReplayStartup with restriction checker: %v", err)
+	}
+	for _, opID := range []string{ordinaryOp1, ordinaryOp2} {
+		if _, err := facade.ProcessRemember(ctx, agentRef, opID); err != nil {
+			t.Fatalf("ProcessRemember ordinary %s: %v", opID, err)
+		}
+	}
+
+	for _, opID := range []string{restrictedOp1, restrictedOp2} {
+		var state string
+		var payloadPresent bool
+		if err := store.backend.DB().QueryRowContext(ctx, `SELECT state, payload IS NOT NULL FROM runtime_cognition_memory_outbox WHERE operation_id = ?`, opID).Scan(&state, &payloadPresent); err != nil {
+			t.Fatalf("inspect restricted outbox row %s: %v", opID, err)
+		}
+		if state != "cutoff_non_effecting" || payloadPresent {
+			t.Fatalf("restricted outbox row %s was not neutralized: state=%q payloadPresent=%v", opID, state, payloadPresent)
+		}
+	}
+
+	proj, err := facade.Inspect(ctx, InspectIntent{LocalAgentRef: agentRef, Limit: 50})
+	if err != nil {
+		t.Fatalf("Inspect: %v", err)
+	}
+	if proj.CurrentCount != 2 {
+		t.Fatalf("expected exactly 2 ordinary memories (0 restricted), got current=%d items=%+v", proj.CurrentCount, proj.Items)
+	}
+	for _, item := range proj.Items {
+		if item.SlotKey == "session_ref:ws_restricted_legacy" || item.Content == "朱砂暗语-旧待投机密摘要" || item.Content == "朱砂暗语-第二条旧待投" {
+			t.Fatalf("restricted private content leaked into general Memory: %+v", item)
+		}
+	}
+	secretRecall, err := facade.Recall(ctx, RecallIntent{
+		NoModelWork:   true,
+		LocalAgentRef: agentRef,
+		Query:         "朱砂暗语",
+		Limit:         10,
+		ScopeTags:     []string{memoryv1.ScopeTagSessionPointer},
+	})
+	if err != nil || len(secretRecall.Hits) != 0 {
+		t.Fatalf("private legacy summary entered FTS5 recall index: hits=%+v err=%v", secretRecall.Hits, err)
+	}
+	ordinaryRecall, err := facade.Recall(ctx, RecallIntent{
+		NoModelWork:   true,
+		LocalAgentRef: agentRef,
+		Query:         "常规工作计划",
+		Limit:         10,
+		ScopeTags:     []string{memoryv1.ScopeTagSessionPointer},
+	})
+	if err != nil || len(ordinaryRecall.Hits) != 1 || ordinaryRecall.Hits[0].SlotKey != "session_ref:ws_ordinary_1" {
+		t.Fatalf("ordinary pointer did not commit cleanly in order: hits=%+v err=%v", ordinaryRecall.Hits, err)
+	}
+
+	// 3. Idempotency: repeated ReplayStartup and re-delivery of neutralized deliveryID are no-ops.
+	if err := bridge.ReplayStartup(ctx); err != nil {
+		t.Fatalf("idempotent ReplayStartup: %v", err)
+	}
+	if committed, err := facade.CommitSessionPointer(ctx, "legacy-restricted-1", agentRef, "ws_restricted_legacy", "completed", "朱砂暗语-重投", "os.pc.workspace", baseTime.Add(5*time.Minute)); err != nil || committed {
+		t.Fatalf("replaying neutralized deliveryID must stay idempotent no-op: committed=%v err=%v", committed, err)
+	}
+
+	// 4. Direct publication for a restricted session scrubs TopicSummary to content-free pointer.
+	if committed, err := facade.CommitSessionPointer(ctx, "restricted-new-milestone", agentRef, "ws_restricted_legacy", "completed", "绝密新简报词", "os.pc.workspace", baseTime.Add(10*time.Minute)); err != nil || !committed {
+		t.Fatalf("content-free opaque pointer for active restricted session failed: committed=%v err=%v", committed, err)
+	}
+	secretRecall2, err := facade.Recall(ctx, RecallIntent{
+		NoModelWork:   true,
+		LocalAgentRef: agentRef,
+		Query:         "绝密新简报词",
+		Limit:         10,
+		ScopeTags:     []string{memoryv1.ScopeTagSessionPointer},
+	})
+	if err != nil || len(secretRecall2.Hits) != 0 {
+		t.Fatalf("direct CommitSessionPointer leaked restricted summary: hits=%+v err=%v", secretRecall2.Hits, err)
+	}
+
+	// 5. Forget / DeleteSession barrier stays intact and subsequent ordinary session advances cleanly.
+	forgotten, _, err := facade.ForgetSessionLineage(ctx, agentRef, "ws_restricted_legacy")
+	if err != nil || forgotten != 1 {
+		t.Fatalf("ForgetSessionLineage on restricted session failed: forgotten=%d err=%v", forgotten, err)
+	}
+	if committed, err := facade.CommitSessionPointer(ctx, "restricted-after-forget", agentRef, "ws_restricted_legacy", "completed", "", "os.pc.workspace", baseTime.Add(15*time.Minute)); err != nil || committed {
+		t.Fatalf("late commit after ForgetSessionLineage must be blocked: committed=%v err=%v", committed, err)
+	}
+	if committed, err := facade.CommitSessionPointer(ctx, "ordinary-after-forget", agentRef, "ws_ordinary_3", "initial_goal", "删除后继续推进的普通会话", "os.pc.workspace", baseTime.Add(20*time.Minute)); err != nil || !committed {
+		t.Fatalf("ordinary pointer after restricted Forget stalled: committed=%v err=%v", committed, err)
+	}
+}

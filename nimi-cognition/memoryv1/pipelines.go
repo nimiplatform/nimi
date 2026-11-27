@@ -118,7 +118,7 @@ func (BaselineRemember) Plan(request CommitRequest, current []Memory) (MutationP
 		return baselineRememberPlan(current, MemoryMutation{Kind: MutationRemember, Content: fact.BoundedFact, EpistemicStatus: EpistemicExplicit, OccurredAt: request.CommittedAt, SourceExplanation: "Committed relationship event"}), nil
 	case EventKindSessionPointer:
 		fact := request.Fact.SessionPointer
-		if fact == nil || forbiddenMemoryContent(fact.TopicSummary) {
+		if fact == nil || (strings.TrimSpace(fact.TopicSummary) != "" && forbiddenMemoryContent(fact.TopicSummary)) {
 			return MutationPlan{Outcome: OutcomeRejected}, nil
 		}
 		scopeTag := strings.TrimSpace(fact.ScopeTag)

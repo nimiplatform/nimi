@@ -681,6 +681,16 @@ func (s *Service) executeBodyStep(stepCtx context.Context, stepCancel context.Ca
 	if boundDev := strings.TrimSpace(sess.Record.GetDeviceId()); boundDev != "" && boundDev != "local-default" && boundDev != deviceID {
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
 	}
+	if sess.ContentRestricted {
+		targetSub := strings.TrimSpace(sess.HandoffRecipientSubject)
+		if targetSub == "" || strings.TrimSpace(decision.RegisteredAppSubject) != targetSub {
+			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+		}
+		ok, vErr := s.verifyNamedRecipient(stepCtx, decision.AccountID, targetSub, firstNonEmpty(sess.HandoffRecipientAppID, NamedHarnessAppID))
+		if vErr != nil || !ok {
+			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+		}
+	}
 
 	if selector := strings.TrimSpace(req.GetAgentHandle()); selector != "" {
 		resolved, err := s.resolveAgentBinding(stepCtx, decision, selector)
@@ -1292,6 +1302,22 @@ func (s *Service) AuthorizeBodySideEffect(ctx context.Context, req *runtimev1.Au
 			DenyReason: "work_session_device_mismatch",
 		}, nil
 	}
+	if sess.ContentRestricted {
+		targetSub := strings.TrimSpace(sess.HandoffRecipientSubject)
+		if targetSub == "" || strings.TrimSpace(decision.RegisteredAppSubject) != targetSub {
+			return &runtimev1.AuthorizeBodySideEffectResponse{
+				Authorized: false,
+				DenyReason: "named_recipient_unauthorized",
+			}, nil
+		}
+		ok, vErr := s.verifyNamedRecipient(ctx, decision.AccountID, targetSub, firstNonEmpty(sess.HandoffRecipientAppID, NamedHarnessAppID))
+		if vErr != nil || !ok {
+			return &runtimev1.AuthorizeBodySideEffectResponse{
+				Authorized: false,
+				DenyReason: "named_recipient_unauthorized",
+			}, nil
+		}
+	}
 	if !actionKindAllowedByPermissionMode(sess.Record.GetPermissionMode(), req.GetActionKind()) {
 		return &runtimev1.AuthorizeBodySideEffectResponse{
 			Authorized: false,
@@ -1356,18 +1382,25 @@ func (s *Service) deliverMilestones(ctx context.Context, ref string) error {
 	if hook == nil {
 		return nil
 	}
-	rows, err := s.store.readDB.QueryContext(ctx, "SELECT delivery_id,account_id,agent_binding,work_session_ref,body_kind,kind,summary,deliverables FROM runtime_session_milestone WHERE (?='' OR work_session_ref=?) ORDER BY id", ref, ref)
+	rows, err := s.store.readDB.QueryContext(ctx, `
+		SELECT m.delivery_id, m.account_id, m.agent_binding, m.work_session_ref, m.body_kind, m.kind, m.summary, m.deliverables,
+		       COALESCE(s.content_restricted, 0)
+		FROM runtime_session_milestone m
+		LEFT JOIN runtime_session s ON s.account_id = m.account_id AND s.work_session_ref = m.work_session_ref
+		WHERE (?='' OR m.work_session_ref=?)
+		ORDER BY m.id`, ref, ref)
 	if err != nil {
 		return err
 	}
 	type entry struct {
 		SessionMilestone
-		paths string
+		paths             string
+		contentRestricted int
 	}
 	var pending []entry
 	for rows.Next() {
 		var e entry
-		if err := rows.Scan(&e.DeliveryID, &e.AccountID, &e.AgentBinding, &e.WorkSessionRef, &e.BodyKind, &e.Kind, &e.TopicSummary, &e.paths); err != nil {
+		if err := rows.Scan(&e.DeliveryID, &e.AccountID, &e.AgentBinding, &e.WorkSessionRef, &e.BodyKind, &e.Kind, &e.TopicSummary, &e.paths, &e.contentRestricted); err != nil {
 			rows.Close()
 			return err
 		}
@@ -1386,7 +1419,14 @@ func (s *Service) deliverMilestones(ctx context.Context, ref string) error {
 		if blocked[e.WorkSessionRef] {
 			continue
 		}
-		err := json.Unmarshal([]byte(e.paths), &e.Deliverables)
+		var err error
+		if e.contentRestricted != 0 {
+			// Named Harness handoffs must only emit content-free session reference metadata.
+			e.TopicSummary = ""
+			e.Deliverables = nil
+		} else {
+			err = json.Unmarshal([]byte(e.paths), &e.Deliverables)
+		}
 		if err == nil {
 			err = hook(ctx, e.SessionMilestone)
 		}
@@ -1420,6 +1460,16 @@ func (s *Service) ReportBodySessionProjection(ctx context.Context, req *runtimev
 	case "", "active", "idle", "running", "waiting", "waiting_approval", "error", "completed", "archived", "paused", "stopped":
 	default:
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	if existingSess, getErr := s.store.GetSession(ctx, decision.AccountID, strings.TrimSpace(req.GetWorkSessionRef())); getErr == nil && existingSess != nil && existingSess.ContentRestricted {
+		targetSub := strings.TrimSpace(existingSess.HandoffRecipientSubject)
+		if targetSub == "" || strings.TrimSpace(decision.RegisteredAppSubject) != targetSub {
+			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+		}
+		ok, vErr := s.verifyNamedRecipient(ctx, decision.AccountID, targetSub, firstNonEmpty(existingSess.HandoffRecipientAppID, NamedHarnessAppID))
+		if vErr != nil || !ok {
+			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+		}
 	}
 	resp, updatedRow, err := s.store.ApplyBodyProjection(ctx, decision.AccountID, ns, decision.RegisteredAppSubject, req, now)
 	if errors.Is(err, errLeaseConflict) {

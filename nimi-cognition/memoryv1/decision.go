@@ -285,7 +285,8 @@ func validateMutationPlan(plan MutationPlan) error {
 		if (mutation.Kind == MutationCorrection || mutation.Kind == MutationConflict) && !validOpaqueRef(mutation.TargetMemoryRef) {
 			return contractError(OutcomeInvalid, "correction_target")
 		}
-		if !validContent(mutation.Content) || !validContent(mutation.SourceExplanation) {
+		contentFreePointer := mutation.ScopeTag == ScopeTagSessionPointer && strings.TrimSpace(mutation.SlotKey) != "" && mutation.Content == ""
+		if (!contentFreePointer && !validContent(mutation.Content)) || !validContent(mutation.SourceExplanation) {
 			return contractError(OutcomeInvalid, "mutation_content")
 		}
 		switch mutation.EpistemicStatus {
@@ -293,7 +294,7 @@ func validateMutationPlan(plan MutationPlan) error {
 		default:
 			return contractError(OutcomeInvalid, "epistemic_status")
 		}
-		if forbiddenMemoryContent(mutation.Content) {
+		if !contentFreePointer && forbiddenMemoryContent(mutation.Content) {
 			return contractError(OutcomeRejected, "forbidden_content")
 		}
 	}

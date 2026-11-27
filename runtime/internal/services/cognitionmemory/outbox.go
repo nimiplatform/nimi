@@ -634,7 +634,7 @@ func validateCommittedEnvelopeFact(envelope *runtimev1.CognitionMemoryCommittedE
 		}
 	case envelope.GetSessionPointerCommitted() != nil:
 		fact := envelope.GetSessionPointerCommitted()
-		if !validRef(fact.GetWorkSessionRef()) || !validCommittedContent(fact.GetTopicSummary()) {
+		if !validRef(fact.GetWorkSessionRef()) || (strings.TrimSpace(fact.GetTopicSummary()) != "" && !validCommittedContent(fact.GetTopicSummary())) {
 			return fmt.Errorf("enqueue cognition memory event: invalid session pointer fact")
 		}
 		if scopeTag := strings.TrimSpace(fact.GetScopeTag()); scopeTag != "" && scopeTag != memoryv1.ScopeTagSessionPointer {
@@ -799,6 +799,128 @@ func (s *Store) NeutralizeSessionOutbox(ctx context.Context, localAgentRef, work
 				return fmt.Errorf("neutralize session cognition outbox: update multi-source row: %w", execErr)
 			}
 			added, _ := extraRes.RowsAffected()
+			neutralized += added
+		}
+		return nil
+	})
+	return neutralized, err
+}
+
+// envelopeRestrictedContentSessionRefs returns the session refs carried by an
+// envelope that contains non-empty content (anything other than an already
+// content-free opaque session pointer).
+func envelopeRestrictedContentSessionRefs(env *runtimev1.CognitionMemoryCommittedEventEnvelope) []string {
+	if env == nil {
+		return nil
+	}
+	if sp := env.GetSessionPointerCommitted(); sp != nil {
+		if strings.TrimSpace(sp.GetTopicSummary()) == "" {
+			return nil
+		}
+	}
+	seen := make(map[string]struct{})
+	var refs []string
+	add := func(ref string) {
+		ref = strings.TrimSpace(ref)
+		if ref == "" {
+			return
+		}
+		if _, ok := seen[ref]; ok {
+			return
+		}
+		seen[ref] = struct{}{}
+		refs = append(refs, ref)
+	}
+	if sp := env.GetSessionPointerCommitted(); sp != nil {
+		add(sp.GetWorkSessionRef())
+	}
+	for _, src := range env.GetSources() {
+		if src.GetKind() == "session" {
+			add(src.GetValue())
+		}
+	}
+	return refs
+}
+
+// NeutralizeRestrictedOutboxOperation clears a single pending content-bearing
+// outbox row for a content-restricted named handoff session without writing a
+// deletion cutoff so the session remains alive while private content is
+// permanently excluded from general Memory and indexes.
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.session-pointer-and-delete-session
+func (s *Store) NeutralizeRestrictedOutboxOperation(ctx context.Context, operationID string) error {
+	if s == nil || s.backend == nil || !validRef(operationID) {
+		return fmt.Errorf("neutralize restricted cognition outbox operation: invalid input")
+	}
+	return s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx, `
+			UPDATE runtime_cognition_memory_outbox
+			SET state = 'cutoff_non_effecting', outcome = 'no_effect', payload = NULL
+			WHERE operation_id = ? AND state = 'pending'`,
+			operationID,
+		)
+		return err
+	})
+}
+
+// NeutralizeRestrictedSessionOutbox neutralizes pre-migration pending
+// content-bearing outbox rows for a content-restricted named handoff session
+// without recording a deleted-session cutoff. Already content-free opaque
+// session pointers are preserved, and ordinary sessions advance in order.
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.session-pointer-and-delete-session
+func (s *Store) NeutralizeRestrictedSessionOutbox(ctx context.Context, localAgentRef, workSessionRef string) (int64, error) {
+	if s == nil || s.backend == nil || !validRef(localAgentRef) || !validRef(workSessionRef) {
+		return 0, fmt.Errorf("neutralize restricted session cognition outbox: invalid input")
+	}
+	var neutralized int64
+	err := s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		rows, err := tx.QueryContext(ctx, `
+			SELECT o.operation_id, o.payload
+			FROM runtime_cognition_memory_outbox o
+			JOIN runtime_cognition_memory_stream s ON s.binding_ref = o.binding_ref
+			WHERE s.local_agent_ref = ? AND o.state = 'pending' AND o.payload IS NOT NULL`,
+			localAgentRef,
+		)
+		if err != nil {
+			return fmt.Errorf("neutralize restricted session cognition outbox: scan pending: %w", err)
+		}
+		var ops []string
+		for rows.Next() {
+			var opID string
+			var payload []byte
+			if scanErr := rows.Scan(&opID, &payload); scanErr != nil {
+				_ = rows.Close()
+				return fmt.Errorf("neutralize restricted session cognition outbox: scan row: %w", scanErr)
+			}
+			var env runtimev1.CognitionMemoryCommittedEventEnvelope
+			if err := proto.Unmarshal(payload, &env); err != nil {
+				_ = rows.Close()
+				return fmt.Errorf("decode pending cognition envelope: %w", err)
+			}
+			for _, ref := range envelopeRestrictedContentSessionRefs(&env) {
+				if ref == workSessionRef {
+					ops = append(ops, opID)
+					break
+				}
+			}
+		}
+		if err := rows.Err(); err != nil {
+			_ = rows.Close()
+			return err
+		}
+		if closeErr := rows.Close(); closeErr != nil {
+			return fmt.Errorf("neutralize restricted session cognition outbox: close scan: %w", closeErr)
+		}
+		for _, opID := range ops {
+			res, execErr := tx.ExecContext(ctx, `
+				UPDATE runtime_cognition_memory_outbox
+				SET state = 'cutoff_non_effecting', outcome = 'no_effect', payload = NULL
+				WHERE operation_id = ? AND state = 'pending'`,
+				opID,
+			)
+			if execErr != nil {
+				return fmt.Errorf("neutralize restricted session cognition outbox: update row: %w", execErr)
+			}
+			added, _ := res.RowsAffected()
 			neutralized += added
 		}
 		return nil

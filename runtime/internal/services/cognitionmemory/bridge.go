@@ -14,12 +14,41 @@ import (
 
 type DrainAuthorizer func(context.Context, Binding) error
 
+// SessionRestrictionChecker reports whether (localAgentRef, workSessionRef) is
+// a content-restricted named handoff session whose content-bearing envelopes
+// must never enter general Cognition Memory or indexes, including on replay.
+type SessionRestrictionChecker func(ctx context.Context, localAgentRef, workSessionRef string) (bool, error)
+
 type Bridge struct {
-	store       *Store
-	owner       OwnerPort
-	authorize   DrainAuthorizer
-	agentLockMu sync.Mutex
-	agentLocks  map[string]*sync.Mutex
+	store             *Store
+	owner             OwnerPort
+	authorize         DrainAuthorizer
+	restrictionMu     sync.RWMutex
+	sessionRestricted SessionRestrictionChecker
+	agentLockMu       sync.Mutex
+	agentLocks        map[string]*sync.Mutex
+}
+
+// SetSessionRestrictionChecker installs the fail-closed restricted-session
+// boundary checked before any pending outbox payload is delivered to Cognition.
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.session-pointer-and-delete-session
+func (b *Bridge) SetSessionRestrictionChecker(checker SessionRestrictionChecker) {
+	if b == nil {
+		return
+	}
+	b.restrictionMu.Lock()
+	b.sessionRestricted = checker
+	b.restrictionMu.Unlock()
+}
+
+func (b *Bridge) getSessionRestrictionChecker() SessionRestrictionChecker {
+	if b == nil {
+		return nil
+	}
+	b.restrictionMu.RLock()
+	checker := b.sessionRestricted
+	b.restrictionMu.RUnlock()
+	return checker
 }
 
 type DrainResult struct {
@@ -136,6 +165,27 @@ func (b *Bridge) drainOneLocked(ctx context.Context, localAgentRef string) (Drai
 	}
 	if item.Envelope == nil {
 		return DrainResult{BindingRef: binding.BindingRef, EventRef: item.EventRef, OperationID: item.OperationID, DeliverySequence: item.DeliverySequence, Outcome: memoryv1.OutcomeInvalid}, fmt.Errorf("drain cognition memory outbox: committed envelope unavailable")
+	}
+	if checker := b.getSessionRestrictionChecker(); checker != nil {
+		for _, workSessionRef := range envelopeRestrictedContentSessionRefs(item.Envelope) {
+			restricted, checkErr := checker(ctx, localAgentRef, workSessionRef)
+			if checkErr != nil {
+				return DrainResult{BindingRef: binding.BindingRef, EventRef: item.EventRef, OperationID: item.OperationID, DeliverySequence: item.DeliverySequence, Outcome: memoryv1.OutcomeUnavailable}, fmt.Errorf("drain cognition memory outbox: check restricted session %s: %w", workSessionRef, checkErr)
+			}
+			if restricted {
+				if err := b.store.NeutralizeRestrictedOutboxOperation(ctx, item.OperationID); err != nil {
+					return DrainResult{BindingRef: binding.BindingRef, EventRef: item.EventRef, OperationID: item.OperationID, DeliverySequence: item.DeliverySequence, Outcome: memoryv1.OutcomeUnavailable}, fmt.Errorf("drain cognition memory outbox: neutralize restricted session payload: %w", err)
+				}
+				settled, err := b.owner.ReceiveNoOpCutoff(ctx, binding.BindingRef, binding.BankRef, binding.LifecycleRef, item.EventRef, item.OperationID, item.DeliverySequence)
+				if err != nil {
+					return DrainResult{BindingRef: binding.BindingRef, EventRef: item.EventRef, OperationID: item.OperationID, DeliverySequence: item.DeliverySequence, Outcome: settled.Outcome}, fmt.Errorf("drain cognition memory outbox: settle restricted cutoff noop: %w", err)
+				}
+				if err := b.store.AcknowledgeCutoffNoOp(ctx, item.OperationID, item.EventRef, item.DeliverySequence); err != nil {
+					return DrainResult{BindingRef: binding.BindingRef, EventRef: item.EventRef, OperationID: item.OperationID, DeliverySequence: item.DeliverySequence, Outcome: memoryv1.OutcomeUnavailable}, fmt.Errorf("drain cognition memory outbox: acknowledge restricted cutoff noop: %w", err)
+				}
+				return DrainResult{Drained: true, BindingRef: binding.BindingRef, EventRef: item.EventRef, OperationID: item.OperationID, DeliverySequence: item.DeliverySequence, Outcome: memoryv1.OutcomeNoEffect}, nil
+			}
+		}
 	}
 	envelope := proto.Clone(item.Envelope).(*runtimev1.CognitionMemoryCommittedEventEnvelope)
 	envelope.ContractVersion = memoryv1.ContractVersion

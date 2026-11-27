@@ -38,7 +38,44 @@ export interface ZhiyuHarnessHandoffBridge {
   submit(payload: ZhiyuHandoffSubmitPayload): Promise<ZhiyuHandoffSubmitResult>;
 }
 
-const DEFAULT_STAYED_NOTICE = '原始陪伴聊天记录、日常闲聊与情绪上下文保留在织羽。电脑工作台只会收到上方确认的简报。';
+export const NAMED_HARNESS_APP_ID = 'nimi.harness';
+export const NAMED_HARNESS_DISPLAY_NAME = 'Nimi Harness';
+export const MAX_HANDOFF_BRIEF_CHARS = 4000;
+export const MAX_HANDOFF_TEXT_CHARS = 2000;
+
+const DEFAULT_STAYED_NOTICE = '原始陪伴聊天记录、日常闲聊与情绪上下文保留在织羽。Nimi Harness (nimi.harness) 只会收到上方你确认和编辑后的简报。';
+
+export function hasZhiyuHarnessHandoffBridge(injectedBridge?: ZhiyuHarnessHandoffBridge): boolean {
+  const bridge = injectedBridge ?? (typeof window !== 'undefined' ? window.__nimiZhiyuHarnessHandoff : undefined);
+  return Boolean(bridge && typeof bridge.submit === 'function');
+}
+
+export function formatHandoffBriefPreview(input: {
+  readonly goal: string;
+  readonly points: readonly ZhiyuHandoffBriefPoint[];
+  readonly extraNotes?: string;
+}): string {
+  const goal = input.goal.trim();
+  const checkedPoints = input.points
+    .filter((pt) => pt.selected && pt.text.trim().length > 0)
+    .map((pt) => pt.text.trim());
+  const notes = (input.extraNotes ?? '').trim();
+
+  const lines: string[] = [];
+  if (goal) {
+    lines.push(`任务目标：${goal}`);
+  }
+  if (checkedPoints.length > 0) {
+    lines.push('交接要点：');
+    for (const point of checkedPoints) {
+      lines.push(`- ${point}`);
+    }
+  }
+  if (notes) {
+    lines.push(`补充说明：${notes}`);
+  }
+  return lines.join('\n');
+}
 
 function randomRequestId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -102,25 +139,21 @@ export function composeHandoffBriefPayload(input: {
   const notes = (input.extraNotes ?? '').trim();
 
   if (!goal && checkedPoints.length === 0 && !notes) {
-    throw new Error('请填写要交给电脑工作台办理的目标或至少勾选一条简报要点。');
+    throw new Error('请填写要交给 Nimi Harness (nimi.harness) 办理的目标，或至少勾选一条简报要点。');
   }
 
-  const lines: string[] = [];
-  if (goal) {
-    lines.push(`任务目标：${goal}`);
+  const handoffBriefText = formatHandoffBriefPreview({ goal, points: input.points, extraNotes: notes });
+  if (handoffBriefText.length > MAX_HANDOFF_BRIEF_CHARS) {
+    throw new Error(
+      `简报内容超过 ${MAX_HANDOFF_BRIEF_CHARS} 字上限（当前 ${handoffBriefText.length} 字），请精简或删减草稿后再确认交给 Nimi Harness (nimi.harness)。`,
+    );
   }
-  if (checkedPoints.length > 0) {
-    lines.push('交接要点：');
-    for (const point of checkedPoints) {
-      lines.push(`- ${point}`);
-    }
+  const text = goal || checkedPoints[0] || notes;
+  if (text.length > MAX_HANDOFF_TEXT_CHARS) {
+    throw new Error(
+      `任务目标或首条内容超过 ${MAX_HANDOFF_TEXT_CHARS} 字上限（当前 ${text.length} 字），请精简后再确认交给 Nimi Harness (nimi.harness)。`,
+    );
   }
-  if (notes) {
-    lines.push(`补充说明：${notes}`);
-  }
-
-  const handoffBriefText = lines.join('\n').slice(0, 4000);
-  const text = goal || checkedPoints[0] || notes.slice(0, 200);
 
   return {
     agentHandle,

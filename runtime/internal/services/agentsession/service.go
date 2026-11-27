@@ -24,6 +24,7 @@ import (
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -38,7 +39,18 @@ const (
 	DefaultPCNamespace    = "os.pc.workspace"
 	DefaultHeartbeatMs    = 10_000
 	LeaseTTL              = 35 * time.Second
+
+	NamedHarnessAppID    = "nimi.harness"
+	MaxHandoffBriefRunes = 4000
 )
+
+var (
+	ErrNamedRecipientUnavailable = errors.New("named handoff recipient unavailable")
+	ErrNamedRecipientAmbiguous   = errors.New("named handoff recipient ambiguous")
+)
+
+type NamedRecipientResolver func(ctx context.Context, accountID, appID string) (string, error)
+type NamedRecipientVerifier func(ctx context.Context, accountID, subject, appID string) (bool, error)
 
 type AgentHandleResolver func(ctx context.Context, decision accountservice.LocalAppCallerDecision, agentHandle string) (string, error)
 
@@ -47,6 +59,8 @@ type MemoryQualifier func(context.Context, string, cognitionmemory.MemoryReadSet
 type Options struct {
 	QualifyMemory             MemoryQualifier
 	BodyNamespaceOwner        func(context.Context, string) (string, error)
+	NamedRecipientResolver    NamedRecipientResolver
+	NamedRecipientVerifier    NamedRecipientVerifier
 	Logger                    *slog.Logger
 	Now                       func() time.Time
 	Store                     *Store
@@ -120,7 +134,9 @@ type Service struct {
 	stepCancels        map[uint64]context.CancelFunc
 	stepSeq            uint64
 	stepWG             sync.WaitGroup
-	bodyNamespaceOwner func(context.Context, string) (string, error)
+	bodyNamespaceOwner     func(context.Context, string) (string, error)
+	namedRecipientResolver NamedRecipientResolver
+	namedRecipientVerifier NamedRecipientVerifier
 	runtimev1.UnimplementedAgentSessionServiceServer
 
 	logger              *slog.Logger
@@ -235,6 +251,8 @@ func Open(opts Options) (*Service, error) {
 		alarmDeliverySender:       opts.AlarmDeliverySender,
 		supportedDeliveryChannel:  opts.SupportedDeliveryChannel,
 		bodyNamespaceOwner:        opts.BodyNamespaceOwner,
+		namedRecipientResolver:    opts.NamedRecipientResolver,
+		namedRecipientVerifier:    opts.NamedRecipientVerifier,
 		alarmLLMRunner:            opts.AlarmLLMRunner,
 		dailyAlarmLLMBudgetTokens: opts.DailyAlarmLLMBudgetTokens,
 		agentTerminatedChecker:    opts.AgentTerminatedChecker,
@@ -367,6 +385,137 @@ func (s *Service) SetAgentHandleResolver(fn AgentHandleResolver) {
 	s.mu.Lock()
 	s.agentHandleResolver = fn
 	s.mu.Unlock()
+}
+
+func (s *Service) SetNamedRecipientResolver(fn NamedRecipientResolver) {
+	s.mu.Lock()
+	s.namedRecipientResolver = fn
+	s.mu.Unlock()
+}
+
+func (s *Service) SetNamedRecipientVerifier(fn NamedRecipientVerifier) {
+	s.mu.Lock()
+	s.namedRecipientVerifier = fn
+	s.mu.Unlock()
+}
+
+func (s *Service) resolveNamedRecipient(ctx context.Context, accountID, appID string) (string, error) {
+	s.mu.Lock()
+	resolver := s.namedRecipientResolver
+	s.mu.Unlock()
+	if resolver == nil {
+		return "", ErrNamedRecipientUnavailable
+	}
+	sub, err := resolver(ctx, strings.TrimSpace(accountID), strings.TrimSpace(appID))
+	if err != nil {
+		return "", err
+	}
+	sub = strings.TrimSpace(sub)
+	if sub == "" {
+		return "", ErrNamedRecipientUnavailable
+	}
+	return sub, nil
+}
+
+func (s *Service) verifyNamedRecipient(ctx context.Context, accountID, subject, appID string) (bool, error) {
+	trimmedSub := strings.TrimSpace(subject)
+	trimmedApp := strings.TrimSpace(appID)
+	if trimmedSub == "" || trimmedApp == "" {
+		return false, nil
+	}
+	s.mu.Lock()
+	verifier := s.namedRecipientVerifier
+	s.mu.Unlock()
+	if verifier == nil {
+		return false, nil
+	}
+	return verifier(ctx, strings.TrimSpace(accountID), trimmedSub, trimmedApp)
+}
+
+func (s *Service) readerCanAccessSessionContent(ctx context.Context, decision accountservice.LocalAppCallerDecision, row *sessionRow) bool {
+	if row == nil || row.Record == nil {
+		return false
+	}
+	if !row.ContentRestricted {
+		return readerCanAccessSession(decision, row.Record)
+	}
+	readerSub := strings.TrimSpace(decision.RegisteredAppSubject)
+	if readerSub == "" {
+		return false
+	}
+	if senderSub := strings.TrimSpace(row.HandoffSenderSubject); senderSub != "" && readerSub == senderSub {
+		return true
+	}
+	if recipientSub := strings.TrimSpace(row.HandoffRecipientSubject); recipientSub != "" && readerSub == recipientSub {
+		if !decision.HasActivatedDomain(DomainAgentBodyPC) {
+			return false
+		}
+		ok, err := s.verifyNamedRecipient(ctx, decision.AccountID, recipientSub, firstNonEmpty(row.HandoffRecipientAppID, NamedHarnessAppID))
+		return err == nil && ok
+	}
+	return false
+}
+
+func (s *Service) projectSessionForReader(ctx context.Context, decision accountservice.LocalAppCallerDecision, row *sessionRow) *runtimev1.WorkSessionRecord {
+	if row == nil || row.Record == nil {
+		return nil
+	}
+	cloned := proto.Clone(row.Record).(*runtimev1.WorkSessionRecord)
+	if !s.readerCanAccessSessionContent(ctx, decision, row) {
+		cloned.Title = ""
+		cloned.LatestReceiptJson = "{}"
+		cloned.WorkspaceRoot = ""
+	}
+	return cloned
+}
+
+func (s *Service) projectAttentionForReader(ctx context.Context, decision accountservice.LocalAppCallerDecision, att *runtimev1.PendingAttentionRecord) *runtimev1.PendingAttentionRecord {
+	if att == nil {
+		return nil
+	}
+	if ref := strings.TrimSpace(att.GetWorkSessionRef()); ref != "" {
+		if row, err := s.store.GetSessionIncludingDeleting(ctx, decision.AccountID, ref); err == nil && row != nil && row.ContentRestricted && !s.readerCanAccessSessionContent(ctx, decision, row) {
+			cloned := proto.Clone(att).(*runtimev1.PendingAttentionRecord)
+			cloned.SummaryJson = "{}"
+			return cloned
+		}
+	}
+	return att
+}
+
+func (s *Service) canDeliverOutboxIntent(ctx context.Context, decision accountservice.LocalAppCallerDecision, item outboxIntentItem) bool {
+	if item.Envelope == nil {
+		return false
+	}
+	if !item.RecipientRequired && strings.TrimSpace(item.RecipientSubject) == "" {
+		return true
+	}
+	targetSub := strings.TrimSpace(item.RecipientSubject)
+	if targetSub == "" || strings.TrimSpace(decision.RegisteredAppSubject) != targetSub {
+		return false
+	}
+	ok, err := s.verifyNamedRecipient(ctx, decision.AccountID, targetSub, firstNonEmpty(item.RecipientAppID, NamedHarnessAppID))
+	return err == nil && ok
+}
+
+// EligibleOfflineRecallSlotKeys returns the Cognition session_pointer slot keys
+// eligible for cross-session general Q&A recall under decision and agentBinding.
+// Content-restricted named handoffs are excluded before matching, ranking, or quotas.
+func (s *Service) EligibleOfflineRecallSlotKeys(ctx context.Context, decision accountservice.LocalAppCallerDecision, agentBinding string) ([]string, error) {
+	if s == nil || s.store == nil {
+		return nil, nil
+	}
+	refs, err := s.store.ListEligibleOfflineRecallSessionRefs(ctx, decision.AccountID, agentBinding, s.visibilityForReader(ctx, decision))
+	if err != nil {
+		return nil, err
+	}
+	slots := make([]string, 0, len(refs))
+	for _, ref := range refs {
+		if trimmed := strings.TrimSpace(ref); trimmed != "" {
+			slots = append(slots, "session_ref:"+trimmed)
+		}
+	}
+	return slots, nil
 }
 
 // StartAlarmTicker launches a cancelable background loop calling TickAlarms
@@ -851,7 +1000,7 @@ func (s *Service) RegisterBodyCarrier(ctx context.Context, req *runtimev1.Regist
 	instanceID := strings.TrimSpace(req.GetInstanceId())
 	now := s.now().UTC()
 
-	nextEpoch, tombstones, intents, err := s.store.RegisterLease(ctx, &carrierLease{
+	nextEpoch, tombstones, intentItems, err := s.store.RegisterLease(ctx, &carrierLease{
 		AccountID:           decision.AccountID,
 		DeviceID:            deviceID,
 		CapabilityNamespace: ns,
@@ -867,6 +1016,12 @@ func (s *Service) RegisterBodyCarrier(ctx context.Context, req *runtimev1.Regist
 	}
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
+	}
+	intents := make([]*runtimev1.BodyOutboxEnvelope, 0, len(intentItems))
+	for _, item := range intentItems {
+		if s.canDeliverOutboxIntent(ctx, decision, item) {
+			intents = append(intents, item.Envelope)
+		}
 	}
 
 	// Close any superseded outbox streams bound to an older lease_epoch on this carrier.
@@ -1012,11 +1167,11 @@ func (s *Service) SubscribeBodyOutbox(req *runtimev1.SubscribeBodyOutboxRequest,
 		if !alive {
 			return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_BODY_LEASE_CONFLICT)
 		}
-		tombstones, intents, err := s.store.ListPendingOutbox(ctx, decision.AccountID, deviceID, ns)
+		tombstones, intentItems, err := s.store.ListPendingOutboxWithMeta(ctx, decision.AccountID, deviceID, ns)
 		if err != nil {
 			return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
 		}
-		stillPending := make(map[string]struct{}, len(tombstones)+len(intents))
+		stillPending := make(map[string]struct{}, len(tombstones)+len(intentItems))
 		for _, env := range tombstones {
 			id := env.GetOutboxId()
 			stillPending[id] = struct{}{}
@@ -1027,7 +1182,11 @@ func (s *Service) SubscribeBodyOutbox(req *runtimev1.SubscribeBodyOutboxRequest,
 				sentPending[id] = struct{}{}
 			}
 		}
-		for _, env := range intents {
+		for _, item := range intentItems {
+			if !s.canDeliverOutboxIntent(ctx, decision, item) {
+				continue
+			}
+			env := item.Envelope
 			id := env.GetOutboxId()
 			stillPending[id] = struct{}{}
 			if _, already := sentPending[id]; !already {
@@ -1098,9 +1257,15 @@ func (s *Service) AckBodyOutbox(ctx context.Context, req *runtimev1.AckBodyOutbo
 	if resultState == "" {
 		resultState = "acked"
 	}
-	acked, err := s.store.AckOutbox(ctx, decision.AccountID, deviceID, ns, decision.RegisteredAppSubject, req.GetLeaseEpoch(), outboxID, resultState, s.now().UTC())
+	acked, err := s.store.AckOutbox(ctx, decision.AccountID, deviceID, ns, decision.RegisteredAppSubject, req.GetLeaseEpoch(), outboxID, resultState, s.now().UTC(), func(sub, appID string) bool {
+		ok, vErr := s.verifyNamedRecipient(ctx, decision.AccountID, sub, firstNonEmpty(appID, NamedHarnessAppID))
+		return vErr == nil && ok
+	})
 	if errors.Is(err, errLeaseConflict) {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_BODY_LEASE_CONFLICT)
+	}
+	if errors.Is(err, errBodyNamespaceMismatch) {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
 	}
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
@@ -1181,7 +1346,7 @@ func (s *Service) notifyOverviewChange(accountID string, upserted []*runtimev1.W
 
 	// Notifications can arrive after a newer transaction. Read the current record
 	// while serializing dispatch so an earlier callback cannot restore old state.
-	current := make([]*runtimev1.WorkSessionRecord, 0, len(upserted))
+	current := make([]*sessionRow, 0, len(upserted))
 	var recordErr error
 	for _, record := range upserted {
 		row, err := s.store.GetSessionIncludingDeleting(context.Background(), accountID, record.GetWorkSessionRef())
@@ -1192,10 +1357,9 @@ func (s *Service) notifyOverviewChange(accountID string, upserted []*runtimev1.W
 		if row.DeletedAt != "" || row.Record.Status == "deleting" {
 			removed = append(removed, row.Record)
 		} else {
-			current = append(current, row.Record)
+			current = append(current, row)
 		}
 	}
-	upserted = current
 	for _, sub := range subs {
 		if carrierErr != nil || attentionErr != nil || recordErr != nil {
 			select {
@@ -1206,7 +1370,8 @@ func (s *Service) notifyOverviewChange(accountID string, upserted []*runtimev1.W
 		}
 		var visibleRemoved []string
 		var visibleSessions []*runtimev1.WorkSessionRecord
-		for _, rec := range upserted {
+		for _, row := range current {
+			rec := row.Record
 			if sub.agentRef != "" && rec.GetAgentBinding() != sub.agentRef {
 				continue
 			}
@@ -1214,7 +1379,7 @@ func (s *Service) notifyOverviewChange(accountID string, upserted []*runtimev1.W
 				if rec.GetArchivedAt() != "" && !sub.includeArchived {
 					visibleRemoved = append(visibleRemoved, rec.GetWorkSessionRef())
 				} else {
-					visibleSessions = append(visibleSessions, rec)
+					visibleSessions = append(visibleSessions, s.projectSessionForReader(context.Background(), sub.decision, row))
 				}
 			}
 		}
@@ -1228,13 +1393,13 @@ func (s *Service) notifyOverviewChange(accountID string, upserted []*runtimev1.W
 		}
 		// Avoid leaking hidden-session activity when neither sessions nor removals are visible
 		// unless this is a carrier liveness/attention broadcast (upserted==nil && removed==nil).
-		if (len(upserted) > 0 || len(removed) > 0) && len(visibleSessions) == 0 && len(visibleRemoved) == 0 {
+		if (len(current) > 0 || len(removed) > 0) && len(visibleSessions) == 0 && len(visibleRemoved) == 0 {
 			continue
 		}
 		var visibleAtt []*runtimev1.PendingAttentionRecord
 		for _, att := range allAtt {
 			if (sub.agentRef == "" || sub.agentRef == att.GetAgentBinding()) && readerCanAccessAttention(sub.decision, att) {
-				visibleAtt = append(visibleAtt, att)
+				visibleAtt = append(visibleAtt, s.projectAttentionForReader(context.Background(), sub.decision, att))
 			}
 		}
 		s.mu.Lock()
@@ -1383,4 +1548,22 @@ func (s *Service) cancelBrainTurnExpected(workSessionRef, expectedTurnRef string
 		return true
 	}
 	return false
+}
+
+// IsSessionContentRestricted reports whether (agentBinding, workSessionRef) is
+// a content-restricted named handoff session in sessions.db.
+func (s *Service) IsSessionContentRestricted(ctx context.Context, agentBinding, workSessionRef string) (bool, error) {
+	if s == nil || s.store == nil {
+		return false, fmt.Errorf("agent session service unavailable")
+	}
+	return s.store.IsSessionContentRestricted(ctx, agentBinding, workSessionRef)
+}
+
+// ListRestrictedSessions returns all content-restricted named handoff sessions
+// persisted in sessions.db so startup replay fences legacy general-memory outbox rows.
+func (s *Service) ListRestrictedSessions(ctx context.Context) ([]RestrictedSessionRef, error) {
+	if s == nil || s.store == nil {
+		return nil, fmt.Errorf("agent session service unavailable")
+	}
+	return s.store.ListRestrictedSessions(ctx)
 }

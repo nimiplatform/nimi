@@ -39,6 +39,7 @@ type OwnerPort interface {
 	FindMemoryRefsBySource(context.Context, string, string, string, string) ([]string, error)
 	ReceiveNoOpCutoff(context.Context, string, string, string, string, string, uint64) (memoryv1.CommitResult, error)
 	NeutralizePendingReceiptsBySource(context.Context, string, string, string, string) (int64, error)
+	NeutralizeRestrictedPendingReceiptsBySource(context.Context, string, string, string) (int64, error)
 	RecordSessionCutoff(context.Context, string, string, string) error
 	IsSessionCutoff(context.Context, string, string, string) (bool, error)
 }
@@ -69,6 +70,13 @@ func (a *OwnerAdapter) NeutralizePendingReceiptsBySource(ctx context.Context, bi
 		return 0, err
 	}
 	return a.core.NeutralizePendingReceiptsBySource(ctx, bindingRef, bankRef, sourceKind, sourceValue)
+}
+
+func (a *OwnerAdapter) NeutralizeRestrictedPendingReceiptsBySource(ctx context.Context, bindingRef, bankRef, workSessionRef string) (int64, error) {
+	if _, err := a.ownerBinding(ctx, bindingRef, bankRef); err != nil {
+		return 0, err
+	}
+	return a.core.NeutralizeRestrictedPendingReceiptsBySource(ctx, bindingRef, bankRef, workSessionRef)
 }
 
 func (a *OwnerAdapter) RecordSessionCutoff(ctx context.Context, bindingRef, bankRef, workSessionRef string) error {
@@ -158,6 +166,25 @@ func (a *OwnerAdapter) Commit(ctx context.Context, request *runtimev1.CognitionM
 	return response, err
 }
 
+type recallSlotKeyFilter struct {
+	Enabled         bool
+	AllowedSlotKeys []string
+}
+
+type recallSlotKeyFilterContextKey struct{}
+
+func withRecallSlotKeyFilter(ctx context.Context, filter recallSlotKeyFilter) context.Context {
+	return context.WithValue(ctx, recallSlotKeyFilterContextKey{}, filter)
+}
+
+func recallSlotKeyFilterFromContext(ctx context.Context) recallSlotKeyFilter {
+	if ctx == nil {
+		return recallSlotKeyFilter{}
+	}
+	filter, _ := ctx.Value(recallSlotKeyFilterContextKey{}).(recallSlotKeyFilter)
+	return filter
+}
+
 func (a *OwnerAdapter) Recall(ctx context.Context, request *runtimev1.CognitionMemoryRecallRequest, embeddingPort memoryv1.EmbeddingPort) (*runtimev1.CognitionMemoryRecallResponse, error) {
 	response := &runtimev1.CognitionMemoryRecallResponse{}
 	if err := validateOwnerContractVersion(request.GetContractVersion()); err != nil {
@@ -183,10 +210,12 @@ func (a *OwnerAdapter) Recall(ctx context.Context, request *runtimev1.CognitionM
 		response.Outcome = ownerProtoOutcome(errorOutcome(err))
 		return response, err
 	}
+	slotFilter := recallSlotKeyFilterFromContext(ctx)
 	result, err := a.core.Recall(ctx, memoryv1.RecallRequest{
 		OperationID: request.GetOperation().GetValue(), BindingRef: binding.BindingRef, BankRef: binding.BankRef,
 		LifecycleRef: binding.LifecycleRef, Subject: subject, Query: request.GetQuery(), Limit: int(request.GetLimit()),
-		ScopeTags: request.GetScopeTags(), Capabilities: snapshot, IncludeRecentLife: request.GetIncludeRecentLife(),
+		ScopeTags: request.GetScopeTags(), FilterSlotKeys: slotFilter.Enabled, AllowedSlotKeys: slotFilter.AllowedSlotKeys,
+		Capabilities: snapshot, IncludeRecentLife: request.GetIncludeRecentLife(),
 	}, embeddingPort)
 	response.Outcome = ownerProtoOutcome(result.Outcome)
 	for _, hit := range result.Hits {

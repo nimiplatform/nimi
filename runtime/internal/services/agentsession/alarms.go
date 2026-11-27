@@ -1375,6 +1375,11 @@ func (s *Service) BuildOfflineSessionRecallInjection(
 		if strings.TrimSpace(agentBinding) != "" && sess.Record.GetAgentBinding() != strings.TrimSpace(agentBinding) {
 			continue
 		}
+		if sess.ContentRestricted {
+			// Named Harness handoff briefs are authorized only for their named task;
+			// never inject them into cross-session general Q&A recall or model input.
+			continue
+		}
 		if !readerCanAccessSession(decision, sess.Record) {
 			// Unauthorized pointer titles MUST NEVER enter model context!
 			continue

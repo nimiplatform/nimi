@@ -203,7 +203,11 @@ func verifyAndInitStore(db *sql.DB) error {
 			updated_at TEXT NOT NULL,
 			archived_at TEXT NOT NULL DEFAULT '',
 			body_purge_pending INTEGER NOT NULL DEFAULT 0,
-			deleted_at TEXT NOT NULL DEFAULT ''
+			deleted_at TEXT NOT NULL DEFAULT '',
+			handoff_sender_subject TEXT NOT NULL DEFAULT '',
+			handoff_recipient_subject TEXT NOT NULL DEFAULT '',
+			handoff_recipient_app_id TEXT NOT NULL DEFAULT '',
+			content_restricted INTEGER NOT NULL DEFAULT 0
 		);`,
 		`CREATE TABLE IF NOT EXISTS runtime_session_milestone (
 			id INTEGER PRIMARY KEY, delivery_id TEXT NOT NULL, account_id TEXT NOT NULL, agent_binding TEXT NOT NULL,
@@ -227,7 +231,10 @@ func verifyAndInitStore(db *sql.DB) error {
 			state TEXT NOT NULL DEFAULT 'pending',
 			result_state TEXT NOT NULL DEFAULT '',
 			created_at TEXT NOT NULL,
-			acked_at TEXT NOT NULL DEFAULT ''
+			acked_at TEXT NOT NULL DEFAULT '',
+			recipient_subject TEXT NOT NULL DEFAULT '',
+			recipient_app_id TEXT NOT NULL DEFAULT '',
+			recipient_required INTEGER NOT NULL DEFAULT 0
 		);`,
 		`CREATE INDEX IF NOT EXISTS idx_runtime_body_outbox_pending ON runtime_body_outbox(account_id, device_id, capability_namespace, state, created_at ASC);`,
 		`CREATE INDEX IF NOT EXISTS idx_runtime_body_outbox_session ON runtime_body_outbox(work_session_ref, state);`,
@@ -423,6 +430,13 @@ func verifyAndInitStore(db *sql.DB) error {
 		{"runtime_body_continuity_ledger", "issued_tool_args_json", `ALTER TABLE runtime_body_continuity_ledger ADD COLUMN issued_tool_args_json TEXT NOT NULL DEFAULT '{}'`},
 		{"runtime_session_alarm", "last_claimed_occurrence", `ALTER TABLE runtime_session_alarm ADD COLUMN last_claimed_occurrence TEXT NOT NULL DEFAULT ''`},
 		{"runtime_session_alarm", "claim_expires_at", `ALTER TABLE runtime_session_alarm ADD COLUMN claim_expires_at TEXT NOT NULL DEFAULT ''`},
+		{"runtime_session", "handoff_sender_subject", `ALTER TABLE runtime_session ADD COLUMN handoff_sender_subject TEXT NOT NULL DEFAULT ''`},
+		{"runtime_session", "handoff_recipient_subject", `ALTER TABLE runtime_session ADD COLUMN handoff_recipient_subject TEXT NOT NULL DEFAULT ''`},
+		{"runtime_session", "handoff_recipient_app_id", `ALTER TABLE runtime_session ADD COLUMN handoff_recipient_app_id TEXT NOT NULL DEFAULT ''`},
+		{"runtime_session", "content_restricted", `ALTER TABLE runtime_session ADD COLUMN content_restricted INTEGER NOT NULL DEFAULT 0`},
+		{"runtime_body_outbox", "recipient_subject", `ALTER TABLE runtime_body_outbox ADD COLUMN recipient_subject TEXT NOT NULL DEFAULT ''`},
+		{"runtime_body_outbox", "recipient_app_id", `ALTER TABLE runtime_body_outbox ADD COLUMN recipient_app_id TEXT NOT NULL DEFAULT ''`},
+		{"runtime_body_outbox", "recipient_required", `ALTER TABLE runtime_body_outbox ADD COLUMN recipient_required INTEGER NOT NULL DEFAULT 0`},
 	}
 	for _, alt := range additiveAlters {
 		exists, err := sqliteTableHasColumn(ctx, db, alt.table, alt.col)
@@ -467,12 +481,19 @@ func verifyAndInitStore(db *sql.DB) error {
 		}
 	}
 	// Only Runtime's original, user-authored goal can enter a Cognition pointer.
-	if _, err := migration.ExecContext(ctx, `CREATE TRIGGER IF NOT EXISTS capture_session_routing_goal AFTER INSERT ON runtime_session
-		BEGIN UPDATE runtime_session SET routing_goal=NEW.topic_summary WHERE account_id=NEW.account_id AND work_session_ref=NEW.work_session_ref; END`); err != nil {
+	// Named Harness handoffs (content_restricted=1) never place brief content in routing_goal.
+	if _, err := migration.ExecContext(ctx, `DROP TRIGGER IF EXISTS capture_session_routing_goal`); err != nil {
+		return err
+	}
+	if _, err := migration.ExecContext(ctx, `CREATE TRIGGER capture_session_routing_goal AFTER INSERT ON runtime_session
+		BEGIN UPDATE runtime_session SET routing_goal = CASE WHEN NEW.content_restricted != 0 THEN '' ELSE NEW.topic_summary END WHERE account_id=NEW.account_id AND work_session_ref=NEW.work_session_ref; END`); err != nil {
 		return err
 	}
 	if err := migrateSessionRoutingGoals(ctx, migration); err != nil {
 		return fmt.Errorf("migrate session routing goals: %w", err)
+	}
+	if err := migrateNamedHandoffIsolation(ctx, migration); err != nil {
+		return fmt.Errorf("migrate named handoff isolation: %w", err)
 	}
 	// Earlier authorizations did not retain exact memory dependencies.
 	tag, err = migration.ExecContext(ctx, "INSERT OR IGNORE INTO runtime_session_meta(key,value) VALUES('body_memory_dependencies_v1','1')")
@@ -575,7 +596,9 @@ func migrateSessionRoutingGoals(ctx context.Context, tx *sql.Tx) error {
 			WHERE b.work_session_ref=s.forked_from_session_ref AND b.moved_to_work_session_ref=s.work_session_ref
 			  AND b.event_type='user_message' ORDER BY b.seq DESC LIMIT 1)
 		WHEN json_extract(o.payload_json,'$.routeReason')='l2_editable_brief_handoff'
-			THEN json_extract(o.payload_json,'$.handoffBriefText')
+			OR json_extract(o.payload_json,'$.entrySurface')='zhiyu_handoff'
+			OR COALESCE(json_extract(o.payload_json,'$.handoffBriefText'), '') != ''
+			THEN ''
 		ELSE json_extract(o.payload_json,'$.text') END
 		FROM runtime_session s JOIN runtime_body_outbox o ON o.rowid=(
 			SELECT first.rowid FROM runtime_body_outbox first WHERE first.account_id=s.account_id
@@ -612,8 +635,70 @@ func migrateSessionRoutingGoals(ctx context.Context, tx *sql.Tx) error {
 		}
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE runtime_session_milestone AS m SET summary=COALESCE((
-		SELECT routing_goal FROM runtime_session s WHERE s.account_id=m.account_id
+		SELECT CASE WHEN s.content_restricted != 0 THEN '' ELSE s.routing_goal END FROM runtime_session s WHERE s.account_id=m.account_id
 		AND s.work_session_ref=m.work_session_ref AND s.deleted_at=''), '')`)
+	return err
+}
+
+// migrateNamedHandoffIsolation fences historical Zhiyu-to-Harness handoff rows
+// that predate exact recipient_subject binding: their sessions are marked
+// content_restricted with scrubbed general-memory metadata, and any pending
+// outbox intents without a provable recipient_subject are flagged
+// recipient_required=1 so delivery withholds their content instead of leaking
+// to an unverified carrier.
+func migrateNamedHandoffIsolation(ctx context.Context, tx *sql.Tx) error {
+	tag, err := tx.ExecContext(ctx, "INSERT OR IGNORE INTO runtime_session_meta(key,value) VALUES('named_handoff_isolation_v1','1')")
+	if err != nil {
+		return err
+	}
+	applied, err := tag.RowsAffected()
+	if err != nil || applied == 0 {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE runtime_body_outbox
+		SET recipient_required = 1,
+		    recipient_app_id = CASE WHEN recipient_app_id = '' THEN ? ELSE recipient_app_id END
+		WHERE command_kind = ?
+		  AND (
+			json_extract(payload_json, '$.routeReason') = 'l2_editable_brief_handoff'
+			OR json_extract(payload_json, '$.entrySurface') = 'zhiyu_handoff'
+			OR COALESCE(json_extract(payload_json, '$.handoffBriefText'), '') != ''
+		  )`,
+		NamedHarnessAppID, int32(runtimev1.BodyOutboxCommandKind_BODY_OUTBOX_COMMAND_KIND_NEW_INTENT),
+	); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE runtime_session
+		SET content_restricted = 1,
+		    topic_summary = '',
+		    routing_goal = '',
+		    handoff_recipient_app_id = CASE WHEN handoff_recipient_app_id = '' THEN ? ELSE handoff_recipient_app_id END,
+		    handoff_sender_subject = CASE
+				WHEN handoff_sender_subject != '' THEN handoff_sender_subject
+				WHEN substr(publisher_scope_key, 1, 8) = 'subject:' THEN substr(publisher_scope_key, 9)
+				ELSE ''
+			END
+		WHERE EXISTS (
+			SELECT 1 FROM runtime_body_outbox o
+			WHERE o.account_id = runtime_session.account_id
+			  AND o.work_session_ref = runtime_session.work_session_ref
+			  AND o.recipient_required = 1
+		)`,
+		NamedHarnessAppID,
+	); err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, `
+		UPDATE runtime_session_milestone
+		SET summary = '', deliverables = '[]'
+		WHERE EXISTS (
+			SELECT 1 FROM runtime_session s
+			WHERE s.account_id = runtime_session_milestone.account_id
+			  AND s.work_session_ref = runtime_session_milestone.work_session_ref
+			  AND s.content_restricted != 0
+		)`)
 	return err
 }
 
@@ -802,27 +887,35 @@ func parseRFC3339(raw string) time.Time {
 }
 
 type sessionRow struct {
-	Record               *runtimev1.WorkSessionRecord
-	AccountID            string
-	TopicSummary         string
-	ProjectionLeaseEpoch int64
-	InboxTurnCount       int
-	LastActiveAt         time.Time
-	DeletedAt            string
+	Record                  *runtimev1.WorkSessionRecord
+	AccountID               string
+	TopicSummary            string
+	ProjectionLeaseEpoch    int64
+	InboxTurnCount          int
+	LastActiveAt            time.Time
+	DeletedAt               string
+	HandoffSenderSubject    string
+	HandoffRecipientSubject string
+	HandoffRecipientAppID   string
+	ContentRestricted       bool
 }
 
 func scanSessionRow(scanner interface{ Scan(dest ...any) error }) (*sessionRow, error) {
 	rec := &runtimev1.WorkSessionRecord{}
 	var (
-		accountID            string
-		isPrimaryCompanion   int
-		isGeneralInbox       int
-		topicSummary         string
-		projectionLeaseEpoch int64
-		inboxTurnCount       int
-		lastActiveAtRaw      string
-		bodyPurgePending     int
-		deletedAt            string
+		accountID               string
+		isPrimaryCompanion      int
+		isGeneralInbox          int
+		topicSummary            string
+		projectionLeaseEpoch    int64
+		inboxTurnCount          int
+		lastActiveAtRaw         string
+		bodyPurgePending        int
+		deletedAt               string
+		handoffSenderSubject    string
+		handoffRecipientSubject string
+		handoffRecipientAppID   string
+		contentRestricted       int
 	)
 	err := scanner.Scan(
 		&rec.WorkSessionRef,
@@ -854,6 +947,10 @@ func scanSessionRow(scanner interface{ Scan(dest ...any) error }) (*sessionRow, 
 		&rec.ArchivedAt,
 		&bodyPurgePending,
 		&deletedAt,
+		&handoffSenderSubject,
+		&handoffRecipientSubject,
+		&handoffRecipientAppID,
+		&contentRestricted,
 	)
 	if err != nil {
 		return nil, err
@@ -862,13 +959,17 @@ func scanSessionRow(scanner interface{ Scan(dest ...any) error }) (*sessionRow, 
 	rec.IsGeneralInbox = isGeneralInbox != 0
 	rec.BodyPurgePending = bodyPurgePending != 0
 	return &sessionRow{
-		Record:               rec,
-		AccountID:            accountID,
-		TopicSummary:         topicSummary,
-		ProjectionLeaseEpoch: projectionLeaseEpoch,
-		InboxTurnCount:       inboxTurnCount,
-		LastActiveAt:         parseRFC3339(lastActiveAtRaw),
-		DeletedAt:            deletedAt,
+		Record:                  rec,
+		AccountID:               accountID,
+		TopicSummary:            topicSummary,
+		ProjectionLeaseEpoch:    projectionLeaseEpoch,
+		InboxTurnCount:          inboxTurnCount,
+		LastActiveAt:            parseRFC3339(lastActiveAtRaw),
+		DeletedAt:               deletedAt,
+		HandoffSenderSubject:    handoffSenderSubject,
+		HandoffRecipientSubject: handoffRecipientSubject,
+		HandoffRecipientAppID:   handoffRecipientAppID,
+		ContentRestricted:       contentRestricted != 0,
 	}, nil
 }
 
@@ -878,7 +979,8 @@ const sessionSelectColumns = `
 	forked_at_seq, is_primary_companion, is_general_inbox, title, status,
 	trust_tier, workspace_root, permission_mode, latest_receipt_json,
 	topic_summary, projection_seq, projection_lease_epoch, head_seq, inbox_turn_count, last_active_at,
-	created_at, updated_at, archived_at, body_purge_pending, deleted_at`
+	created_at, updated_at, archived_at, body_purge_pending, deleted_at,
+	handoff_sender_subject, handoff_recipient_subject, handoff_recipient_app_id, content_restricted`
 
 const sessionSelectColumnsRuntimeTable = `
 	runtime_session.work_session_ref, runtime_session.account_id, runtime_session.agent_binding,
@@ -893,7 +995,9 @@ const sessionSelectColumnsRuntimeTable = `
 	runtime_session.inbox_turn_count, runtime_session.last_active_at,
 	runtime_session.created_at, runtime_session.updated_at,
 	runtime_session.archived_at, runtime_session.body_purge_pending,
-	runtime_session.deleted_at`
+	runtime_session.deleted_at,
+	runtime_session.handoff_sender_subject, runtime_session.handoff_recipient_subject,
+	runtime_session.handoff_recipient_app_id, runtime_session.content_restricted`
 
 func upsertSessionFTSTx(ctx context.Context, tx *sql.Tx, row *sessionRow) error {
 	if _, err := tx.ExecContext(ctx, `DELETE FROM runtime_session_fts WHERE work_session_ref = ?`, row.Record.GetWorkSessionRef()); err != nil {
@@ -1071,10 +1175,12 @@ func (st *Store) ListRecentBrainEvents(ctx context.Context, workSessionRef strin
 }
 
 type readerVisibilityFilter struct {
-	FullAccount      bool
-	IncludeCompanion bool
-	SubjectScopeKey  string
-	ChannelPrefix    string
+	FullAccount         bool
+	IncludeCompanion    bool
+	SubjectScopeKey     string
+	ChannelPrefix       string
+	ReaderSubject       string
+	RecipientAuthorized bool
 }
 
 func encodeSessionPageToken(updatedAt, workSessionRef string) string {
@@ -1151,8 +1257,18 @@ func (st *Store) ListSessions(ctx context.Context, accountID, agentBinding strin
 	if q := strings.TrimSpace(searchQuery); q != "" {
 		fq := ftsQuery(q)
 		if fq != "" {
-			where = append(where, `work_session_ref IN (SELECT work_session_ref FROM runtime_session_fts WHERE account_id = ? AND indexed_text MATCH ?)`)
-			args = append(args, accountID, fq)
+			// Match, sort, paginate and count search results strictly using fields
+			// visible to this reader: content_restricted handoffs only match for
+			// the bound sender or currently-authorized bound recipient.
+			recipientFlag := 0
+			if visibility.RecipientAuthorized {
+				recipientFlag = 1
+			}
+			where = append(where,
+				`(content_restricted = 0 OR (handoff_sender_subject != '' AND handoff_sender_subject = ?) OR (? = 1 AND handoff_recipient_subject != '' AND handoff_recipient_subject = ?))`,
+				`work_session_ref IN (SELECT work_session_ref FROM runtime_session_fts WHERE account_id = ? AND indexed_text MATCH ?)`,
+			)
+			args = append(args, strings.TrimSpace(visibility.ReaderSubject), recipientFlag, strings.TrimSpace(visibility.ReaderSubject), accountID, fq)
 		}
 	}
 	whereClause := strings.Join(where, " AND ")
@@ -1204,13 +1320,19 @@ type ftsMatch struct {
 
 // QueryFTSCandidates runs strictly against the read-only pool OUTSIDE any write
 // transaction so FTS5 BM25 matching never holds SQLite's single writer lock.
-func (st *Store) QueryFTSCandidates(ctx context.Context, accountID, agentBinding, inputText string, limit int) ([]ftsMatch, error) {
+// Restricted named-handoff sessions are excluded unless the caller has content
+// access to them, so hidden brief terms never influence hits, ranking, or limits.
+func (st *Store) QueryFTSCandidates(ctx context.Context, accountID, agentBinding, inputText string, visibility readerVisibilityFilter, limit int) ([]ftsMatch, error) {
 	if limit <= 0 {
 		limit = 5
 	}
 	fq := ftsQuery(inputText)
 	if fq == "" {
 		return nil, nil
+	}
+	recipientFlag := 0
+	if visibility.RecipientAuthorized {
+		recipientFlag = 1
 	}
 	rows, err := st.readDB.QueryContext(ctx, `
 		SELECT `+sessionSelectColumnsRuntimeTable+`, bm25(runtime_session_fts) AS rank
@@ -1223,10 +1345,13 @@ func (st *Store) QueryFTSCandidates(ctx context.Context, accountID, agentBinding
 		  AND runtime_session.status NOT IN ('deleting', 'deleted', 'archived')
 		  AND runtime_session.is_general_inbox = 0
 		  AND runtime_session.session_kind != 'channel_external'
+		  AND (runtime_session.content_restricted = 0
+		       OR (runtime_session.handoff_sender_subject != '' AND runtime_session.handoff_sender_subject = ?)
+		       OR (? = 1 AND runtime_session.handoff_recipient_subject != '' AND runtime_session.handoff_recipient_subject = ?))
 		  AND runtime_session_fts.indexed_text MATCH ?
 		ORDER BY rank ASC, runtime_session.updated_at DESC
 		LIMIT ?`,
-		accountID, agentBinding, fq, limit,
+		accountID, agentBinding, strings.TrimSpace(visibility.ReaderSubject), recipientFlag, strings.TrimSpace(visibility.ReaderSubject), fq, limit,
 	)
 	if err != nil {
 		return nil, err
@@ -1236,16 +1361,20 @@ func (st *Store) QueryFTSCandidates(ctx context.Context, accountID, agentBinding
 	for rows.Next() {
 		rec := &runtimev1.WorkSessionRecord{}
 		var (
-			accID                string
-			isPrimaryCompanion   int
-			isGeneralInbox       int
-			topicSummary         string
-			projectionLeaseEpoch int64
-			inboxTurnCount       int
-			lastActiveAtRaw      string
-			bodyPurgePending     int
-			deletedAt            string
-			rank                 float64
+			accID                   string
+			isPrimaryCompanion      int
+			isGeneralInbox          int
+			topicSummary            string
+			projectionLeaseEpoch    int64
+			inboxTurnCount          int
+			lastActiveAtRaw         string
+			bodyPurgePending        int
+			deletedAt               string
+			handoffSenderSubject    string
+			handoffRecipientSubject string
+			handoffRecipientAppID   string
+			contentRestricted       int
+			rank                    float64
 		)
 		if err := rows.Scan(
 			&rec.WorkSessionRef,
@@ -1277,6 +1406,10 @@ func (st *Store) QueryFTSCandidates(ctx context.Context, accountID, agentBinding
 			&rec.ArchivedAt,
 			&bodyPurgePending,
 			&deletedAt,
+			&handoffSenderSubject,
+			&handoffRecipientSubject,
+			&handoffRecipientAppID,
+			&contentRestricted,
 			&rank,
 		); err != nil {
 			return nil, err
@@ -1323,12 +1456,16 @@ func (st *Store) QueryFTSCandidates(ctx context.Context, accountID, agentBinding
 		}
 		matches = append(matches, ftsMatch{
 			Row: &sessionRow{
-				Record:         rec,
-				AccountID:      accID,
-				TopicSummary:   topicSummary,
-				InboxTurnCount: inboxTurnCount,
-				LastActiveAt:   parseRFC3339(lastActiveAtRaw),
-				DeletedAt:      deletedAt,
+				Record:                  rec,
+				AccountID:               accID,
+				TopicSummary:            topicSummary,
+				InboxTurnCount:          inboxTurnCount,
+				LastActiveAt:            parseRFC3339(lastActiveAtRaw),
+				DeletedAt:               deletedAt,
+				HandoffSenderSubject:    handoffSenderSubject,
+				HandoffRecipientSubject: handoffRecipientSubject,
+				HandoffRecipientAppID:   handoffRecipientAppID,
+				ContentRestricted:       contentRestricted != 0,
 			},
 			Score: score,
 		})
@@ -1494,6 +1631,9 @@ type routedCommitInput struct {
 	RouteReason              string
 	OutboxEnvelope           *runtimev1.BodyOutboxEnvelope
 	OutboxPayloadHash        string
+	OutboxRecipientSubject   string
+	OutboxRecipientAppID     string
+	OutboxRecipientRequired  bool
 	BrainEvent               *runtimev1.BrainSessionEventEnvelope
 	PromotedTurns            int32
 	Now                      time.Time
@@ -1614,6 +1754,10 @@ func (st *Store) CommitRoutedSubmission(ctx context.Context, in routedCommitInpu
 	if rec.BodyPurgePending {
 		purgePending = 1
 	}
+	contentRestricted := 0
+	if in.Session.ContentRestricted {
+		contentRestricted = 1
+	}
 	if _, err := tx.ExecContext(ctx, `
 		INSERT INTO runtime_session(
 			work_session_ref, account_id, agent_binding, session_kind, owner_body_kind,
@@ -1621,8 +1765,9 @@ func (st *Store) CommitRoutedSubmission(ctx context.Context, in routedCommitInpu
 			forked_at_seq, is_primary_companion, is_general_inbox, title, status,
 			trust_tier, workspace_root, permission_mode, latest_receipt_json,
 			topic_summary, projection_seq, projection_lease_epoch, head_seq, inbox_turn_count, last_active_at,
-			created_at, updated_at, archived_at, body_purge_pending, deleted_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '')
+			created_at, updated_at, archived_at, body_purge_pending, deleted_at,
+			handoff_sender_subject, handoff_recipient_subject, handoff_recipient_app_id, content_restricted
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', ?, ?, ?, ?)
 		ON CONFLICT(work_session_ref) DO UPDATE SET
 			device_id = CASE WHEN excluded.device_id != '' THEN excluded.device_id ELSE runtime_session.device_id END,
 			status = excluded.status,
@@ -1637,6 +1782,7 @@ func (st *Store) CommitRoutedSubmission(ctx context.Context, in routedCommitInpu
 		rec.TrustTier, rec.WorkspaceRoot, rec.PermissionMode, rec.LatestReceiptJson,
 		in.Session.TopicSummary, rec.ProjectionSeq, in.Session.ProjectionLeaseEpoch, rec.HeadSeq, in.Session.InboxTurnCount, nowStr,
 		rec.CreatedAt, rec.UpdatedAt, rec.ArchivedAt, purgePending,
+		in.Session.HandoffSenderSubject, in.Session.HandoffRecipientSubject, in.Session.HandoffRecipientAppID, contentRestricted,
 	); err != nil {
 		return nil, false, err
 	}
@@ -1673,15 +1819,21 @@ func (st *Store) CommitRoutedSubmission(ctx context.Context, in routedCommitInpu
 	outboxID := ""
 	if in.OutboxEnvelope != nil {
 		outboxID = in.OutboxEnvelope.OutboxId
+		recipientRequired := 0
+		if in.OutboxRecipientRequired {
+			recipientRequired = 1
+		}
 		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO runtime_body_outbox(
 				outbox_id, account_id, device_id, capability_namespace, work_session_ref,
-				agent_binding, command_kind, payload_json, payload_hash, state, created_at
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
+				agent_binding, command_kind, payload_json, payload_hash, state, created_at,
+				recipient_subject, recipient_app_id, recipient_required
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)`,
 			in.OutboxEnvelope.OutboxId, in.AccountID, in.OutboxEnvelope.DeviceId,
 			in.OutboxEnvelope.CapabilityNamespace, in.OutboxEnvelope.WorkSessionRef,
 			in.OutboxEnvelope.AgentBinding, int32(in.OutboxEnvelope.CommandKind),
 			in.OutboxEnvelope.PayloadJson, in.OutboxPayloadHash, in.OutboxEnvelope.CreatedAt,
+			in.OutboxRecipientSubject, in.OutboxRecipientAppID, recipientRequired,
 		); err != nil {
 			return nil, false, err
 		}
@@ -2182,7 +2334,7 @@ func (st *Store) PurgeAgentSessionsAndAlarms(ctx context.Context, accountID, age
 }
 
 // RegisterLease persists carrier registration and increments monotonic lease_epoch.
-func (st *Store) RegisterLease(ctx context.Context, lease *carrierLease) (int64, []*runtimev1.BodyOutboxEnvelope, []*runtimev1.BodyOutboxEnvelope, error) {
+func (st *Store) RegisterLease(ctx context.Context, lease *carrierLease) (int64, []*runtimev1.BodyOutboxEnvelope, []outboxIntentItem, error) {
 	tx, err := st.writeDB.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, nil, nil, err
@@ -2276,7 +2428,7 @@ func (st *Store) RegisterLease(ctx context.Context, lease *carrierLease) (int64,
 	st.liveHeartbeats[key] = lease.LastHeartbeatAt
 	st.hbMu.Unlock()
 
-	tombstones, intents, err := st.ListPendingOutbox(ctx, lease.AccountID, lease.DeviceID, lease.CapabilityNamespace)
+	tombstones, intents, err := st.ListPendingOutboxWithMeta(ctx, lease.AccountID, lease.DeviceID, lease.CapabilityNamespace)
 	return nextEpoch, tombstones, intents, err
 }
 
@@ -2431,10 +2583,65 @@ func (st *Store) FindActiveCarrierDevice(ctx context.Context, accountID, ns stri
 	return dev, online, err
 }
 
+func (st *Store) FindActiveCarrierForSubject(ctx context.Context, accountID, ns, subject string, now time.Time) (string, bool, error) {
+	trimmedSubject := strings.TrimSpace(subject)
+	if trimmedSubject == "" {
+		return "", false, nil
+	}
+	rows, err := st.readDB.QueryContext(ctx, `
+		SELECT device_id, last_heartbeat_at
+		FROM runtime_body_carrier_lease
+		WHERE account_id = ? AND capability_namespace = ? AND carrier_subject = ? AND active = 1`,
+		accountID, ns, trimmedSubject,
+	)
+	if err != nil {
+		return "", false, err
+	}
+	defer func() { _ = rows.Close() }()
+	bestDev := ""
+	var bestTime time.Time
+	for rows.Next() {
+		var devID, hbRaw string
+		if err := rows.Scan(&devID, &hbRaw); err != nil {
+			return "", false, err
+		}
+		key := leaseMapKey(accountID, devID, ns)
+		eff := st.effectiveHeartbeat(key, hbRaw)
+		if now.Sub(eff) <= LeaseTTL*2 && (bestDev == "" || eff.After(bestTime)) {
+			bestDev = devID
+			bestTime = eff
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return "", false, err
+	}
+	return bestDev, bestDev != "", nil
+}
+
+type outboxIntentItem struct {
+	Envelope          *runtimev1.BodyOutboxEnvelope
+	RecipientSubject  string
+	RecipientAppID    string
+	RecipientRequired bool
+}
+
 func (st *Store) ListPendingOutbox(ctx context.Context, accountID, deviceID, ns string) (tombstones []*runtimev1.BodyOutboxEnvelope, intents []*runtimev1.BodyOutboxEnvelope, err error) {
+	tombs, items, err := st.ListPendingOutboxWithMeta(ctx, accountID, deviceID, ns)
+	if err != nil {
+		return nil, nil, err
+	}
+	out := make([]*runtimev1.BodyOutboxEnvelope, 0, len(items))
+	for _, item := range items {
+		out = append(out, item.Envelope)
+	}
+	return tombs, out, nil
+}
+
+func (st *Store) ListPendingOutboxWithMeta(ctx context.Context, accountID, deviceID, ns string) (tombstones []*runtimev1.BodyOutboxEnvelope, intents []outboxIntentItem, err error) {
 	rows, err := st.readDB.QueryContext(ctx, `
 		SELECT outbox_id, device_id, capability_namespace, work_session_ref, agent_binding,
-		       command_kind, payload_json, created_at
+		       command_kind, payload_json, created_at,
+		       recipient_subject, recipient_app_id, recipient_required
 		FROM runtime_body_outbox
 		WHERE account_id = ? AND (device_id = ? OR device_id = 'local-default')
 		  AND capability_namespace = ? AND state = 'pending'
@@ -2448,9 +2655,12 @@ func (st *Store) ListPendingOutbox(ctx context.Context, accountID, deviceID, ns 
 	for rows.Next() {
 		env := &runtimev1.BodyOutboxEnvelope{}
 		var kind int32
+		var recipientSubject, recipientAppID string
+		var recipientRequired int
 		if err := rows.Scan(
 			&env.OutboxId, &env.DeviceId, &env.CapabilityNamespace, &env.WorkSessionRef,
 			&env.AgentBinding, &kind, &env.PayloadJson, &env.CreatedAt,
+			&recipientSubject, &recipientAppID, &recipientRequired,
 		); err != nil {
 			return nil, nil, err
 		}
@@ -2461,10 +2671,69 @@ func (st *Store) ListPendingOutbox(ctx context.Context, accountID, deviceID, ns 
 			runtimev1.BodyOutboxCommandKind_BODY_OUTBOX_COMMAND_KIND_PURGE_AGENT:
 			tombstones = append(tombstones, env)
 		default:
-			intents = append(intents, env)
+			intents = append(intents, outboxIntentItem{
+				Envelope:          env,
+				RecipientSubject:  recipientSubject,
+				RecipientAppID:    recipientAppID,
+				RecipientRequired: recipientRequired != 0,
+			})
 		}
 	}
 	return tombstones, intents, rows.Err()
+}
+
+// ListEligibleOfflineRecallSessionRefs returns work_session_refs eligible for
+// cross-session general Q&A recall for (accountID, agentBinding, visibility).
+// Named Harness handoffs (content_restricted=1), untrusted/external channels,
+// deleted sessions, and sessions outside the reader's visibility are excluded
+// BEFORE Cognition matches or ranks any pointers.
+func (st *Store) ListEligibleOfflineRecallSessionRefs(ctx context.Context, accountID, agentBinding string, visibility readerVisibilityFilter) ([]string, error) {
+	where := []string{
+		`account_id = ?`,
+		`deleted_at = ''`,
+		`status NOT IN ('deleting', 'deleted')`,
+		`trust_tier = 'trusted'`,
+		`session_kind != 'channel_external'`,
+		`content_restricted = 0`,
+	}
+	args := []any{accountID}
+	if strings.TrimSpace(agentBinding) != "" {
+		where = append(where, `agent_binding = ?`)
+		args = append(args, strings.TrimSpace(agentBinding))
+	}
+	if !visibility.FullAccount {
+		var scopeParts []string
+		if visibility.IncludeCompanion {
+			scopeParts = append(scopeParts, `(session_kind = 'companion' OR is_primary_companion = 1)`)
+		}
+		if strings.TrimSpace(visibility.SubjectScopeKey) != "" {
+			scopeParts = append(scopeParts, `publisher_scope_key = ?`)
+			args = append(args, strings.TrimSpace(visibility.SubjectScopeKey))
+		}
+		if strings.TrimSpace(visibility.ChannelPrefix) != "" {
+			scopeParts = append(scopeParts, `substr(publisher_scope_key, 1, length(?)) = ?`)
+			prefix := strings.TrimSpace(visibility.ChannelPrefix)
+			args = append(args, prefix, prefix)
+		}
+		if len(scopeParts) == 0 {
+			return nil, nil
+		}
+		where = append(where, `(`+strings.Join(scopeParts, " OR ")+`)`)
+	}
+	rows, err := st.readDB.QueryContext(ctx, `SELECT work_session_ref FROM runtime_session WHERE `+strings.Join(where, " AND "), args...)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var refs []string
+	for rows.Next() {
+		var ref string
+		if err := rows.Scan(&ref); err != nil {
+			return nil, err
+		}
+		refs = append(refs, ref)
+	}
+	return refs, rows.Err()
 }
 
 func (st *Store) EnqueueOutbox(ctx context.Context, accountID string, env *runtimev1.BodyOutboxEnvelope, payloadHash string) error {
@@ -2479,7 +2748,7 @@ func (st *Store) EnqueueOutbox(ctx context.Context, accountID string, env *runti
 	return err
 }
 
-func (st *Store) AckOutbox(ctx context.Context, accountID, deviceID, ns, carrierSubject string, leaseEpoch int64, outboxID, resultState string, now time.Time) (bool, error) {
+func (st *Store) AckOutbox(ctx context.Context, accountID, deviceID, ns, carrierSubject string, leaseEpoch int64, outboxID, resultState string, now time.Time, verifyRecipient func(subject, appID string) bool) (bool, error) {
 	tx, err := st.writeDB.BeginTx(ctx, nil)
 	if err != nil {
 		return false, err
@@ -2495,20 +2764,29 @@ func (st *Store) AckOutbox(ctx context.Context, accountID, deviceID, ns, carrier
 		return false, errLeaseConflict
 	}
 
-	var workSessionRef, agentBinding, payloadJSON string
+	var workSessionRef, agentBinding, payloadJSON, recipientSubject, recipientAppID string
 	var cmdKind int32
+	var recipientRequired int
 	err = tx.QueryRowContext(ctx, `
-		SELECT work_session_ref, agent_binding, command_kind, payload_json FROM runtime_body_outbox
+		SELECT work_session_ref, agent_binding, command_kind, payload_json, recipient_subject, recipient_app_id, recipient_required FROM runtime_body_outbox
 		WHERE account_id = ? AND outbox_id = ? AND capability_namespace = ?
 		  AND (device_id = ? OR device_id = 'local-default')
 		  AND state = 'pending'`,
 		accountID, outboxID, ns, deviceID,
-	).Scan(&workSessionRef, &agentBinding, &cmdKind, &payloadJSON)
+	).Scan(&workSessionRef, &agentBinding, &cmdKind, &payloadJSON, &recipientSubject, &recipientAppID, &recipientRequired)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
 	if err != nil {
 		return false, err
+	}
+	if recipientRequired != 0 || strings.TrimSpace(recipientSubject) != "" {
+		if strings.TrimSpace(recipientSubject) == "" || strings.TrimSpace(recipientSubject) != strings.TrimSpace(carrierSubject) {
+			return false, errBodyNamespaceMismatch
+		}
+		if verifyRecipient != nil && !verifyRecipient(recipientSubject, recipientAppID) {
+			return false, errBodyNamespaceMismatch
+		}
 	}
 	nowStr := formatRFC3339(now)
 	if _, err := tx.ExecContext(ctx, `
@@ -3391,6 +3669,11 @@ func (st *Store) ApplyBodyProjection(ctx context.Context, accountID, verifiedNS,
 	if existing.Record.OwnerBodyKind != verifiedNS {
 		return nil, nil, errBodyNamespaceMismatch
 	}
+	if existing.ContentRestricted {
+		if strings.TrimSpace(existing.HandoffRecipientSubject) == "" || strings.TrimSpace(carrierSubject) != strings.TrimSpace(existing.HandoffRecipientSubject) {
+			return nil, nil, errBodyNamespaceMismatch
+		}
+	}
 	if existing.Record.DeviceId != "" && existing.Record.DeviceId != "local-default" && req.GetDeviceId() != "" && existing.Record.DeviceId != req.GetDeviceId() {
 		return nil, nil, errBodyNamespaceMismatch
 	}
@@ -3501,13 +3784,25 @@ func (st *Store) ApplyBodyProjection(ctx context.Context, accountID, verifiedNS,
 	}
 
 	if kind := strings.TrimSpace(req.GetMilestoneKind()); kind != "" && existing.Record.GetTrustTier() == "trusted" && existing.Record.GetSessionKind() != "channel_external" {
-		paths, err := json.Marshal(req.GetDeliverablePaths())
-		if err != nil {
-			return nil, nil, err
-		}
-		var routingGoal string
-		if err := tx.QueryRowContext(ctx, "SELECT routing_goal FROM runtime_session WHERE account_id=? AND work_session_ref=?", accountID, req.GetWorkSessionRef()).Scan(&routingGoal); err != nil {
-			return nil, nil, err
+		var (
+			paths       []byte
+			routingGoal string
+		)
+		if existing.ContentRestricted {
+			// Named Harness handoffs permit at most an opaque session reference and
+			// content-free metadata in general Memory: exclude brief derivatives and
+			// deliverable paths from milestone outbox rows.
+			paths = []byte("[]")
+			routingGoal = ""
+		} else {
+			var marshalErr error
+			paths, marshalErr = json.Marshal(req.GetDeliverablePaths())
+			if marshalErr != nil {
+				return nil, nil, marshalErr
+			}
+			if err := tx.QueryRowContext(ctx, "SELECT routing_goal FROM runtime_session WHERE account_id=? AND work_session_ref=?", accountID, req.GetWorkSessionRef()).Scan(&routingGoal); err != nil {
+				return nil, nil, err
+			}
 		}
 		deliveryID := newID("milestone")
 		if milestoneReceipt.MilestoneRef != "" {
@@ -3601,4 +3896,59 @@ func (st *Store) sessionMemoryReads(ctx context.Context, account, session string
 		last.Refs = append(last.Refs, ref)
 	}
 	return sets, rows.Err()
+}
+
+// RestrictedSessionRef identifies a content-restricted named handoff session
+// in sessions.db whose brief/topic content must never be replayed into general
+// Cognition Memory or indexes.
+type RestrictedSessionRef struct {
+	AccountID      string
+	AgentBinding   string
+	WorkSessionRef string
+}
+
+// IsSessionContentRestricted reports whether (agentBinding, workSessionRef) is
+// marked content_restricted in sessions.db.
+func (st *Store) IsSessionContentRestricted(ctx context.Context, agentBinding, workSessionRef string) (bool, error) {
+	if st == nil || st.readDB == nil {
+		return false, fmt.Errorf("agent session store unavailable")
+	}
+	agent := strings.TrimSpace(agentBinding)
+	ref := strings.TrimSpace(workSessionRef)
+	if agent == "" || ref == "" {
+		return false, nil
+	}
+	var restricted int
+	if err := st.readDB.QueryRowContext(
+		ctx,
+		`SELECT COALESCE(MAX(content_restricted), 0) FROM runtime_session WHERE agent_binding = ? AND work_session_ref = ?`,
+		agent, ref,
+	).Scan(&restricted); err != nil {
+		return false, err
+	}
+	return restricted != 0, nil
+}
+
+// ListRestrictedSessions returns all content_restricted sessions in sessions.db.
+func (st *Store) ListRestrictedSessions(ctx context.Context) ([]RestrictedSessionRef, error) {
+	if st == nil || st.readDB == nil {
+		return nil, fmt.Errorf("agent session store unavailable")
+	}
+	rows, err := st.readDB.QueryContext(
+		ctx,
+		`SELECT account_id, agent_binding, work_session_ref FROM runtime_session WHERE content_restricted != 0 ORDER BY agent_binding, work_session_ref`,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var refs []RestrictedSessionRef
+	for rows.Next() {
+		var item RestrictedSessionRef
+		if err := rows.Scan(&item.AccountID, &item.AgentBinding, &item.WorkSessionRef); err != nil {
+			return nil, err
+		}
+		refs = append(refs, item)
+	}
+	return refs, rows.Err()
 }
