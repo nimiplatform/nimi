@@ -31,10 +31,10 @@ for (const mode of ['unary', 'stream'] as const) {
       const port = await new Promise<number>((resolve, reject) => {
         server.bindAsync('127.0.0.1:0', grpc.ServerCredentials.createInsecure(), (error, value) => error ? reject(error) : resolve(value));
       });
-      const runtime = new Runtime({ transport: { type: 'node-grpc', endpoint: `127.0.0.1:${port}` } });
+      const runtime = new Runtime({ hostOwnedIdentity: true, transport: { type: 'node-grpc', endpoint: `127.0.0.1:${port}` } });
       const invoke = async () => {
-        if (mode === 'unary') await runtime.audit.getRuntimeHealth({});
-        else for await (const _event of runtime.audit.subscribeRuntimeHealthEvents({})) { /* drain */ }
+        if (mode === 'unary') await runtime.health();
+        else for await (const _event of runtime.desktopMachineProduct!.subscribeRuntimeHealthEvents({})) { /* drain */ }
       };
       for (const invalid of ['1.0.0', '1.0.0', 'not-semver', 'not-semver']) {
         version = invalid;

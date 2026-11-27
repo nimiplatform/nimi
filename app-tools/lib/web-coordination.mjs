@@ -41,7 +41,10 @@ export async function handleNimiWebCoordination({ request, env }) {
   const target = new URL(source.pathname + source.search, realm);
   let upstream;
   try {
-    upstream = await fetch(target, { method: request.method, headers, body: request.body, redirect: 'manual' });
+    upstream = await fetch(target, {
+      method: request.method, headers, redirect: 'manual',
+      ...(request.body ? { body: request.body, duplex: 'half' } : {}),
+    });
   } catch {
     return reject('Realm coordination is unavailable', 502);
   }

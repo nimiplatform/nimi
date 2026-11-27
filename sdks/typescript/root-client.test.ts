@@ -15,9 +15,6 @@ test('NimiClient composes explicit Runtime-backed root surfaces without singleto
     async unary(request) {
       unaryCalls.push(request.methodId);
       request.responseMetadataObserver?.({ 'x-nimi-runtime-version': '0.6.0' });
-      if (request.methodId.endsWith('/GetRuntimeHealth')) {
-        return { status: 3 };
-      }
       if (request.methodId.endsWith('/ExecuteScenario')) {
         return {
           output: {
@@ -64,7 +61,7 @@ test('NimiClient composes explicit Runtime-backed root surfaces without singleto
   assert(first.runtime instanceof Runtime);
   assert.notEqual(first, second);
   assert.notEqual(first.runtime, second.runtime);
-  assert.equal((await first.runtime.ready()).status, 3);
+  await assert.rejects(first.runtime.ready(), { reasonCode: 'SDK_RUNTIME_METHOD_UNAVAILABLE' });
 
   const model = first.ai.createRuntimeModel({});
   assert.deepEqual(model.model, { modelId: 'text.generate' });

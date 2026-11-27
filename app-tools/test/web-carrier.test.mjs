@@ -12,7 +12,7 @@ import { buildAppScaffoldSnapshot, buildAppScaffoldSnapshotFromIntent, hashScaff
 import { appScaffoldVersions, initAppScaffold, resolveAppCreatePlan } from '../lib/index.mjs';
 import { readWebDevelopment, isWebCoordinationPath, nimiWebViteConfig, webOriginGuard } from '../lib/web-development.mjs';
 import { handleNimiWebCoordination } from '../lib/web-coordination.mjs';
-import { validateAppProjectInputs } from '../lib/app-doctor-update.mjs';
+import { planManagedAppSync, validateAppProjectInputs } from '../lib/app-doctor-update.mjs';
 import { buildAppProject } from '../lib/app-project-lifecycle.mjs';
 
 const versions = appScaffoldVersions();
@@ -60,6 +60,33 @@ test('Web scaffold preserves selected feature closure without native shells or d
   assert.deepEqual(buildAppScaffoldSnapshotFromIntent({ intent, versions }).lock, output.lock);
   const all = buildAppScaffoldSnapshot({ profile: 'standalone', platform: 'web', versions, appId: 'unit.web', appTitle: 'Unit', features: 'all' });
   assert.deepEqual(all.features, ['studio-create']);
+});
+
+test('sync hands an older Web product route to the App without replacing its edits', t => {
+  const root = mkdtempSync(path.join(os.tmpdir(), 'nimi-web-route-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const output = snapshot();
+  for (const file of output.files) {
+    const target = path.join(root, file.path);
+    mkdirSync(path.dirname(target), { recursive: true });
+    writeFileSync(target, file.content);
+  }
+  const route = 'src/shell/routes/product-area.tsx';
+  const lockPath = path.join(root, '.nimi/app-scaffold/lock.json');
+  const lock = JSON.parse(readFileSync(lockPath, 'utf8'));
+  const initial = lock.appOwnedInitialHashes[route];
+  assert.ok(initial);
+  delete lock.appOwnedInitialHashes[route];
+  lock.managedFileHashes[route] = { ...initial, class: 'scaffold-managed glue' };
+  lock.managedFileTaxonomy.appOwnedProductCode = lock.managedFileTaxonomy.appOwnedProductCode.filter(file => file !== route);
+  lock.managedFileTaxonomy.scaffoldManagedGlue.push(route);
+  writeFileSync(lockPath, JSON.stringify(lock));
+  const authored = 'export function ProductArea() { return "My App"; }\n';
+  writeFileSync(path.join(root, route), authored);
+  const plan = planManagedAppSync(root, {}, versions);
+  assert.equal(plan.planned.some(file => file.path === route), false);
+  assert.deepEqual(plan.handovers.find(file => file.path === route), { path: route, owner: 'app', file: 'kept', earlierScaffoldContent: false });
+  assert.equal(readFileSync(path.join(root, route), 'utf8'), authored);
 });
 
 test('create rejects unavailable platforms or features before writing a project', () => {
@@ -129,6 +156,14 @@ test('Pages coordination forwards only same-origin allowlisted calls without coo
   assert.equal(options.redirect, 'manual');
   assert.equal(options.headers.get('authorization'), 'Bearer context');
   assert.equal(options.headers.get('cookie'), null);
+  let forwardedBody;
+  upstream.mock.mockImplementation(async (url, init) => {
+    forwardedBody = await new Request(url, init).text();
+    return new Response(null, { status: 204 });
+  });
+  const submission = '{"example":"coordination"}';
+  assert.equal((await invoke('/api/runtime-access/connections', { method: 'POST', body: submission })).status, 204);
+  assert.equal(forwardedBody, submission);
   upstream.mock.mockImplementation(async () => Response.redirect('https://other.example/'));
   assert.equal((await invoke('/api/runtime-access/context')).status, 502);
 });

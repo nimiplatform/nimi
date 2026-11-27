@@ -125,6 +125,8 @@ test('Home AI observation preserves owner failure and public generated reads fai
   const ordinary = createRuntime({ appId: 'ordinary.app', transport });
   await assert.rejects(ordinary.generated.getDesktopAIActivitySnapshot({ limit: 50 }), { reasonCode: 'SDK_RUNTIME_METHOD_UNAVAILABLE' });
   await assert.rejects(ordinary.generated.getDesktopAIUsageSummary({ fromTime, toTime, connectorRef: '' }), { reasonCode: 'SDK_RUNTIME_METHOD_UNAVAILABLE' });
+  await assert.rejects(ordinary.audit.getRuntimeHealth({}), { reasonCode: 'SDK_RUNTIME_METHOD_UNAVAILABLE' });
+  await assert.rejects(ordinary.local.getModelAsset({ modelAssetId: 'test-asset' }), { reasonCode: 'SDK_RUNTIME_METHOD_UNAVAILABLE' });
   const deniedStream = ordinary.generated.subscribeDesktopAIActivity({ limit: 50 });
   assert.equal(typeof deniedStream[Symbol.asyncIterator], 'function');
   await assert.rejects(async () => {

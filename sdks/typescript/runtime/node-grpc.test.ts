@@ -18,6 +18,7 @@ import {
   SubscribeRuntimeHealthEventsRequest,
 } from '../core-generated/runtime-protobuf/runtime/v1/audit';
 import {
+  ListAgentsRequest,
   ListAgentsResponse,
 } from '../core-generated/runtime-protobuf/runtime/v1/agent_service';
 import { StreamScenarioEvent } from '../core-generated/runtime-protobuf/runtime/v1/ai';
@@ -32,7 +33,7 @@ test('real gRPC releases abort listeners after unary and stream completion, fail
   let finishStream = true;
   server.addService({
     health: {
-      path: '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth', requestStream: false, responseStream: false,
+      path: '/nimi.runtime.v1.RuntimeAgentService/ListAgents', requestStream: false, responseStream: false,
       requestSerialize: (value: object) => Buffer.from(GetRuntimeHealthRequest.toBinary(value)),
       requestDeserialize: (bytes: Buffer) => GetRuntimeHealthRequest.fromBinary(bytes),
       responseSerialize: (value: object) => Buffer.from(GetRuntimeHealthResponse.toBinary(GetRuntimeHealthResponse.create(value))),
@@ -58,7 +59,7 @@ test('real gRPC releases abort listeners after unary and stream completion, fail
   });
   const transport = createRuntimeNodeGrpcTransport({ endpoint: `127.0.0.1:${port}` });
   const controller = new AbortController();
-  const unary = { methodId: '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth', body: {}, signal: controller.signal };
+  const unary = { methodId: '/nimi.runtime.v1.RuntimeAgentService/ListAgents', body: {}, signal: controller.signal };
   for (let index = 0; index < 12; index++) await transport.unary(unary);
   assert.equal(getEventListeners(controller.signal, 'abort').length, 0);
   failUnary = true;
@@ -98,15 +99,12 @@ test('node-grpc Runtime transport encodes and decodes protobuf bytes', async () 
       observedBody = request.body;
       assert.equal(Object.hasOwn(request, 'authorization'), false);
       assert.equal(request.endpoint, '127.0.0.1:46371');
-      assert.equal(request.methodId, '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth');
+      assert.equal(request.methodId, '/nimi.runtime.v1.RuntimeAgentService/ListAgents');
       assert.equal(request.metadata?.appId, 'nimi.app');
       assert.equal(request.metadata?.['x-nimi-access-token-id'], 'bridge-token-id');
-      assert.deepEqual(GetRuntimeHealthRequest.fromBinary(request.body), {});
+      assert.equal(ListAgentsRequest.fromBinary(request.body).pageSize, 1);
       request.responseMetadataObserver?.({ 'x-nimi-runtime-version': '0.2.0' });
-      return GetRuntimeHealthResponse.toBinary(GetRuntimeHealthResponse.create({
-        status: RuntimeHealthStatus.READY,
-        reason: 'bridge-ok',
-      }));
+      return ListAgentsResponse.toBinary(ListAgentsResponse.create({ nextPageToken: 'page-2' }));
     },
     async *serverStream() {
       throw new Error('unexpected stream call');
@@ -118,11 +116,10 @@ test('node-grpc Runtime transport encodes and decodes protobuf bytes', async () 
     authMetadata: () => ({ 'x-nimi-access-token-id': 'bridge-token-id' }),
   });
 
-  const health = await runtime.ready();
+  const result = await runtime.agents.listAgents(ListAgentsRequest.create({ pageSize: 1 }));
 
   assert.ok(observedBody instanceof Uint8Array);
-  assert.equal(health.status, RuntimeHealthStatus.READY);
-  assert.equal(health.reason, 'bridge-ok');
+  assert.equal(result.nextPageToken, 'page-2');
   assert.equal(runtime.runtimeVersion(), '0.2.0');
   assert.equal(runtime.versionCompatibility().state, 'compatible');
 });
@@ -207,10 +204,10 @@ test('node-grpc Runtime transport decodes protobuf server streams', async () => 
   };
 
   const transport = createRuntimeNodeGrpcTransport({ endpoint: 'http://127.0.0.1:46371', bridge });
-  const runtime = new Runtime({ transport });
+  const runtime = new Runtime({ transport, hostOwnedIdentity: true });
   const events = [];
 
-  for await (const event of runtime.audit.subscribeRuntimeHealthEvents({})) {
+  for await (const event of runtime.desktopMachineProduct!.subscribeRuntimeHealthEvents({})) {
     events.push(event);
   }
 
@@ -255,8 +252,8 @@ test('node-grpc Runtime transport cancels pending server stream returns without 
     },
   };
 
-  const runtime = new Runtime({ transport: { type: 'node-grpc', bridge } });
-  const iterator = runtime.audit.subscribeRuntimeHealthEvents({})[Symbol.asyncIterator]();
+  const runtime = new Runtime({ transport: { type: 'node-grpc', bridge }, hostOwnedIdentity: true });
+  const iterator = runtime.desktopMachineProduct!.subscribeRuntimeHealthEvents({})[Symbol.asyncIterator]();
 
   const pendingNext = iterator.next();
   await expectWithin(nextStarted, 500, 'node-grpc stream next');
@@ -297,7 +294,7 @@ test('node-grpc Runtime transport preserves structured upstream errors', async (
   const runtime = new Runtime({ transport: { type: 'node-grpc', bridge } });
 
   await assert.rejects(
-    runtime.ready(),
+    runtime.agents.listAgents(ListAgentsRequest.create({ pageSize: 1 })),
     (error: unknown) => {
       const shaped = error as {
         code?: string;
@@ -331,7 +328,7 @@ test('node-grpc Runtime transport rejects retired caller AI input metadata on ev
   });
 
   await assert.rejects(
-    runtime.ready(),
+    runtime.agents.listAgents(ListAgentsRequest.create({ pageSize: 1 })),
     (error: unknown) => {
       const shaped = error as { code?: string; reasonCode?: string; actionHint?: string };
       assert.equal(shaped.code, 'SDK_TRANSPORT_INVALID');
@@ -357,7 +354,7 @@ test('node-grpc Runtime transport rejects authorization in caller metadata', asy
   });
 
   await assert.rejects(
-    runtime.ready(),
+    runtime.agents.listAgents(ListAgentsRequest.create({ pageSize: 1 })),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_TRANSPORT_INVALID
       && String((error as { message?: string }).message || '').includes('transport auth channel'),
   );
@@ -388,7 +385,7 @@ test('node-grpc projects OUTCOME_UNCERTAIN without inferring restart when submit
 
   // Non-execution RPC keeps its normal transport retryable attribute.
   await assert.rejects(
-    runtime.ready(),
+    runtime.agents.listAgents(ListAgentsRequest.create({ pageSize: 1 })),
     (error: unknown) => {
       const shaped = error as { retryable?: boolean; interruption?: unknown };
       assert.equal(shaped.retryable, true);

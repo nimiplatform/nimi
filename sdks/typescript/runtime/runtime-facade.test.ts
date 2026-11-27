@@ -344,7 +344,7 @@ test('Runtime facade streams through generated server-stream methods without rec
 
 test('Runtime ready fails closed unless Runtime health is explicitly ready', async () => {
   const transport = new FakeRuntimeTransport();
-  const runtime = new Runtime({ transport });
+  const runtime = new Runtime({ transport, hostOwnedIdentity: true });
 
   assert.equal((await runtime.ready()).status, RuntimeHealthStatus.READY);
 
@@ -370,6 +370,7 @@ test('Runtime caches response metadata version and exposes compatibility status'
   const observedMetadata: Array<Record<string, string>> = [];
   const runtime = new Runtime({
     transport,
+    hostOwnedIdentity: true,
     responseMetadataObserver: (metadata) => {
       observedMetadata.push({ ...metadata });
     },
@@ -395,7 +396,7 @@ test('Runtime caches response metadata version and exposes compatibility status'
 test('Runtime fails closed on incompatible Runtime major version metadata', async () => {
   const transport = new FakeRuntimeTransport();
   transport.responseMetadata = { 'x-nimi-runtime-version': '1.0.0' };
-  const runtime = new Runtime({ transport });
+  const runtime = new Runtime({ transport, hostOwnedIdentity: true });
 
   await assert.rejects(
     runtime.ready(),

@@ -481,3 +481,15 @@ test('Desktop protected Host runtime exposes only the typed external-AI-host mod
   const executeCall = calls.find((call) => call.methodId === '/nimi.runtime.v1.RuntimeAiService/ExecuteScenario');
   assert.equal((executeCall?.body as { head?: { subjectUserId?: string } })?.head?.subjectUserId, 'account-a');
 });
+
+test('the Home machine product uses its admitted methods for model inventory and health', async () => {
+  const calls: string[] = [];
+  const ownerFailure = new Error('owner unavailable');
+  const clients = createNimiDesktopFirstPartyRuntimeClients({ appId: 'nimi.desktop', transport: {
+    async unary(req) { calls.push(req.methodId); throw ownerFailure; },
+    async *serverStream() { throw ownerFailure; },
+  } });
+  await assert.rejects(clients.machineProduct.local.listModelAssets({}), ownerFailure);
+  await assert.rejects(clients.machineProduct.audit.getRuntimeHealth({}), ownerFailure);
+  assert.deepEqual(calls, ['/nimi.runtime.v1.RuntimeLocalService/ListModelAssets', '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth']);
+});

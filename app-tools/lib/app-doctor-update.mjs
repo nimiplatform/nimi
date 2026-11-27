@@ -862,9 +862,11 @@ const RETIRED_TAURI_GLUE = new Set([
   'src-tauri/tauri.conf.json', 'src-tauri/src/main.rs', 'src-tauri/icons/icon.png', 'src-tauri/icons/icon.ico',
 ]);
 
-function isAppOwnedHandover(relativePath, lockedEntry, current) {
+function isAppOwnedHandover(relativePath, lockedEntry, current, platform) {
   if (!current && RETIRED_TAURI_GLUE.has(relativePath)) return lockedEntry?.class === 'scaffold-managed glue';
-  return SCAFFOLD_APP_OWNED_HANDOVER_PATHS.includes(relativePath)
+  const knownHandover = SCAFFOLD_APP_OWNED_HANDOVER_PATHS.includes(relativePath)
+    || (platform === 'web' && relativePath === 'src/shell/routes/product-area.tsx');
+  return knownHandover
     && lockedEntry?.class === 'scaffold-managed glue'
     && current?.owner === 'app-owned'
     && current.class === 'app-owned product code';
@@ -873,7 +875,7 @@ function isAppOwnedHandover(relativePath, lockedEntry, current) {
 function assertNoPendingAppOwnedHandover(lock, snapshot) {
   const currentClasses = collectExpectedClasses(snapshot);
   const pending = Object.entries(lock.managedFileHashes || {})
-    .filter(([relativePath, entry]) => isAppOwnedHandover(relativePath, entry, currentClasses.get(relativePath)))
+    .filter(([relativePath, entry]) => isAppOwnedHandover(relativePath, entry, currentClasses.get(relativePath), lock.platform))
     .map(([relativePath]) => relativePath);
   if (pending.length > 0) {
     throw new Error(`${pending.join(', ')} now belongs to the App and is no longer scaffold-managed. Run nimi-app sync to record the new owner; sync leaves the file unchanged.`);
@@ -900,7 +902,7 @@ function assertNoClassificationConflict(lock, snapshot, targetDir) {
     if (current?.owner === 'managed' && current.class === entry.class) {
       continue;
     }
-    if (isAppOwnedHandover(relativePath, entry, current)) {
+    if (isAppOwnedHandover(relativePath, entry, current, lock.platform)) {
       handovers.push(describeAppOwnedHandover(targetDir, relativePath, entry));
       continue;
     }

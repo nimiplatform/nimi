@@ -63,7 +63,8 @@ function failure(reasonCode: string, actionHint?: string) {
 function reason(value: string, accountReason?: AccountReasonCode): string {
   switch (value) {
     case 'LOCAL_APP_OPERATION_UNAVAILABLE': case 'LOCAL_APP_OPERATION_UNSUPPORTED': case 'SDK_RUNTIME_REMOTE_UNAVAILABLE': return 'capability-unavailable';
-    case 'PROTOCOL_ENVELOPE_INVALID': return 'invalid-input';
+    case 'PROTOCOL_ENVELOPE_INVALID': case 'REALM_REQUEST_REJECTED': return 'invalid-input';
+    case 'AUTH_TOKEN_INVALID': case 'LOCAL_APP_PROCESS_MISMATCH': case 'LOCAL_APP_SESSION_REVOKED': case 'LOCAL_APP_ACCOUNT_CHANGED':
     case 'LOCAL_APP_SNAPSHOT_UNAVAILABLE': case 'SDK_RUNTIME_CLIENT_CONTEXT_INVALID': return 'session-invalid';
     case 'PRINCIPAL_UNAUTHORIZED': case 'APP_SCOPE_FORBIDDEN': case 'LOCAL_APP_ACCESS_DENIED': return 'access-denied';
     case 'LOCAL_APP_OWNER_UNAVAILABLE': return 'owner-authority-missing';

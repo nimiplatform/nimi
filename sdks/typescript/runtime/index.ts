@@ -439,8 +439,8 @@ export class Runtime {
     this.connectors = bindRuntimeModule(generated, RUNTIME_CONNECTOR_METHODS);
     this.auth = bindRuntimeModule(generated, RUNTIME_AUTH_METHODS);
     this.externalAgents = bindRuntimeModule(generated, RUNTIME_EXTERNAL_AGENT_METHODS);
-    this.audit = bindRuntimeModule(generated, RUNTIME_AUDIT_METHODS);
-    this.local = bindRuntimeModule(generated, RUNTIME_LOCAL_METHODS);
+    this.audit = bindRuntimeModule(this.generated, RUNTIME_AUDIT_METHODS);
+    this.local = bindRuntimeModule(this.generated, RUNTIME_LOCAL_METHODS);
     this.appMessages = bindRuntimeModule(generated, RUNTIME_APP_MESSAGE_METHODS);
     this.artifacts = bindRuntimeModule(this.generated, RUNTIME_ARTIFACT_METHODS);
   }
@@ -474,7 +474,7 @@ export class Runtime {
   }
 
   health(request: GetRuntimeHealthRequest = {}, options: RuntimeTypedCallOptions = {}): Promise<GetRuntimeHealthResponse> {
-    return this.audit.getRuntimeHealth(request, options);
+    return (this.desktopMachineProduct ?? this.audit).getRuntimeHealth(request, options);
   }
 
   async ready(options: RuntimeReadyOptions = {}): Promise<GetRuntimeHealthResponse> {

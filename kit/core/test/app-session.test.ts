@@ -228,3 +228,42 @@ it('retains the actual native client type and keeps the default session surface 
   expectTypeOf(session).toExtend<NimiAppSession>();
   session.dispose(); expect(snapshot.runtime.scope.signal.aborted).toBe(true);
 });
+
+it('keeps sign-in in progress when a website republishes the same account binding', async () => {
+  let notify = () => {};
+  const f = fixture({ current: () => ({ contextKey: 'site-A' }), subscribe: listener => { notify = listener; return () => {}; } });
+  const entered = Promise.withResolvers<void>(), release = Promise.withResolvers<void>();
+  const prepare = f.platform.prepare;
+  f.platform.prepare = async (...args) => { entered.resolve(); await release.promise; return prepare(...args); };
+  const session = f.create();
+  if (session.account.kind !== 'app-session') throw new Error('wrong mode');
+  const pending = session.account.signIn();
+  await entered.promise;
+  notify();
+  release.resolve();
+  await pending;
+  expect(f.navigation).toHaveLength(1);
+  expect(f.platform.storage.getItem('unused')).not.toBeNull();
+  session.dispose();
+});
+
+it('checks the current website account binding when the official callback returns', async () => {
+  let expectedAccount = 'A';
+  const associated = vi.fn();
+  const f = fixture({ current: () => ({ contextKey: 'site-A', expectedNimiAccountId: expectedAccount }),
+    subscribe: () => () => {}, onVerifiedIdentity: associated });
+  const first = f.create();
+  if (first.account.kind !== 'app-session') throw new Error('wrong mode');
+  await first.account.signIn();
+  const transaction = JSON.parse(f.platform.storage.getItem('unused')!);
+  first.dispose();
+  expectedAccount = 'B';
+  f.platform.callbackUrl = () => `https://site.example/?code=${'c'.repeat(43)}&state=${transaction.state}`;
+  const returned = f.create();
+  await returned.start();
+  expect(returned.getSnapshot().identity.status).toBe('signed-out');
+  expect(returned.getSnapshot().issue?.reasonCode).toBe('RUNTIME_CLIENT_CONTEXT_INVALID');
+  expect(associated).not.toHaveBeenCalled();
+  expect(f.stats().connects).toBe(0);
+  returned.dispose();
+});

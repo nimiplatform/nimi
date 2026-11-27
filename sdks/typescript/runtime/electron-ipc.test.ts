@@ -88,6 +88,7 @@ test('electron-ipc Runtime transport encodes and decodes protobuf unary calls', 
   try {
     const runtime = new Runtime({
       appId: 'nimi.electron.test',
+      hostOwnedIdentity: true,
       transport: { type: 'electron-ipc' },
     });
 
@@ -294,7 +295,7 @@ test('electron-ipc Runtime transport fails closed when invoke is unavailable and
   try {
     const runtime = new Runtime({ transport: { type: 'electron-ipc' } });
     await assert.rejects(
-      runtime.ready(),
+      runtime.agents.listAgents({ lifecycleFilter: 0, pageSize: 1, pageToken: '' }),
       (error: unknown) => {
         assert.equal((error as { code?: string }).code, 'SDK_RUNTIME_ELECTRON_INVOKE_MISSING');
         return true;
@@ -323,7 +324,7 @@ test('electron-ipc Runtime transport rejects authorization in caller metadata', 
       authMetadata: () => ({ authorization: 'Bearer electron-token' }),
     });
     await assert.rejects(
-      runtime.ready(),
+      runtime.agents.listAgents({ lifecycleFilter: 0, pageSize: 1, pageToken: '' }),
       (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_TRANSPORT_INVALID
         && String((error as { message?: string }).message || '').includes('host-owned auth channel'),
     );
@@ -353,7 +354,7 @@ test('electron-ipc Runtime transport rejects sensitive token and session metadat
         authMetadata: () => metadata,
       });
       await assert.rejects(
-        runtime.ready(),
+        runtime.agents.listAgents({ lifecycleFilter: 0, pageSize: 1, pageToken: '' }),
         (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_TRANSPORT_INVALID
           && String((error as { message?: string }).message || '').includes('host-owned auth channel'),
       );
@@ -386,7 +387,7 @@ test('electron-ipc Runtime transport rejects host-owned identity metadata from r
         authMetadata: () => metadata,
       });
       await assert.rejects(
-        runtime.ready(),
+        runtime.agents.listAgents({ lifecycleFilter: 0, pageSize: 1, pageToken: '' }),
         (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_TRANSPORT_INVALID
           && String((error as { message?: string }).message || '').includes('host-owned identity channel'),
       );

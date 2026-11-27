@@ -44,6 +44,10 @@ test('broker owner failures stay typed and malformed success never becomes resou
   await assert.rejects(f.client.personaCharacter.getOwned('missing'), { reasonCode: 'not-found' });
   f.reject(ReasonCode.APP_SCOPE_FORBIDDEN);
   await assert.rejects(f.client.personaCharacter.listOwned(), { reasonCode: 'access-denied' });
+  f.reject(ReasonCode.REALM_REQUEST_REJECTED);
+  await assert.rejects(f.client.personaCharacter.listOwned(), { reasonCode: 'invalid-input' });
+  f.reject(ReasonCode.AUTH_TOKEN_INVALID);
+  await assert.rejects(f.client.personaCharacter.listOwned(), { reasonCode: 'session-invalid' });
   const invalid = fixture(); invalid.respond('{}');
   await assert.rejects(invalid.client.worldCore.get('world-1'), { reasonCode: 'SDK_LOCAL_APP_PROJECTION_INVALID' });
   invalid.respond('not JSON');

@@ -240,6 +240,11 @@ export function createNimiAppSession(platform: NimiRemoteAppPlatform | NimiDeskt
       const verified = await platform.complete(options(), transaction, url);
       if (disposed || current !== operation) { await verified.end(); return true; }
       session = verified;
+      const expectedAccount = platform.config.accountBinding?.current()?.expectedNimiAccountId;
+      if (expectedAccount && expectedAccount !== verified.identity.accountId) {
+        throw createNimiError({ message: 'The linked Nimi account changed during sign-in. Sign in again.',
+          reasonCode: 'RUNTIME_CLIENT_CONTEXT_INVALID', source: 'sdk' });
+      }
       watchIdentity(verified);
       // Source qualification is checked even for identity-only consumers.
       const state = await verified.read();
@@ -260,10 +265,14 @@ export function createNimiAppSession(platform: NimiRemoteAppPlatform | NimiDeskt
     } finally { if (completingCallback === current) completingCallback = null; }
     return true;
   }
-  const unsubscribe = platform.kind === 'remote' ? platform.config.accountBinding?.subscribe(() => {
-    const next = platform.config.accountBinding?.current();
+  const binding = platform.kind === 'remote' ? platform.config.accountBinding : undefined;
+  let observedBinding = { ...binding?.current() };
+  const unsubscribe = binding?.subscribe(() => {
+    const next = binding.current();
+    if (observedBinding.contextKey === next?.contextKey && observedBinding.expectedNimiAccountId === next?.expectedNimiAccountId) return;
+    observedBinding = { ...next };
     if (!session || !session.active || (next?.expectedNimiAccountId && next.expectedNimiAccountId !== session.identity.accountId)) void signOut();
-  }) : undefined;
+  });
   return Object.freeze({
     getSnapshot: () => snapshot,
     subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
