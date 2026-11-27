@@ -15,7 +15,6 @@ const vnextRoot = path.join(repoRoot, 'sdks', 'typescript');
 
 const testFiles = process.argv.slice(2);
 const independentWorkspaceTestRoots = [
-  'adapters/mastra/',
   'adapters/vercel-ai/',
 ];
 

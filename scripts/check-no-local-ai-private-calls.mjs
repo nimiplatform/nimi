@@ -9,7 +9,7 @@
  *
  * Detection is therefore anchored to the invoke surface: a violation is a
  * `local_ai_*` string literal passed as the FIRST argument to an
- * `invoke` / `invokeChecked` / `invokeTauri` call.
+ * `invoke` / `invokeChecked` / `invokeShell` call.
  */
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -20,13 +20,13 @@ const repoRoot = fileURLToPath(new URL('..', import.meta.url));
 const scanRoot = join(repoRoot, 'apps/desktop/src');
 const SCAN_EXTENSIONS = ['.ts', '.tsx'];
 
-// `invoke('local_ai_foo'`, `invokeChecked("local_ai_foo"`, `invokeTauri(`local_ai_foo``.
+// `invoke('local_ai_foo'`, `invokeChecked("local_ai_foo"`, `invokeShell(`local_ai_foo``.
 // The invoke-family identifier, optional whitespace, `(`, optional whitespace,
 // a quote, then a `local_ai_*` command token. This matches the private-command
 // call surface and never matches a bare state-name literal in a union type,
 // array, or comparison.
 const PRIVATE_CALL_PATTERN =
-  /\b(?:invoke|invokeChecked|invokeTauri)\s*\(\s*['"`]local_ai_[a-z0-9_]+['"`]/;
+  /\b(?:invoke|invokeChecked|invokeShell)\s*\(\s*['"`]local_ai_[a-z0-9_]+['"`]/;
 
 function collectFiles(dir) {
   const files = [];

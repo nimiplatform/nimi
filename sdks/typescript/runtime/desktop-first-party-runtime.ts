@@ -18,7 +18,6 @@ import {
   type RuntimeTypedMethodName,
 } from './runtime-method-modules.js';
 import { createRuntimeElectronIpcTransport } from './electron-ipc';
-import { createRuntimeTauriIpcTransport } from './tauri-ipc';
 import type {
   DesktopAccountProductRuntimeMethods,
   DesktopMachineProductRuntimeMethods,
@@ -231,16 +230,12 @@ function bindListConnectorsIntent(
   if (transport.type === 'electron-ipc') {
     return createRuntimeElectronIpcTransport({ ...transport, firstPartyListConnectorsIntent: intent });
   }
-  if (transport.type === 'tauri-ipc') {
-    return createRuntimeTauriIpcTransport({ ...transport, firstPartyListConnectorsIntent: intent });
-  }
   return transport;
 }
 
 function protectedDesktopTransport(transport: RuntimeTransportConfig): CoreTransport {
   if ('unary' in transport && 'serverStream' in transport) return transport;
   if (transport.type === 'electron-ipc') return createRuntimeElectronIpcTransport(transport);
-  if (transport.type === 'tauri-ipc') return createRuntimeTauriIpcTransport(transport);
   throw createNimiError({
     message: 'Desktop protected Runtime requires the verified native carrier.',
     reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,

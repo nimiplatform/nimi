@@ -12,11 +12,10 @@ import {
   subscribeRuntimeAccountSessionEvents,
   switchRuntimeAccount,
 } from '../src/bridge/index.js';
-import { resolveTauriInvokePayload } from '../src/bridge/tauri-api.js';
 import { getRuntimeAccountSessionStatusResponse } from '../src/bridge/runtime-account.js';
 
 type RuntimeAccountTestGlobal = typeof globalThis & {
-  __NIMI_TAURI_TEST__?: {
+  __NIMI_ELECTRON_TEST__?: {
     invoke?: (command: string, payload?: unknown) => Promise<unknown>;
     listen?: (
       eventName: string,
@@ -28,7 +27,7 @@ type RuntimeAccountTestGlobal = typeof globalThis & {
 const testGlobal = globalThis as RuntimeAccountTestGlobal;
 
 afterEach(() => {
-  delete testGlobal.__NIMI_TAURI_TEST__;
+  delete testGlobal.__NIMI_ELECTRON_TEST__;
 });
 
 describe('protected Desktop account status', () => {
@@ -55,28 +54,16 @@ describe('protected Desktop account status', () => {
   });
 
   it('preserves the revision in the generated Account snapshot mapping', async () => {
-    testGlobal.__NIMI_TAURI_TEST__ = { invoke: async () => ({
+    testGlobal.__NIMI_ELECTRON_TEST__ = { invoke: async () => ({
       sequence: '3', state: 'authenticated', authorizationRevision: 'Exact-Revision', reasonCode: 1, accountReasonCode: 1,
       accountProjection: { accountId: 'account-fixture', displayName: 'Fixture', realmEnvironmentId: 'realm-fixture' },
     }) };
     expect((await getRuntimeAccountSessionStatusResponse()).snapshot?.authorizationRevision).toBe('Exact-Revision');
   });
 
-  it('adapts the shared account stream payload to the exact Tauri command ABI', () => {
-    expect(resolveTauriInvokePayload(
-      'runtime_account_session_events_open',
-      { afterSequence: '9' },
-    )).toEqual({ payload: { afterSequence: '9' } });
-    expect(resolveTauriInvokePayload(
-      'runtime_account_session_events_close',
-      { streamId: 'account-session-1' },
-    )).toEqual({ payload: { streamId: 'account-session-1' } });
-    expect(resolveTauriInvokePayload('runtime_account_session_status', {})).toEqual({});
-  });
-
   it('invokes one exact no-input command and returns the safe projection', async () => {
     const calls: Array<{ command: string; payload: unknown }> = [];
-    testGlobal.__NIMI_TAURI_TEST__ = {
+    testGlobal.__NIMI_ELECTRON_TEST__ = {
       invoke: async (command, payload) => {
         calls.push({ command, payload });
         return {
@@ -154,7 +141,7 @@ describe('protected Desktop account status', () => {
     const events: unknown[] = [];
     let unlistened = false;
     let listener: ((event: { payload: unknown }) => void) | null = null;
-    testGlobal.__NIMI_TAURI_TEST__ = {
+    testGlobal.__NIMI_ELECTRON_TEST__ = {
       listen: (eventName, handler) => {
         expect(eventName).toBe('runtime_account_session_events');
         listener = handler;
@@ -233,7 +220,7 @@ describe('protected Desktop account status', () => {
     let listener: ((event: { payload: unknown }) => void) | null = null;
     let unlistened = false;
     let completed = 0;
-    testGlobal.__NIMI_TAURI_TEST__ = {
+    testGlobal.__NIMI_ELECTRON_TEST__ = {
       listen: (_eventName, handler) => {
         listener = handler;
         return () => { unlistened = true; };
@@ -273,7 +260,7 @@ describe('protected Desktop account status', () => {
   it('projects only validated account stream errors to consumers', async () => {
     let listener: ((event: { payload: unknown }) => void) | null = null;
     let observed: unknown;
-    testGlobal.__NIMI_TAURI_TEST__ = {
+    testGlobal.__NIMI_ELECTRON_TEST__ = {
       listen: (_eventName, handler) => {
         listener = handler;
         return () => undefined;
@@ -313,7 +300,7 @@ describe('protected Desktop account status', () => {
   });
 
   it('fails closed on malformed account stream identifiers and error envelopes', async () => {
-    testGlobal.__NIMI_TAURI_TEST__ = {
+    testGlobal.__NIMI_ELECTRON_TEST__ = {
       listen: () => () => undefined,
       invoke: async (command) => {
         if (command === 'runtime_account_session_events_open') return { streamId: 42 };
@@ -327,7 +314,7 @@ describe('protected Desktop account status', () => {
 
     let listener: ((event: { payload: unknown }) => void) | null = null;
     let observed: unknown;
-    testGlobal.__NIMI_TAURI_TEST__ = {
+    testGlobal.__NIMI_ELECTRON_TEST__ = {
       listen: (_eventName, handler) => {
         listener = handler;
         return () => undefined;
@@ -359,7 +346,7 @@ describe('protected Desktop account status', () => {
 
   it('uses exact caller-empty protected commands for login, Realm mediation, logout, and switch', async () => {
     const calls: Array<{ command: string; payload: unknown }> = [];
-    testGlobal.__NIMI_TAURI_TEST__ = {
+    testGlobal.__NIMI_ELECTRON_TEST__ = {
       invoke: async (command, payload) => {
         calls.push({ command, payload });
         if (command === 'runtime_account_begin_login') {
@@ -509,7 +496,7 @@ describe('protected Desktop account status', () => {
   });
 
   it('rejects accepted account mutations with method-incoherent state or projection', async () => {
-    testGlobal.__NIMI_TAURI_TEST__ = {
+    testGlobal.__NIMI_ELECTRON_TEST__ = {
       invoke: async (command) => {
         if (command === 'runtime_account_complete_login') {
           return {

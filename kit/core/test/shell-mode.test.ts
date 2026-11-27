@@ -86,11 +86,13 @@ describe('shell mode primitives', () => {
 
   it.each([
     ['ordinary browser', {}],
-    ['Tauri-only host', { __TAURI__: {} }],
-  ])('does not create a Windows system entry for an %s', async (_label, host) => {
+    ['retired Tauri-only global', { __TAURI__: {} }],
+  ])('keeps %s in web mode without a Windows system entry', async (_label, host) => {
     vi.stubGlobal('window', host);
     vi.stubGlobal('navigator', { platform: 'Win32', userAgent: 'Windows NT 10.0' });
     const { getShellFeatureFlags } = await loadShellModeModule();
+    expect(getShellFeatureFlags().mode).toBe('web');
+    expect(getShellFeatureFlags().enableTitlebarDrag).toBe(false);
     expect(getShellFeatureFlags().enableMenuBarShell).toBe(false);
   });
 

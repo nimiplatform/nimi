@@ -13,7 +13,6 @@ on:
       - .secrets.baseline
       - .github/workflows/release-kit.yml
       - kit/**
-      - '!kit/shell/tauri/**'
       - proto/runtime/v1/**
       - config/product-update-policy.mjs
       - rust-toolchain.toml

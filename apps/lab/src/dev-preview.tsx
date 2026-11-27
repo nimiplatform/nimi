@@ -1,7 +1,7 @@
 // App-owned developer preview entry for visual evidence capture only.
 // Renders LabWorkbench inside the same theme providers as the production
 // shell. The workbench still talks to the real SDK/Runtime; in a browser
-// preview without Tauri the runtime inspection surfaces typed unavailable.
+// preview without the desktop host the runtime inspection surfaces typed unavailable.
 // This file is NOT part of the product runtime path and is only mounted via
 // /dev-preview.html during local screenshot capture.
 

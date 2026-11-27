@@ -146,7 +146,7 @@ describe('shell renderer bootstrap primitives', () => {
         attempts += 1;
         return attempts === 1
           ? { installed: false, reason: 'standard-host-preload-required' }
-          : { installed: true, host: 'tauri' };
+          : { installed: true, host: 'electron', reason: 'electron-preload-present' };
       },
       setTimeout: ((handler: TimerHandler) => {
         if (typeof handler === 'function') {
@@ -156,7 +156,7 @@ describe('shell renderer bootstrap primitives', () => {
       }) as typeof setTimeout,
     });
 
-    expect(result).toEqual({ installed: true, host: 'tauri' });
+    expect(result).toEqual({ installed: true, host: 'electron', reason: 'electron-preload-present' });
     expect(attempts).toBe(2);
     expect(stages).toEqual([
       {
@@ -177,7 +177,7 @@ describe('shell renderer bootstrap primitives', () => {
         attempts += 1;
         return attempts < 8
           ? { installed: false, reason: 'standard-host-preload-required' }
-          : { installed: true, host: 'tauri' };
+          : { installed: true, host: 'electron', reason: 'electron-preload-present' };
       },
       setTimeout: ((handler: TimerHandler) => {
         if (typeof handler === 'function') handler();
@@ -185,7 +185,7 @@ describe('shell renderer bootstrap primitives', () => {
       }) as typeof setTimeout,
     });
 
-    expect(result).toEqual({ installed: true, host: 'tauri' });
+    expect(result).toEqual({ installed: true, host: 'electron', reason: 'electron-preload-present' });
     expect(attempts).toBe(8);
   });
 

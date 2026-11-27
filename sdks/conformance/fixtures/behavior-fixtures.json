@@ -1,10 +1,10 @@
 {
   "cases": {
     "runtime_unary": {
-      "method_id": "/nimi.runtime.v1.AgentSessionService/AckBodyOutbox"
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/BeginLogin"
     },
     "runtime_stream": {
-      "method_id": "/nimi.runtime.v1.AgentSessionService/StreamLocalAgentBodyStep"
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents"
     },
     "realm_unary": {
       "operation_id": "checkHandle",

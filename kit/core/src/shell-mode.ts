@@ -12,14 +12,6 @@ export type ShellFeatureFlags = {
   enableRuntimeBootstrap: boolean;
 };
 
-function hasTauriRuntime(): boolean {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-  const win = window as unknown as Record<string, unknown>;
-  return Boolean(win.__TAURI__ || win.__TAURI_INTERNALS__ || win.__TAURI_IPC__);
-}
-
 function hasElectronRuntime(): boolean {
   if (typeof window === 'undefined') {
     return false;
@@ -40,7 +32,7 @@ function resolveShellModeFromEnv(): ShellMode {
   if (typeof window === 'undefined') {
     return 'desktop';
   }
-  return hasTauriRuntime() || hasElectronRuntime() ? 'desktop' : 'web';
+  return hasElectronRuntime() ? 'desktop' : 'web';
 }
 
 function isSystemEntryPlatform(): boolean {
@@ -67,7 +59,6 @@ export function getShellFeatureFlags(): ShellFeatureFlags {
 
   const mode = resolveShellModeFromEnv();
   const isDesktop = mode === 'desktop';
-  const isTauriShell = hasTauriRuntime();
   const isElectronShell = hasElectronRuntime();
   // @nimi-authority: rule.nimi.desktop.shell-ui.r004
   const enableMenuBarShell = isDesktop && isElectronShell && isSystemEntryPlatform();
@@ -75,7 +66,7 @@ export function getShellFeatureFlags(): ShellFeatureFlags {
   cachedFlags = {
     mode,
     enableRuntimeTab: isDesktop,
-    enableTitlebarDrag: isTauriShell,
+    enableTitlebarDrag: false,
     enableMenuBarShell,
     enableRuntimeBootstrap: isDesktop,
   };

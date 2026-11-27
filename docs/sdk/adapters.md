@@ -32,7 +32,7 @@ This source adapter implementation returns a `LanguageModelV4` instance and does
 
 Consume public AI runner, Runtime, and AI utility subpaths according to their documented contracts. The retired `@nimiplatform/sdk/ai-provider` subpath has been removed and does not route to framework adapters.
 
-The OpenAI-compatible adapter supports only the narrow API subset explicitly implemented in source. Because it is not published as a standalone package, it cannot be used to establish direct connections to private Runtime instances or bypass platform capability checks.
+`@nimiplatform/sdk-adapter-vercel-ai` is the only maintained framework adapter in this repository. The former unmanifested source adapters (`langgraph`, `llamaindex`, `next`, `openai-compatible`, `react`) and the private `mastra` adapter have been retired; applications targeting other frameworks should consume the public `@nimiplatform/sdk` AI and Runtime clients directly.
 
 ## Source Basis
 

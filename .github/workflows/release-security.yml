@@ -26,7 +26,7 @@ jobs:
           COMPONENT: ${{ inputs.component }}
         run: |
           case "$COMPONENT" in
-            sdk|kit|app-tools|sdk-adapter-vercel-ai|protected-local|tauri|macos-production) ;;
+            sdk|kit|app-tools|sdk-adapter-vercel-ai|protected-local|macos-production) ;;
             *) echo "Unsupported release component" >&2; exit 1 ;;
           esac
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
@@ -60,7 +60,7 @@ jobs:
           zizmor --no-online-audits --min-severity high --collect workflows --collect dependabot -- .github/workflows .github/dependabot.yml
 
   native-dependencies:
-    if: contains(fromJSON('["kit","protected-local","tauri","macos-production"]'), inputs.component)
+    if: contains(fromJSON('["kit","protected-local","macos-production"]'), inputs.component)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -79,7 +79,4 @@ jobs:
           cargo audit --file kit/shell/protected-local/Cargo.lock
           case "$COMPONENT" in
             kit|macos-production) cargo audit --file kit/shell/protected-local-node/Cargo.lock ;;
-          esac
-          case "$COMPONENT" in
-            tauri) cargo audit --file kit/shell/tauri/Cargo.lock ;;
           esac

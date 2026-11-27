@@ -1171,8 +1171,13 @@ test('create accepts explicit identity through structured carrier surfaces and c
     assert.equal(lock.appTitle, 'Studio Canvas');
     assert.equal(lock.packageName, 'studio-canvas');
     assert.equal(lock.cargoPackageName, 'studio-canvas-shell');
-    assert.equal(lock.tauriIdentifier, 'ai.nimi.apps.studio.canvas');
+    assert.equal(lock.nativeBundleIdentifier, 'ai.nimi.apps.studio.canvas');
+    assert.equal(lock.tauriIdentifier, undefined);
+    assert.equal(lock.appIdentity.nativeBundleIdentifier, 'ai.nimi.apps.studio.canvas');
+    assert.equal(lock.appIdentity.tauriIdentifier, undefined);
     assert.equal(intent.appId, 'studio.canvas');
+    assert.equal(intent.nativeBundleIdentifier, 'ai.nimi.apps.studio.canvas');
+    assert.equal(intent.tauriIdentifier, undefined);
 
     assert.match(readFileSync(path.join(target, 'nimi.app.yaml'), 'utf8'), /app_id: studio\.canvas/);
     assert.match(readFileSync(path.join(target, 'src/shell/auth/app-identity.ts'), 'utf8'), /appId = "studio\.canvas"/);
@@ -1843,7 +1848,7 @@ test('phase 7 candidate product imports map wholly into capabilities and reject 
   for (const [field, content] of [
     ['appId', 'export const owner = "nimi.lab";'],
     ['appTitle', 'export const title = "Nimi Lab";'],
-    ['tauriIdentifier', 'export const native = "ai.nimi.apps.nimi.lab";'],
+    ['nativeBundleIdentifier', 'export const native = "ai.nimi.apps.nimi.lab";'],
   ]) {
     assert.throws(
       () => assertIdentityNeutralProductSource('src/capabilities/test.ts', content, manifest),
@@ -2276,7 +2281,7 @@ test('sync rejects scaffold identity drift before managed writes', () => {
       ['packageName', 'other-app'],
       ['packageAuthor', 'Other Maintainers'],
       ['cargoPackageName', 'other-app-shell'],
-      ['tauriIdentifier', 'ai.nimi.apps.other.app'],
+      ['nativeBundleIdentifier', 'ai.nimi.apps.other.app'],
       ['accentPack', 'other-accent'],
     ]) {
       writeFileSync(intentPath, `${JSON.stringify({ ...originalIntent, [field]: value }, null, 2)}\n`);
@@ -2942,7 +2947,7 @@ test('app source resolves only scaffoldable slices: neutral skeleton and admitte
   ]);
   assert.equal(manifest.sourceIdentity.appId, 'nimi.lab');
   assert.equal(manifest.sourceIdentity.packageName, '@nimiplatform/lab');
-  assert.equal(manifest.sourceIdentity.tauriIdentifier, 'ai.nimi.apps.nimi.lab');
+  assert.equal(manifest.sourceIdentity.nativeBundleIdentifier, 'ai.nimi.apps.nimi.lab');
   assert.equal(manifest.sourceIdentity.cargoPackageName, 'nimiapp-lab-shell');
   assert.equal(manifest.sourceIdentity.rendererEntryId, 'lab-app');
   assert.equal(manifest.sourceIdentity.appTitle, 'Nimi Lab');

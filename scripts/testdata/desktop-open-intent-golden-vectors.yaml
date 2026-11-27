@@ -119,7 +119,7 @@ accepted:
     envelope:
       schemaVersion: 2
       sourceApp: nimi.test-launcher
-      sourceHost: tauri-standard-shell
+      sourceHost: electron-standard-shell
       requestId: desktop-open-20260708-0003
       intent:
         kind: open-runtime-config
@@ -215,6 +215,8 @@ rejected:
   - id: invalid-explore-activity-discover-personas-pair
     reasonCode: desktop-open-target-unsupported
   - id: invalid-source-host
+    reasonCode: desktop-open-intent-invalid
+  - id: retired-tauri-source-host
     reasonCode: desktop-open-intent-invalid
   - id: invalid-request-id
     reasonCode: desktop-open-intent-invalid

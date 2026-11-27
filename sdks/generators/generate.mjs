@@ -2,9 +2,6 @@
 
 import { checkMode, languages, realmOnly, writeJson } from './lib/context.mjs';
 import {
-  writeGoClients,
-  writePythonClients,
-  writeRustClients,
   writeTypescriptClients,
   writeTypescriptPublicRuntimeDescriptors,
 } from './lib/descriptor-clients.mjs';
@@ -58,9 +55,6 @@ function writeLanguageArtifacts(typescriptRuntime, nonHostRuntime, realm, errorC
   }
   writeTypescriptClients(typescriptRuntime, realm);
   writeTypescriptPublicRuntimeDescriptors(nonHostRuntime);
-  writePythonClients(nonHostRuntime, realm);
-  writeGoClients(nonHostRuntime, realm);
-  writeRustClients(nonHostRuntime, realm);
   writeTypedClients(typescriptRuntime, nonHostRuntime, realm);
 }
 

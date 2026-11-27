@@ -127,7 +127,7 @@ test('watch classification ignores canonical build outputs and dependencies', ()
   assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'sdks/typescript/runtime/index.ts')), 'sdk');
   assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'sdks/typescript/core-generated/runtime-client.ts')), 'sdk');
   assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'sdks/typescript/runtime/client.test.ts')), null);
-  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'sdks/typescript/adapters/mastra/src/index.ts')), null);
+  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'sdks/typescript/adapters/vercel-ai/index.ts')), null);
   assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'sdks/typescript/README.md')), null);
   assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'sdks/typescript/core')), null);
   assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'kit/ui/src/index.ts')), 'kit');
@@ -147,7 +147,6 @@ test('watch classification ignores canonical build outputs and dependencies', ()
   assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'kit/features/chat/test/chat.test.ts')), null);
   assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'kit/ui/src/button.test.tsx')), null);
   assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'kit/CHANGELOG.md')), null);
-  assert.equal(classifyWorkspaceSurfacePath(repoRoot, path.join(repoRoot, 'kit/shell/tauri/src/lib.rs')), null);
 });
 
 test('recursive watch targets never contain their surface dist directory', () => {

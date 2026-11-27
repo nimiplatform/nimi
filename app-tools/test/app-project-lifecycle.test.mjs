@@ -878,7 +878,7 @@ test('authoring input files do not establish ownership of an unknown adoption wo
     const target = writeExistingSubmittedApp(temp, { buildProfileRef: 'electron-packager-pnpm-vite' });
     writeFileSync(path.join(target, '.nimi/config/app-identity.yaml'), renderAppIdentityInput({
       appId: 'focused.existing', appTitle: 'Focused Existing', version: '0.1.0', packageName: 'focused-existing-app',
-      cargoPackageName: 'focused-existing-app-shell', tauriIdentifier: 'ai.nimi.apps.focused.existing',
+      cargoPackageName: 'focused-existing-app-shell', nativeBundleIdentifier: 'ai.nimi.apps.focused.existing',
     }));
     mkdirSync(path.join(target, '.github/workflows'), { recursive: true });
     writeFileSync(path.join(target, '.github/workflows/nimi-app-release.yml'), 'name: Original App workflow\n');
@@ -1137,9 +1137,11 @@ test('Electron lifecycle sync and check do not require or rewrite optional Tauri
     const identity = parseYaml(readFileSync(path.join(target, '.nimi', 'config', 'app-identity.yaml'), 'utf8'));
     const submission = parseYaml(readFileSync(path.join(target, '.nimi', 'admission', 'submission.yaml'), 'utf8'));
     assert.equal(identity.cargo_package_name, 'focused-existing-app-shell');
-    assert.equal(identity.tauri_identifier, 'ai.nimi.apps.focused.existing');
+    assert.equal(identity.native_bundle_identifier, 'ai.nimi.apps.focused.existing');
+    assert.equal(identity.tauri_identifier, undefined);
     assert.equal(submission.cargo_package_name, identity.cargo_package_name);
-    assert.equal(submission.tauri_identifier, identity.tauri_identifier);
+    assert.equal(submission.native_bundle_identifier, identity.native_bundle_identifier);
+    assert.equal(submission.tauri_identifier, undefined);
 
     writePublicRegistryLock(target);
     result = runCli(['check', '--dir', target, '--production', '--json'], tempRoot, env);

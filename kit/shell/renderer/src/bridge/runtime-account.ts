@@ -1,5 +1,5 @@
 import { BridgeError, invokeChecked } from './invoke.js';
-import { listenShell } from './tauri-api.js';
+import { listenShell } from './shell-api.js';
 import { assertRecord } from './types.js';
 import {
   AccountReasonCode,

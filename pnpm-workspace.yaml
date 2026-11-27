@@ -8,7 +8,6 @@ packages:
   - 'examples/remote-runtime-web'
   - 'app-tools'
   - 'gateways/*'
-  - 'nimi2d'
   - 'nimi-cognition'
   - 'sdks/typescript'
   - 'sdks/typescript/adapters/*'

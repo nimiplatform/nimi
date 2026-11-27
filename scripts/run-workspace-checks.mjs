@@ -36,7 +36,6 @@ if (names.length === 1 && names[0] === '@nimiplatform/sdk' && process.env.SCRIPT
   run('pnpm', [
     '--recursive', ...filterArgs,
     '--filter=!@nimiplatform/sdk', '--filter=!@nimiplatform/kit',
-    '--filter=!@nimi-prototype/os-field', '--filter=!@nimiplatform/runtime-ux',
     '--if-present', 'build',
   ]);
   for (const pkg of packages) {

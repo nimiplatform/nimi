@@ -1,4 +1,3 @@
-import { installNimiShellRuntimeBridge as installTauriBridge } from '../src/bootstrap/tauri.js';
 import { afterEach, describe, expect, it } from 'vitest';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import {
@@ -7,161 +6,66 @@ import {
   hasElectronRuntime,
   hasNimiShellRuntime,
   hasShellHostInvoke,
-  hasTauriInvoke,
-  hasTauriRuntime,
   invokeShell,
-  invokeTauri,
   listenShell,
-  listenTauri,
   installNimiShellRuntimeBridge,
   parseRuntimeBridgeConfigGetResult,
   parseRuntimeBridgeConfigSetResult,
   parseRuntimeBridgeDaemonStatus,
 } from '../src/bridge/index.js';
 
-type TauriEventHandler = (event: { event?: string; id?: number; payload: unknown }) => void;
-
-type TauriRuntimeTestGlobal = typeof globalThis & {
-  __NIMI_TAURI_TEST__?: {
+type ShellRuntimeTestGlobal = typeof globalThis & {
+  __NIMI_ELECTRON_TEST__?: {
     invoke?: (command: string, payload?: unknown) => Promise<unknown>;
     listen?: (
       eventName: string,
-      handler: TauriEventHandler,
-    ) => Promise<(() => void) | undefined> | (() => void) | undefined;
+      handler: (event: { payload: unknown }) => void,
+    ) => (() => void) | undefined;
   };
-  __NIMI_TAURI_RUNTIME__?: {
-    invoke: (command: string, payload?: unknown) => Promise<unknown>;
-    listen: (eventName: string, handler: TauriEventHandler) => Promise<() => void>;
-  };
-  __NIMI_ELECTRON_TEST__?: {
-    invoke: (command: string, payload?: unknown) => Promise<unknown>;
-    listen: (eventName: string, handler: (event: { payload: unknown }) => void) => () => void;
-  };
-  __NIMI_ELECTRON_RUNTIME__?: TauriRuntimeTestGlobal['__NIMI_ELECTRON_TEST__'];
+  __NIMI_ELECTRON_RUNTIME__?: ShellRuntimeTestGlobal['__NIMI_ELECTRON_TEST__'];
+  __NIMI_TAURI_RUNTIME__?: unknown;
   __TAURI_INTERNALS__?: unknown;
-  __TAURI_IPC__?: unknown;
-  isTauri?: boolean;
   window?: {
-    __NIMI_TAURI_TEST__?: TauriRuntimeTestGlobal['__NIMI_TAURI_TEST__'];
-    __NIMI_TAURI_RUNTIME__?: TauriRuntimeTestGlobal['__NIMI_TAURI_RUNTIME__'];
-    __NIMI_ELECTRON_TEST__?: TauriRuntimeTestGlobal['__NIMI_ELECTRON_TEST__'];
-    __NIMI_ELECTRON_RUNTIME__?: TauriRuntimeTestGlobal['__NIMI_ELECTRON_RUNTIME__'];
-    __TAURI_INTERNALS__?: {
-      invoke?: (command: string, payload?: unknown) => Promise<unknown>;
-      transformCallback?: (callback: unknown, once?: boolean) => number;
-      unregisterCallback?: (id: number) => void;
-      convertFileSrc?: (fileUrl: string, protocol?: string) => string;
-    };
-    __TAURI_IPC__?: unknown;
-    isTauri?: boolean;
+    __NIMI_ELECTRON_TEST__?: ShellRuntimeTestGlobal['__NIMI_ELECTRON_TEST__'];
+    __NIMI_ELECTRON_RUNTIME__?: ShellRuntimeTestGlobal['__NIMI_ELECTRON_TEST__'];
+    __NIMI_TAURI_RUNTIME__?: unknown;
+    __TAURI_INTERNALS__?: unknown;
   };
 };
 
-const testGlobal = globalThis as TauriRuntimeTestGlobal;
+const testGlobal = globalThis as ShellRuntimeTestGlobal;
 
-function resetTauriGlobals(): void {
-  delete testGlobal.__NIMI_TAURI_TEST__;
-  delete testGlobal.__NIMI_TAURI_RUNTIME__;
+function resetShellGlobals(): void {
   delete testGlobal.__NIMI_ELECTRON_TEST__;
   delete testGlobal.__NIMI_ELECTRON_RUNTIME__;
+  delete testGlobal.__NIMI_TAURI_RUNTIME__;
   delete testGlobal.__TAURI_INTERNALS__;
-  delete testGlobal.__TAURI_IPC__;
-  delete testGlobal.isTauri;
   delete testGlobal.window;
 }
 
 afterEach(() => {
-  resetTauriGlobals();
+  resetShellGlobals();
 });
 
 describe('installNimiShellRuntimeBridge', () => {
-  it('installs the scoped invoke + listen hook the SDK tauri-ipc transport resolves', async () => {
-    const invokeCalls: Array<{ command: string; payload: unknown }> = [];
-    const listenCalls: string[] = [];
-    let unsubscribed = false;
-    testGlobal.__NIMI_TAURI_TEST__ = {
-      invoke: async (command, payload) => {
-        invokeCalls.push({ command, payload });
-        return 'ok';
-      },
-      listen: async (eventName) => {
-        listenCalls.push(eventName);
-        return () => {
-          unsubscribed = true;
-        };
-      },
-    };
-
-    const result = installNimiShellRuntimeBridge();
-    expect(result).toEqual({ installed: true, host: 'tauri' });
-
-    const hook = testGlobal.__NIMI_TAURI_RUNTIME__;
-    expect(typeof hook?.invoke).toBe('function');
-    expect(typeof hook?.listen).toBe('function');
-
-    await expect(hook!.invoke(NIMI_STANDARD_SHELL_COMMANDS['runtime.unary'], { a: 1 })).resolves.toBe('ok');
-    await expect(invokeShell(NIMI_STANDARD_SHELL_COMMANDS['runtime.unary'], { a: 2 })).resolves.toBe('ok');
-    expect(invokeCalls).toEqual([
-      { command: NIMI_STANDARD_SHELL_COMMANDS['runtime.unary'], payload: { a: 1 } },
-      { command: NIMI_STANDARD_SHELL_COMMANDS['runtime.unary'], payload: { a: 2 } },
-    ]);
-
-    const unsubscribe = await hook!.listen('nimi.shell.runtime:stream:1', () => {});
-    expect(listenCalls).toEqual(['nimi.shell.runtime:stream:1']);
-    expect(typeof unsubscribe).toBe('function');
-    unsubscribe();
-    expect(unsubscribed).toBe(true);
-  });
-
-  it('fails closed outside a standard shell host', async () => {
-    expect(hasTauriRuntime()).toBe(false);
+  it('fails closed outside a standard Electron shell host', async () => {
+    expect(hasElectronRuntime()).toBe(false);
     expect(hasNimiShellRuntime()).toBe(false);
     const result = installNimiShellRuntimeBridge();
     expect(result).toEqual({ installed: false, reason: 'standard-host-preload-required' });
-    expect(testGlobal.__NIMI_TAURI_RUNTIME__).toBeUndefined();
     await expect(invokeShell(NIMI_STANDARD_SHELL_COMMANDS['runtime.unary'], {})).rejects.toThrow(/not available/);
-  });
-
-  it('fails closed when the underlying listener does not return an unsubscribe', async () => {
-    testGlobal.__NIMI_TAURI_TEST__ = {
-      invoke: async () => 'ok',
-      listen: async () => undefined,
-    };
-    installNimiShellRuntimeBridge();
-    const hook = testGlobal.__NIMI_TAURI_RUNTIME__;
-    await expect(hook!.listen('evt', () => {})).rejects.toThrow(/unsubscribe/);
-  });
-
-  it('lets apps consume the scoped runtime hook without treating it as native Tauri', async () => {
-    const invokeCalls: Array<{ command: string; payload: unknown }> = [];
-    const listenCalls: string[] = [];
-    testGlobal.__NIMI_TAURI_RUNTIME__ = {
-      invoke: async (command, payload) => {
-        invokeCalls.push({ command, payload });
-        return { command, payload };
-      },
-      listen: async (eventName) => {
-        listenCalls.push(eventName);
-        return () => undefined;
-      },
-    };
-
-    expect(hasTauriRuntime()).toBe(true);
-    expect(hasTauriInvoke()).toBe(true);
-    expect(hasNimiShellRuntime()).toBe(true);
-    expect(hasShellHostInvoke()).toBe(true);
-    await expect(invokeTauri('desktop_command', { ok: true })).resolves.toEqual({
-      command: 'desktop_command',
-      payload: { ok: true },
-    });
-    const unsubscribe = await listenTauri('menu-bar://quit-requested', () => {});
-    expect(typeof unsubscribe).toBe('function');
-    expect(invokeCalls).toEqual([{ command: 'desktop_command', payload: { ok: true } }]);
-    expect(listenCalls).toEqual(['menu-bar://quit-requested']);
     await expect(Promise.resolve().then(() => convertShellFileSrc('/tmp/avatar.vrm'))).rejects.toThrow(/not available/);
   });
 
-  it('uses an Electron preload runtime hook through host-neutral invoke and listen', async () => {
+  it('fails closed when the Electron listener does not return an unsubscribe', async () => {
+    testGlobal.__NIMI_ELECTRON_TEST__ = {
+      invoke: async () => 'ok',
+      listen: () => undefined,
+    };
+    await expect(listenShell('evt', () => {})).rejects.toThrow(/unsubscribe/);
+  });
+
+  it('uses an Electron preload runtime hook through host-neutral invoke, listen, and file src conversion', async () => {
     const invokeCalls: Array<{ command: string; payload: unknown }> = [];
     const listenCalls: string[] = [];
     let emittedPayload: unknown;
@@ -181,8 +85,8 @@ describe('installNimiShellRuntimeBridge', () => {
 
     expect(hasElectronRuntime()).toBe(true);
     expect(hasElectronInvoke()).toBe(true);
-    expect(hasTauriRuntime()).toBe(false);
     expect(hasNimiShellRuntime()).toBe(true);
+    expect(hasShellHostInvoke()).toBe(true);
     expect(installNimiShellRuntimeBridge()).toEqual({
       installed: true,
       host: 'electron',
@@ -202,68 +106,25 @@ describe('installNimiShellRuntimeBridge', () => {
     expect(emittedPayload).toEqual({ host: 'electron-event' });
     unsubscribe();
     expect(emittedPayload).toBe('unsubscribed');
+    expect(convertShellFileSrc('/tmp/avatar.vrm')).toMatch(/^nimi-shell-file:\/\/local\/\?path=/u);
+    expect(convertShellFileSrc('https://example.com/a.vrm')).toBe('https://example.com/a.vrm');
   });
 
-  it('does not treat raw Tauri globals as an installed standard host', () => {
-    testGlobal.__TAURI_INTERNALS__ = {
-      invoke: () => Promise.resolve(null),
+  it('ignores retired Tauri globals and fails closed without Electron preload', async () => {
+    testGlobal.__TAURI_INTERNALS__ = { invoke: () => Promise.resolve(null) };
+    testGlobal.__NIMI_TAURI_RUNTIME__ = {
+      invoke: () => Promise.resolve('should-not-run'),
+      listen: () => () => undefined,
     };
 
-    expect(hasTauriRuntime()).toBe(false);
-    expect(hasTauriInvoke()).toBe(false);
-  });
-
-  it('installs from native Tauri internals when the isTauri marker is not initialized yet', async () => {
-    const invokeCalls: Array<{ command: string; payload: unknown }> = [];
-    testGlobal.window = {
-      __TAURI_INTERNALS__: {
-        invoke: async (command, payload) => {
-          invokeCalls.push({ command, payload });
-          return { command, payload };
-        },
-        transformCallback: () => 1,
-        unregisterCallback: () => undefined,
-        convertFileSrc: (fileUrl) => `asset://local/${fileUrl}`,
-      },
-    };
-
-    expect(testGlobal.window.isTauri).toBeUndefined();
-    expect(installNimiShellRuntimeBridge()).toEqual({ installed: false, reason: 'standard-host-preload-required' });
-    expect(installTauriBridge()).toEqual({ installed: true, host: 'tauri' });
-    expect(hasTauriInvoke()).toBe(true);
-
-    await expect(invokeTauri(NIMI_STANDARD_SHELL_COMMANDS['runtime-defaults.get'], {})).resolves.toEqual({
-      command: 'runtime_defaults',
-      payload: {},
+    expect(hasElectronRuntime()).toBe(false);
+    expect(hasNimiShellRuntime()).toBe(false);
+    expect(hasShellHostInvoke()).toBe(false);
+    expect(installNimiShellRuntimeBridge()).toEqual({
+      installed: false,
+      reason: 'standard-host-preload-required',
     });
-    await expect(invokeTauri(NIMI_STANDARD_SHELL_COMMANDS['data.pathResolve'], { payload: { relativePath: 'a.json' } })).resolves.toEqual({
-      command: 'data_path_resolve',
-      payload: { payload: { relativePath: 'a.json' } },
-    });
-    await expect(invokeTauri(NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'], { payload: { relativePath: 'a.json' } })).resolves.toEqual({
-      command: 'storage_read_json',
-      payload: { payload: { relativePath: 'a.json' } },
-    });
-    await expect(invokeTauri(NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'], { payload: { relativePath: 'a.json', value: { ok: true } } })).resolves.toEqual({
-      command: 'storage_write_json',
-      payload: { payload: { relativePath: 'a.json', value: { ok: true } } },
-    });
-    await expect(invokeTauri(NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'], { payload: { relativePath: 'a.json' } })).resolves.toEqual({
-      command: 'storage_remove_json',
-      payload: { payload: { relativePath: 'a.json' } },
-    });
-    await expect(invokeTauri(NIMI_STANDARD_SHELL_COMMANDS['shell-ui.confirmDialog'], { payload: { title: 'Confirm' } })).resolves.toEqual({
-      command: 'confirm_dialog',
-      payload: { payload: { title: 'Confirm' } },
-    });
-    expect(invokeCalls).toEqual([
-      { command: 'runtime_defaults', payload: {} },
-      { command: 'data_path_resolve', payload: { payload: { relativePath: 'a.json' } } },
-      { command: 'storage_read_json', payload: { payload: { relativePath: 'a.json' } } },
-      { command: 'storage_write_json', payload: { payload: { relativePath: 'a.json', value: { ok: true } } } },
-      { command: 'storage_remove_json', payload: { payload: { relativePath: 'a.json' } } },
-      { command: 'confirm_dialog', payload: { payload: { title: 'Confirm' } } },
-    ]);
+    await expect(invokeShell(NIMI_STANDARD_SHELL_COMMANDS['runtime.unary'], {})).rejects.toThrow(/not available/);
   });
 });
 

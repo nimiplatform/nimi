@@ -210,7 +210,7 @@ async function withHome(run: (ui: {
     CustomEvent: dom.window.CustomEvent, Event: dom.window.Event, getComputedStyle: dom.window.getComputedStyle,
     requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window), cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window),
     React, IS_REACT_ACT_ENVIRONMENT: true,
-    ...(options.multipleVersions ? { __NIMI_TAURI_TEST__: { invoke: async (command: string) => {
+    ...(options.multipleVersions ? { __NIMI_ELECTRON_TEST__: { invoke: async (command: string) => {
       assert.equal(command, 'runtime_account_session_status');
       return { sequence: '1', state: 'authenticated', reasonCode: 1, accountReasonCode: 1, authorizationRevision: 'authorization-test',
         accountProjection: { accountId: 'test-account', displayName: 'Test', realmEnvironmentId: 'test' } };

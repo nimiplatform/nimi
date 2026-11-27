@@ -78,8 +78,8 @@ function fixture(context) {
 
 test('CI selects immutable event baselines and exports the same SHA for authority review', (context) => {
   const { root, base } = fixture(context);
-  mkdirSync(path.join(root, 'sdks/go/coreclient'), { recursive: true });
-  writeFileSync(path.join(root, 'sdks/go/coreclient/client.go'), 'package coreclient\n');
+  mkdirSync(path.join(root, 'sdks/conformance/behavior'), { recursive: true });
+  writeFileSync(path.join(root, 'sdks/conformance/behavior/typescript.ts'), 'export const conformance = true;\n');
   const head = commit(root, 'SDK change');
   writeFileSync(path.join(root, 'README.md'), 'Later branch tip.\n');
   commit(root, 'advance main');

@@ -758,7 +758,7 @@ function cargoPackageNameFromNpmPackageName(packageName) {
   return `${normalized}-shell`;
 }
 
-function tauriIdentifierFromAppId(appId) {
+function nativeBundleIdentifierFromAppId(appId) {
   return `ai.nimi.apps.${appId}`;
 }
 
@@ -790,7 +790,7 @@ function assertCanonicalAuthoringInputs(targetDir, descriptor, files, version, n
   if (!hasProjectFile(targetDir, APP_IDENTITY_PATH, sources)) throw new Error(`Required App lifecycle file is missing: ${APP_IDENTITY_PATH}`);
   if (!hasProjectFile(targetDir, SUBMISSION_PATH, sources)) throw new Error(`Required App lifecycle file is missing: ${SUBMISSION_PATH}`);
   const identity = assertExactKeys(parseYamlFile(readProjectText(targetDir, APP_IDENTITY_PATH, sources), identityPath), APP_IDENTITY_PATH, [
-    'app_id', 'display_name', 'version', 'npm_package_name', 'cargo_package_name', 'tauri_identifier', 'package_author', 'identity_role',
+    'app_id', 'display_name', 'version', 'npm_package_name', 'cargo_package_name', 'native_bundle_identifier', 'package_author', 'identity_role',
   ]);
   const packageAuthor = files.packageJson.author === undefined ? null : files.packageJson.author;
   if (packageAuthor !== null) canonicalInputText(packageAuthor, 'package.json author');
@@ -800,7 +800,7 @@ function assertCanonicalAuthoringInputs(targetDir, descriptor, files, version, n
     version,
     npm_package_name: canonicalInputText(files.packageJson.name, 'package.json name'),
     cargo_package_name: nativeIdentity.cargoPackageName,
-    tauri_identifier: nativeIdentity.tauriIdentifier,
+    native_bundle_identifier: nativeIdentity.nativeBundleIdentifier,
     package_author: packageAuthor,
     identity_role: 'scaffold-generated-authoring-input',
   };
@@ -815,7 +815,7 @@ function assertCanonicalAuthoringInputs(targetDir, descriptor, files, version, n
     'profile',
     'npm_package_name',
     'cargo_package_name',
-    'tauri_identifier',
+    'native_bundle_identifier',
     'package_author',
     'submission_role',
     'capability_contract_refs',
@@ -833,7 +833,7 @@ function assertCanonicalAuthoringInputs(targetDir, descriptor, files, version, n
     ...(descriptor.platform === 'web' ? { platform: 'web' } : {}),
     npm_package_name: expectedIdentity.npm_package_name,
     cargo_package_name: expectedIdentity.cargo_package_name,
-    tauri_identifier: expectedIdentity.tauri_identifier,
+    native_bundle_identifier: expectedIdentity.native_bundle_identifier,
     package_author: packageAuthor,
     submission_role: 'developer-submitted-input',
     admission_truth: 'platform-owned-after-review',
@@ -1085,7 +1085,7 @@ function assertProjectLifecycleCurrent(targetDir, versions, options = {}) {
   const version = assertVersionLockstep(files, descriptor);
   const nativeIdentity = {
     cargoPackageName: cargoPackageNameFromNpmPackageName(files.packageJson.name),
-    tauriIdentifier: tauriIdentifierFromAppId(descriptor.appId),
+    nativeBundleIdentifier: nativeBundleIdentifierFromAppId(descriptor.appId),
   };
   assertNoStandaloneParentSources(targetDir, sources);
   const authoring = assertCanonicalAuthoringInputs(targetDir, descriptor, files, version, nativeIdentity, sources);
@@ -1124,7 +1124,7 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources, managed
     ...(descriptor.platform === 'web' ? { platform: 'web' } : {}),
     packageName: files.packageJson.name,
     cargoPackageName: cargoPackageNameFromNpmPackageName(files.packageJson.name),
-    tauriIdentifier: tauriIdentifierFromAppId(descriptor.appId),
+    nativeBundleIdentifier: nativeBundleIdentifierFromAppId(descriptor.appId),
     author: typeof files.packageJson.author === 'string' ? files.packageJson.author : '',
   };
   const planned = [
@@ -1149,7 +1149,7 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources, managed
       'profile',
       'npm_package_name',
       'cargo_package_name',
-      'tauri_identifier',
+      'native_bundle_identifier',
       'package_author',
       'submission_role',
       'capability_contract_refs',

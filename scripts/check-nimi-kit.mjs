@@ -243,7 +243,6 @@ for (const absPath of listFilesRecursively(path.join(kitRoot, 'auth'), (candidat
 
 const runtimeCarrierRustFiles = [
   path.join(kitRoot, 'shell/protected-local/src'),
-  path.join(kitRoot, 'shell/tauri/src/runtime_bridge'),
 ].flatMap((root) => listFilesRecursively(root, (candidate) => candidate.endsWith('.rs')));
 for (const absPath of runtimeCarrierRustFiles) {
   const fileRel = rel(absPath);

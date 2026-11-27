@@ -1,5 +1,5 @@
 import { hasShellHostInvoke } from './env.js';
-import { invokeShell } from './tauri-api.js';
+import { invokeShell } from './shell-api.js';
 import { getNimiContentRefusalPresentationEpoch, nextNimiContentRefusalCorrelation, reportNimiContentRefusal } from './content-refusal.js';
 import {
   isNimiStandardShellErrorEnvelope,

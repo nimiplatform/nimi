@@ -25,9 +25,9 @@ The Live2D branch loads and validates Cubism models, renders them on a WebGL can
 
 The VRM branch loads verified 3D humanoid models together with their typed capability profile. The profile declares humanoid bone mappings, blendshape expressions, LookAt gaze targets, joint rotation limits, and supported deterministic motion routes. If a model lacks required bones or blendshapes, unsupported routes fail closed immediately rather than distorting geometry or reporting fake success.
 
-## Standalone Layered Animation Specification (Nimi2D)
+## Retired Layered Animation Tooling (Nimi2D)
 
-Nimi2D is a standalone layered animation package specification and is not part of Avatar's closed `live2d | vrm` backend union. Admitting any future backend kind requires a formal authority update and a complete typed pipeline implementation.
+Nimi2D has been retired from this repository and is not part of Avatar's closed `live2d | vrm` backend union (`rule.nimi.avatar.embodiment.r002`). Manifests declaring `nimi2d` continue to fail closed. Admitting any future backend kind requires a formal authority update and a complete typed pipeline implementation.
 
 ## Engine-Neutral Projection Pipeline
 
@@ -53,4 +53,4 @@ Resetting or shutting down a branch clears only local graphics and audio resourc
 ## Source Basis
 
 - [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
-- [`.nimi/spec/nimi2d/asset-package.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
+- [`kit/features/avatar/src/avatar-model-manifest.ts`](https://github.com/nimiplatform/nimi/blob/main/kit/features/avatar/src/avatar-model-manifest.ts)

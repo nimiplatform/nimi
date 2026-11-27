@@ -472,7 +472,7 @@ function appSlugFromAppId(appId) {
   return packageSafeName(appId);
 }
 
-function tauriIdentifierFromAppId(appId) {
+function nativeBundleIdentifierFromAppId(appId) {
   const suffix = String(appId || DEFAULT_APP_ID)
     .toLowerCase()
     .replace(/[^a-z0-9.-]+/g, '.')
@@ -504,7 +504,7 @@ function assertNonLabIdentity(identity) {
     identity.appId === 'nimi.lab',
     normalizedTitle === 'nimi lab',
     identity.packageName === '@nimiplatform/lab',
-    identity.tauriIdentifier === 'ai.nimi.apps.nimi.lab',
+    identity.nativeBundleIdentifier === 'ai.nimi.apps.nimi.lab',
     identity.cargoPackageName === 'nimiapp-lab-shell',
     identity.appSlug === 'nimi-lab',
   ];
@@ -566,8 +566,7 @@ function buildAppIdentity(
     profile,
     packageName: resolvedPackageName,
     cargoPackageName: `${cargoSafeNameFromPackageName(resolvedPackageName)}-shell`,
-    tauriIdentifier: tauriIdentifierFromAppId(appId),
-    nativeBundleIdentifier: tauriIdentifierFromAppId(appId),
+    nativeBundleIdentifier: nativeBundleIdentifierFromAppId(appId),
     appSlug: appSlugFromAppId(appId),
     rendererEntryId: `${appSlugFromAppId(appId)}-app`,
     accentPack: String(accentPack || '').trim() || 'nimi-accent',
@@ -759,7 +758,7 @@ function resolveScaffoldVersionReference(value, versions, dependencyName) {
 
 function targetIdentityMap(identity) {
   return {
-    tauriIdentifier: identity.tauriIdentifier,
+    nativeBundleIdentifier: identity.nativeBundleIdentifier,
     packageName: identity.packageName,
     cargoPackageName: identity.cargoPackageName,
     appId: identity.appId,
@@ -804,7 +803,7 @@ function applyIdentityReplacement(content, manifest, target) {
 
 export function assertIdentityNeutralProductSource(relativePath, content, manifest) {
   const forbidden = [
-    'tauriIdentifier',
+    'nativeBundleIdentifier',
     'packageName',
     'cargoPackageName',
     'appId',
@@ -1179,7 +1178,7 @@ export function renderAppIdentityInput(identity) {
     version: identity.version,
     npm_package_name: identity.packageName,
     cargo_package_name: identity.cargoPackageName,
-    tauri_identifier: identity.tauriIdentifier,
+    native_bundle_identifier: identity.nativeBundleIdentifier,
     package_author: identity.author || null,
     identity_role: 'scaffold-generated-authoring-input',
   }, { lineWidth: 0 });
@@ -1260,7 +1259,7 @@ export function renderAppSubmissionInput(identity, options = {}) {
     ...(identity.platform === 'web' ? { platform: 'web' } : {}),
     npm_package_name: identity.packageName,
     cargo_package_name: identity.cargoPackageName,
-    tauri_identifier: identity.tauriIdentifier,
+    native_bundle_identifier: identity.nativeBundleIdentifier,
     package_author: identity.author || null,
     submission_role: 'developer-submitted-input',
     capability_contract_refs: options.capabilityContractRefs || [],
@@ -1380,7 +1379,6 @@ function buildIdentityMapping(identity, targetDir = '') {
     author: identity.author || null,
     cargoPackageName: identity.cargoPackageName,
     nativeBundleIdentifier: identity.nativeBundleIdentifier,
-    tauriIdentifier: identity.tauriIdentifier,
     appSlug: identity.appSlug,
     rendererEntryId: identity.rendererEntryId,
     devPort: identity.devPort,
@@ -1407,7 +1405,7 @@ function buildScaffoldIntent(identity, versions, targetDir = '') {
     packageName: identity.packageName,
     packageAuthor: identity.author || null,
     cargoPackageName: identity.cargoPackageName,
-    tauriIdentifier: identity.tauriIdentifier,
+    nativeBundleIdentifier: identity.nativeBundleIdentifier,
     accentPack: identity.accentPack,
     features: identity.features,
     directFeatures: identity.capabilityResolution.directFeatureIds,
@@ -1587,7 +1585,7 @@ function buildScaffoldLock(identity, versions, files, targetDir = '') {
     packageName: identity.packageName,
     packageAuthor: identity.author || null,
     cargoPackageName: identity.cargoPackageName,
-    tauriIdentifier: identity.tauriIdentifier,
+    nativeBundleIdentifier: identity.nativeBundleIdentifier,
     accentPack: identity.accentPack,
     appAccessItems: identity.appAccessItems,
     capabilityContractRefs: identity.capabilityResolution.capabilityContractRefs,
@@ -1672,7 +1670,7 @@ function buildAppScaffoldSnapshotWithResolver(
     packageName: identity.packageName,
     packageAuthor: identity.author || null,
     cargoPackageName: identity.cargoPackageName,
-    tauriIdentifier: identity.tauriIdentifier,
+    nativeBundleIdentifier: identity.nativeBundleIdentifier,
     features: identity.features,
     files: allFiles,
     createFiles,
@@ -1720,7 +1718,7 @@ export function buildAppScaffoldSnapshotFromIntent({ intent, versions, targetDir
   }, resolveAppScaffoldIntentFeatures);
   const expectedIntent = JSON.parse(snapshot.filesByPath.get(SCAFFOLD_INTENT_PATH).content);
   // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-018c
-  const immutableInputs = new Set(['intentVersion', 'scaffoldVersion', 'initRequired', 'initCommand', 'initOrder', 'profile', 'platform', 'carrier', 'appId', 'appTitle', 'version', 'packageName', 'packageAuthor', 'cargoPackageName', 'tauriIdentifier', 'accentPack', 'directFeatures', 'devPort', 'semantics']);
+  const immutableInputs = new Set(['intentVersion', 'scaffoldVersion', 'initRequired', 'initCommand', 'initOrder', 'profile', 'platform', 'carrier', 'appId', 'appTitle', 'version', 'packageName', 'packageAuthor', 'cargoPackageName', 'nativeBundleIdentifier', 'accentPack', 'directFeatures', 'devPort', 'semantics']);
   if (canonicalJson(Object.keys(intent).sort()) !== canonicalJson(Object.keys(expectedIntent).sort())) {
     throw new Error('Scaffold intent fields do not match the current canonical resolved intent');
   }

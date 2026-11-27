@@ -193,7 +193,7 @@ function expectedSnapshotFromLock(lock, versions, intent, targetDir, options = {
     ['packageName', 'packageName', 'package name'],
     ['packageAuthor', 'packageAuthor', 'package author'],
     ['cargoPackageName', 'cargoPackageName', 'Cargo package name'],
-    ['tauriIdentifier', 'tauriIdentifier', 'Tauri identifier'],
+    ['nativeBundleIdentifier', 'nativeBundleIdentifier', 'native bundle identifier'],
     ['accentPack', 'accentPack', 'accent pack'],
   ]) {
     const expected = lockField.includes('.')
@@ -257,7 +257,7 @@ function ensureLockMatchesCurrentGenerator(lock, snapshot) {
   assertSameJson(lock.packageName, snapshot.lock.packageName, 'Package name');
   assertSameJson(lock.packageAuthor, snapshot.lock.packageAuthor, 'Package author');
   assertSameJson(lock.cargoPackageName, snapshot.lock.cargoPackageName, 'Cargo package name');
-  assertSameJson(lock.tauriIdentifier, snapshot.lock.tauriIdentifier, 'Tauri identifier');
+  assertSameJson(lock.nativeBundleIdentifier, snapshot.lock.nativeBundleIdentifier, 'Native bundle identifier');
   assertSameJson(lock.accentPack, snapshot.lock.accentPack, 'Accent pack');
   assertSameJson(lock.features, snapshot.lock.features, 'Scaffold features');
   assertSameJson(lock.directFeatures, snapshot.lock.directFeatures, 'Direct scaffold features');

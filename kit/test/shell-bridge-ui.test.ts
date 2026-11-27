@@ -7,10 +7,9 @@ import {
   openExternalUrl,
   startWindowDrag,
 } from '../shell/renderer/src/bridge/index.js';
-import { resolveTauriStandardCommand } from '../shell/renderer/src/bridge/tauri-api.js';
 
 type TestGlobal = typeof globalThis & {
-  __NIMI_TAURI_TEST__?: {
+  __NIMI_ELECTRON_TEST__?: {
     invoke?: (command: string, payload?: unknown) => Promise<unknown>;
   };
 };
@@ -20,7 +19,7 @@ function testGlobal(): TestGlobal {
 }
 
 afterEach(() => {
-  delete testGlobal().__NIMI_TAURI_TEST__;
+  delete testGlobal().__NIMI_ELECTRON_TEST__;
   vi.restoreAllMocks();
 });
 
@@ -38,9 +37,9 @@ describe('shell renderer UI bridge primitives', () => {
     });
   });
 
-  test('Tauri UI commands invoke shared shell bridge commands', async () => {
+  test('Electron UI commands invoke shared shell bridge commands', async () => {
     const calls: Array<{ command: string; payload: unknown }> = [];
-    testGlobal().__NIMI_TAURI_TEST__ = {
+    testGlobal().__NIMI_ELECTRON_TEST__ = {
       invoke: async (command, payload) => {
         calls.push({ command, payload });
         if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.openExternalUrl']) return { opened: true };
@@ -62,14 +61,5 @@ describe('shell renderer UI bridge primitives', () => {
       NIMI_STANDARD_SHELL_COMMANDS['shell-ui.startWindowDrag'],
       NIMI_STANDARD_SHELL_COMMANDS['shell-ui.focusMainWindow'],
     ]);
-  });
-
-  test('Tauri adapter does not synthesize retired generic Runtime config commands', () => {
-    expect(resolveTauriStandardCommand(NIMI_STANDARD_SHELL_COMMANDS['config.get'])).toBe(
-      NIMI_STANDARD_SHELL_COMMANDS['config.get'],
-    );
-    expect(resolveTauriStandardCommand(NIMI_STANDARD_SHELL_COMMANDS['config.set'])).toBe(
-      NIMI_STANDARD_SHELL_COMMANDS['config.set'],
-    );
   });
 });

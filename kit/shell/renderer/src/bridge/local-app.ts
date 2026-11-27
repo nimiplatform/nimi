@@ -49,7 +49,7 @@ import {
   type NimiLocalAppTextDecideShellSpec,
 } from '@nimiplatform/kit/core/sdk-contract';
 import { BridgeError, invoke, invokeChecked } from './invoke.js';
-import { listenShell } from './tauri-api.js';
+import { listenShell } from './shell-api.js';
 import { assertRecord, parseRequiredString } from './types.js';
 import type { JsonObject, JsonValue } from './types.js';
 

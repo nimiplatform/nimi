@@ -1,8 +1,4 @@
-import { hasElectronRuntime, hasNimiShellRuntime, hasTauriRuntime } from './tauri-api.js';
-
-export function hasTauriInvoke() {
-  return hasTauriRuntime();
-}
+import { hasElectronRuntime, hasNimiShellRuntime } from './shell-api.js';
 
 export function hasElectronInvoke() {
   return hasElectronRuntime();

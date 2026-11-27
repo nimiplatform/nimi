@@ -1,6 +1,6 @@
 import { NIMI_CHROME_COMMAND_EVENT, NIMI_CHROME_STATE_EVENT, NIMI_CHROME_NATIVE_COMMANDS, NIMI_STANDARD_SHELL_UI_COMMANDS, type NimiChromeBindRequest, type NimiChromeCommandEvent, type NimiChromeCommandRequest, type NimiChromeState, type NimiChromeStateSetRequest, type NimiChromeUnbindRequest } from '@nimiplatform/kit/shell/capabilities';
 import { invokeChecked } from './invoke.js';
-import { listenShell } from './tauri-api.js';
+import { listenShell } from './shell-api.js';
 
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-kit-app-chrome-host
 export function bindNimiAppChrome(payload: NimiChromeBindRequest): Promise<NimiChromeState> {

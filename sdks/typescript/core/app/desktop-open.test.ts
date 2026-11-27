@@ -72,7 +72,7 @@ const acceptedVectors: readonly NimiDesktopOpenIntentEnvelope[] = [
   {
     schemaVersion: 2,
     sourceApp: 'nimi.test-launcher',
-    sourceHost: 'tauri-standard-shell',
+    sourceHost: 'electron-standard-shell',
     requestId: 'desktop-open-20260708-0003',
     intent: { kind: 'open-runtime-config', page: 'models', action: 'install-model' },
   },
@@ -457,4 +457,14 @@ it('validates open-partner-conversation correlation and bounded draft text witho
     { intent: { kind: 'open-partner-conversation', conversationAnchorId: 'anchor_1', text: 'hello\0world' } },
     'desktop-open-intent-invalid',
   );
+});
+
+it('rejects the retired tauri-standard-shell source host', () => {
+  assertRejects({
+    schemaVersion: 2,
+    sourceApp: 'nimi.test-launcher',
+    sourceHost: 'tauri-standard-shell',
+    requestId: 'desktop-open-reject-tauri',
+    intent: { kind: 'open-runtime-config', page: 'models', action: 'install-model' },
+  }, 'desktop-open-intent-invalid');
 });

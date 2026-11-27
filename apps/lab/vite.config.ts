@@ -21,9 +21,6 @@ function chunkName(id: string) {
   if (normalized.includes('/node_modules/lucide-react/')) {
     return 'vendor-icons';
   }
-  if (normalized.includes('/node_modules/@tauri-apps/')) {
-    return 'vendor-tauri';
-  }
   if (normalized.includes('/node_modules/three/')) {
     return 'vendor-three';
   }

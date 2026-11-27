@@ -4,7 +4,7 @@
 // Apps retain their own bootstrap orchestration, store integration, daemon
 // policy, and local data bootstrap. This module owns only the shared skeleton.
 
-import type { NimiShellRuntimeBridgeResult } from '../bridge/tauri-api.js';
+import type { NimiShellRuntimeBridgeResult } from '../bridge/shell-api.js';
 import { installNimiShellRuntimeBridge } from './runtime-bridge.js';
 export { installNimiShellRuntimeBridge } from './runtime-bridge.js';
 

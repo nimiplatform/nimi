@@ -13,7 +13,6 @@ import {
   createNimiLocalAppStandardShellSurface,
   openNimiLocalAppAssetMediaUrl,
 } from '../src/bridge/index.js';
-import { resolveTauriStandardCommand } from '../src/bridge/tauri-api.js';
 import { createNimiElectronLocalAppHostForBinding } from '../../electron/src/main/local-app-host.js';
 import { dispatchElectronLocalAppCommand } from '../../electron/src/main/local-app-commands.js';
 import { getNimiLocalAppScenarioJob, submitNimiLocalAppScenarioJob, type NimiLocalAppScenarioJobSpec } from '../src/bridge/local-app.js';
@@ -463,50 +462,6 @@ describe('renderer local-app standard-shell surface', () => {
       intent: { selectImportedResourcePack: true },
       importedAssets: [],
     })).rejects.toThrow(/exactly one Resource Pack archive/u);
-  });
-
-  it('maps the admitted local-app operations to exact Tauri commands', () => {
-    expect(resolveTauriStandardCommand(
-      NIMI_STANDARD_SHELL_COMMANDS['local-app.textGenerateCandidate'],
-    )).toBe('local_app_text_generate_candidate');
-    const mappings = [
-      ['local-app.aiConfigOverwrite', 'local_app_ai_config_overwrite'],
-      ['local-app.aiConfigLocalOptions', 'local_app_ai_config_local_options'],
-      ['local-app.sharedAgentAIConfigGet', 'local_app_shared_agent_ai_config_get'],
-      ['local-app.sharedAgentAIConfigOverwrite', 'local_app_shared_agent_ai_config_overwrite'],
-      ['local-app.sharedAgentAIConfigLocalOptions', 'local_app_shared_agent_ai_config_local_options'],
-      ['local-app.agentManagerSnapshot', 'local_app_agent_manager_snapshot'],
-      ['local-app.embodimentSnapshot', 'local_app_embodiment_snapshot'],
-      ['local-app.embodimentSubscribe', 'local_app_embodiment_subscribe'],
-      ['local-app.agentAutonomySnapshot', 'local_app_agent_autonomy_snapshot'],
-      ['local-app.agentUpdateAutonomy', 'local_app_agent_update_autonomy'],
-      ['local-app.agentPresentationSnapshot', 'local_app_agent_presentation_snapshot'],
-      ['local-app.agentPresentationReadAsset', 'local_app_agent_presentation_read_asset'],
-      ['local-app.agentCommitPresentation', 'local_app_agent_commit_presentation'],
-      ['local-app.agentMemoryInspect', 'local_app_agent_memory_inspect'],
-      ['local-app.agentMemoryCorrect', 'local_app_agent_memory_correct'],
-      ['local-app.agentMemoryForget', 'local_app_agent_memory_forget'],
-      ['local-app.agentMemorySwitch', 'local_app_agent_memory_switch'],
-      ['local-app.agentMemoryDelete', 'local_app_agent_memory_delete'],
-      ['local-app.artifactUpload', 'local_app_artifact_upload'],
-      ['local-app.realmWorldCoreList', 'local_app_realm_world_core_list'],
-      ['local-app.realmWorldCoreCreate', 'local_app_realm_world_core_create'],
-      ['local-app.realmPersonaCharacterListOwned', 'local_app_persona_character_list_owned'],
-      ['local-app.realmPersonaCharacterGetOwned', 'local_app_persona_character_get_owned'],
-      ['local-app.realmPersonaCharacterCreate', 'local_app_persona_character_create'],
-      ['local-app.realmPersonaCharacterReplace', 'local_app_persona_character_replace'],
-      ['local-app.realmPersonaCharacterDelete', 'local_app_persona_character_delete'],
-    ] as const;
-    for (const [operation, command] of mappings) {
-      expect(resolveTauriStandardCommand(NIMI_STANDARD_SHELL_COMMANDS[operation])).toBe(command);
-    }
-    for (const command of [
-      'nimi.shell.localApp.sharedAgentAIProfilePreview',
-      'nimi.shell.localApp.sharedAgentAIProfileApply',
-      'nimi.shell.localApp.artifactPut',
-    ]) {
-      expect(resolveTauriStandardCommand(command)).toBe(command);
-    }
   });
 
   it('maps the canonical App AIConfig manager to exact host commands', async () => {

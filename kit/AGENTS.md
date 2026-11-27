@@ -1,15 +1,14 @@
 # AGENTS.md - nimi-kit
 ## Scope
 - Applies to `kit/**`; `@nimiplatform/kit` is the single cross-app toolkit package.
-- Active modules plus admitted implementation-pending native boundary: `kit/ui`, `kit/auth`, `kit/core`, `kit/telemetry`, `kit/shell/protected-local`, `kit/shell/tauri`, `kit/shell/renderer`, `kit/shell/electron`, and `kit/features`.
+- Active modules plus admitted native carrier boundary: `kit/ui`, `kit/auth`, `kit/core`, `kit/telemetry`, `kit/shell/protected-local`, `kit/shell/renderer`, `kit/shell/electron`, and `kit/features` (`kit/shell/tauri` is retired).
 ## Hard Boundaries
 - Kit UI is a reusable projection of `.nimi/spec/platform/ui-design-system.authority.yaml`; do not create app-local design truth in `kit/auth` or `kit/features`.
 - Read `kit/README.md` and the target module README when choosing a public entrypoint or reusable owner; use the direct owner contract for the behavior being changed.
 - `kit/core` must stay pure logic: no React, CSS, app code, or presentation imports.
-- `kit/telemetry` must stay renderer-safe: no Node.js, Electron, or Tauri bridge imports.
-- `kit/shell/tauri` is shared Rust host glue; do not import JS/TS runtime code or app-local Rust.
+- `kit/telemetry` must stay renderer-safe: no Node.js or Electron bridge imports (and no retired Tauri host imports).
 - `kit/shell/protected-local` is the single native protected Runtime carrier boundary. It carries typed calls but never owns OS service lifecycle, credentials, origin, listeners, config truth, binary selection, or app-child admission; do not expose it to renderer code.
-- `kit/shell/renderer` is host-neutral renderer glue only; it must not own app stores, navigation, UI rendering, auth truth, telemetry truth, or host-specific Electron/Tauri implementation details.
+- `kit/shell/renderer` is host-neutral renderer glue only; it must not own app stores, navigation, UI rendering, auth truth, telemetry truth, or host-specific Electron implementation details (and keeps retired Tauri/unsupported hosts typed unavailable).
 - `kit/shell/electron` is Node/Electron main/preload host glue only. It may bind `@grpc/grpc-js` for public/binding-only Runtime proxying and consume `kit/shell/protected-local` for exact typed protected calls, but it must not be imported by renderer code, expose raw Electron/Node/protected material, proxy protected methods generically, or own Runtime lifecycle/config/custody.
 - `kit/features/*` must not import `apps/**`, `runtime/internal/**`, app aliases, `dataSync`, app stores, or navigation directly.
 - `kit/features/avatar` is the admitted reusable avatar surface. Backend-specific renderer seams such as VRM and Live2D own reusable renderer semantics only; launched Avatar product authority stays in `.nimi/spec/avatar/embodiment-surface.authority.yaml`, and app-specific placement/orchestration stays app-owned.

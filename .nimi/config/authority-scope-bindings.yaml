@@ -423,19 +423,13 @@ scopes:
   - scope: platform.product-lifecycle
     bindings:
       - kind: path_glob
-        value: "apps/desktop/product-control-core/src/*"
-      - kind: path_glob
         value: "apps/desktop/src-electron/product-control-*.ts"
-      - kind: path_glob
-        value: "apps/desktop/product-control-node/src/**/*"
       - kind: path_glob
         value: "apps/desktop/src/shell/renderer/first-run/*"
       - kind: path_glob
         value: "apps/desktop/src/shell/renderer/features/nimi-home/*"
       - kind: path_glob
         value: "apps/desktop/src/shell/renderer/features/home/*"
-      - kind: path_glob
-        value: "kit/shell/tauri/src/nimi_data_directory/*"
       - kind: path_glob
         value: "runtime/internal/services/localservice/product_control*.go"
       - kind: path_glob

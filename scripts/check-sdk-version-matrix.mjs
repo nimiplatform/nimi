@@ -40,7 +40,6 @@ const RUNTIME_NPM_PACKAGES = [
 const SHELL_CRATES = [
   { name: 'nimi-shell-protected-local', path: 'kit/shell/protected-local/Cargo.toml' },
   { name: 'nimi-shell-protected-local-node', path: 'kit/shell/protected-local-node/Cargo.toml' },
-  { name: 'nimi-shell-tauri', path: 'kit/shell/tauri/Cargo.toml' },
 ];
 const PUBLIC_RUNTIME_SURFACE_PATHS = [
   'sdks/typescript/runtime/index.ts',

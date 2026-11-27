@@ -57,13 +57,13 @@ export function selectCiScope(files, { full = false, docsReviewTargets = [] } = 
   const macosCarrier = proto || carrierSource || touches(/^rust-toolchain\.toml$/u);
   const kitNative = macosCarrier || touches(/^kit\/shell\/capabilities\//u);
   const kitNativePackage = macosCarrier || touches(/^(?:kit\/package\.json|config\/product-update-policy\.mjs|\.github\/workflows\/release-kit\.yml|scripts\/release\/(?:component-version|build-component-package)\.mjs)$/u);
-  const desktopNative = shared || proto || touches(/^(?:apps\/desktop\/product-control-|kit\/shell\/protected-local\/)/u);
-  const desktop = desktopNative || touches(/^apps\/desktop\/(?!AGENTS\.md$)/u);
+  const protectedLocalCore = shared || proto || touches(/^kit\/shell\/protected-local\//u);
+  const desktop = protectedLocalCore || touches(/^apps\/desktop\/(?!AGENTS\.md$)/u);
   const macosUpdater = shared || touches(/^(?:apps\/desktop\/macos\/product-updater\/|apps\/desktop\/scripts\/(?:build-macos-(?:product-updater|electron-release)|lib\/(?:macos-release-process|release-source-maps))\.mjs$|config\/product-update-policy\.mjs$)/u);
   // Keep shared Go inputs conservative. Provider catalog data is exercised by
   // runtime-quality and by the Web landing-data generator on Ubuntu.
   const nativeRuntime = cognition || proto || touches(/^(?:runtime\/(?!catalog\/providers\/[^/]+\.ya?ml$)|config\/runtime-(?!provider-)|npm-packages\/|scripts\/(?:build-runtime|dev-runtime)\.mjs$)/u);
-  const macosHost = desktopNative || macosCarrier
+  const macosHost = protectedLocalCore || macosCarrier
     || touches(/^(?:kit\/shell\/electron\/|apps\/desktop\/(?:src-electron\/|macos\/local-app-host\/))/u)
     || touches(/^apps\/desktop\/test\/(?:electron-(?:desktop-open-intent|support-logs|system-resources)-host|macos-(?:local-app-host-contract|release-policy))\.test\./u)
     || touches(/^scripts\/(?:dev-app|dev-runtime|doctor-dev|macos-dev-runtime-service|build-supervised-app-electron)[^/]*\.mjs$/u)
@@ -88,7 +88,6 @@ export function selectCiScope(files, { full = false, docsReviewTargets = [] } = 
     if (gateway) filters.add(`./${gateway[1]}`);
     if (file.startsWith('apps/lab/')) filters.add('@nimiplatform/app-tools');
     if (file.startsWith('app-tools/')) filters.add('@nimiplatform/app-tools');
-    if (file.startsWith('nimi2d/')) filters.add('./nimi2d');
   }
 
   const productWorkspaces = filters.size > 0;
@@ -114,12 +113,11 @@ export function selectCiScope(files, { full = false, docsReviewTargets = [] } = 
     kit_changed: kit,
     sdk_changed: sdk,
     sdk_adapter_upstream_changed: shared || touches(/^sdks\/typescript\//u),
-    sdk_conformance_changed: config || proto || touches(/^(?:sdks\/(?:conformance|generators|go|python|rust)\/|\.nimi\/spec\/sdks\/)/u),
+    sdk_conformance_changed: config || proto || touches(/^(?:sdks\/(?:conformance|generators)\/|\.nimi\/spec\/sdks\/)/u),
     proto_changed: proto,
     runtime_changed: runtime,
     cognition_changed: cognition,
     desktop_changed: desktop,
-    desktop_native_changed: desktopNative,
     kit_native_changed: kitNative,
     native_runtime_changed: nativeRuntime,
     macos_carrier_changed: macosCarrier,

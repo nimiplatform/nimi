@@ -72,7 +72,6 @@ import {
 } from './runtime-materialization-input';
 import { isRuntimeLocalAgentRef } from './agent-local-identity';
 import { resolveNimiRuntimeAgentSubjectUserId } from './runtime-agent-protected';
-import { createRuntimeTauriIpcTransport, type RuntimeTauriIpcTransportOptions } from './tauri-ipc';
 
 export type { CoreTransport, CoreClientOptions };
 export {
@@ -121,13 +120,6 @@ export {
 export type {
   RuntimeElectronIpcTransportOptions,
 } from './electron-ipc';
-export {
-  createRuntimeTauriIpcTransport,
-  RuntimeTauriIpcTransportError,
-} from './tauri-ipc';
-export type {
-  RuntimeTauriIpcTransportOptions,
-} from './tauri-ipc';
 export * from './account-caller';
 export * from './desktop-first-party-runtime';
 export * from './agent-local-identity';
@@ -183,7 +175,6 @@ export * from './text-behavior-projections';
 export type RuntimeTransportConfig =
   | CoreTransport
   | (RuntimeNodeGrpcTransportOptions & { readonly type?: 'node-grpc' })
-  | (RuntimeTauriIpcTransportOptions & { readonly type: 'tauri-ipc' })
   | (RuntimeElectronIpcTransportOptions & { readonly type: 'electron-ipc' });
 
 export interface RuntimeOptions extends Omit<CoreClientOptions, 'transport'> {
@@ -674,7 +665,7 @@ function toCoreClientOptions(
   const includeDefaultIdentity = !(
     options.hostOwnedIdentity === true
     || (options.transport && !isCoreTransportLike(options.transport)
-      && (options.transport.type === 'electron-ipc' || options.transport.type === 'tauri-ipc'))
+      && options.transport.type === 'electron-ipc')
   );
   return {
     authMetadata: async () => ({
@@ -705,9 +696,6 @@ function toCoreTransport(
   }
   if (isCoreTransportLike(transport)) {
     return transport;
-  }
-  if (transport.type === 'tauri-ipc') {
-    return createRuntimeTauriIpcTransport(transport);
   }
   if (transport.type === 'electron-ipc') {
     return createRuntimeElectronIpcTransport(transport);

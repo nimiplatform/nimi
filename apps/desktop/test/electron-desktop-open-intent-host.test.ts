@@ -229,6 +229,23 @@ test('Electron Desktop Open host enforces auth/readiness and emits an exact admi
     assert.equal(focusCount, 1);
     assert.deepEqual(emitted, [envelope]);
 
+    const retiredTauriSource = await post(descriptor.endpoint, descriptor.token, {
+      schemaVersion: 2,
+      sourceApp: 'nimi.test-launcher',
+      sourceHost: 'tauri-standard-shell',
+      requestId: 'desktop-open-reject-tauri',
+      intent: { kind: 'open-runtime-config', page: 'models', action: 'install-model' },
+    });
+    assert.equal(retiredTauriSource.status, 200);
+    assert.deepEqual(await retiredTauriSource.json(), {
+      status: 'rejected',
+      bridgeId: descriptor.bridgeId,
+      reasonCode: 'desktop-open-intent-invalid',
+      actionHint: 'fix_desktop_open_intent',
+    });
+    assert.equal(focusCount, 1);
+    assert.deepEqual(emitted, [envelope]);
+
     now += 10_001;
     const stale = await post(descriptor.endpoint, descriptor.token, envelope);
     assert.deepEqual(await stale.json(), {

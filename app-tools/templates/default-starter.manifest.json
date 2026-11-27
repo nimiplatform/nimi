@@ -2,7 +2,7 @@
   "manifestVersion": 1,
   "sourceApp": "app-tools/default-starter",
   "sourceIdentity": {
-    "tauriIdentifier": "ai.nimi.apps.acme.widget",
+    "nativeBundleIdentifier": "ai.nimi.apps.acme.widget",
     "packageName": "acme-widget",
     "cargoPackageName": "acme-widget-shell",
     "appId": "acme.widget",
@@ -13,7 +13,7 @@
     "devPort": "1466"
   },
   "identityReplacementOrder": [
-    "tauriIdentifier",
+    "nativeBundleIdentifier",
     "cargoPackageName",
     "packageName",
     "rendererEntryId",

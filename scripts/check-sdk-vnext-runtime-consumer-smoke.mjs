@@ -55,7 +55,6 @@ import {
   RUNTIME_AI_METHODS,
   buildRuntimeAgentRequestContext,
   createRuntime,
-  createRuntimeTauriIpcTransport,
   projectRuntimeLocalAgentIdentity,
 } from '@nimiplatform/sdk/runtime';
 import {
@@ -87,7 +86,7 @@ const transport = {
 const runtime = createRuntime({ appId: 'consumer.app', transport });
 assert(runtime instanceof Runtime);
 assert.equal('createRuntimeNodeGrpcTransport' in runtimeModule, false);
-assert.equal(typeof createRuntimeTauriIpcTransport, 'function');
+assert.equal('createRuntimeTauriIpcTransport' in runtimeModule, false);
 const nodeGrpcRuntime = createRuntime({
   appId: 'consumer.app',
   transport: {

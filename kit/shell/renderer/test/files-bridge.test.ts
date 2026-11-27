@@ -15,7 +15,6 @@ import {
   revealShellFile,
   writeShellArtifact,
 } from '../src/bridge/index.js';
-import { TAURI_STANDARD_COMMAND_ALIASES } from '../src/bridge/tauri-api.js';
 
 type RendererFilesTestGlobal = typeof globalThis & {
   __NIMI_ELECTRON_TEST__?: {
@@ -256,26 +255,5 @@ describe('renderer floating-window bridge', () => {
       await expect(floatingWindowBeginManualDrag()).rejects.toThrow(/mode must be/u);
       await expect(floatingWindowConstrainToVisibleArea(0.2)).rejects.toThrow(/constrained must be a boolean/u);
     });
-  });
-});
-
-describe('Tauri standard command aliases for file surfaces', () => {
-  it('maps the new commands to snake_case Tauri command names', () => {
-    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['file-dialog.open']]).toBe('file_dialog_open');
-    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['file-reveal.reveal']]).toBe('file_reveal_reveal');
-    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['export.saveFile']]).toBe('export_save_file');
-    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['artifacts.write']]).toBe('artifacts_write');
-    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['diagnostics.rendererEntryProbe']]).toBe('diagnostics_renderer_entry_probe');
-    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl']]).toBe('local_assets_resolve_url');
-    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['avatar.assetResolve']]).toBe('avatar_asset_resolve');
-    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get']]).toBe('platform_projection_get');
-    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['floating-window.setBounds']]).toBe('floating_window_set_bounds');
-    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['floating-window.setIgnoreCursorEvents']]).toBe('floating_window_set_ignore_cursor_events');
-    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['floating-window.setAlwaysOnTop']]).toBe('floating_window_set_always_on_top');
-    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['floating-window.hide']]).toBe('floating_window_hide');
-    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['floating-window.close']]).toBe('floating_window_close');
-    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['floating-window.beginManualDrag']]).toBe('floating_window_begin_manual_drag');
-    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['floating-window.moveManualDrag']]).toBe('floating_window_move_manual_drag');
-    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['floating-window.constrainToVisibleArea']]).toBe('floating_window_constrain_to_visible_area');
   });
 });

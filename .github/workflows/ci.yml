@@ -32,7 +32,6 @@ jobs:
       runtime_changed: ${{ steps.detect.outputs.runtime_changed }}
       cognition_changed: ${{ steps.detect.outputs.cognition_changed }}
       desktop_changed: ${{ steps.detect.outputs.desktop_changed }}
-      desktop_native_changed: ${{ steps.detect.outputs.desktop_native_changed }}
       kit_native_changed: ${{ steps.detect.outputs.kit_native_changed }}
       native_runtime_changed: ${{ steps.detect.outputs.native_runtime_changed }}
       macos_carrier_changed: ${{ steps.detect.outputs.macos_carrier_changed }}
@@ -184,9 +183,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: gate.runtime.bridge-method-projection
-        if: needs.changes.outputs.kit_changed != 'true'
-        run: pnpm check:runtime-bridge-method-drift
       - name: gate.runtime.realm-broker-policy
         run: pnpm check:runtime-broker-operation-policy
       - name: gate.realm.no-app-rest-bypass
@@ -619,10 +615,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Complete Desktop Electron native quality gate
-        if: needs.changes.outputs.desktop_native_changed == 'true'
-        run: pnpm check:desktop-native-quality
 
       - name: Lint Desktop Electron
         run: pnpm --filter @nimiplatform/desktop lint

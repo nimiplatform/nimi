@@ -27,9 +27,9 @@ VRM 分支负责加载经过验证的 3D VRM 角色模型及其强类型能力�
 
 VRM 是 Avatar 已经正式支持的官方渲染分支，具备完善的骨骼与材质支持，而非理论占位符。
 
-## 独立分层动画规范（Nimi2D）
+## 已退役的分层动画工具（Nimi2D）
 
-Nimi2D 属于独立的分层动画规范包，不属于 Avatar 当前闭合的 `live2d | vrm` 渲染后端枚举。若未来规划扩展新后端，须经正式规范评审，不混入当前生效的后端枚举中。
+Nimi2D 规范与仓内工具已退役，不属于 Avatar 当前闭合的 `live2d | vrm` 渲染后端枚举（`rule.nimi.avatar.embodiment.r002`）。声明 `nimi2d` 的模型清单仍会被明确拒绝。若未来规划扩展新后端，须经正式规范评审与完整的强类型实现。
 
 ## 引擎中立的呈现管线
 
@@ -57,4 +57,4 @@ Runtime 的交互结果作为强类型语义输入进入 Avatar。Avatar 先将�
 ## Source Basis
 
 - [`.nimi/spec/avatar/embodiment-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/embodiment-surface.authority.yaml)
-- [`.nimi/spec/nimi2d/asset-package.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/nimi2d/asset-package.authority.yaml)
+- [`kit/features/avatar/src/avatar-model-manifest.ts`](https://github.com/nimiplatform/nimi/blob/main/kit/features/avatar/src/avatar-model-manifest.ts)

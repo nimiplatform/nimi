@@ -421,11 +421,6 @@
       "types": "./dist/auth/app/mobile.d.ts",
       "import": "./dist/auth/app/mobile.js",
       "default": "./dist/auth/app/mobile.js"
-    },
-    "./shell/renderer/tauri": {
-      "types": "./dist/shell/renderer/bootstrap/tauri.d.ts",
-      "import": "./dist/shell/renderer/bootstrap/tauri.js",
-      "default": "./dist/shell/renderer/bootstrap/tauri.js"
     }
   },
   "scripts": {
@@ -472,8 +467,7 @@
     "sharp": "0.35.5",
     "@capacitor/core": "^8.0.0",
     "@capacitor/app": "^8.0.0",
-    "@capacitor/browser": "^8.0.0",
-    "@tauri-apps/api": "2.12.4"
+    "@capacitor/browser": "^8.0.0"
   },
   "peerDependenciesMeta": {
     "react-dom": {
@@ -496,9 +490,6 @@
     },
     "@capacitor/browser": {
       "optional": true
-    },
-    "@tauri-apps/api": {
-      "optional": true
     }
   },
   "devDependencies": {
@@ -519,8 +510,7 @@
     "vitest": "5.1.0",
     "@capacitor/core": "8.6.2",
     "@capacitor/app": "8.1.2",
-    "@capacitor/browser": "8.0.5",
-    "@tauri-apps/api": "2.12.4"
+    "@capacitor/browser": "8.0.5"
   },
   "capacitor": {
     "android": {

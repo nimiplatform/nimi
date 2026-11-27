@@ -1,14 +1,12 @@
 #!/usr/bin/env node
 
-import { cpSync, mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '../..');
-const languages = ['typescript', 'python', 'go', 'rust'];
+const languages = ['typescript'];
 
 function parseLanguageArg() {
   const idx = process.argv.indexOf('--language');
@@ -66,57 +64,10 @@ function runTypescriptBehavior() {
   ]);
 }
 
-function runPythonBehavior() {
-  run(process.platform === 'win32' ? 'python' : 'python3', ['sdks/conformance/behavior/python.py'], {
-    env: { PYTHONPATH: repoRoot },
-  });
-}
-
-function runGoBehavior() {
-  const dir = mkdtempSync(path.join(tmpdir(), 'sdks-go-conformance-'));
-  try {
-    cpSync(path.join(repoRoot, 'sdks/go'), dir, { recursive: true });
-    cpSync(
-      path.join(repoRoot, 'sdks/conformance'),
-      path.join(dir, 'conformance'),
-      { recursive: true },
-    );
-    execFileSync('go', ['mod', 'init', 'github.com/nimiplatform/nimi/sdks/go'], {
-      cwd: dir,
-      stdio: 'ignore',
-    });
-    execFileSync('go', [
-      'test',
-      './coregenerated',
-      '-run',
-      '^(TestGeneratedRuntimeOptionalScalarAndEnumPresence|TestRealmRequiredNullableScalarPreservesNullAndRejectsMissingOrWrongScalar|TestRealmNullableResponsePreservesAbsentAndPresentTransit|TestTypedRuntimeClientsPreserveRequestsAndTransportBehavior|TestSourceMaterializationPacketV3SemanticPayloadDiscriminatorFailsClosed)$',
-    ], {
-      cwd: dir,
-      stdio: 'inherit',
-      env: process.env,
-    });
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-}
-
-function runRustBehavior() {
-  run('cargo', ['test', '--manifest-path', 'sdks/rust/Cargo.toml']);
-}
-
 function runBehavior(language) {
   switch (language) {
     case 'typescript':
       runTypescriptBehavior();
-      return;
-    case 'python':
-      runPythonBehavior();
-      return;
-    case 'go':
-      runGoBehavior();
-      return;
-    case 'rust':
-      runRustBehavior();
       return;
     default:
       throw new Error(`unknown behavior language: ${language}`);

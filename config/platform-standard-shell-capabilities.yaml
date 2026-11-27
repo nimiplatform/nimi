@@ -22,7 +22,6 @@ authority:
   owner: platform
   source_rule: P-KIT-041C
   package_surface: "@nimiplatform/kit/shell/capabilities"
-  rust_host_surface: nimi_shell_tauri::capabilities
   electron_host_surface: "@nimiplatform/kit/shell/electron/main"
   renderer_surface: "@nimiplatform/kit/shell/renderer/bridge"
   protected_host_surface: kit/shell/protected-local

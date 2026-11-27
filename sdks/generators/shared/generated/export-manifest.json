@@ -45,10 +45,7 @@
     "config/sdks-error-codes.yaml"
   ],
   "languages": [
-    "typescript",
-    "python",
-    "go",
-    "rust"
+    "typescript"
   ],
   "core_families": [
     "runtime",

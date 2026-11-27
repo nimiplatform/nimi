@@ -9,7 +9,7 @@ export const repoRoot = path.resolve(scriptDir, '../../..');
 export const checkMode = process.argv.includes('--check');
 export const realmOnly = process.argv.includes('--realm-only');
 export const generatedBy = 'sdks/generators/generate.mjs';
-export const languages = ['typescript', 'python', 'go', 'rust'];
+export const languages = ['typescript'];
 
 export function relPath(abs) {
   return path.relative(repoRoot, abs).replaceAll(path.sep, '/');

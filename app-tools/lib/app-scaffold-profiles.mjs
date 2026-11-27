@@ -353,7 +353,7 @@ function renderDefaultElectronProductionPackager(identity) {
     '    icon: MACOS_BUILD ? icons.icns : icons.ico,',
     '    platform: NATIVE_PLATFORM,',
     '    arch: NATIVE_ARCH,',
-    `    appBundleId: ${JSON.stringify(identity.tauriIdentifier)},`,
+    `    appBundleId: ${JSON.stringify(identity.nativeBundleIdentifier)},`,
     '    name: APP_EXECUTABLE_NAME,',
     '    executableName: APP_EXECUTABLE_NAME,',
     '    appVersion: RESOURCE_VERSION,',

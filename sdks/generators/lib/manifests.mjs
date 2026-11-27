@@ -79,6 +79,8 @@ export function writeSharedArtifacts(runtime, realm, errorCodes, exportsManifest
 }
 
 export function languageGeneratedDir(language) {
-  if (language === 'go') return 'sdks/go/coregenerated';
-  return `sdks/${language}/${language === 'typescript' ? 'core-generated' : 'core_generated'}`;
+  if (language !== 'typescript') {
+    throw new Error(`unsupported SDK language: ${language}`);
+  }
+  return 'sdks/typescript/core-generated';
 }

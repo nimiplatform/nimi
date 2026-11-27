@@ -13,9 +13,6 @@ const productRoots = [
   'runtime/internal/grpcserver',
   'sdks/typescript/core-generated',
   'sdks/typescript/runtime',
-  'sdks/go/coregenerated',
-  'sdks/python/core_generated',
-  'sdks/rust/core_generated',
   'kit',
   'apps',
 ];

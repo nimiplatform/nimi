@@ -330,7 +330,7 @@ test('L1-B generated Electron packager stages host-declared sharp closure and en
     carrier: 'electron',
     appTitle: 'Sharp Host',
     cargoPackageName: 'sharp-host-shell',
-    tauriIdentifier: 'org.example.sharphost',
+    nativeBundleIdentifier: 'org.example.sharphost',
     appId: 'org.example.sharphost',
     capabilityResolution: { modules: [], styles: [], views: [], navigation: [] },
     appAccess: [],

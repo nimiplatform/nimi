@@ -34,7 +34,7 @@ async function withDialog(run: (fixture: {
     requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window),
     cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window),
     React, IS_REACT_ACT_ENVIRONMENT: true,
-    __NIMI_TAURI_TEST__: { invoke: async (command: string) => {
+    __NIMI_ELECTRON_TEST__: { invoke: async (command: string) => {
       assert.equal(command, 'runtime_account_session_status');
       reads++;
       return accountRead;

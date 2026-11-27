@@ -18,9 +18,6 @@ type TestGlobal = typeof globalThis & {
   __NIMI_ELECTRON_TEST__?: {
     invoke?: (command: string, payload?: unknown) => Promise<unknown>;
   };
-  __NIMI_TAURI_TEST__?: {
-    invoke?: (command: string, payload?: unknown) => Promise<unknown>;
-  };
   __TAURI__?: {
     core?: {
       invoke?: (command: string, payload?: unknown) => Promise<unknown>;
@@ -35,7 +32,6 @@ function testGlobal(): TestGlobal {
 afterEach(() => {
   delete testGlobal().__NIMI_RENDERER_ENV__;
   delete testGlobal().__NIMI_ELECTRON_TEST__;
-  delete testGlobal().__NIMI_TAURI_TEST__;
   delete testGlobal().__TAURI__;
   resetRendererDebugBufferForTest();
   resetRendererSessionTraceIdForTest();
@@ -111,7 +107,7 @@ describe('kit renderer telemetry', () => {
     expect(getRendererDebugLogsForTest()).toHaveLength(1);
   });
 
-  test('retains the real third-party Tauri invoke surface', async () => {
+  test('ignores retired __TAURI__ globals instead of forwarding renderer telemetry', async () => {
     const calls: Array<{ command: string; payload: unknown }> = [];
     testGlobal().__TAURI__ = {
       core: {
@@ -129,8 +125,7 @@ describe('kit renderer telemetry', () => {
       message: 'action:third-party-warning',
     });
 
-    expect(calls).toHaveLength(1);
-    expect(calls[0]?.command).toBe('log_renderer_event');
+    expect(calls).toHaveLength(0);
   });
 
   test('logRendererEvent retains a local debug entry without a transport', () => {

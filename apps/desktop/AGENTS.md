@@ -30,5 +30,4 @@
 
 ## Verification Commands
 - Renderer TypeScript or behavior changes: `pnpm --filter @nimiplatform/desktop typecheck` and the directly affected test.
-- Product Control native changes: targeted `cargo test --manifest-path apps/desktop/product-control-core/Cargo.toml` and, when the Node binding changes, `cargo test --manifest-path apps/desktop/product-control-node/Cargo.toml`.
 - Run only the Desktop boundary gate that covers the changed import, chat, bridge, or authority surface.

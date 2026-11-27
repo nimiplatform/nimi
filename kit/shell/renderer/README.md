@@ -8,8 +8,8 @@ publishes:
 - `@nimiplatform/kit/shell/renderer/host`
 
 The module is host-neutral. Renderer code calls injected bridge hooks and SDK
-transports; it must not import Electron main/preload code, Tauri Rust host
-code, app stores, navigation, or product UI.
+transports; it must not import Electron main/preload code, app stores,
+navigation, or product UI.
 
 ## Boundary
 
@@ -22,8 +22,8 @@ code, app stores, navigation, or product UI.
   opaque identity, explicit renderer/overlay theme targets, typed overlay
   leases, localization, surface lifecycle, and standard-shell error mapping.
   Missing providers or targets fail closed; there is no global host fallback.
-- Host-specific implementation remains in `kit/shell/tauri` or
-  `kit/shell/electron`.
+- Host-specific implementation lives in `kit/shell/electron` (`kit/shell/tauri`
+  is retired).
 
 The bridge exports typed chrome bind/state/command/unbind functions and
 generation-bound event subscriptions. Their responses are checked against the

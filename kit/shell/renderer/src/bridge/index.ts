@@ -2,20 +2,17 @@ export {
   convertShellFileSrc,
   hasElectronRuntime,
   hasNimiShellRuntime,
-  hasTauriRuntime,
   invokeShell,
-  invokeTauri,
   listenShell,
-  listenTauri,
-} from './tauri-api.js';
-export type { NimiShellRuntimeBridgeResult } from './tauri-api.js';
+} from './shell-api.js';
+export type { NimiShellRuntimeBridgeResult } from './shell-api.js';
 export {
   bindNimiAppChrome, updateNimiAppChromeState, executeNimiAppChromeCommand,
   unbindNimiAppChrome, subscribeNimiAppChromeCommands, subscribeNimiAppChromeState,
   parseNimiChromeState,
 } from './app-chrome.js';
 export { installNimiShellRuntimeBridge } from '../bootstrap/runtime-bridge.js';
-export { hasElectronInvoke, hasShellHostInvoke, hasTauriInvoke } from './env.js';
+export { hasElectronInvoke, hasShellHostInvoke } from './env.js';
 export { invoke, invokeChecked, BridgeError } from './invoke.js';
 export {
   extractShellBridgeErrorCode,

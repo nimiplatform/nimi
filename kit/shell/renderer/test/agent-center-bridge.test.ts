@@ -6,7 +6,6 @@ import {
   importAgentCenterBackground,
   importAgentCenterResourcePack,
 } from '../src/bridge/index.js';
-import { TAURI_STANDARD_COMMAND_ALIASES } from '../src/bridge/tauri-api.js';
 
 type AgentCenterBridgeTestGlobal = typeof globalThis & {
   __NIMI_ELECTRON_TEST__?: {
@@ -148,14 +147,5 @@ describe('renderer Agent Center Host mechanics bridge', () => {
         reasonCode: 'renderer-standard-shell-result-invalid',
       });
     });
-  });
-
-  it('keeps the target-only Resource Pack picker out of global Tauri aliases', () => {
-    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetImport']])
-      .toBe('agent_center_avatar_asset_import');
-    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundImport']])
-      .toBe('agent_center_background_import');
-    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['agent-center.resourcePackImport']])
-      .toBeUndefined();
   });
 });

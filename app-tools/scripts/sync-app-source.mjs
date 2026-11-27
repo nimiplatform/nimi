@@ -69,9 +69,9 @@ function sourceRootsForModuleIds(resolvedModuleIds) {
   return Object.freeze(roots);
 }
 
-// Directories never copied into the snapshot: build output, generated Tauri
-// schema/icon assets, dependency state, and host-projection truth that init
-// regenerates through nimicoding rather than the scaffold copy.
+// Directories never copied into the snapshot: build output, dependency state,
+// and host-projection truth that init regenerates through nimicoding rather
+// than the scaffold copy.
 const EXCLUDED_DIRS = new Set([
   '.git',
   'node_modules',
@@ -84,24 +84,20 @@ const EXCLUDED_DIRS = new Set([
   '.turbo',
   '.vite',
 ]);
-const EXCLUDED_DIR_PATHS = new Set([
-  'src-tauri/gen',
-  'src-tauri/icons',
-]);
+const EXCLUDED_DIR_PATHS = new Set();
 // Files the generator emits structurally (identity/profile/version derived or a
 // fixed scaffold asset), so they must not also live as a verbatim snapshot copy.
 const STRUCTURED_FILE_PATHS = new Set([
   '.gitignore',
   '.github/workflows/ci.yml',
   'package.json',
-  'src-tauri/Cargo.lock',
 ]);
 
 // Nimi Lab's concrete identity literals. The generator string-replaces
 // these with the target app identity at create time. Ordered longest-first so a
 // shorter literal can never partially rewrite a longer one.
 const SOURCE_IDENTITY = {
-  tauriIdentifier: 'ai.nimi.apps.nimi.lab',
+  nativeBundleIdentifier: 'ai.nimi.apps.nimi.lab',
   packageName: '@nimiplatform/lab',
   cargoPackageName: 'nimiapp-lab-shell',
   appId: 'nimi.lab',
@@ -141,9 +137,6 @@ function isAppOwnedProductCode(relativePath) {
     return true;
   }
   if (relativePath.startsWith('src/lab/')) {
-    return true;
-  }
-  if (relativePath === 'src-tauri/src/world_tour.rs') {
     return true;
   }
   if (relativePath.startsWith('test/')) {

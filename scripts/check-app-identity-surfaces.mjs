@@ -165,21 +165,13 @@ for (const row of rows) {
   }
 
   const tauriConfigPath = `${sourceRoot}/src-tauri/tauri.conf.json`;
-  if (!['electron', 'none', 'tauri'].includes(nativeShell)) {
-    fail(`${tablePath}: ${sourceRoot} native_shell must be electron, tauri, or none`);
+  if (!['electron', 'none'].includes(nativeShell)) {
+    fail(`${tablePath}: ${sourceRoot} native_shell must be electron or none`);
   }
   if (nativeBundleRequired) {
     const expected = expectedNativeBundleIdentifier(appId);
     if (nativeBundleIdentifier !== expected) {
       fail(`${tablePath}: ${sourceRoot} native_bundle_identifier must be ${expected}`);
-    }
-    if (nativeShell === 'tauri' && !exists(tauriConfigPath)) {
-      fail(`${sourceRoot}: native_shell=tauri but src-tauri/tauri.conf.json is missing`);
-    } else if (nativeShell === 'tauri') {
-      const tauri = parseJson(tauriConfigPath);
-      if (tauri && tauri.identifier !== expected) {
-        fail(`${tauriConfigPath}: identifier ${tauri.identifier} must be ${expected}`);
-      }
     }
     if (nativeShell === 'electron') {
       const electronMainPath = `${sourceRoot}/src-electron/main.ts`;
@@ -220,22 +212,22 @@ for (const row of rows) {
 const labRow = rows.find((row) => row?.source_root === 'apps/lab');
 if (labRow) {
   const labAppId = String(labRow.canonical_app_id || '').trim();
-  const labTauri = expectedNativeBundleIdentifier(labAppId);
+  const labNativeBundle = expectedNativeBundleIdentifier(labAppId);
   const syncSource = readText('app-tools/scripts/sync-app-source.mjs');
   if (!syncSource.includes(`appId: '${labAppId}'`)) {
     fail('app-tools/scripts/sync-app-source.mjs: SOURCE_IDENTITY.appId must match apps/lab canonical_app_id');
   }
-  if (!syncSource.includes(`tauriIdentifier: '${labTauri}'`)) {
-    fail('app-tools/scripts/sync-app-source.mjs: SOURCE_IDENTITY.tauriIdentifier must match derived Lab Tauri identifier');
+  if (!syncSource.includes(`nativeBundleIdentifier: '${labNativeBundle}'`)) {
+    fail('app-tools/scripts/sync-app-source.mjs: SOURCE_IDENTITY.nativeBundleIdentifier must match derived Lab native bundle identifier');
   }
 }
 
 const scaffoldSource = readText('app-tools/lib/app-scaffold.mjs');
 if (!scaffoldSource.includes('return `ai.nimi.apps.${suffix || DEFAULT_APP_ID}`;')) {
-  fail('app-tools/lib/app-scaffold.mjs: tauriIdentifierFromAppId must derive ai.nimi.apps.<app_id> losslessly');
+  fail('app-tools/lib/app-scaffold.mjs: nativeBundleIdentifierFromAppId must derive ai.nimi.apps.<app_id> losslessly');
 }
 if (scaffoldSource.includes("replace(/-/g, '.')") || scaffoldSource.includes('replace(/-/g, ".")')) {
-  fail('app-tools/lib/app-scaffold.mjs: app id hyphens must not be rewritten in Tauri identifiers');
+  fail('app-tools/lib/app-scaffold.mjs: app id hyphens must not be rewritten in native bundle identifiers');
 }
 
 if (violations.length > 0) {

@@ -18,7 +18,7 @@ test('Runtime-only changes retain Linux checks without building unrelated Apps',
 test('App source selects its own workspace while documentation does not select code', () => {
   const app = selectCiScope(['apps/desktop/src-electron/main.ts']);
   assert.deepEqual(app.workspace_filters, ['./apps/desktop']);
-  assert.equal(app.desktop_native_changed, false);
+  assert.equal(app.kit_native_changed, false);
   const docs = selectCiScope(['docs/avatar/index.md', 'apps/desktop/AGENTS.md']);
   assert.equal(docs.docs_changed, true);
   assert.equal(docs.workspace_changed, false);
@@ -37,32 +37,33 @@ test('Kit and SDK contracts select pnpm consumers and the source-copy App Tools 
   assert.ok(selectCiScope(['apps/lab/src/lab/view.tsx']).workspace_filters.includes('@nimiplatform/app-tools'));
 });
 
-test('additional SDK language sources select typed-core behavior without unrelated native lanes', () => {
+test('SDK generator and conformance sources select typed-core behavior without unrelated native lanes', () => {
   for (const file of [
-    'sdks/go/coreclient/client.go',
-    'sdks/python/core_client/__init__.py',
-    'sdks/rust/core_client/mod.rs',
+    'sdks/conformance/behavior/typescript.ts',
+    'sdks/generators/generate.mjs',
   ]) {
     const scope = selectCiScope([file]);
     assert.equal(scope.sdk_changed, true, file);
     assert.equal(scope.sdk_conformance_changed, true, file);
     assert.equal(scope.runtime_changed, false, file);
     assert.equal(scope.kit_native_changed, false, file);
-    assert.equal(scope.desktop_native_changed, false, file);
   }
-  for (const language of ['go', 'python', 'rust']) {
-    const docs = selectCiScope([`sdks/${language}/README.md`]);
-    assert.equal(docs.sdk_conformance_changed, false);
-    assert.equal(docs.docs_changed, true);
-  }
+  const docs = selectCiScope(['sdks/README.md']);
+  assert.equal(docs.sdk_conformance_changed, false);
+  assert.equal(docs.docs_changed, true);
 });
 
 test('native and proto changes retain their supported platform checks', () => {
   const native = selectCiScope(['kit/shell/protected-local/src/lib.rs']);
   assert.equal(native.kit_native_changed, true);
-  assert.equal(native.desktop_native_changed, true);
+  assert.equal(native.desktop_changed, true);
+  assert.equal(native.macos_host_changed, true);
+  const nodeBinding = selectCiScope(['kit/shell/protected-local-node/src/lib.rs']);
+  assert.equal(nodeBinding.kit_native_changed, true);
+  assert.equal(nodeBinding.macos_carrier_changed, true);
+  assert.equal(nodeBinding.macos_host_changed, true);
   const proto = selectCiScope(['proto/runtime/v1/model.proto']);
-  for (const flag of ['proto_changed', 'sdk_changed', 'runtime_changed', 'kit_native_changed']) {
+  for (const flag of ['proto_changed', 'sdk_changed', 'runtime_changed', 'kit_native_changed', 'desktop_changed', 'macos_host_changed']) {
     assert.equal(proto[flag], true, flag);
   }
   for (const file of [

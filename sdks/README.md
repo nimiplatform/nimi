@@ -4,9 +4,9 @@ The `sdks/` directory contains the official SDK implementations for the Nimi pla
 
 ## Language Ecosystem
 
-- **TypeScript (`sdks/typescript`)**: The primary full implementation covering Runtime, Realm, local apps, AI models, Agent participation, feature modules, adapters (e.g. Vercel AI SDK), and testing suites.
-- **Python, Go, Rust (`sdks/{python,go,rust}`)**: Generated typed Runtime and Realm core clients that maintain wire-protocol compatibility.
-- **Code Generation (`sdks/generators`)**: Automated generator tools that produce typed definitions from gRPC protobuf and OpenAPI schemas. Do not edit generated files manually.
+- **TypeScript (`sdks/typescript`)**: The sole maintained SDK implementation in this repository, distributed as `@nimiplatform/sdk`, covering Runtime, Realm, local apps, AI models, Agent participation, feature modules, the Vercel AI SDK adapter, and testing suites.
+- **Retired Source-Only Language SDKs (`sdks/{python,go,rust}`)**: Per `P-GOV-003`, the unpublished source-only Python, Go, and Rust SDK directories have been retired from this repository. External source consumers should migrate to `@nimiplatform/sdk` or generate standard gRPC/HTTP clients directly from `proto/runtime/v1/` and `config/realm-openapi/api-nimi.yaml` under the published Runtime and Realm wire contracts.
+- **Code Generation (`sdks/generators`)**: Automated generator tools that produce TypeScript typed definitions and conformance fixtures from gRPC protobuf and OpenAPI schemas. Do not edit generated files manually.
 - **Adapters**: Framework adapters distributed as dedicated packages with independent release lifecycles (see the [Vercel AI SDK adapter](typescript/adapters/vercel-ai/README.md)).
 
 ### Code Generation & Conformance
@@ -18,8 +18,8 @@ node sdks/generators/generate.mjs
 # Verify generated code parity
 node sdks/generators/generate.mjs --check
 
-# Run multi-language conformance suite
-node sdks/conformance/run.mjs --language all --profile typed-core
+# Run TypeScript typed-core conformance suite
+node sdks/conformance/run.mjs --language typescript --profile typed-core
 ```
 
 > [!NOTE]

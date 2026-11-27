@@ -56,7 +56,6 @@ const checks = [
     paths: [
       'sdks/typescript/features/generation/runtime-scenarios.ts',
       'sdks/typescript/core/ai/runtime-model.ts',
-      'sdks/typescript/adapters/openai-compatible',
       'sdks/typescript/adapters/vercel-ai',
     ],
   },

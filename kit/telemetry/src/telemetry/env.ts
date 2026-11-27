@@ -48,21 +48,9 @@ type RendererTelemetryHostHook = {
 type RendererTelemetryGlobal = typeof globalThis & {
   __NIMI_ELECTRON_TEST__?: RendererTelemetryHostHook;
   __NIMI_ELECTRON_RUNTIME__?: RendererTelemetryHostHook;
-  __NIMI_TAURI_TEST__?: RendererTelemetryHostHook;
-  __NIMI_TAURI_RUNTIME__?: RendererTelemetryHostHook;
-  __TAURI__?: {
-    core?: RendererTelemetryHostHook;
-    invoke?: RendererTelemetryInvoke;
-  };
   window?: Window & {
     __NIMI_ELECTRON_TEST__?: RendererTelemetryHostHook;
     __NIMI_ELECTRON_RUNTIME__?: RendererTelemetryHostHook;
-    __NIMI_TAURI_TEST__?: RendererTelemetryHostHook;
-    __NIMI_TAURI_RUNTIME__?: RendererTelemetryHostHook;
-    __TAURI__?: {
-      core?: RendererTelemetryHostHook;
-      invoke?: RendererTelemetryInvoke;
-    };
   };
 };
 
@@ -74,18 +62,6 @@ function invokeFromHostHook(hook: RendererTelemetryHostHook | undefined): Render
   return typeof hook?.invoke === 'function' ? hook.invoke : null;
 }
 
-function invokeFromThirdPartyTauriHost(): RendererTelemetryInvoke | null {
-  const value = telemetryGlobal();
-  const tauri = value.__TAURI__ || value.window?.__TAURI__;
-  if (typeof tauri?.core?.invoke === 'function') {
-    return tauri.core.invoke.bind(tauri.core);
-  }
-  if (typeof tauri?.invoke === 'function') {
-    return tauri.invoke.bind(tauri);
-  }
-  return null;
-}
-
 export function resolveRendererTelemetryInvoke(): RendererTelemetryInvoke | null {
   const value = telemetryGlobal();
   return (
@@ -93,11 +69,6 @@ export function resolveRendererTelemetryInvoke(): RendererTelemetryInvoke | null
     || invokeFromHostHook(value.window?.__NIMI_ELECTRON_TEST__)
     || invokeFromHostHook(value.__NIMI_ELECTRON_RUNTIME__)
     || invokeFromHostHook(value.window?.__NIMI_ELECTRON_RUNTIME__)
-    || invokeFromHostHook(value.__NIMI_TAURI_TEST__)
-    || invokeFromHostHook(value.window?.__NIMI_TAURI_TEST__)
-    || invokeFromHostHook(value.__NIMI_TAURI_RUNTIME__)
-    || invokeFromHostHook(value.window?.__NIMI_TAURI_RUNTIME__)
-    || invokeFromThirdPartyTauriHost()
   );
 }
 

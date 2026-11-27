@@ -32,7 +32,7 @@ const result = streamText({
 
 请在各自约定的契约范围内使用公开的 AI runner、Runtime 与 AI 工具子路径。已退役的旧子路径 `@nimiplatform/sdk/ai-provider` 不再转发至任何适配器。
 
-OpenAI-compatible 适配器仅覆盖源码中明确支持的 API 子集；它未作为独立包发布，既不能用于直连私有 Runtime 接口，也无法绕过平台的能力校验。
+`@nimiplatform/sdk-adapter-vercel-ai` 是本仓唯一继续维护的框架适配器。原无清单源码适配器（`langgraph`、`llamaindex`、`next`、`openai-compatible`、`react`）与私有 `mastra` 适配器均已退役；对接其他框架的应用请直接消费公开的 `@nimiplatform/sdk` AI 与 Runtime 客户端。
 
 ## Source Basis
 

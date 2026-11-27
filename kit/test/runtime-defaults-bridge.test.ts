@@ -11,7 +11,7 @@ import {
 } from '../shell/renderer/src/bridge/index.js';
 
 type TestGlobal = typeof globalThis & {
-  __NIMI_TAURI_TEST__?: {
+  __NIMI_ELECTRON_TEST__?: {
     invoke?: (command: string, payload?: unknown) => Promise<unknown>;
   };
 };
@@ -90,7 +90,7 @@ describe('shell bridge JSON helpers', () => {
 
 describe('getRuntimeDefaults', () => {
   afterEach(() => {
-    delete testGlobal.__NIMI_TAURI_TEST__;
+    delete testGlobal.__NIMI_ELECTRON_TEST__;
   });
 
   it('fails closed outside a standard shell host', async () => {
@@ -102,7 +102,7 @@ describe('getRuntimeDefaults', () => {
 
   it('loads defaults through the standard runtime-defaults capability command', async () => {
     const calls: Array<{ command: string; payload: unknown }> = [];
-    testGlobal.__NIMI_TAURI_TEST__ = {
+    testGlobal.__NIMI_ELECTRON_TEST__ = {
       invoke: async (command, payload) => {
         calls.push({ command, payload });
         return VALID_RUNTIME_DEFAULTS;
