@@ -7,7 +7,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/codes"
 )
 
@@ -40,9 +39,6 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 	}
 	jobID := job.GetJobId()
 	defer s.finishScenarioJobExecution(jobID)
-	if err := s.queueImmediateScenarioJob(jobID); err != nil {
-		return nil, err
-	}
 
 	release, acquireResult, acquireErr := s.scheduler.Acquire(jobCtx, req.GetHead().GetAppId())
 	if acquireErr != nil {
@@ -83,8 +79,7 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 		s.finishCloudScenarioJobFailureWithUsage(requestCtx, jobID, err, result.Usage)
 		return nil, err
 	}
-	artifact := nimillm.BinaryArtifact("text/plain; charset=utf-8", []byte(result.Text), map[string]any{"finish_reason": result.FinishReason.String()})
-	if err := s.completeImmediateScenarioJob(jobID, []*runtimev1.ScenarioArtifact{artifact}, result.Usage); err != nil {
+	if err := s.completeImmediateScenarioJob(jobID, nil, result.Usage); err != nil {
 		s.finishCloudScenarioJobFailure(requestCtx, jobID, err)
 		return nil, err
 	}

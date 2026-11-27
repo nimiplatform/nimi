@@ -289,9 +289,6 @@ func (s *Service) runCapturedCloudDecideJob(jobCtx context.Context, job *runtime
 	head := job.GetHead()
 	jobID := job.GetJobId()
 	defer s.finishScenarioJobExecution(jobID)
-	if err := s.queueImmediateScenarioJob(jobID); err != nil {
-		return capabilitydriver.CloudDecideResult{}, err
-	}
 	release, acquireResult, err := s.scheduler.Acquire(jobCtx, head.GetAppId())
 	if err != nil {
 		executionErr := schedulerAcquireError(err)

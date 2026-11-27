@@ -535,6 +535,18 @@ func (backoff *chatGPTPlanRenewalBackoff) clear(connectorID string) {
 // token under the exact ScenarioJob reference. The rotating refresh token never
 // leaves the Connector custody record.
 func (s *ConnectorStore) CaptureChatGPTPlanRequestCredential(ctx context.Context, connectorID string, jobID string) (ConnectorRecord, string, error) {
+	return s.captureChatGPTPlanRequestCredential(ctx, connectorID, jobID, true)
+}
+
+// CaptureImmediateChatGPTPlanRequestCredential captures one request-scoped
+// access token in process-ephemeral memory for an immediate SYNC/STREAM call
+// without writing a per-request secret file, while preserving durable OAuth
+// renewal on the Connector custody record.
+func (s *ConnectorStore) CaptureImmediateChatGPTPlanRequestCredential(ctx context.Context, connectorID string, jobID string) (ConnectorRecord, string, error) {
+	return s.captureChatGPTPlanRequestCredential(ctx, connectorID, jobID, false)
+}
+
+func (s *ConnectorStore) captureChatGPTPlanRequestCredential(ctx context.Context, connectorID string, jobID string, durable bool) (ConnectorRecord, string, error) {
 	accessToken, err := s.OpenChatGPTPlanAccessToken(ctx, connectorID)
 	if err != nil {
 		return ConnectorRecord{}, "", err
@@ -549,6 +561,7 @@ func (s *ConnectorStore) CaptureChatGPTPlanRequestCredential(ctx context.Context
 	if err != nil {
 		return ConnectorRecord{}, "", fmt.Errorf("encode SIWC request credential: %w", err)
 	}
+	defer zeroProtectedConnectorBytes(payload)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	record, found, err := s.getRecordLocked(connectorID)
@@ -562,6 +575,11 @@ func (s *ConnectorStore) CaptureChatGPTPlanRequestCredential(ctx context.Context
 	if err != nil {
 		return ConnectorRecord{}, "", err
 	}
+	if !durable {
+		s.storeEphemeralCredentialCustodyLocked(ref, string(payload))
+		return record, ref, nil
+	}
+	s.clearEphemeralCredentialCustodyLocked(ref)
 	if err := s.writeSecretPayloadLocked(ref, string(payload)); err != nil {
 		return ConnectorRecord{}, "", fmt.Errorf("write ScenarioJob credential custody: %w", err)
 	}

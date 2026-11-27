@@ -93,9 +93,10 @@ type OAuthRegistration struct {
 // @nimi-authority: definition.nimi.runtime.ai-provider.connector-plane
 // ConnectorStore manages connector records and credentials on disk.
 type ConnectorStore struct {
-	mu           sync.Mutex
-	registryPath string
-	secretStore  SecretStore
+	mu               sync.Mutex
+	registryPath     string
+	secretStore      SecretStore
+	ephemeralCustody map[string][]byte
 
 	chatGPTPlanRenewer  ChatGPTPlanTokenRenewer
 	chatGPTPlanLocks    chatGPTPlanRefreshLocks
@@ -135,8 +136,9 @@ func NewConnectorStoreWithSecretStore(basePath string, secretStore SecretStore, 
 
 func newConnectorStore(basePath string, secretStore SecretStore, options ...StoreOption) *ConnectorStore {
 	store := &ConnectorStore{
-		registryPath: filepath.Join(basePath, registryFileName),
-		secretStore:  secretStore,
+		registryPath:     filepath.Join(basePath, registryFileName),
+		secretStore:      secretStore,
+		ephemeralCustody: make(map[string][]byte),
 	}
 	for _, option := range options {
 		if option != nil {
@@ -501,32 +503,75 @@ func (s *ConnectorStore) CaptureRealtimeCredential(connectorID string) (Connecto
 func (s *ConnectorStore) CaptureCredentialCustody(connectorID string, jobID string) (ConnectorRecord, string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	record, found, err := s.getRecordLocked(connectorID)
+	record, payload, ref, err := s.prepareCredentialCustodyLocked(connectorID, jobID)
 	if err != nil {
 		return ConnectorRecord{}, "", err
 	}
-	if found && IsChatGPTPlanRecord(record) {
-		// SIWC custody captures only a renewed request-scoped token.
-		return ConnectorRecord{}, "", fmt.Errorf("connector %q requires ChatGPT plan request credential capture", connectorID)
-	}
-	if !found || record.Status != runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE || !record.HasCredential {
-		return ConnectorRecord{}, "", fmt.Errorf("connector %q has no credential custody", connectorID)
-	}
-	payload, err := s.readStoredSecretPayloadLocked(record.ConnectorID)
-	if err != nil {
-		return ConnectorRecord{}, "", fmt.Errorf("read connector credential: %w", err)
-	}
-	if strings.TrimSpace(payload) == "" {
-		return ConnectorRecord{}, "", fmt.Errorf("connector %q has no credential custody", connectorID)
-	}
-	ref, err := scenarioJobCredentialCustodyRef(jobID)
-	if err != nil {
-		return ConnectorRecord{}, "", err
-	}
+	s.clearEphemeralCredentialCustodyLocked(ref)
 	if err := s.writeSecretPayloadLocked(ref, payload); err != nil {
 		return ConnectorRecord{}, "", fmt.Errorf("write ScenarioJob credential custody: %w", err)
 	}
 	return record, ref, nil
+}
+
+// CaptureImmediateCredentialCustody retains the exact current Connector
+// credential in process-ephemeral memory under a Job-owned opaque reference
+// for immediate SYNC/STREAM cloud calls that never resume across restart.
+// Deleting or updating the Connector afterward cannot change the credential
+// used by the in-flight ScenarioJob, and no per-request secret file is written.
+func (s *ConnectorStore) CaptureImmediateCredentialCustody(connectorID string, jobID string) (ConnectorRecord, string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	record, payload, ref, err := s.prepareCredentialCustodyLocked(connectorID, jobID)
+	if err != nil {
+		return ConnectorRecord{}, "", err
+	}
+	s.storeEphemeralCredentialCustodyLocked(ref, payload)
+	return record, ref, nil
+}
+
+func (s *ConnectorStore) prepareCredentialCustodyLocked(connectorID string, jobID string) (ConnectorRecord, string, string, error) {
+	record, found, err := s.getRecordLocked(connectorID)
+	if err != nil {
+		return ConnectorRecord{}, "", "", err
+	}
+	if found && IsChatGPTPlanRecord(record) {
+		// SIWC custody captures only a renewed request-scoped token.
+		return ConnectorRecord{}, "", "", fmt.Errorf("connector %q requires ChatGPT plan request credential capture", connectorID)
+	}
+	if !found || record.Status != runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE || !record.HasCredential {
+		return ConnectorRecord{}, "", "", fmt.Errorf("connector %q has no credential custody", connectorID)
+	}
+	payload, err := s.readStoredSecretPayloadLocked(record.ConnectorID)
+	if err != nil {
+		return ConnectorRecord{}, "", "", fmt.Errorf("read connector credential: %w", err)
+	}
+	if strings.TrimSpace(payload) == "" {
+		return ConnectorRecord{}, "", "", fmt.Errorf("connector %q has no credential custody", connectorID)
+	}
+	ref, err := scenarioJobCredentialCustodyRef(jobID)
+	if err != nil {
+		return ConnectorRecord{}, "", "", err
+	}
+	return record, payload, ref, nil
+}
+
+func (s *ConnectorStore) storeEphemeralCredentialCustodyLocked(ref string, payload string) {
+	if s.ephemeralCustody == nil {
+		s.ephemeralCustody = make(map[string][]byte)
+	}
+	s.clearEphemeralCredentialCustodyLocked(ref)
+	s.ephemeralCustody[ref] = []byte(payload)
+}
+
+func (s *ConnectorStore) clearEphemeralCredentialCustodyLocked(ref string) bool {
+	secret, ok := s.ephemeralCustody[ref]
+	if !ok {
+		return false
+	}
+	zeroProtectedConnectorBytes(secret)
+	delete(s.ephemeralCustody, ref)
+	return true
 }
 
 // LoadCredentialCustody opens one captured Job credential. It never falls
@@ -538,6 +583,9 @@ func (s *ConnectorStore) LoadCredentialCustody(ref string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if secret, ok := s.ephemeralCustody[validated]; ok {
+		return string(secret), nil
+	}
 	return s.readStoredSecretPayloadLocked(validated)
 }
 
@@ -547,6 +595,9 @@ func (s *ConnectorStore) ReleaseCredentialCustody(ref string) error {
 	validated, err := validateScenarioJobCredentialCustodyRef(ref)
 	if err != nil {
 		return err
+	}
+	if s.clearEphemeralCredentialCustodyLocked(validated) {
+		return nil
 	}
 	return s.deleteSecretPayloadLocked(validated)
 }

@@ -80,6 +80,7 @@ type scenarioJobRecord struct {
 	job                     *runtimev1.ScenarioJob
 	resolvedAssembly        *localResolvedAssembly
 	cloudAssembly           *cloudResolvedAssembly
+	ephemeralCustodyRelease func()
 	localAppOwner           *localAppJobOwner
 	musicSubmission         *localAppMusicSubmission
 	musicOutputReservations map[string]int64
@@ -121,6 +122,13 @@ func (record *scenarioJobRecord) takeModelAssetUses() []func() {
 	releases := record.modelAssetUses
 	record.modelAssetUses = nil
 	return releases
+}
+
+// Caller holds the Job store mutex. Invoked at most once after unlocking.
+func (record *scenarioJobRecord) takeEphemeralCustodyRelease() func() {
+	release := record.ephemeralCustodyRelease
+	record.ephemeralCustodyRelease = nil
+	return release
 }
 
 func runModelAssetReleases(releases []func()) {
@@ -234,7 +242,19 @@ func (s *scenarioJobStore) createOwnedAndBindCloudAssemblyChecked(
 	cloudAssembly *cloudResolvedAssembly,
 	payload ...*embeddingPayload,
 ) (*runtimev1.ScenarioJob, bool, error) {
-	return s.createOwnedAndBindCapturedInputsChecked(job, cancel, owner, idempotencyScope, nil, cloudAssembly, true, nil, payload...)
+	return s.createOwnedAndBindCapturedInputsWithCustodyModeChecked(job, cancel, owner, idempotencyScope, nil, cloudAssembly, true, nil, nil, payload...)
+}
+
+func (s *scenarioJobStore) createOwnedAndBindImmediateCloudAssemblyChecked(
+	job *runtimev1.ScenarioJob,
+	cancel context.CancelFunc,
+	owner *localAppJobOwner,
+	idempotencyScope string,
+	cloudAssembly *cloudResolvedAssembly,
+	releaseEphemeralCustody func(),
+	payload ...*embeddingPayload,
+) (*runtimev1.ScenarioJob, bool, error) {
+	return s.createOwnedAndBindCapturedInputsWithCustodyModeChecked(job, cancel, owner, idempotencyScope, nil, cloudAssembly, false, releaseEphemeralCustody, nil, payload...)
 }
 
 func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
@@ -245,6 +265,24 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 	resolvedAssembly *localResolvedAssembly,
 	cloudAssembly *cloudResolvedAssembly,
 	consumePendingCloudCustody bool,
+	submission *localAppMusicSubmission,
+	payload ...*embeddingPayload,
+) (*runtimev1.ScenarioJob, bool, error) {
+	return s.createOwnedAndBindCapturedInputsWithCustodyModeChecked(
+		job, cancel, owner, idempotencyScope, resolvedAssembly, cloudAssembly,
+		consumePendingCloudCustody, nil, submission, payload...,
+	)
+}
+
+func (s *scenarioJobStore) createOwnedAndBindCapturedInputsWithCustodyModeChecked(
+	job *runtimev1.ScenarioJob,
+	cancel context.CancelFunc,
+	owner *localAppJobOwner,
+	idempotencyScope string,
+	resolvedAssembly *localResolvedAssembly,
+	cloudAssembly *cloudResolvedAssembly,
+	consumePendingCloudCustody bool,
+	releaseEphemeralCustody func(),
 	submission *localAppMusicSubmission,
 	payload ...*embeddingPayload,
 ) (*runtimev1.ScenarioJob, bool, error) {
@@ -291,11 +329,12 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 		return nil, false, err
 	}
 	record := &scenarioJobRecord{
-		payload:          capturedPayload,
-		job:              cloneScenarioJob(job),
-		resolvedAssembly: capturedAssembly,
-		cloudAssembly:    capturedCloudAssembly,
-		localAppOwner:    cloneLocalAppJobOwner(owner),
+		payload:                 capturedPayload,
+		job:                     cloneScenarioJob(job),
+		resolvedAssembly:        capturedAssembly,
+		cloudAssembly:           capturedCloudAssembly,
+		ephemeralCustodyRelease: releaseEphemeralCustody,
+		localAppOwner:           cloneLocalAppJobOwner(owner),
 		musicSubmission:  cloneLocalAppMusicSubmission(submission),
 		events:           make([]*runtimev1.ScenarioJobEvent, 0, 8),
 		subscribers:      make(map[uint64]chan *runtimev1.ScenarioJobEvent),
@@ -401,7 +440,11 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 		s.idempotency[key] = scenarioIdempotencyBinding{jobID: id, boundAt: nowTime}
 		operation = scenarioJobPersistCreateAndBind
 	}
-	s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_SUBMITTED)
+	initialEvent := runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_SUBMITTED
+	if record.job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED {
+		initialEvent = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED
+	}
+	s.publishLocked(record, initialEvent)
 	s.pruneLocked(nowTime)
 	if err := s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: operation, JobID: id, Status: record.job.GetStatus()}); err != nil {
 		s.deleteJobLocked(id)
@@ -849,6 +892,11 @@ func (s *scenarioJobStore) transitionWithResults(
 	if status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 		record.resultCandidate = nil
 	}
+	clearedEphemeralCustodyRef := ""
+	if record.ephemeralCustodyRelease != nil && isTerminalScenarioJobStatus(record.job.GetStatus()) && record.cloudAssembly != nil && strings.TrimSpace(record.cloudAssembly.CredentialCustodyRef) != "" {
+		clearedEphemeralCustodyRef = record.cloudAssembly.CredentialCustodyRef
+		record.cloudAssembly.CredentialCustodyRef = ""
+	}
 	var persistenceErr error
 	var ids []string
 	if status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
@@ -871,6 +919,9 @@ func (s *scenarioJobStore) transitionWithResults(
 		persistenceErr = persist()
 	}
 	if err := persistenceErr; err != nil {
+		if clearedEphemeralCustodyRef != "" && record.cloudAssembly != nil {
+			record.cloudAssembly.CredentialCustodyRef = clearedEphemeralCustodyRef
+		}
 		if isTerminalScenarioJobStatus(status) && status != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 			record.pendingTerminal = cloneScenarioJob(record.job)
 		}
@@ -897,6 +948,10 @@ func (s *scenarioJobStore) transitionWithResults(
 	record.pendingTerminal = nil
 	record.observationIssue = nil
 	var releases []func()
+	var releaseEphemeral func()
+	if clearedEphemeralCustodyRef != "" {
+		releaseEphemeral = record.takeEphemeralCustodyRelease()
+	}
 	if becameTerminal {
 		record.doneClosed = true
 		close(record.done)
@@ -911,6 +966,9 @@ func (s *scenarioJobStore) transitionWithResults(
 	job := cloneScenarioJob(record.job)
 	s.mu.Unlock()
 	runModelAssetReleases(releases)
+	if releaseEphemeral != nil {
+		releaseEphemeral()
+	}
 	return job, true, nil
 }
 
@@ -1446,6 +1504,39 @@ func (s *scenarioJobStore) requestCancel(jobID string, reason string) (*runtimev
 	return job, true, nil
 }
 
+// abortUnstartedImmediateExecution cleans up process-local resources (context
+// cancel, ephemeral credential custody, and unstarted work permit) when an
+// immediate cloud job fails to start execution before its defer is registered.
+func (s *scenarioJobStore) abortUnstartedImmediateExecution(jobID string) {
+	id := strings.TrimSpace(jobID)
+	if id == "" {
+		return
+	}
+	s.mu.Lock()
+	record := s.jobs[id]
+	if record == nil || record.executionStarted {
+		s.mu.Unlock()
+		return
+	}
+	cancel := record.cancel
+	record.cancel = nil
+	releaseEphemeral := record.takeEphemeralCustodyRelease()
+	var releaseWork func()
+	if record.localAppOwner != nil && record.localAppOwner.workPermit != nil {
+		releaseWork = record.localAppOwner.workPermit.authority.Release
+	}
+	s.mu.Unlock()
+	if cancel != nil {
+		cancel()
+	}
+	if releaseEphemeral != nil {
+		releaseEphemeral()
+	}
+	if releaseWork != nil {
+		releaseWork()
+	}
+}
+
 func (s *scenarioJobStore) finishExecution(jobID string) (bool, error) {
 	id := strings.TrimSpace(jobID)
 	if id == "" {
@@ -1468,6 +1559,7 @@ func (s *scenarioJobStore) finishExecution(jobID string) (bool, error) {
 		previousJob := cloneScenarioJob(record.job)
 		previousUpdatedAt := record.updatedAt
 		previousTerminalAt := record.terminalAt
+		clearedEphemeralCustodyRef := ""
 		record.job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
 		applyScenarioDispatchFacts(record)
 		record.job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
@@ -1477,11 +1569,18 @@ func (s *scenarioJobStore) finishExecution(jobID string) (bool, error) {
 		record.updatedAt = nowTime
 		record.terminalAt = nowTime
 		record.job.UpdatedAt = timestamppb.New(nowTime)
+		if record.ephemeralCustodyRelease != nil && record.cloudAssembly != nil && strings.TrimSpace(record.cloudAssembly.CredentialCustodyRef) != "" {
+			clearedEphemeralCustodyRef = record.cloudAssembly.CredentialCustodyRef
+			record.cloudAssembly.CredentialCustodyRef = ""
+		}
 		persistErr := s.retainTerminalMusicLocked(record)
 		if persistErr == nil {
 			persistErr = s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistCancellation, JobID: id, Status: record.job.GetStatus()})
 		}
 		if err := persistErr; err != nil {
+			if clearedEphemeralCustodyRef != "" && record.cloudAssembly != nil {
+				record.cloudAssembly.CredentialCustodyRef = clearedEphemeralCustodyRef
+			}
 			record.job = previousJob
 			record.updatedAt = previousUpdatedAt
 			record.terminalAt = previousTerminalAt
@@ -1500,8 +1599,12 @@ func (s *scenarioJobStore) finishExecution(jobID string) (bool, error) {
 		s.pruneLocked(nowTime)
 	}
 	var releases []func()
+	var releaseEphemeral func()
 	if isTerminalScenarioJobStatus(record.job.GetStatus()) {
 		releases = record.takeModelAssetUses()
+		if record.cloudAssembly == nil || strings.TrimSpace(record.cloudAssembly.CredentialCustodyRef) == "" {
+			releaseEphemeral = record.takeEphemeralCustodyRelease()
+		}
 	}
 	var releaseWork func()
 	if record.localAppOwner != nil && record.localAppOwner.workPermit != nil {
@@ -1509,6 +1612,9 @@ func (s *scenarioJobStore) finishExecution(jobID string) (bool, error) {
 	}
 	s.mu.Unlock()
 	runModelAssetReleases(releases)
+	if releaseEphemeral != nil {
+		releaseEphemeral()
+	}
 	if cancel != nil {
 		cancel()
 	}

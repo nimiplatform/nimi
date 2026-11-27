@@ -58,6 +58,45 @@ func (s *Service) bindCloudCredentialCustody(ctx context.Context, jobID string, 
 	return nil
 }
 
+// bindImmediateCloudCredentialCustody captures the exact Connector credential
+// in process-ephemeral memory under the Job-owned opaque reference for
+// immediate SYNC/STREAM calls that never resume across restart. No pending
+// disk custody record or per-request secret file is written.
+func (s *Service) bindImmediateCloudCredentialCustody(ctx context.Context, jobID string, assembly *cloudResolvedAssembly) error {
+	if s == nil || s.connStore == nil || s.scenarioJobs == nil || assembly == nil {
+		return fmt.Errorf("Cloud ScenarioJob credential custody is unavailable")
+	}
+	ref, err := connector.CredentialCustodyRefForJob(jobID)
+	if err != nil {
+		return err
+	}
+	var record connector.ConnectorRecord
+	var capturedRef string
+	if connector.IsChatGPTPlanRecord(assembly.Connector) {
+		record, capturedRef, err = s.connStore.CaptureImmediateChatGPTPlanRequestCredential(ctx, assembly.Connector.ConnectorID, jobID)
+	} else {
+		record, capturedRef, err = s.connStore.CaptureImmediateCredentialCustody(assembly.Connector.ConnectorID, jobID)
+	}
+	if err != nil {
+		if _, typed := grpcerr.ExtractReasonCode(err); typed {
+			return err
+		}
+		return fmt.Errorf("capture immediate Cloud ScenarioJob credential custody: %w", err)
+	}
+	if capturedRef != ref {
+		_ = s.releaseCloudCredentialCustody(capturedRef)
+		return fmt.Errorf("captured immediate Cloud ScenarioJob credential custody reference does not match its Job identity")
+	}
+	assembly.Connector = record
+	assembly.CredentialCustodyRef = capturedRef
+	if err := validateCloudResolvedAssembly(assembly); err != nil {
+		_ = s.releaseCloudCredentialCustody(ref)
+		assembly.CredentialCustodyRef = ""
+		return err
+	}
+	return nil
+}
+
 func (s *Service) discardPendingCloudCredentialCustody(jobID string, ref string) error {
 	if err := s.releaseCloudCredentialCustody(ref); err != nil {
 		return err
@@ -97,7 +136,7 @@ func (s *Service) releaseCloudCredentialCustodyForJobDurably(jobID string) error
 	notDispatched := record != nil && record.job != nil && record.job.GetSubmissionOutcome() == runtimev1.ScenarioJobSubmissionOutcome_SCENARIO_JOB_SUBMISSION_OUTCOME_NOT_DISPATCHED
 	canRelease := record != nil && record.job != nil && isTerminalScenarioJobStatus(record.job.GetStatus()) && !record.executionStarted && !record.terminalUnpersisted
 	if canRelease && record.job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
-		canRelease = record.job.GetStopOutcome() == runtimev1.ScenarioJobStopOutcome_SCENARIO_JOB_STOP_OUTCOME_NOT_DISPATCHED || record.job.GetStopOutcome() == runtimev1.ScenarioJobStopOutcome_SCENARIO_JOB_STOP_OUTCOME_CONFIRMED || scenarioJobPublicExpired(record, time.Now())
+		canRelease = isImmediateScenarioJob(record.job) || record.job.GetStopOutcome() == runtimev1.ScenarioJobStopOutcome_SCENARIO_JOB_STOP_OUTCOME_NOT_DISPATCHED || record.job.GetStopOutcome() == runtimev1.ScenarioJobStopOutcome_SCENARIO_JOB_STOP_OUTCOME_CONFIRMED || scenarioJobPublicExpired(record, time.Now())
 	}
 	if canRelease && len(record.pikaUploads) > 0 && record.inputCleanup == nil && !scenarioJobPublicExpired(record, time.Now()) {
 		canRelease = false

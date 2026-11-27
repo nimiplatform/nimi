@@ -327,8 +327,10 @@ func (s *Service) runCapturedCloudEmbedJob(jobCtx context.Context, job *runtimev
 	head := job.GetHead()
 	jobID := job.GetJobId()
 	defer s.finishScenarioJobExecution(jobID)
-	if err := s.queueImmediateScenarioJob(jobID); err != nil {
-		return capabilitydriver.CloudEmbedResult{}, job, err
+	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED {
+		if err := s.queueImmediateScenarioJob(jobID); err != nil {
+			return capabilitydriver.CloudEmbedResult{}, job, err
+		}
 	}
 	release, acquireResult, err := s.scheduler.Acquire(jobCtx, head.GetAppId())
 	if err != nil {

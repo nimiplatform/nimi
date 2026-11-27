@@ -143,7 +143,8 @@ func (s *Service) releaseScenarioBodyCandidates(jobID string) error {
 	}
 	s.scenarioJobs.mu.RLock()
 	r := s.scenarioJobs.jobs[jobID]
-	if r == nil || r.executionStarted || r.terminalUnpersisted || !isTerminalScenarioJobStatus(r.job.GetStatus()) {
+	if r == nil || r.executionStarted || r.terminalUnpersisted || !isTerminalScenarioJobStatus(r.job.GetStatus()) ||
+		(r.nativeResult == nil && r.resultCandidate == nil && len(r.bodyArtifactIDs) == 0) {
 		s.scenarioJobs.mu.RUnlock()
 		return nil
 	}
@@ -171,7 +172,7 @@ func (s *Service) releaseScenarioBodyCandidates(jobID string) error {
 	s.scenarioJobs.mu.Lock()
 	defer s.scenarioJobs.mu.Unlock()
 	r = s.scenarioJobs.jobs[jobID]
-	if r == nil || r.executionStarted {
+	if r == nil || r.executionStarted || (r.nativeResult == nil && r.resultCandidate == nil && len(r.bodyArtifactIDs) == 0) {
 		return nil
 	}
 	previous := r.nativeResult

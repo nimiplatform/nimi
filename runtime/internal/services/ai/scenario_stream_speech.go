@@ -76,9 +76,6 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 			s.finishCloudScenarioJobFailure(jobCtx, jobID, cause)
 		}
 	}()
-	if err := s.queueImmediateScenarioJob(jobID); err != nil {
-		return err
-	}
 
 	release, acquireResult, acquireErr := s.scheduler.Acquire(jobCtx, req.GetHead().GetAppId())
 	if acquireErr != nil {

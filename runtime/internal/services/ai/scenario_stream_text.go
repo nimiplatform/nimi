@@ -68,9 +68,6 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 			s.finishCloudScenarioJobFailureWithUsage(jobCtx, jobID, cause, usage)
 		}
 	}()
-	if err := s.queueImmediateScenarioJob(jobID); err != nil {
-		return err
-	}
 	requestedModelID := effective.modelResolved()
 	modelResolved := effective.modelResolved()
 	routeDecision := runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
