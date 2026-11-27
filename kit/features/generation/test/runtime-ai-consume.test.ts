@@ -188,11 +188,62 @@ describe('runtime AI consume contract', () => {
 
     expect(result).toMatchObject({
       ok: false, capabilityId: 'chat.stream', reason: 'operation-aborted',
-      error: { reasonCode: 'OPERATION_ABORTED', source: 'sdk' },
+      error: {
+        reasonCode: 'OPERATION_ABORTED',
+        source: 'sdk',
+        retryable: false,
+        actionHint: 'confirm_outcome_and_charges_before_new_request',
+        interruption: { cause: 'unspecified', resubmitDisposition: 'outcome-uncertain' },
+      },
     });
     if (result.ok) throw new Error('expected non-success result');
     expect(isNimiError(result.error)).toBe(true);
     expect(result.message).toMatch(/abort/i);
+    expect(result.message).toMatch(/charges/i);
+    expect(streamScenario).toHaveBeenCalledTimes(1);
+  });
+
+  it('omits cloud billing notice when confirmed LOCAL stream terminates prematurely', async () => {
+    const streamScenario = vi.fn<RuntimeAIConsumeRuntime['ai']['streamScenario']>(async function* () {
+      yield {
+        eventType: 1,
+        sequence: '1',
+        traceId: 'trace-kit-local-premature',
+        payload: {
+          oneofKind: 'started',
+          started: { modelResolved: 'qwen-local', routeDecision: 1, voiceOutputMode: 0 },
+        },
+      };
+      yield {
+        eventType: 2,
+        sequence: '2',
+        traceId: 'trace-kit-local-premature',
+        payload: {
+          oneofKind: 'delta',
+          delta: {
+            delta: {
+              oneofKind: 'textOutputItem',
+              textOutputItem: {
+                itemIndex: 0,
+                delta: { oneofKind: 'text', text: { text: 'local partial' } },
+                itemCompleted: false,
+              },
+            },
+          },
+        },
+      };
+    });
+    const runtime = { ai: { executeScenario: vi.fn(), streamScenario } } as unknown as RuntimeAIConsumeRuntime;
+    const result = await runRuntimeAIConsumeCapability(input(runtime, 'chat.stream'));
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error('expected failure');
+    expect(result.error.reasonCode).toBe('SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING');
+    expect(result.error.retryable).toBe(false);
+    expect(result.error.actionHint).toBe('confirm_local_execution_before_new_request');
+    expect(result.error.interruption).toBeUndefined();
+    expect(result.message).not.toMatch(/cloud|charges|bill/i);
+    expect(result.message).toMatch(/do not assume local execution has already stopped/i);
+    expect(streamScenario).toHaveBeenCalledTimes(1);
   });
 
   it('does not execute embedding after caller cancellation', async () => {

@@ -19,6 +19,12 @@ import {
   type NimiStructuredOutputRepairRequest,
 } from '../../features/evaluation';
 import { createNimiError, isNimiError } from '../../types';
+import {
+  ensureLocalOutcomeUnknownMessage,
+  ensureOutcomeUncertainMessage,
+  NIMI_LOCAL_OUTCOME_UNCERTAIN_ACTION_HINT,
+  NIMI_OUTCOME_UNCERTAIN_ACTION_HINT,
+} from '../../runtime/immediate-execution-outcome';
 import type { NimiAiModel, NimiGenerateTextRequest, NimiGenerateTextResult } from './index';
 
 export interface NimiTextRuntime {
@@ -169,7 +175,12 @@ export type NimiTextTurnEvent<TStructured = unknown> =
     readonly structuredOutputFailure?: NimiStructuredOutputParseFailure;
     readonly repairRequest?: NimiStructuredOutputRepairRequest;
   }
-  | { readonly type: 'turn-canceled'; readonly turnId?: string; readonly snapshot: NimiConversationTextAccumulatorSnapshot };
+  | {
+    readonly type: 'turn-canceled';
+    readonly turnId?: string;
+    readonly snapshot: NimiConversationTextAccumulatorSnapshot;
+    readonly error?: NimiTextError;
+  };
 
 export interface NimiTextStreamResponseResult {
   readonly text: string;
@@ -193,12 +204,15 @@ export async function runNimiTextGenerate<TStructured = unknown>(
     result = await input.runtime.model.generateText(input.request);
   } catch (error) {
     if (isAbortLikeError(error)) {
+      const preservedMessage = error instanceof Error && error.message.trim().length > 0
+        ? error.message
+        : 'Nimi text generation was canceled before completion.';
       return {
         ok: false,
         canceled: true,
         error: {
           code: 'OPERATION_ABORTED',
-          message: 'Nimi text generation was canceled before completion.',
+          message: preservedMessage,
           cause: error,
         },
       };
@@ -278,11 +292,59 @@ export async function* runNimiTextTurn<TStructured = unknown>(
           usage: event.usage,
         });
       } else if (event.type === 'error') {
-        snapshot = failNimiConversationText(snapshot, { error: event });
+        const localUnknown = event.routeDecision === 'local' && (
+          event.actionHint === NIMI_LOCAL_OUTCOME_UNCERTAIN_ACTION_HINT
+          || event.code === 'SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING'
+          || event.interruption?.resubmitDisposition === 'outcome-uncertain'
+        );
+        const outcomeUncertain = !localUnknown && (
+          event.interruption?.resubmitDisposition === 'outcome-uncertain'
+          || event.actionHint === NIMI_OUTCOME_UNCERTAIN_ACTION_HINT
+        );
+        const projectedError = localUnknown
+          ? createNimiError({
+              message: ensureLocalOutcomeUnknownMessage(event.message),
+              code: event.code,
+              reasonCode: event.code,
+              actionHint: NIMI_LOCAL_OUTCOME_UNCERTAIN_ACTION_HINT,
+              source: 'sdk',
+              retryable: false,
+              details: { route: 'local', outcomeStatus: 'unknown' },
+              ...(event.cause !== undefined ? { cause: event.cause } : {}),
+            })
+          : outcomeUncertain
+            ? (() => {
+                const resolvedInterruption = event.interruption ?? {
+                  cause: 'unspecified' as const,
+                  resubmitDisposition: 'outcome-uncertain' as const,
+                };
+                return createNimiError({
+                  message: ensureOutcomeUncertainMessage(event.message),
+                  code: event.code,
+                  reasonCode: event.code,
+                  actionHint: NIMI_OUTCOME_UNCERTAIN_ACTION_HINT,
+                  source: 'sdk',
+                  retryable: false,
+                  interruption: resolvedInterruption,
+                  details: {
+                    interruption: {
+                      cause: resolvedInterruption.cause,
+                      resubmitDisposition: resolvedInterruption.resubmitDisposition,
+                    },
+                  },
+                  ...(event.cause !== undefined ? { cause: event.cause } : {}),
+                });
+              })()
+            : undefined;
+        snapshot = failNimiConversationText(snapshot, { error: projectedError ?? event });
         yield {
           type: 'turn-failed',
           turnId: input.turnId,
-          error: { code: event.code, message: event.message, cause: event.cause },
+          error: {
+            code: event.code,
+            message: projectedError ? projectedError.message : event.message,
+            cause: projectedError ?? event.cause ?? event,
+          },
           snapshot,
         };
         return;
@@ -292,7 +354,12 @@ export async function* runNimiTextTurn<TStructured = unknown>(
     }
   } catch (error) {
     if (isAbortLikeError(error) || input.signal?.aborted) {
-      yield { type: 'turn-canceled', turnId: input.turnId, snapshot };
+      yield {
+        type: 'turn-canceled',
+        turnId: input.turnId,
+        snapshot,
+        ...(isNimiError(error) ? { error: toNimiTextError(error) } : {}),
+      };
       return;
     }
     snapshot = failNimiConversationText(snapshot, { error });
@@ -334,6 +401,9 @@ export async function streamNimiTextResponse(
       await handlers.onError?.(event.error);
       throw toError(event.error);
     } else if (event.type === 'turn-canceled') {
+      if (event.error) {
+        throw toError(event.error);
+      }
       const error = new Error('Aborted');
       error.name = 'AbortError';
       throw error;
@@ -489,6 +559,9 @@ function toError(error: NimiTextError): Error {
 function isAbortLikeError(error: unknown): boolean {
   if (!error) {
     return false;
+  }
+  if (isNimiError(error) && (error.reasonCode === 'OPERATION_ABORTED' || error.code === 'OPERATION_ABORTED')) {
+    return true;
   }
   if (typeof DOMException !== 'undefined' && error instanceof DOMException) {
     return error.name === 'AbortError';

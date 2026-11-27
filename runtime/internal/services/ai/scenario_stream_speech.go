@@ -158,20 +158,25 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 		if deliveryCause := deliveryFailure.durableCause(); deliveryCause != nil {
 			cause = deliveryCause
 		}
-		s.finishCloudScenarioJobFailure(requestCtx, jobID, cause)
+		projected := s.projectImmediateExecutionError(requestCtx, cause)
+		s.finishCloudScenarioJobFailure(requestCtx, jobID, projected)
+		if deliveryFailure.transportCause() != nil || stream.Context().Err() != nil {
+			return projected
+		}
 		if s.logger != nil {
 			s.logger.Warn("scenario stream failed",
 				"scenario_type", req.GetScenarioType().String(),
 				"model_resolved", modelResolved,
 				"trace_id", traceID,
-				"error", cause,
+				"error", projected,
 			)
 		}
 		return send(&runtimev1.StreamScenarioEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_FAILED,
 			Payload: &runtimev1.StreamScenarioEvent_Failed{Failed: &runtimev1.ScenarioStreamFailed{
-				ReasonCode: reasonCodeFromStreamError(cause),
-				ActionHint: actionHintFromStreamError(cause),
+				ReasonCode:   reasonCodeFromStreamError(projected),
+				ActionHint:   actionHintFromStreamError(projected),
+				Interruption: executionInterruptionFromError(projected),
 			}},
 		})
 	}
@@ -192,7 +197,9 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 	}
 
 	result, err := s.streamCapturedCloudSpeech(requestCtx, effective, func(chunk capabilitydriver.CloudMediaStreamChunk) error {
-		firstPacketSeen.Store(true)
+		if firstPacketSeen.CompareAndSwap(false, true) {
+			markImmediatePartialOutput(requestCtx)
+		}
 		mimeType := strings.TrimSpace(chunk.MIMEType)
 		if mimeType == "" {
 			mimeType = "application/octet-stream"
@@ -229,7 +236,9 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 			if end > len(payload) {
 				end = len(payload)
 			}
-			firstPacketSeen.Store(true)
+			if firstPacketSeen.CompareAndSwap(false, true) {
+				markImmediatePartialOutput(requestCtx)
+			}
 			if err := send(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{

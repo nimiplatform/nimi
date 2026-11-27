@@ -487,3 +487,109 @@ test('a control request can reach the wire between two fragments of the same ass
   const chunks = messages.flatMap(({ frame }) => frame.oneofKind === 'bodyChunk' ? [frame.bodyChunk] : []);
   assert.deepEqual(Buffer.concat(chunks), Buffer.from(source));
 });
+
+test('remote immediate AI execution projects OUTCOME_UNCERTAIN on disconnect, cancel, and Runtime hint without replay', async () => {
+  const channel = new Channel();
+  const transport = new RuntimeDataChannelTransport(channel, () => true);
+  const executeMethod = '/nimi.runtime.v1.RuntimeAiService/ExecuteScenario';
+
+  // 1) Runtime sends explicit OUTCOME_UNCERTAIN action hint on timeout while Runtime stays running.
+  const timedOut = transport.unary({ methodId: executeMethod, body: {} });
+  const firstId = await sent(channel);
+  channel.receive({
+    kind: Kind.ERROR,
+    requestId: firstId,
+    chunkEnd: true,
+    grpcCode: 4,
+    message: 'Cloud provider timed out.',
+    errorInfo: ErrorInfo.create({
+      reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
+      actionHint: 'confirm_outcome_and_charges_before_new_request',
+      message: 'Cloud provider timed out.',
+    }),
+  });
+  await assert.rejects(timedOut, (error: unknown) => {
+    const shaped = error as {
+      reasonCode?: string;
+      actionHint?: string;
+      retryable?: boolean;
+      message?: string;
+      interruption?: { cause?: string; resubmitDisposition?: string };
+    };
+    assert.equal(shaped.reasonCode, 'AI_PROVIDER_TIMEOUT');
+    assert.equal(shaped.retryable, false);
+    assert.equal(shaped.actionHint, 'confirm_outcome_and_charges_before_new_request');
+    assert.deepEqual(shaped.interruption, { cause: 'unspecified', resubmitDisposition: 'outcome-uncertain' });
+    assert.match(String(shaped.message), /unknown/i);
+    assert.match(String(shaped.message), /charges/i);
+    return true;
+  });
+
+  // 2) Runtime sends explicit safe CALLER_MAY_RESUBMIT restart hint (proven non-dispatched or Local).
+  channel.sent.length = 0;
+  const safeRestart = transport.unary({ methodId: executeMethod, body: {} });
+  const secondId = await sent(channel);
+  channel.receive({
+    kind: Kind.ERROR,
+    requestId: secondId,
+    chunkEnd: true,
+    grpcCode: 14,
+    message: 'Runtime restarted before execution completed',
+    errorInfo: ErrorInfo.create({
+      reasonCode: ReasonCode.AI_EXECUTION_INTERRUPTED,
+      actionHint: 'resubmit_request',
+      message: 'Runtime restarted before execution completed',
+    }),
+  });
+  await assert.rejects(safeRestart, (error: unknown) => {
+    const shaped = error as {
+      reasonCode?: string;
+      retryable?: boolean;
+      interruption?: { cause?: string; resubmitDisposition?: string };
+    };
+    assert.equal(shaped.reasonCode, 'AI_EXECUTION_INTERRUPTED');
+    assert.equal(shaped.retryable, true);
+    assert.deepEqual(shaped.interruption, { cause: 'runtime-restart', resubmitDisposition: 'caller-may-resubmit' });
+    return true;
+  });
+
+  // 3) Submitted immediate call canceled after wire send projects OUTCOME_UNCERTAIN without inferring restart.
+  channel.sent.length = 0;
+  const controller = new AbortController();
+  const canceled = transport.unary({ methodId: executeMethod, body: {}, signal: controller.signal });
+  await sent(channel);
+  controller.abort();
+  await assert.rejects(canceled, (error: unknown) => {
+    const shaped = error as {
+      reasonCode?: string;
+      actionHint?: string;
+      retryable?: boolean;
+      interruption?: { cause?: string; resubmitDisposition?: string };
+    };
+    assert.equal(shaped.reasonCode, 'SDK_RUNTIME_REQUEST_CANCELLED');
+    assert.equal(shaped.retryable, false);
+    assert.equal(shaped.actionHint, 'confirm_outcome_and_charges_before_new_request');
+    assert.deepEqual(shaped.interruption, { cause: 'unspecified', resubmitDisposition: 'outcome-uncertain' });
+    return true;
+  });
+
+  // 4) Submitted immediate call losing connection with no Runtime detail projects OUTCOME_UNCERTAIN.
+  channel.sent.length = 0;
+  const disconnected = transport.unary({ methodId: executeMethod, body: {} });
+  await sent(channel);
+  channel.close();
+  await assert.rejects(disconnected, (error: unknown) => {
+    const shaped = error as {
+      reasonCode?: string;
+      actionHint?: string;
+      retryable?: boolean;
+      interruption?: { cause?: string; resubmitDisposition?: string };
+    };
+    assert.equal(shaped.reasonCode, 'SDK_RUNTIME_REMOTE_UNAVAILABLE');
+    assert.equal(shaped.retryable, false);
+    assert.equal(shaped.actionHint, 'confirm_outcome_and_charges_before_new_request');
+    assert.deepEqual(shaped.interruption, { cause: 'unspecified', resubmitDisposition: 'outcome-uncertain' });
+    return true;
+  });
+  assert.equal(channel.sent.filter(frame => frame.kind === Kind.REQUEST).length, 1);
+});

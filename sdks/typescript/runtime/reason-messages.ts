@@ -1,5 +1,9 @@
 import { ReasonCode as RuntimeGeneratedReasonCode } from '../core-generated/runtime-typed-client';
 import { asNimiError, type CreateNimiErrorInput } from '../types';
+import {
+  ensureOutcomeUncertainMessage,
+  isOutcomeUncertainError,
+} from './immediate-execution-outcome';
 
 export interface NimiRuntimeReasonCodeMessageProjection {
   readonly reasonCode: string;
@@ -241,11 +245,14 @@ export function toNimiRuntimeUserFacingError(
     options.resolveReasonCodeMessage,
   );
 
+  const baseMessage = shouldUseRuntimeErrorRawMessage(rawMessage, code, actionHint, fallbackMessage)
+    ? rawMessage
+    : (reasonCodeMessage || rawMessage || fallbackMessage);
   return {
     code,
-    message: shouldUseRuntimeErrorRawMessage(rawMessage, code, actionHint, fallbackMessage)
-      ? rawMessage
-      : (reasonCodeMessage || rawMessage || fallbackMessage),
+    message: isOutcomeUncertainError(normalized)
+      ? ensureOutcomeUncertainMessage(baseMessage)
+      : baseMessage,
   };
 }
 

@@ -1783,12 +1783,7 @@ fn project_text_turn_event(
                 return Err(untrusted());
             }
             valid_optional_runtime_text(&action_hint, MAX_ACTION_HINT_BYTES)?;
-            let interruption = project_execution_interruption(interruption)?;
-            if (reason == crate::generated::ReasonCode::AiExecutionInterrupted)
-                != !interruption.is_null()
-            {
-                return Err(untrusted());
-            }
+            let interruption = project_text_turn_interruption(reason, interruption)?;
             Ok(
                 json!({"type": "failed", "sequence": event.sequence.to_string(), "traceId": event.trace_id,
                 "reasonCode": enum_token(reason.as_str_name(), "REASON_CODE_"), "actionHint": action_hint,
@@ -1796,6 +1791,31 @@ fn project_text_turn_event(
             )
         }
     }
+}
+
+fn project_text_turn_interruption(
+    reason: crate::generated::ReasonCode,
+    value: Option<ExecutionInterruption>,
+) -> Result<JsonValue, LocalAppOperationError> {
+    if reason == crate::generated::ReasonCode::AiExecutionInterrupted {
+        let projected = project_execution_interruption(value)?;
+        if projected.is_null() {
+            return Err(untrusted());
+        }
+        return Ok(projected);
+    }
+    let Some(value) = value else {
+        return Ok(JsonValue::Null);
+    };
+    let cause = ExecutionInterruptionCause::try_from(value.cause).map_err(|_| untrusted())?;
+    let disposition = ExecutionResubmitDisposition::try_from(value.resubmit_disposition)
+        .map_err(|_| untrusted())?;
+    if cause != ExecutionInterruptionCause::Unspecified
+        || disposition != ExecutionResubmitDisposition::OutcomeUncertain
+    {
+        return Err(untrusted());
+    }
+    Ok(json!({"cause": "unspecified", "resubmitDisposition": "outcome-uncertain"}))
 }
 
 fn project_execution_interruption(

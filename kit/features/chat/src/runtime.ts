@@ -662,6 +662,12 @@ function isAbortLikeError(error: unknown): boolean {
   if (!error) {
     return false;
   }
+  if (typeof error === 'object') {
+    const record = error as { readonly reasonCode?: unknown; readonly code?: unknown };
+    if (record.reasonCode === 'OPERATION_ABORTED' || record.code === 'OPERATION_ABORTED') {
+      return true;
+    }
+  }
   if (error instanceof DOMException) {
     return error.name === 'AbortError';
   }

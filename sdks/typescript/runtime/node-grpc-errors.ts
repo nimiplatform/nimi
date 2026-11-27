@@ -12,6 +12,10 @@ import type {
   NimiError,
   NimiExecutionInterruption,
 } from '../types';
+import {
+  ensureOutcomeUncertainMessage,
+  NIMI_OUTCOME_UNCERTAIN_ACTION_HINT,
+} from './immediate-execution-outcome';
 
 type GrpcModule = typeof import('@grpc/grpc-js');
 
@@ -126,22 +130,27 @@ export function normalizeServiceError(grpc: GrpcModule, error: ServiceError): Ni
   const structured = parseStructuredGrpcDetails(error);
   const retryableTransportCancelled = isRetryableTransportCancelledError(grpc, error, structured);
   const retryableByStatus = isRetryableGrpcError(grpc, error);
-  const retryable = structured?.interruption?.resubmitDisposition === 'outcome-uncertain' ? false : typeof structured?.retryable === 'boolean'
+  const outcomeUncertain = structured?.interruption?.resubmitDisposition === 'outcome-uncertain';
+  const retryable = outcomeUncertain ? false : typeof structured?.retryable === 'boolean'
     ? structured.retryable
     : structured?.interruption?.resubmitDisposition === 'caller-may-resubmit'
       || retryableByStatus || retryableTransportCancelled;
   const reasonCode = structured?.reasonCode || reasonCodeFromServiceError(grpc, error, structured);
   const actionHint = structured?.actionHint || (
-    retryable ? 'retry_or_check_runtime_daemon' : 'check_request_and_app_auth'
+    outcomeUncertain
+      ? NIMI_OUTCOME_UNCERTAIN_ACTION_HINT
+      : (retryable ? 'retry_or_check_runtime_daemon' : 'check_request_and_app_auth')
   );
+  const baseMessage = structured
+    ? (structured.message || reasonCode)
+    : (
+        String(error.details || '').trim()
+        || String(error.message || '').trim()
+        || reasonCode
+      );
+  const message = outcomeUncertain ? ensureOutcomeUncertainMessage(baseMessage) : baseMessage;
   return asNimiError({
-    message: structured
-      ? (structured.message || reasonCode)
-      : (
-          String(error.details || '').trim()
-          || String(error.message || '').trim()
-          || reasonCode
-        ),
+    message,
     reasonCode,
     actionHint,
     traceId: structured?.traceId,
@@ -276,8 +285,14 @@ function parseGoogleRpcStatus(bytes: Uint8Array, expectedCode: number): Structur
   if (statusCode !== expectedCode || !errorInfo) {
     return null;
   }
-  if ((errorInfo.reasonCode === 'AI_EXECUTION_INTERRUPTED') !== Boolean(interruption)) {
-    throw new Error('Runtime interruption reason/detail pair is incomplete or conflicting');
+  if (errorInfo.reasonCode === 'AI_EXECUTION_INTERRUPTED') {
+    if (!interruption || interruption.cause !== 'runtime-restart') {
+      throw new Error('Runtime interruption reason/detail pair is incomplete or conflicting');
+    }
+  } else if (interruption) {
+    if (interruption.cause !== 'unspecified' || interruption.resubmitDisposition !== 'outcome-uncertain') {
+      throw new Error('Runtime interruption reason/detail pair is incomplete or conflicting');
+    }
   }
   return {
     ...errorInfo,
@@ -359,11 +374,20 @@ function parseGoogleProtobufAny(bytes: Uint8Array): ParsedGrpcStatusDetail | nul
 // @nimi-authority: rule.nimi.runtime.ai-provider.r122
 function parseRuntimeExecutionInterruption(bytes: Uint8Array): NimiExecutionInterruption {
   const interruption = RuntimeExecutionInterruption.fromBinary(bytes);
-  if (interruption.cause !== ExecutionInterruptionCause.RUNTIME_RESTART
-    || ![ExecutionResubmitDisposition.CALLER_MAY_RESUBMIT, ExecutionResubmitDisposition.OUTCOME_UNCERTAIN].includes(interruption.resubmitDisposition)) {
-    throw new Error('invalid nimi.runtime.v1 ExecutionInterruption');
+  if (interruption.cause === ExecutionInterruptionCause.RUNTIME_RESTART
+    && [ExecutionResubmitDisposition.CALLER_MAY_RESUBMIT, ExecutionResubmitDisposition.OUTCOME_UNCERTAIN].includes(interruption.resubmitDisposition)) {
+    return {
+      cause: 'runtime-restart',
+      resubmitDisposition: interruption.resubmitDisposition === ExecutionResubmitDisposition.OUTCOME_UNCERTAIN
+        ? 'outcome-uncertain'
+        : 'caller-may-resubmit',
+    };
   }
-  return { cause: 'runtime-restart', resubmitDisposition: interruption.resubmitDisposition === ExecutionResubmitDisposition.OUTCOME_UNCERTAIN ? 'outcome-uncertain' : 'caller-may-resubmit' };
+  if (interruption.cause === ExecutionInterruptionCause.UNSPECIFIED
+    && interruption.resubmitDisposition === ExecutionResubmitDisposition.OUTCOME_UNCERTAIN) {
+    return { cause: 'unspecified', resubmitDisposition: 'outcome-uncertain' };
+  }
+  throw new Error('invalid nimi.runtime.v1 ExecutionInterruption');
 }
 
 function parseGoogleRpcErrorInfo(bytes: Uint8Array): Omit<StructuredGrpcDetails, 'message'> | null {

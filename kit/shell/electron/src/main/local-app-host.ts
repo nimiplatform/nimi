@@ -2960,10 +2960,15 @@ function validateTextTurnEvent(value: unknown): NimiElectronLocalAppRecord {
   if (value.type === 'failed') {
     if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'reasonCode', 'actionHint', ...(Object.hasOwn(value, 'interruption') ? ['interruption'] : [])])) throw untrustedRuntimeError();
     const interruption = value.interruption == null ? undefined : value.interruption;
-    if ((interruption !== undefined) !== (value.reasonCode === 'ai-execution-interrupted')) throw untrustedRuntimeError();
-    if (interruption !== undefined && (!isPlainRecord(interruption) || !hasExactKeys(interruption, ['cause', 'resubmitDisposition'])
-      || interruption.cause !== 'runtime-restart'
-      || (interruption.resubmitDisposition !== 'caller-may-resubmit' && interruption.resubmitDisposition !== 'outcome-uncertain'))) throw untrustedRuntimeError();
+    if (value.reasonCode === 'ai-execution-interrupted') {
+      if (interruption === undefined || !isPlainRecord(interruption) || !hasExactKeys(interruption, ['cause', 'resubmitDisposition'])
+        || interruption.cause !== 'runtime-restart'
+        || (interruption.resubmitDisposition !== 'caller-may-resubmit' && interruption.resubmitDisposition !== 'outcome-uncertain')) throw untrustedRuntimeError();
+    } else if (interruption !== undefined && (!isPlainRecord(interruption) || !hasExactKeys(interruption, ['cause', 'resubmitDisposition'])
+      || interruption.cause !== 'unspecified'
+      || interruption.resubmitDisposition !== 'outcome-uncertain')) {
+      throw untrustedRuntimeError();
+    }
     return Object.freeze({ type: 'failed', sequence: value.sequence, traceId,
       reasonCode: boundedExactText(value.reasonCode, 128, false),
       actionHint: boundedExactText(value.actionHint, 512, true), ...(interruption ? { interruption: interruption as NimiElectronLocalAppRecord } : {}) });

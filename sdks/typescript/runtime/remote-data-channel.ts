@@ -1,9 +1,15 @@
 import type { CoreTransport } from '../core-client/index.js';
-import type { CoreUnaryRequest, CoreStreamRequest, CoreClientStreamRequest } from '../types/index.js';
+import type { CoreUnaryRequest, CoreStreamRequest, CoreClientStreamRequest, NimiExecutionInterruption } from '../types/index.js';
 import { createNimiError } from '../types/index.js';
 import { getRuntimeWireCodec, type RuntimeWireCodec } from '../core-generated/runtime-wire-codecs.js';
 import { RemoteTransportFrame, RemoteTransportFrameKind as Kind } from '../core-generated/runtime-protobuf/runtime/v1/remote_access.js';
 import { ReasonCode } from '../core-generated/runtime-protobuf/runtime/v1/common.js';
+import {
+  isImmediateExecutionMethod,
+  NIMI_CALLER_MAY_RESUBMIT_ACTION_HINT,
+  NIMI_OUTCOME_UNCERTAIN_ACTION_HINT,
+  projectImmediateExecutionFailure,
+} from './immediate-execution-outcome.js';
 
 /** A platform adapter carries bytes and events only. It supplies no Runtime
  * identity, permission or native process assertion. */
@@ -221,7 +227,14 @@ export class RuntimeDataChannelTransport implements CoreTransport {
   }
   #finish(pending: Pending, error?: unknown): void {
     if (pending.done) return;
-    pending.done = true; pending.error = error; pending.pieces = []; pending.size = 0; pending.cleanup(); pending.stop.abort();
+    const projectedError = error !== undefined && isImmediateExecutionMethod(pending.request.methodId)
+      ? projectImmediateExecutionFailure(error, {
+          methodId: pending.request.methodId,
+          submitted: pending.sent,
+          requestBody: pending.request.body,
+        })
+      : error;
+    pending.done = true; pending.error = projectedError; pending.pieces = []; pending.size = 0; pending.cleanup(); pending.stop.abort();
     this.#pending.delete(pending.id); pending.wake?.(); pending.input?.wake?.();
   }
   async #next(pending: Pending): Promise<IteratorResult<Uint8Array>> {
@@ -244,9 +257,32 @@ export class RuntimeDataChannelTransport implements CoreTransport {
       const pending = this.#pending.get(frame.requestId); if (!pending) return;
       if (frame.kind === Kind.ERROR) {
         if (!frame.chunkEnd || frame.payload.byteLength || frame.inputCredits) throw protocolError('Invalid direct error.');
-        const error = createNimiError({ message: frame.errorInfo?.message || frame.message || 'Runtime request failed.',
-          reasonCode: frame.errorInfo ? ReasonCode[frame.errorInfo.reasonCode] || 'SDK_RUNTIME_REQUEST_FAILED' : 'SDK_RUNTIME_REQUEST_FAILED',
-          actionHint: frame.errorInfo?.actionHint || undefined, source: 'runtime', details: { grpcCode: frame.grpcCode } });
+        const reasonCode = frame.errorInfo ? ReasonCode[frame.errorInfo.reasonCode] || 'SDK_RUNTIME_REQUEST_FAILED' : 'SDK_RUNTIME_REQUEST_FAILED';
+        const actionHint = frame.errorInfo?.actionHint || undefined;
+        let interruption: NimiExecutionInterruption | undefined;
+        let retryable: boolean | undefined;
+        if (actionHint === NIMI_OUTCOME_UNCERTAIN_ACTION_HINT) {
+          interruption = {
+            cause: reasonCode === 'AI_EXECUTION_INTERRUPTED' ? 'runtime-restart' : 'unspecified',
+            resubmitDisposition: 'outcome-uncertain',
+          };
+          retryable = false;
+        } else if (reasonCode === 'AI_EXECUTION_INTERRUPTED' && actionHint === NIMI_CALLER_MAY_RESUBMIT_ACTION_HINT) {
+          interruption = { cause: 'runtime-restart', resubmitDisposition: 'caller-may-resubmit' };
+          retryable = true;
+        }
+        const error = createNimiError({
+          message: frame.errorInfo?.message || frame.message || 'Runtime request failed.',
+          reasonCode,
+          actionHint,
+          retryable,
+          interruption,
+          source: 'runtime',
+          details: {
+            grpcCode: frame.grpcCode,
+            ...(interruption ? { interruption: { ...interruption } } : {}),
+          },
+        });
         if (pending.input) this.#cancel(pending, error); else this.#finish(pending, error);
         return;
       }

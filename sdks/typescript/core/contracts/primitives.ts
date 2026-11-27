@@ -182,6 +182,7 @@ export type NimiRunEvent =
       readonly traceId?: string;
       readonly model?: NimiModelRef;
       readonly admission?: NimiAIExecutionAdmission;
+      readonly routeDecision?: 'local' | 'cloud' | 'unspecified';
     }
   | {
       readonly type: 'text-delta';
@@ -246,6 +247,8 @@ export type NimiRunEvent =
       readonly code: string;
       readonly message: string;
       readonly cause?: unknown;
+      readonly actionHint?: string;
+      readonly routeDecision?: 'local' | 'cloud' | 'unspecified';
       readonly interruption?: NimiExecutionInterruption;
     };
 

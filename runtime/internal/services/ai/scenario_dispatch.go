@@ -11,6 +11,7 @@ import (
 )
 
 func (s *Service) ExecuteScenario(ctx context.Context, req *runtimev1.ExecuteScenarioRequest) (*runtimev1.ExecuteScenarioResponse, error) {
+	ctx = withImmediateExecutionTracker(ctx)
 	ctx, releaseModelAssets := localexecution.WithModelAssetUseScope(ctx)
 	defer releaseModelAssets()
 	ctx, stopNotingEnd := withRequestEnd(ctx)
@@ -69,7 +70,7 @@ func (s *Service) ExecuteScenario(ctx context.Context, req *runtimev1.ExecuteSce
 	default:
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
-	return response, s.projectRuntimeRestartExecutionError(ctx, executionErr)
+	return response, s.projectImmediateExecutionError(ctx, executionErr)
 }
 
 func (s *Service) ListScenarioProfiles(_ context.Context, _ *runtimev1.ListScenarioProfilesRequest) (*runtimev1.ListScenarioProfilesResponse, error) {

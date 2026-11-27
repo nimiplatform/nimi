@@ -133,6 +133,7 @@ export * from './cloud-ai-config.js';
 export * from './config-projections';
 export * from './external-agent';
 export * from './health-coordinator';
+export * from './immediate-execution-outcome';
 export * from './local-asset-vocabulary';
 export * from './machine-loadouts.js';
 export * from './runtime-local-environment-client';

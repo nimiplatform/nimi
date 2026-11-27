@@ -49,7 +49,7 @@ func (s *Service) StreamScenario(req *runtimev1.StreamScenarioRequest, stream gr
 		s.logScenarioStreamFailure("extensions", req, err)
 		return err
 	}
-	useCtx, releaseModelAssets := localexecution.WithModelAssetUseScope(stream.Context())
+	useCtx, releaseModelAssets := localexecution.WithModelAssetUseScope(withImmediateExecutionTracker(stream.Context()))
 	defer releaseModelAssets()
 	capturedCtx, intent, err := s.captureScenarioExecutionIntent(useCtx, req.GetHead(), scenarioTargetCapability(req.GetScenarioType()))
 	if err != nil {

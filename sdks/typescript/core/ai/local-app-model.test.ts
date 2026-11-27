@@ -357,7 +357,7 @@ test('structured response constraints reach the formal text carrier', async () =
   assert.deepEqual(f.inputs[0].responseFormat, responseFormat);
 });
 
-test('abort closes the active carrier and does not return a partial success', async () => {
+test('abort closes the active carrier and projects OUTCOME_UNCERTAIN alongside cancel cause', async () => {
   const waiting = Promise.withResolvers<void>();
   const closed = Promise.withResolvers<void>();
   const f = fixture(async function* () {
@@ -369,8 +369,106 @@ test('abort closes the active carrier and does not return a partial success', as
   const pending = f.model.generateText({ messages: [user], signal: controller.signal });
   await waiting.promise;
   controller.abort();
-  await assert.rejects(pending, { name: 'AbortError' });
+  await assert.rejects(pending, (error: unknown) => {
+    assert.ok(isNimiError(error));
+    assert.equal(error.reasonCode, 'OPERATION_ABORTED');
+    assert.equal(error.retryable, false);
+    assert.equal(error.actionHint, 'confirm_outcome_and_charges_before_new_request');
+    assert.deepEqual(error.interruption, { cause: 'unspecified', resubmitDisposition: 'outcome-uncertain' });
+    assert.match(error.message, /charges/i);
+    assert.equal((error.cause as { name?: string })?.name, 'AbortError');
+    return true;
+  });
+  assert.equal(f.inputs.length, 1);
   assert.equal(f.canceled(), 1);
+});
+
+test('pre-dispatch abort rejects cleanly without transport call or cloud billing notice in stream and sync modes', async () => {
+  for (const executionMode of ['stream', 'sync'] as const) {
+    const f = fixture(async function* () { throw new Error('must not open stream'); }, undefined, {
+      output: { type: 'text-generate', items: [{ type: 'text', text: 'never' }], finishReason: 'stop' },
+      traceId: 'never',
+    });
+    const model = createNimiLocalAppTextModel(f.ai, { executionMode });
+    const controller = new AbortController();
+    const reason = new Error('User canceled before submit');
+    controller.abort(reason);
+    await assert.rejects(model.generateText({ messages: [user], signal: controller.signal }), (error: unknown) => {
+      assert.ok(isNimiError(error));
+      assert.equal(error.reasonCode, 'OPERATION_ABORTED');
+      assert.equal(error.retryable, false);
+      assert.equal(error.interruption, undefined);
+      assert.notEqual(error.actionHint, 'confirm_outcome_and_charges_before_new_request');
+      assert.doesNotMatch(error.message, /charges|cloud/i);
+      assert.equal(error.cause, reason);
+      return true;
+    });
+    assert.equal(f.inputs.length, 0);
+    assert.equal(f.executions.length, 0);
+  }
+});
+
+test('post-first-chunk abort preserves underlying outcome-uncertain instead of downgrading to plain AbortError', async () => {
+  const waiting = Promise.withResolvers<void>();
+  const closed = Promise.withResolvers<void>();
+  const interruption = { cause: 'unspecified' as const, resubmitDisposition: 'outcome-uncertain' as const };
+  const f = fixture(async function* () {
+    yield { type: 'delta', sequence: '1', traceId: 'trace-post-delta', itemIndex: 0, text: 'First chunk' };
+    waiting.resolve();
+    await closed.promise;
+    throw createNimiError({
+      message: 'Upstream cloud stream disconnected',
+      reasonCode: 'AI_STREAM_BROKEN',
+      actionHint: 'confirm_outcome_and_charges_before_new_request',
+      traceId: 'trace-post-delta',
+      source: 'runtime',
+      interruption,
+      retryable: false,
+    });
+  }, () => closed.resolve());
+  const controller = new AbortController();
+  const reason = new Error('User pressed stop');
+  const pending = f.model.generateText({ messages: [user], signal: controller.signal });
+  await waiting.promise;
+  controller.abort(reason);
+  await assert.rejects(pending, (error: unknown) => {
+    assert.ok(isNimiError(error));
+    assert.equal(error.reasonCode, 'AI_STREAM_BROKEN');
+    assert.equal(error.traceId, 'trace-post-delta');
+    assert.equal(error.retryable, false);
+    assert.equal(error.actionHint, 'confirm_outcome_and_charges_before_new_request');
+    assert.deepEqual(error.interruption, interruption);
+    assert.equal(error.details?.canceled, true);
+    assert.equal(error.details?.cancelReason, 'User pressed stop');
+    assert.equal(error.cause, reason);
+    assert.match(error.message, /charges/i);
+    return true;
+  });
+  assert.equal(f.inputs.length, 1);
+  assert.equal(f.canceled(), 1);
+});
+
+test('SYNC post-dispatch abort projects OUTCOME_UNCERTAIN with cancel cause and zero auto-replay', async () => {
+  const pendingExec = new Promise<unknown>(() => undefined);
+  const f = fixture(async function* () { throw new Error('unused'); }, undefined, pendingExec);
+  const model = createNimiLocalAppTextModel(f.ai, { executionMode: 'sync' });
+  const controller = new AbortController();
+  const reason = new Error('Stop sync generation');
+  const pending = model.generateText({ messages: [user], signal: controller.signal });
+  await Promise.resolve();
+  assert.equal(f.executions.length, 1);
+  controller.abort(reason);
+  await assert.rejects(pending, (error: unknown) => {
+    assert.ok(isNimiError(error));
+    assert.equal(error.reasonCode, 'OPERATION_ABORTED');
+    assert.equal(error.retryable, false);
+    assert.equal(error.actionHint, 'confirm_outcome_and_charges_before_new_request');
+    assert.deepEqual(error.interruption, { cause: 'unspecified', resubmitDisposition: 'outcome-uncertain' });
+    assert.equal(error.cause, reason);
+    assert.match(error.message, /charges/i);
+    return true;
+  });
+  assert.equal(f.executions.length, 1);
 });
 
 test('failed Local App text generation preserves its Runtime trace', async () => {
@@ -436,8 +534,11 @@ for (const kind of ['transport', 'projection'] as const) {
       assert.ok(isNimiError(error));
       assert.equal(error.reasonCode, kind === 'transport' ? primary.reasonCode : 'SDK_LOCAL_APP_PROJECTION_INVALID');
       if (kind === 'transport') {
-        assert.equal(error.cause, primary);
         assert.equal(error.traceId, primary.traceId);
+        assert.equal(error.retryable, false);
+        assert.equal(error.actionHint, 'confirm_outcome_and_charges_before_new_request');
+        assert.deepEqual(error.interruption, { cause: 'unspecified', resubmitDisposition: 'outcome-uncertain' });
+        assert.equal((error.cause as { cause?: unknown })?.cause, primary);
       } else assert.match(error.message, /sequence/);
       assert.equal(error.errors.length, 2);
       assert.equal(error.errors[1], cleanup);
@@ -447,7 +548,7 @@ for (const kind of ['transport', 'projection'] as const) {
   });
 }
 
-test('abort retains its original cause together with a rejected close', async () => {
+test('abort retains its original cause and OUTCOME_UNCERTAIN together with a rejected close', async () => {
   const waiting = Promise.withResolvers<void>();
   const closed = Promise.withResolvers<void>();
   const reason = new Error('User stopped the request');
@@ -463,8 +564,16 @@ test('abort retains its original cause together with a rejected close', async ()
   controller.abort(reason);
   await assert.rejects(result, (error: unknown) => {
     assert.ok(error instanceof AggregateError);
-    assert.equal(error.cause, reason);
-    assert.deepEqual(error.errors, [reason, cleanup]);
+    assert.ok(isNimiError(error));
+    assert.equal(error.reasonCode, 'OPERATION_ABORTED');
+    assert.equal(error.retryable, false);
+    assert.equal(error.actionHint, 'confirm_outcome_and_charges_before_new_request');
+    assert.deepEqual(error.interruption, { cause: 'unspecified', resubmitDisposition: 'outcome-uncertain' });
+    assert.match(error.message, /charges/i);
+    assert.equal((error.cause as { cause?: unknown })?.cause, reason);
+    assert.equal(error.errors.length, 2);
+    assert.equal(error.errors[0], error.cause);
+    assert.equal(error.errors[1], cleanup);
     return true;
   });
   assert.equal(f.canceled(), 1);
@@ -499,4 +608,59 @@ test('unrepresentable provider tools fail before transport', async () => {
   const f = fixture(async function* () { throw new Error('must not open'); });
   await assert.rejects(f.model.generateText({ messages: [user], tools: [{ type: 'provider', id: 'remote-tool', name: 'remote', args: {} }] }), { reasonCode: 'SDK_LOCAL_APP_INPUT_INVALID' });
   assert.equal(f.inputs.length, 0);
+});
+
+test('SYNC presentation cancel after owner returned complete result preserves cancel cause, known finishReason, and usage without OUTCOME_UNCERTAIN', async () => {
+  const usage = { promptTokens: 14, completionTokens: 6, totalTokens: 20 };
+  const f = fixture(
+    async function* () { throw new Error('SYNC must not open a stream'); },
+    undefined,
+    {
+      output: {
+        type: 'text-generate',
+        items: [
+          { type: 'text', text: 'First projected segment. ' },
+          { type: 'text', text: 'Second projected segment.' },
+        ],
+        finishReason: 'stop',
+        usage,
+      },
+      traceId: 'trace-sync-known-terminal',
+    },
+  );
+  const model = createNimiLocalAppTextModel(f.ai, { executionMode: 'sync' });
+  const controller = new AbortController();
+  const cancelReason = new Error('User closed reader after first projected chunk');
+  const observed: unknown[] = [];
+
+  await assert.rejects(async () => {
+    for await (const event of await model.streamText!({ messages: [user], signal: controller.signal })) {
+      observed.push(event);
+      if (event.type === 'text-delta') {
+        controller.abort(cancelReason);
+      }
+    }
+  }, (error: unknown) => {
+    assert.ok(isNimiError(error));
+    assert.equal(error.reasonCode, 'OPERATION_ABORTED');
+    assert.equal(error.retryable, false);
+    assert.equal(error.traceId, 'trace-sync-known-terminal');
+    assert.equal(error.actionHint, 'presentation_canceled_after_owner_completion');
+    assert.notEqual(error.actionHint, 'confirm_outcome_and_charges_before_new_request');
+    assert.equal(error.interruption, undefined);
+    assert.equal(error.cause, cancelReason);
+    assert.doesNotMatch(error.message, /unknown|charges|bill/i);
+    assert.equal(error.details?.canceled, true);
+    assert.equal(error.details?.cancelStage, 'presentation');
+    assert.equal(error.details?.cancelReason, 'User closed reader after first projected chunk');
+    assert.equal(error.details?.outcomeStatus, 'completed');
+    assert.equal(error.details?.terminalObserved, true);
+    assert.equal(error.details?.finishReason, 'stop');
+    assert.deepEqual(error.details?.usage, usage);
+    return true;
+  });
+
+  assert.equal(f.executions.length, 1);
+  assert.equal(f.inputs.length, 0);
+  assert.deepEqual(observed, [{ type: 'text-delta', text: 'First projected segment. ', itemIndex: 0 }]);
 });

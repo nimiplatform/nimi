@@ -290,6 +290,9 @@ func (s *Service) executeCapturedCloudEmbed(ctx context.Context, effective *clou
 	if s == nil || effective == nil || effective.driver == nil || s.remoteEmbedHost == nil {
 		return capabilitydriver.CloudEmbedResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
+	if _, isProviderHost := s.remoteEmbedHost.(*remoteexecution.ProviderEmbedHost); !isProviderHost {
+		remoteexecution.NotifyImmediateDispatch(ctx)
+	}
 	response, err := s.remoteEmbedHost.ExecuteEmbed(ctx, effective.connector, effective.target, effective.mapped, effective.dispatchAudit())
 	if err != nil {
 		return capabilitydriver.CloudEmbedResult{}, effective.driver.NormalizeReason(err)

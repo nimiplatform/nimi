@@ -22,6 +22,16 @@ import {
 import type { LoadoutEffectiveInputIdentity } from '../../core-generated/runtime-protobuf/runtime/v1/capability_configuration';
 import type { RuntimeTypedCallOptions } from '../../core-generated/runtime-typed-client';
 import { withNimiRuntimeIdempotencyMetadata } from '../../runtime/scenario-jobs';
+import {
+  createPostTerminalCleanupError,
+  ensureLocalOutcomeUnknownMessage,
+  ensureOutcomeUncertainMessage,
+  NIMI_LOCAL_OUTCOME_UNCERTAIN_ACTION_HINT,
+  NIMI_OUTCOME_UNCERTAIN_ACTION_HINT,
+  projectImmediateExecutionFailure,
+  resolveImmediateExecutionRoute,
+  type ImmediateExecutionRoute,
+} from '../../runtime/immediate-execution-outcome';
 import { ReasonCode, createNimiClientId, createNimiError } from '../../types';
 import type {
   NimiFinishReason,
@@ -90,31 +100,121 @@ export function createNimiRuntimeAIModel(options: NimiRuntimeAIModelOptions): Ni
     model,
     async generateText(request) {
       assertRuntimeSupportedTextRequest(request);
+      if (request.signal?.aborted) {
+        throw projectImmediateExecutionFailure(request.signal.reason, {
+          methodId: '/nimi.runtime.v1.RuntimeAiService/ExecuteScenario',
+          submitted: false,
+          canceled: true,
+          cancelReason: request.signal.reason,
+        });
+      }
       const requestOptions = await runtimeModelOptionsWithSubject(options);
-      const response = await scenarioClient.executeScenario(
-        buildRuntimeTextScenarioRequest({
-          request,
-          options: requestOptions,
-          appId,
-          executionMode: ExecutionMode.SYNC,
-        }),
-        toRuntimeScenarioWriteCallOptions(request, options),
-      );
+      const scenarioRequest = buildRuntimeTextScenarioRequest({
+        request,
+        options: requestOptions,
+        appId,
+        executionMode: ExecutionMode.SYNC,
+      });
+      if (request.signal?.aborted) {
+        throw projectImmediateExecutionFailure(request.signal.reason, {
+          methodId: '/nimi.runtime.v1.RuntimeAiService/ExecuteScenario',
+          submitted: false,
+          requestBody: scenarioRequest,
+          canceled: true,
+          cancelReason: request.signal.reason,
+        });
+      }
+      const callOptions = toRuntimeScenarioWriteCallOptions(request, options);
+      let response: ExecuteScenarioResponse;
+      try {
+        response = await scenarioClient.executeScenario(scenarioRequest, callOptions);
+      } catch (error) {
+        throw projectImmediateExecutionFailure(error, {
+          methodId: '/nimi.runtime.v1.RuntimeAiService/ExecuteScenario',
+          submitted: true,
+          requestBody: scenarioRequest,
+          canceled: Boolean(request.signal?.aborted),
+          cancelReason: request.signal?.aborted ? request.signal.reason : undefined,
+        });
+      }
       return toGenerateTextResult(response);
     },
     async *streamText(request) {
       assertRuntimeSupportedTextRequest(request);
+      if (request.signal?.aborted) {
+        throw projectImmediateExecutionFailure(request.signal.reason, {
+          methodId: '/nimi.runtime.v1.RuntimeAiService/StreamScenario',
+          submitted: false,
+          canceled: true,
+          cancelReason: request.signal.reason,
+        });
+      }
       const requestOptions = await runtimeModelOptionsWithSubject(options);
-      const stream = scenarioClient.streamScenario(
-        buildRuntimeTextScenarioRequest({
-          request,
-          options: requestOptions,
-          appId,
-          executionMode: ExecutionMode.STREAM,
-        }),
-        toRuntimeScenarioWriteCallOptions(request, options),
-      );
-      yield* runtimeScenarioStreamToNimiEvents(stream, model);
+      const scenarioRequest = buildRuntimeTextScenarioRequest({
+        request,
+        options: requestOptions,
+        appId,
+        executionMode: ExecutionMode.STREAM,
+      });
+      if (request.signal?.aborted) {
+        throw projectImmediateExecutionFailure(request.signal.reason, {
+          methodId: '/nimi.runtime.v1.RuntimeAiService/StreamScenario',
+          submitted: false,
+          requestBody: scenarioRequest,
+          canceled: true,
+          cancelReason: request.signal.reason,
+        });
+      }
+      const callOptions = toRuntimeScenarioWriteCallOptions(request, options);
+      let observedRoute: ImmediateExecutionRoute = resolveImmediateExecutionRoute(undefined, scenarioRequest);
+      let observedTerminal = false;
+      let observedTraceId: string | undefined;
+      let observedDone: { readonly finishReason: NimiFinishReason; readonly usage?: NimiUsage } | undefined;
+      try {
+        const stream = scenarioClient.streamScenario(scenarioRequest, callOptions);
+        for await (const event of runtimeScenarioStreamToNimiEvents(stream, model)) {
+          if (event.type === 'start') {
+            observedTraceId = event.traceId ?? observedTraceId;
+            if (event.routeDecision === 'local') observedRoute = 'local';
+            else if (event.routeDecision === 'cloud') observedRoute = 'cloud';
+          }
+          if (event.type === 'done') {
+            observedTerminal = true;
+            observedDone = { finishReason: event.finishReason, usage: event.usage };
+          } else if (event.type === 'error') {
+            observedTerminal = true;
+          }
+          if (request.signal?.aborted && !observedTerminal) {
+            throw projectImmediateExecutionFailure(request.signal.reason, {
+              methodId: '/nimi.runtime.v1.RuntimeAiService/StreamScenario',
+              submitted: true,
+              requestBody: scenarioRequest,
+              observedRoute,
+              canceled: true,
+              cancelReason: request.signal.reason,
+            });
+          }
+          yield event;
+        }
+      } catch (error) {
+        if (observedTerminal) {
+          throw createPostTerminalCleanupError(error, {
+            terminalOutcome: observedDone ? 'done' : 'error',
+            finishReason: observedDone?.finishReason,
+            usage: observedDone?.usage,
+            traceId: observedTraceId,
+            route: observedRoute,
+          });
+        }
+        throw projectImmediateExecutionFailure(error, {
+          methodId: '/nimi.runtime.v1.RuntimeAiService/StreamScenario',
+          submitted: true,
+          requestBody: scenarioRequest,
+          observedRoute,
+          canceled: Boolean(request.signal?.aborted),
+          cancelReason: request.signal?.aborted ? request.signal.reason : undefined,
+        });
+      }
     },
   };
 }
@@ -183,6 +283,7 @@ export async function* runtimeScenarioStreamToNimiEvents(
   model: NimiTextGenerationCapabilityRef,
 ): AsyncIterable<NimiRunEvent> {
   let started = false;
+  let observedRoute: ImmediateExecutionRoute = 'unknown';
   let usage: NimiUsage | undefined;
   const outputItems = new Map<number, {
     readonly kind: 'text' | 'reasoning-summary' | 'tool-call' | 'reasoning-continuity';
@@ -197,11 +298,14 @@ export async function* runtimeScenarioStreamToNimiEvents(
         runtimeStreamOutputInvalid('Runtime Scenario stream emitted started more than once');
       }
       started = true;
+      observedRoute = resolveImmediateExecutionRoute(event.payload.started.routeDecision);
+      const routeDecision = routePolicyName(event.payload.started.routeDecision) as 'local' | 'cloud' | 'unspecified';
       yield {
         type: 'start',
         traceId: normalizeText(event.traceId) || undefined,
         model,
         admission: toNimiExecutionAdmission(event.payload.started.effectiveInputIdentity),
+        routeDecision,
       };
       continue;
     }
@@ -319,16 +423,49 @@ export async function* runtimeScenarioStreamToNimiEvents(
         event.payload.failed.reasonCode,
         event.payload.failed.interruption,
       );
+      const outcomeUncertain = interruption?.resubmitDisposition === 'outcome-uncertain'
+        || normalizeText(event.payload.failed.actionHint) === NIMI_OUTCOME_UNCERTAIN_ACTION_HINT;
+      const rawMessage = normalizeText(event.payload.failed.actionHint) || 'Runtime Scenario stream failed';
+      if (outcomeUncertain && observedRoute === 'local') {
+        yield {
+          type: 'error',
+          code: runtimeReasonCodeName(event.payload.failed.reasonCode),
+          message: ensureLocalOutcomeUnknownMessage(rawMessage),
+          actionHint: NIMI_LOCAL_OUTCOME_UNCERTAIN_ACTION_HINT,
+          routeDecision: 'local',
+        };
+        return;
+      }
       yield {
         type: 'error',
         code: runtimeReasonCodeName(event.payload.failed.reasonCode),
-        message: normalizeText(event.payload.failed.actionHint) || 'Runtime Scenario stream failed',
+        message: outcomeUncertain ? ensureOutcomeUncertainMessage(rawMessage) : rawMessage,
+        ...(outcomeUncertain ? { actionHint: NIMI_OUTCOME_UNCERTAIN_ACTION_HINT } : {}),
+        ...(observedRoute === 'local' ? { routeDecision: 'local' as const } : observedRoute === 'cloud' ? { routeDecision: 'cloud' as const } : {}),
         ...(interruption ? { interruption } : {}),
       };
       return;
     }
     runtimeStreamOutputInvalid('Runtime Scenario stream event omitted its typed payload');
   }
+  if (observedRoute === 'local') {
+    yield {
+      type: 'error',
+      code: 'SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING',
+      message: ensureLocalOutcomeUnknownMessage('Nimi stream ended without done evidence'),
+      actionHint: NIMI_LOCAL_OUTCOME_UNCERTAIN_ACTION_HINT,
+      routeDecision: 'local',
+    };
+    return;
+  }
+  yield {
+    type: 'error',
+    code: 'SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING',
+    message: ensureOutcomeUncertainMessage('Nimi stream ended without done evidence'),
+    actionHint: NIMI_OUTCOME_UNCERTAIN_ACTION_HINT,
+    interruption: { cause: 'unspecified', resubmitDisposition: 'outcome-uncertain' },
+    routeDecision: observedRoute === 'cloud' ? 'cloud' : 'unspecified',
+  };
 }
 
 function admitRuntimeStreamOutputItem(
@@ -359,19 +496,29 @@ function toNimiExecutionInterruption(
   reasonCode: RuntimeGeneratedReasonCode,
   interruption: ExecutionInterruption | undefined,
 ): NimiExecutionInterruption | undefined {
-  if (reasonCode !== RuntimeGeneratedReasonCode.AI_EXECUTION_INTERRUPTED) {
-    if (interruption) {
-      runtimeStreamOutputInvalid('Runtime stream attached interruption detail to a non-interruption failure');
+  if (reasonCode === RuntimeGeneratedReasonCode.AI_EXECUTION_INTERRUPTED) {
+    if (interruption?.cause !== ExecutionInterruptionCause.RUNTIME_RESTART
+      || (interruption.resubmitDisposition !== ExecutionResubmitDisposition.CALLER_MAY_RESUBMIT
+        && interruption.resubmitDisposition !== ExecutionResubmitDisposition.OUTCOME_UNCERTAIN)) {
+      runtimeStreamOutputInvalid('Runtime interruption failure omitted its typed restart/resubmit disposition');
     }
+    return {
+      cause: 'runtime-restart',
+      resubmitDisposition: interruption.resubmitDisposition === ExecutionResubmitDisposition.OUTCOME_UNCERTAIN
+        ? 'outcome-uncertain'
+        : 'caller-may-resubmit',
+    };
+  }
+  if (!interruption) {
     return undefined;
   }
-  if (interruption?.cause !== ExecutionInterruptionCause.RUNTIME_RESTART
-    || interruption.resubmitDisposition !== ExecutionResubmitDisposition.CALLER_MAY_RESUBMIT) {
-    runtimeStreamOutputInvalid('Runtime interruption failure omitted its typed restart/resubmit disposition');
+  if (interruption.cause !== ExecutionInterruptionCause.UNSPECIFIED
+    || interruption.resubmitDisposition !== ExecutionResubmitDisposition.OUTCOME_UNCERTAIN) {
+    runtimeStreamOutputInvalid('Runtime stream attached invalid interruption detail to a non-restart failure');
   }
   return {
-    cause: 'runtime-restart',
-    resubmitDisposition: 'caller-may-resubmit',
+    cause: 'unspecified',
+    resubmitDisposition: 'outcome-uncertain',
   };
 }
 

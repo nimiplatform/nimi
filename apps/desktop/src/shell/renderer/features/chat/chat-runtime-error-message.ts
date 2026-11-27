@@ -1,8 +1,13 @@
 import {
   getNimiRuntimeReasonCodeMessage,
   extractNimiRuntimeReasonCodeFromError,
+  isLocalOutcomeUnknownError,
   NIMI_CHATGPT_PLAN_MANAGE_USAGE_ACTION_HINT,
   NIMI_CHATGPT_PLAN_REAUTHORIZE_ACTION_HINT,
+  NIMI_LOCAL_OUTCOME_UNCERTAIN_ACTION_HINT,
+  NIMI_LOCAL_OUTCOME_UNCERTAIN_NOTICE,
+  NIMI_OUTCOME_UNCERTAIN_ACTION_HINT,
+  NIMI_OUTCOME_UNCERTAIN_BILLING_NOTICE,
   toNimiRuntimeUserFacingError,
 } from '@nimiplatform/sdk/runtime';
 import type { TFunction } from 'i18next';
@@ -98,9 +103,29 @@ export function toChatUserFacingRuntimeError(
   t: TFunction,
   context?: ChatRuntimeErrorContext,
 ): ChatUserFacingRuntimeError {
-  const { reasonCode: reason, actionHint } = extractNimiErrorFields(error);
+  const { reasonCode: reason, actionHint, interruption } = extractNimiErrorFields(error);
   const reportedReason = reason || extractNimiRuntimeReasonCodeFromError(error);
   const normalizedReason = reportedReason?.toUpperCase().replaceAll('-', '_');
+  if (actionHint === NIMI_LOCAL_OUTCOME_UNCERTAIN_ACTION_HINT || isLocalOutcomeUnknownError(error)) {
+    return {
+      code: reportedReason || 'SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING',
+      message: translateMessage(
+        t,
+        'Chat.localOutcomeUncertain',
+        NIMI_LOCAL_OUTCOME_UNCERTAIN_NOTICE,
+      ),
+    };
+  }
+  if (interruption?.resubmitDisposition === 'outcome-uncertain' || actionHint === NIMI_OUTCOME_UNCERTAIN_ACTION_HINT) {
+    return {
+      code: reportedReason || 'AI_STREAM_BROKEN',
+      message: translateMessage(
+        t,
+        'Chat.cloudOutcomeUncertain',
+        NIMI_OUTCOME_UNCERTAIN_BILLING_NOTICE,
+      ),
+    };
+  }
   if (normalizedReason && ['AI_INPUT_INVALID', 'AI_PROVIDER_AUTH_FAILED', 'AI_PROVIDER_ENDPOINT_FORBIDDEN'].includes(normalizedReason)) {
     return { code: reportedReason!, message: chatRuntimeReasonCodeMessage(normalizedReason, t, context)! };
   }

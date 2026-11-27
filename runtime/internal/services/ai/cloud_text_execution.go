@@ -345,6 +345,9 @@ func (s *Service) executeCapturedCloudText(ctx context.Context, effective *cloud
 	if s == nil || effective == nil || effective.driver == nil || s.remoteTextHost == nil {
 		return capabilitydriver.CloudTextResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
+	if _, isProviderHost := s.remoteTextHost.(*remoteexecution.ProviderTextHost); !isProviderHost {
+		remoteexecution.NotifyImmediateDispatch(ctx)
+	}
 	transportResponse, err := s.remoteTextHost.ExecuteText(ctx, effective.connector, effective.target, effective.mapped, effective.dispatchAudit())
 	if err != nil {
 		return capabilitydriver.CloudTextResult{}, effective.driver.NormalizeReason(err)
@@ -359,6 +362,9 @@ func (s *Service) executeCapturedCloudText(ctx context.Context, effective *cloud
 func (s *Service) streamCapturedCloudText(ctx context.Context, effective *cloudTextEffectiveInputs, onDelta func(textbehavior.OrderedDelta) error) (capabilitydriver.CloudTextResult, error) {
 	if s == nil || effective == nil || effective.driver == nil || s.remoteTextHost == nil || onDelta == nil {
 		return capabilitydriver.CloudTextResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+	if _, isProviderHost := s.remoteTextHost.(*remoteexecution.ProviderTextHost); !isProviderHost {
+		remoteexecution.NotifyImmediateDispatch(ctx)
 	}
 	transportResponse, err := s.remoteTextHost.StreamText(ctx, effective.connector, effective.target, effective.mapped, func(delta textbehavior.OrderedDelta) error {
 		if delta.Kind == textbehavior.OrderedItemText {

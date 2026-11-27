@@ -25,6 +25,10 @@ import {
   type GrpcMetadataLike,
   type GrpcStatusLike,
 } from './node-grpc-errors';
+import {
+  isImmediateExecutionMethod,
+  projectImmediateExecutionFailure,
+} from './immediate-execution-outcome';
 import { normalizeRuntimeNodeGrpcEndpoint } from './node-grpc-security';
 
 export { RuntimeNodeGrpcTransportError } from './node-grpc-errors';
@@ -219,9 +223,24 @@ export function createRuntimeNodeGrpcTransport(
     return runtimePromise;
   };
 
-  const invokeUnaryBytes = async (request: RuntimeNodeGrpcBridgeRequest): Promise<Uint8Array> => {
+  const invokeUnaryBytes = async (
+    request: RuntimeNodeGrpcBridgeRequest,
+    onSubmitted?: () => void,
+  ): Promise<Uint8Array> => {
     validateRuntimeMetadataSecurity(request.metadata);
+    if (request.signal?.aborted) {
+      throw toTransportError(
+        'OPERATION_ABORTED',
+        `${request.methodId} was aborted`,
+        { methodId: request.methodId },
+        {
+          actionHint: 'retry_if_still_needed',
+          retryable: false,
+        },
+      );
+    }
     if (options.bridge) {
+      onSubmitted?.();
       return options.bridge.unary(request);
     }
     const runtime = await ensureRuntime();
@@ -255,6 +274,20 @@ export function createRuntimeNodeGrpcTransport(
         resolve(responseBytes);
       };
 
+      if (request.signal?.aborted) {
+        rejectOnce(toTransportError(
+          'OPERATION_ABORTED',
+          `${request.methodId} was aborted`,
+          { methodId: request.methodId },
+          {
+            actionHint: 'retry_if_still_needed',
+            retryable: false,
+          },
+        ));
+        return;
+      }
+
+      onSubmitted?.();
       const call = runtime.client.makeUnaryRequest<Uint8Array, Uint8Array>(
         request.methodId,
         (value) => Buffer.from(value),
@@ -295,19 +328,6 @@ export function createRuntimeNodeGrpcTransport(
       });
 
       if (request.signal) {
-        if (request.signal.aborted) {
-          call.cancel();
-          rejectOnce(toTransportError(
-            'OPERATION_ABORTED',
-            `${request.methodId} was aborted`,
-            { methodId: request.methodId },
-            {
-              actionHint: 'retry_if_still_needed',
-              retryable: false,
-            },
-          ));
-          return;
-        }
         abortHandler = () => {
           call.cancel();
           rejectOnce(toTransportError(
@@ -325,12 +345,39 @@ export function createRuntimeNodeGrpcTransport(
     });
   };
 
-  const openStreamBytes = async (request: RuntimeNodeGrpcBridgeRequest): Promise<AsyncIterable<Uint8Array>> => {
+  const openStreamBytes = async (
+    request: RuntimeNodeGrpcBridgeRequest,
+    onSubmitted?: () => void,
+  ): Promise<AsyncIterable<Uint8Array>> => {
     validateRuntimeMetadataSecurity(request.metadata);
+    if (request.signal?.aborted) {
+      throw toTransportError(
+        'OPERATION_ABORTED',
+        `${request.methodId} was aborted`,
+        { methodId: request.methodId },
+        {
+          actionHint: 'retry_if_still_needed',
+          retryable: false,
+        },
+      );
+    }
     if (options.bridge) {
+      onSubmitted?.();
       return options.bridge.serverStream(request);
     }
     const runtime = await ensureRuntime();
+    if (request.signal?.aborted) {
+      throw toTransportError(
+        'OPERATION_ABORTED',
+        `${request.methodId} was aborted`,
+        { methodId: request.methodId },
+        {
+          actionHint: 'retry_if_still_needed',
+          retryable: false,
+        },
+      );
+    }
+    onSubmitted?.();
     const call = runtime.client.makeServerStreamRequest<Uint8Array, Uint8Array>(
       request.methodId,
       (value) => Buffer.from(value),
@@ -350,6 +397,7 @@ export function createRuntimeNodeGrpcTransport(
 
   return {
     async unary<Response = unknown, Body = unknown>(request: CoreUnaryRequest<Body>): Promise<Response> {
+      let submitted = false;
       try {
         const codec = getRuntimeWireCodec(request.methodId);
         assertMethodKind(request.methodId, codec.kind, 'unary');
@@ -362,9 +410,21 @@ export function createRuntimeNodeGrpcTransport(
           timeoutMs: request.timeoutMs,
           signal: request.signal,
           responseMetadataObserver: request.responseMetadataObserver,
+        }, () => {
+          submitted = true;
         });
         return codec.decodeResponse(response) as Response;
       } catch (error) {
+        if (isImmediateExecutionMethod(request.methodId)) {
+          throw projectImmediateExecutionFailure(error, {
+            methodId: request.methodId,
+            submitted,
+            requestBody: request.body,
+            defaultReasonCode: ReasonCode.SDK_RUNTIME_NODE_GRPC_UNARY_FAILED,
+            defaultActionHint: 'check_runtime_endpoint_and_network',
+            defaultSource: 'runtime',
+          });
+        }
         throw asNimiError(error, {
           reasonCode: ReasonCode.SDK_RUNTIME_NODE_GRPC_UNARY_FAILED,
           actionHint: 'check_runtime_endpoint_and_network',
@@ -376,6 +436,7 @@ export function createRuntimeNodeGrpcTransport(
     serverStream<Response = unknown, Body = unknown>(
       request: CoreStreamRequest<Body>,
     ): AsyncIterable<Response> {
+      let submitted = false;
       return decodeNodeGrpcServerStream<Response>(async () => {
         try {
           const codec = getRuntimeWireCodec(request.methodId);
@@ -389,16 +450,43 @@ export function createRuntimeNodeGrpcTransport(
             timeoutMs: request.timeoutMs,
             signal: request.signal,
             responseMetadataObserver: request.responseMetadataObserver,
+          }, () => {
+            submitted = true;
           });
           return { codec, stream };
         } catch (error) {
+          if (isImmediateExecutionMethod(request.methodId)) {
+            throw projectImmediateExecutionFailure(error, {
+              methodId: request.methodId,
+              submitted,
+              requestBody: request.body,
+              defaultReasonCode: ReasonCode.SDK_RUNTIME_NODE_GRPC_STREAM_OPEN_FAILED,
+              defaultActionHint: 'check_runtime_endpoint_and_network',
+              defaultSource: 'runtime',
+            });
+          }
           throw asNimiError(error, {
             reasonCode: ReasonCode.SDK_RUNTIME_NODE_GRPC_STREAM_OPEN_FAILED,
             actionHint: 'check_runtime_endpoint_and_network',
             source: 'runtime',
           });
         }
-      });
+      }, (error) => (
+        isImmediateExecutionMethod(request.methodId)
+          ? projectImmediateExecutionFailure(error, {
+              methodId: request.methodId,
+              submitted,
+              requestBody: request.body,
+              defaultReasonCode: ReasonCode.SDK_RUNTIME_NODE_GRPC_STREAM_OPEN_FAILED,
+              defaultActionHint: 'retry_or_reopen_stream',
+              defaultSource: 'runtime',
+            })
+          : asNimiError(error, {
+              reasonCode: ReasonCode.SDK_RUNTIME_NODE_GRPC_STREAM_OPEN_FAILED,
+              actionHint: 'retry_or_reopen_stream',
+              source: 'runtime',
+            })
+      ));
     },
   };
 }
@@ -408,6 +496,7 @@ function decodeNodeGrpcServerStream<Response>(
     readonly codec: ReturnType<typeof getRuntimeWireCodec>;
     readonly stream: AsyncIterable<Uint8Array>;
   }>,
+  normalizeError?: (error: unknown) => unknown,
 ): AsyncIterable<Response> {
   return {
     [Symbol.asyncIterator](): AsyncIterator<Response> {
@@ -465,7 +554,7 @@ function decodeNodeGrpcServerStream<Response>(
             if (closed) {
               return { done: true, value: undefined };
             }
-            throw asNimiError(error, {
+            throw normalizeError ? normalizeError(error) : asNimiError(error, {
               reasonCode: ReasonCode.SDK_RUNTIME_NODE_GRPC_STREAM_OPEN_FAILED,
               actionHint: 'retry_or_reopen_stream',
               source: 'runtime',

@@ -386,6 +386,7 @@ func (h *ProviderMediaHost) StreamSpeech(
 		backendModelID = request.ProviderModelID()
 	}
 	extensions := nimillm.ScenarioExtensionPayloadForType(mapped.GetScenarioType(), mapped.GetExtensions())
+	NotifyImmediateDispatch(ctx)
 	attempt := aitelemetry.Begin(ctx)
 	var reportedUsage *runtimev1.UsageStats
 	defer func() { finishCloudAttempt(attempt, reportedUsage, executionErr) }()

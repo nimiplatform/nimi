@@ -199,6 +199,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	}
 	recordActivity := func() {
 		if firstPacketSeen.CompareAndSwap(false, true) {
+			markImmediatePartialOutput(requestCtx)
 			stopFirstPacketTimer()
 		}
 		resetIdleTimer()
@@ -237,21 +238,22 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		if deliveryCause := deliveryFailure.durableCause(); deliveryCause != nil {
 			cause = deliveryCause
 		}
-		s.finishCloudScenarioJobFailureWithUsage(requestCtx, jobID, cause, usage)
-		if transportErr := deliveryFailure.transportCause(); transportErr != nil {
-			return transportErr
+		projected := s.projectImmediateExecutionError(requestCtx, cause)
+		s.finishCloudScenarioJobFailureWithUsage(requestCtx, jobID, projected, usage)
+		if deliveryFailure.transportCause() != nil {
+			return projected
 		}
 		if localCtx.Err() != nil {
-			return cause
+			return projected
 		}
 		if s.logger != nil {
 			logArgs := []any{
 				"scenario_type", req.GetScenarioType().String(),
 				"model_resolved", modelResolved,
 				"trace_id", traceID,
-				"error", cause,
+				"error", projected,
 			}
-			if metadata, ok := grpcerr.ExtractReasonMetadata(cause); ok {
+			if metadata, ok := grpcerr.ExtractReasonMetadata(projected); ok {
 				if actionHint := strings.TrimSpace(metadata["action_hint"]); actionHint != "" {
 					logArgs = append(logArgs, "action_hint", actionHint)
 				}
@@ -267,8 +269,9 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_FAILED,
 			Payload: &runtimev1.StreamScenarioEvent_Failed{
 				Failed: &runtimev1.ScenarioStreamFailed{
-					ReasonCode: reasonCodeFromStreamError(cause),
-					ActionHint: actionHintFromStreamError(cause),
+					ReasonCode:   reasonCodeFromStreamError(projected),
+					ActionHint:   actionHintFromStreamError(projected),
+					Interruption: executionInterruptionFromError(projected),
 				},
 			},
 		})

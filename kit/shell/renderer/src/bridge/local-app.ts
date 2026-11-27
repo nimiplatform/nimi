@@ -3076,11 +3076,17 @@ function parseTextTurnEvent(value: unknown, command: string): NimiLocalAppTextTu
     assertProjectionKeys(record, ['type', 'sequence', 'traceId', 'reasonCode', 'actionHint', ...(Object.hasOwn(record, 'interruption') ? ['interruption'] : [])], command, 'text failure');
     requiredText(record.reasonCode, 'reasonCode', command, 128);
     optionalProjectionText(record.actionHint, 512, command);
-    if ((record.interruption != null) !== (record.reasonCode === 'ai-execution-interrupted')) throw new Error(`${command}: text interruption is invalid`);
-    if (record.interruption != null) {
+    if (record.reasonCode === 'ai-execution-interrupted') {
+      if (record.interruption == null) throw new Error(`${command}: text interruption is invalid`);
       const interruption = assertRecord(record.interruption, `${command}: text interruption is invalid`);
       assertProjectionKeys(interruption, ['cause', 'resubmitDisposition'], command, 'text interruption');
       if (interruption.cause !== 'runtime-restart' || (interruption.resubmitDisposition !== 'caller-may-resubmit' && interruption.resubmitDisposition !== 'outcome-uncertain')) {
+        throw new Error(`${command}: text interruption is invalid`);
+      }
+    } else if (record.interruption != null) {
+      const interruption = assertRecord(record.interruption, `${command}: text interruption is invalid`);
+      assertProjectionKeys(interruption, ['cause', 'resubmitDisposition'], command, 'text interruption');
+      if (interruption.cause !== 'unspecified' || interruption.resubmitDisposition !== 'outcome-uncertain') {
         throw new Error(`${command}: text interruption is invalid`);
       }
     }

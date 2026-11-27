@@ -89,6 +89,7 @@ func (h *ProviderEmbedHost) ExecuteEmbed(
 			return capabilitydriver.CloudEmbedTransportResponse{}, h.auditedEmbedError(audit, dispatchExit(ctx, "error"), err)
 		}
 		batch := inputs[offset:min(offset+batchSize, len(inputs))]
+		NotifyImmediateDispatch(ctx)
 		attempt := aitelemetry.Begin(ctx)
 		values, reportedUsage, err := h.transport.EmbedWithTarget(ctx, request.ProviderModelID(), batch, request.Dimensions(), request.Protocol(), request.Purpose(), remoteTarget)
 		finishCloudAttempt(attempt, reportedUsage, err)

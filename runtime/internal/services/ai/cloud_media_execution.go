@@ -631,6 +631,9 @@ func (s *Service) streamCapturedCloudSpeech(
 	if s == nil || effective == nil || effective.driver == nil || s.remoteMediaHost == nil || onChunk == nil {
 		return capabilitydriver.CloudMediaResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
+	if _, isProviderHost := s.remoteMediaHost.(*remoteexecution.ProviderMediaHost); !isProviderHost {
+		remoteexecution.NotifyImmediateDispatch(ctx)
+	}
 	response, err := s.remoteMediaHost.StreamSpeech(ctx, effective.connector, effective.target, effective.mapped, func(raw capabilitydriver.CloudMediaStreamChunk) error {
 		chunk, normalizeErr := effective.driver.NormalizeStreamChunk(raw)
 		if normalizeErr != nil {

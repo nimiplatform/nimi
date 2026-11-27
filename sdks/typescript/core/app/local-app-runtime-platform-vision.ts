@@ -5,7 +5,7 @@ import {
 import { asRecord, assertExactProjectionKeys, localAppProjectionError } from './local-app-runtime-platform-validation.js';
 
 export type NimiLocalAppExecutionInterruption = {
-  readonly cause: 'runtime-restart';
+  readonly cause: 'runtime-restart' | 'unspecified';
   readonly resubmitDisposition: 'caller-may-resubmit' | 'outcome-uncertain';
 };
 
@@ -30,14 +30,44 @@ export function projectLocalExecutionInterruption(value: unknown, reasonCode: un
   return Object.freeze({ cause: 'runtime-restart', resubmitDisposition: value.resubmitDisposition });
 }
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.r122
+export function projectLocalTextTurnInterruption(value: unknown, reasonCode: unknown): NimiLocalAppExecutionInterruption | undefined {
+  const present = value !== undefined;
+  if (reasonCode === 'ai-execution-interrupted') {
+    if (!present) localAppProjectionError('Text-turn interruption does not match failure');
+    assertExactProjectionKeys(value, ['cause', 'resubmitDisposition'], 'Text-turn interruption');
+    if (value.cause !== 'runtime-restart' || (value.resubmitDisposition !== 'caller-may-resubmit' && value.resubmitDisposition !== 'outcome-uncertain')) localAppProjectionError('Text-turn interruption');
+    return Object.freeze({ cause: 'runtime-restart', resubmitDisposition: value.resubmitDisposition });
+  }
+  if (!present) return undefined;
+  assertExactProjectionKeys(value, ['cause', 'resubmitDisposition'], 'Text-turn interruption');
+  if (value.cause !== 'unspecified' || value.resubmitDisposition !== 'outcome-uncertain') localAppProjectionError('Text-turn interruption');
+  return Object.freeze({ cause: 'unspecified', resubmitDisposition: 'outcome-uncertain' });
+}
+
 export function localInterruptionFromRuntime(value: ExecutionInterruption | undefined): NimiLocalAppExecutionInterruption | undefined {
   if (!value) return undefined;
   if (value.cause !== ExecutionInterruptionCause.RUNTIME_RESTART || ![ExecutionResubmitDisposition.CALLER_MAY_RESUBMIT, ExecutionResubmitDisposition.OUTCOME_UNCERTAIN].includes(value.resubmitDisposition)) localAppProjectionError('Runtime Job interruption');
   return { cause: 'runtime-restart', resubmitDisposition: value.resubmitDisposition === ExecutionResubmitDisposition.OUTCOME_UNCERTAIN ? 'outcome-uncertain' : 'caller-may-resubmit' };
 }
 
+export function localTextTurnInterruptionFromRuntime(value: ExecutionInterruption | undefined): NimiLocalAppExecutionInterruption | undefined {
+  if (!value) return undefined;
+  if (value.cause === ExecutionInterruptionCause.RUNTIME_RESTART) {
+    if (![ExecutionResubmitDisposition.CALLER_MAY_RESUBMIT, ExecutionResubmitDisposition.OUTCOME_UNCERTAIN].includes(value.resubmitDisposition)) localAppProjectionError('Runtime text-turn interruption');
+    return { cause: 'runtime-restart', resubmitDisposition: value.resubmitDisposition === ExecutionResubmitDisposition.OUTCOME_UNCERTAIN ? 'outcome-uncertain' : 'caller-may-resubmit' };
+  }
+  if (value.cause === ExecutionInterruptionCause.UNSPECIFIED && value.resubmitDisposition === ExecutionResubmitDisposition.OUTCOME_UNCERTAIN) {
+    return { cause: 'unspecified', resubmitDisposition: 'outcome-uncertain' };
+  }
+  return localAppProjectionError('Runtime text-turn interruption');
+}
+
 export function runtimeInterruptionFromLocal(value: NimiLocalAppExecutionInterruption | undefined): ExecutionInterruption | undefined {
-  return value ? { cause: ExecutionInterruptionCause.RUNTIME_RESTART, resubmitDisposition: value.resubmitDisposition === 'outcome-uncertain' ? ExecutionResubmitDisposition.OUTCOME_UNCERTAIN : ExecutionResubmitDisposition.CALLER_MAY_RESUBMIT } : undefined;
+  return value ? {
+    cause: value.cause === 'unspecified' ? ExecutionInterruptionCause.UNSPECIFIED : ExecutionInterruptionCause.RUNTIME_RESTART,
+    resubmitDisposition: value.resubmitDisposition === 'outcome-uncertain' ? ExecutionResubmitDisposition.OUTCOME_UNCERTAIN : ExecutionResubmitDisposition.CALLER_MAY_RESUBMIT,
+  } : undefined;
 }
 
 // @nimi-authority: rule.nimi.sdks.feature-clients.r102

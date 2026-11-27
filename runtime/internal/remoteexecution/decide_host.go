@@ -76,6 +76,7 @@ func (h *ProviderDecideHost) ExecuteDecide(
 		return capabilitydriver.CloudDecideTransportResponse{}, h.auditedDecideError(audit, "error", err)
 	}
 	defer clearRequestScopedProviderTarget(remoteTarget)
+	NotifyImmediateDispatch(ctx)
 	attempt := aitelemetry.Begin(ctx)
 	defer func() { finishCloudAttempt(attempt, nil, executionErr) }()
 	body, err := h.transport.DecideWithTarget(ctx, request.ProviderModelID(), request.Body(), remoteTarget)

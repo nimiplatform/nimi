@@ -3,7 +3,7 @@ import type { JsonObject } from './json';
 export type NimiErrorSource = 'realm' | 'runtime' | 'sdk';
 
 export interface NimiExecutionInterruption {
-  readonly cause: 'runtime-restart';
+  readonly cause: 'runtime-restart' | 'unspecified';
   readonly resubmitDisposition: 'caller-may-resubmit' | 'outcome-uncertain';
 }
 
@@ -28,6 +28,7 @@ export interface CreateNimiErrorInput {
   readonly source?: NimiErrorSource;
   readonly details?: JsonObject;
   readonly interruption?: NimiExecutionInterruption;
+  readonly cause?: unknown;
 }
 
 type ExtractedNimiErrorFields = {
@@ -87,9 +88,14 @@ function readBoolean(record: Record<string, unknown>, keys: readonly string[]): 
 
 function readExecutionInterruption(value: unknown): NimiExecutionInterruption | undefined {
   const record = asRecord(value);
-  return record.cause === 'runtime-restart' && (record.resubmitDisposition === 'caller-may-resubmit' || record.resubmitDisposition === 'outcome-uncertain')
-    ? { cause: 'runtime-restart', resubmitDisposition: record.resubmitDisposition }
-    : undefined;
+  if (record.cause === 'runtime-restart'
+    && (record.resubmitDisposition === 'caller-may-resubmit' || record.resubmitDisposition === 'outcome-uncertain')) {
+    return { cause: 'runtime-restart', resubmitDisposition: record.resubmitDisposition };
+  }
+  if (record.cause === 'unspecified' && record.resubmitDisposition === 'outcome-uncertain') {
+    return { cause: 'unspecified', resubmitDisposition: 'outcome-uncertain' };
+  }
+  return undefined;
 }
 
 function parseJsonObject(input: unknown): Record<string, unknown> {
@@ -193,13 +199,16 @@ function extractErrorFields(error: unknown): ExtractedNimiErrorFields {
 // @nimi-authority: rule.nimi.sdks.client-core.r021
 export function createNimiError(input: CreateNimiErrorInput): NimiError {
   const reasonCode = normalizeText(input.reasonCode) || 'RUNTIME_CALL_FAILED';
-  const error = new Error(normalizeText(input.message) || reasonCode) as NimiError;
+  const error = new Error(
+    normalizeText(input.message) || reasonCode,
+    input.cause !== undefined ? { cause: input.cause } : undefined,
+  ) as NimiError;
   error.name = 'NimiError';
   error.code = normalizeText(input.code) || reasonCode;
   error.reasonCode = reasonCode;
   error.actionHint = normalizeText(input.actionHint) || 'check_runtime_logs';
   error.traceId = normalizeText(input.traceId);
-  error.retryable = Boolean(input.retryable);
+  error.retryable = input.interruption?.resubmitDisposition === 'outcome-uncertain' ? false : Boolean(input.retryable);
   error.source = input.source || 'runtime';
   if (input.details && Object.keys(input.details).length > 0) {
     error.details = { ...input.details };
@@ -252,6 +261,7 @@ export function asNimiError(error: unknown, defaults: Partial<CreateNimiErrorInp
     source: defaults.source || 'runtime',
     details: fields.details || defaults.details,
     interruption: fields.interruption || defaults.interruption,
+    ...(defaults.cause !== undefined ? { cause: defaults.cause } : (error !== undefined ? { cause: error } : {})),
   });
 }
 

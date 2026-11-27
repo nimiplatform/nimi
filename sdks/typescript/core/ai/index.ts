@@ -15,6 +15,13 @@ import type {
   NimiUsage,
 } from '../contracts';
 import { createNimiError } from '../../types';
+import {
+  ensureLocalOutcomeUnknownMessage,
+  ensureOutcomeUncertainMessage,
+  NIMI_LOCAL_OUTCOME_UNCERTAIN_ACTION_HINT,
+  NIMI_OUTCOME_UNCERTAIN_ACTION_HINT,
+  type ImmediateExecutionRoute,
+} from '../../runtime/immediate-execution-outcome';
 
 export interface NimiAiRequestParameters {
   readonly reasoning?: import('./reasoning').NimiRuntimeAIReasoningOptions;
@@ -102,6 +109,7 @@ export async function collectNimiTextStream(events: AsyncIterable<NimiRunEvent>)
   const indexedOutputItems = new Map<number, NimiTextOutputItem>();
   const orderedContent: NimiGenerateTextContent[] = [];
   let admission: NimiAIExecutionAdmission | undefined;
+  let observedRoute: ImmediateExecutionRoute = 'unknown';
   let observedTerminal = false;
 
   for await (const event of events) {
@@ -148,14 +156,44 @@ export async function collectNimiTextStream(events: AsyncIterable<NimiRunEvent>)
       usage = event.usage;
     } else if (event.type === 'start') {
       admission = event.admission;
+      if (event.routeDecision === 'local') {
+        observedRoute = 'local';
+      } else if (event.routeDecision === 'cloud') {
+        observedRoute = 'cloud';
+      }
     } else if (event.type === 'error') {
+      const route: ImmediateExecutionRoute = event.routeDecision === 'local'
+        ? 'local'
+        : event.routeDecision === 'cloud'
+          ? 'cloud'
+          : observedRoute;
+      const localUnknown = route === 'local' && (
+        event.actionHint === NIMI_LOCAL_OUTCOME_UNCERTAIN_ACTION_HINT
+        || event.code === 'SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING'
+        || event.interruption?.resubmitDisposition === 'outcome-uncertain'
+      );
+      if (localUnknown) {
+        throw createNimiError({
+          message: ensureLocalOutcomeUnknownMessage(event.message),
+          code: event.code,
+          reasonCode: event.code,
+          actionHint: NIMI_LOCAL_OUTCOME_UNCERTAIN_ACTION_HINT,
+          source: 'sdk',
+          retryable: false,
+          details: { route: 'local', outcomeStatus: 'unknown' },
+          ...(event.cause !== undefined ? { cause: event.cause } : {}),
+        });
+      }
+      const outcomeUncertain = event.interruption?.resubmitDisposition === 'outcome-uncertain';
       throw createNimiError({
-        message: event.message,
+        message: outcomeUncertain ? ensureOutcomeUncertainMessage(event.message) : event.message,
         code: event.code,
         reasonCode: event.code,
-        actionHint: 'check_ai_stream_event',
+        actionHint: outcomeUncertain
+          ? NIMI_OUTCOME_UNCERTAIN_ACTION_HINT
+          : (event.actionHint || 'check_ai_stream_event'),
         source: 'sdk',
-        retryable: event.interruption?.resubmitDisposition === 'caller-may-resubmit',
+        retryable: !outcomeUncertain && event.interruption?.resubmitDisposition === 'caller-may-resubmit',
         interruption: event.interruption,
         ...(event.interruption ? {
           details: {
@@ -163,8 +201,10 @@ export async function collectNimiTextStream(events: AsyncIterable<NimiRunEvent>)
               cause: event.interruption.cause,
               resubmitDisposition: event.interruption.resubmitDisposition,
             },
+            ...(route === 'cloud' ? { route: 'cloud' } : {}),
           },
         } : {}),
+        ...(event.cause !== undefined ? { cause: event.cause } : {}),
       });
     }
   }
@@ -177,11 +217,26 @@ export async function collectNimiTextStream(events: AsyncIterable<NimiRunEvent>)
     : undefined;
 
   if (!observedTerminal) {
+    if (observedRoute === 'local') {
+      throw createNimiError({
+        message: ensureLocalOutcomeUnknownMessage('Nimi stream ended without done evidence'),
+        code: 'SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING',
+        reasonCode: 'SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING',
+        actionHint: NIMI_LOCAL_OUTCOME_UNCERTAIN_ACTION_HINT,
+        retryable: false,
+        details: { route: 'local', outcomeStatus: 'unknown' },
+        source: 'sdk',
+      });
+    }
+    const interruption = { cause: 'unspecified' as const, resubmitDisposition: 'outcome-uncertain' as const };
     throw createNimiError({
-      message: 'Nimi stream ended without done evidence',
+      message: ensureOutcomeUncertainMessage('Nimi stream ended without done evidence'),
       code: 'SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING',
       reasonCode: 'SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING',
-      actionHint: 'check_ai_stream_terminal_evidence',
+      actionHint: NIMI_OUTCOME_UNCERTAIN_ACTION_HINT,
+      retryable: false,
+      interruption,
+      details: { interruption, ...(observedRoute === 'cloud' ? { route: 'cloud' } : {}) },
       source: 'sdk',
     });
   }

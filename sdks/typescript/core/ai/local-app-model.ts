@@ -3,6 +3,13 @@ import { validateLocalAppTextInput, modelTextOutputToLocalApp, localAppTextOutpu
 import { assertExactKeys, localAppError, localAppProjectionError } from '../app/local-app-runtime-platform-validation.js';
 import type { NimiRunEvent } from '../contracts/index.js';
 import { createNimiError } from '../../types/index.js';
+import {
+  createPostTerminalPresentationCanceledError,
+  ensureOutcomeUncertainMessage,
+  isOutcomeUncertainError,
+  NIMI_OUTCOME_UNCERTAIN_ACTION_HINT,
+  projectImmediateExecutionFailure,
+} from '../../runtime/immediate-execution-outcome.js';
 import { withTextStreamCleanupFailure } from '../text-stream-cleanup.js';
 import { collectNimiTextStream, type NimiAiModel, type NimiGenerateTextRequest } from './index.js';
 
@@ -99,13 +106,45 @@ export function createNimiLocalAppTextModel(
   if (options.executionMode === 'sync' && typeof ai.scenario?.execute !== 'function') invalid('synchronous Scenario carrier');
 
   async function* executeText(request: NimiGenerateTextRequest): AsyncGenerator<NimiRunEvent> {
-    request.signal?.throwIfAborted();
-    const input = localInput(request,options.configuration);
-    const result = await ai.scenario!.execute({ type: 'text-generate', ...input }, request.signal ? { signal: request.signal } : undefined);
-    request.signal?.throwIfAborted();
+    if (request.signal?.aborted) {
+      throw projectImmediateExecutionFailure(request.signal.reason, {
+        methodId: '/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario',
+        submitted: false,
+        canceled: true,
+        cancelReason: request.signal.reason,
+      });
+    }
+    const input = localInput(request, options.configuration);
+    let result: Awaited<ReturnType<NonNullable<typeof ai.scenario>['execute']>>;
+    try {
+      result = await ai.scenario!.execute({ type: 'text-generate', ...input }, request.signal ? { signal: request.signal } : undefined);
+    } catch (error) {
+      throw projectImmediateExecutionFailure(error, {
+        methodId: '/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario',
+        submitted: true,
+        canceled: Boolean(request.signal?.aborted),
+        cancelReason: request.signal?.aborted ? request.signal.reason : undefined,
+      });
+    }
     if (result.output.type !== 'text-generate') localAppProjectionError('synchronous text output');
+    const knownTerminal = {
+      finishReason: result.output.finishReason,
+      usage: result.output.usage,
+      traceId: result.traceId,
+    };
+    if (request.signal?.aborted) {
+      throw createPostTerminalPresentationCanceledError({
+        cancelReason: request.signal.reason,
+        ...knownTerminal,
+      });
+    }
     for (const [itemIndex, localItem] of result.output.items.entries()) {
-      request.signal?.throwIfAborted();
+      if (request.signal?.aborted) {
+        throw createPostTerminalPresentationCanceledError({
+          cancelReason: request.signal.reason,
+          ...knownTerminal,
+        });
+      }
       const item = localAppTextOutputToModel(localItem);
       if (item.type === 'text') yield { type: 'text-delta', text: item.text, itemIndex };
       else if (item.type === 'reasoning-summary') yield { type: 'reasoning-summary-delta', text: item.text, itemIndex, itemCompleted: true };
@@ -113,15 +152,30 @@ export function createNimiLocalAppTextModel(
       else if (item.type === 'reasoning-continuity') yield { type: 'reasoning-continuity', carrier: item.carrier, itemIndex, itemCompleted: true };
       else localAppProjectionError('synchronous text output item');
     }
-    request.signal?.throwIfAborted();
+    if (request.signal?.aborted) {
+      throw createPostTerminalPresentationCanceledError({
+        cancelReason: request.signal.reason,
+        ...knownTerminal,
+      });
+    }
     yield { type: 'done', finishReason: result.output.finishReason, ...(result.output.usage ? { usage: result.output.usage } : {}) };
   }
 
   async function* streamText(request: NimiGenerateTextRequest): AsyncGenerator<NimiRunEvent> {
-    request.signal?.throwIfAborted();
-    const input = localInput(request,options.configuration);
+    if (request.signal?.aborted) {
+      throw projectImmediateExecutionFailure(request.signal.reason, {
+        methodId: '/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn',
+        submitted: false,
+        canceled: true,
+        cancelReason: request.signal.reason,
+      });
+    }
+    const input = localInput(request, options.configuration);
     let stream: Awaited<ReturnType<typeof ai.text.streamTurn>> | undefined;
     let close: Promise<void> | undefined;
+    let dispatched = false;
+    let observedTerminal = false;
+    let observedCompletion: { readonly finishReason: string; readonly usage?: { readonly promptTokens?: number; readonly completionTokens?: number; readonly totalTokens?: number; readonly cachedInputTokens?: number; readonly reasoningOutputTokens?: number }; readonly traceId?: string } | undefined;
     let failed = false;
     let primaryFailure: unknown;
     const abort = () => {
@@ -132,6 +186,7 @@ export function createNimiLocalAppTextModel(
     };
     request.signal?.addEventListener('abort', abort, { once: true });
     try {
+      dispatched = true;
       stream = await ai.text.streamTurn(input);
       if (request.signal?.aborted) { abort(); request.signal.throwIfAborted(); }
       for await (const event of stream) {
@@ -140,19 +195,60 @@ export function createNimiLocalAppTextModel(
         else if (event.type === 'reasoning-summary') yield { type: 'reasoning-summary-delta', text: event.text, itemIndex: event.itemIndex, itemCompleted: event.itemCompleted };
         else if (event.type === 'tool-call') yield { type: 'tool-call', toolCall: event.toolCall, itemIndex: event.itemIndex };
         else if (event.type === 'reasoning-continuity') yield { type: 'reasoning-continuity', carrier: { ...event.carrier, payload: new Uint8Array(event.carrier.payload) }, itemIndex: event.itemIndex, itemCompleted: true };
-        else if (event.type === 'completed') yield { type: 'done', finishReason: event.finishReason, ...(event.configuration ? {configuration:event.configuration} : {}), ...(event.usage ? { usage: event.usage } : {}) };
-        else throw createNimiError({
-          message: `Nimi text generation failed: ${event.reasonCode}.`,
-          code: event.reasonCode, reasonCode: event.reasonCode, actionHint: event.actionHint,
-          traceId: event.traceId,
-          source: 'runtime', interruption: event.interruption,
-          retryable: event.interruption?.resubmitDisposition === 'caller-may-resubmit',
-        });
+        else if (event.type === 'completed') {
+          observedTerminal = true;
+          observedCompletion = { finishReason: event.finishReason, usage: event.usage, traceId: event.traceId };
+          yield { type: 'done', finishReason: event.finishReason, ...(event.configuration ? { configuration: event.configuration } : {}), ...(event.usage ? { usage: event.usage } : {}) };
+        } else {
+          observedTerminal = true;
+          const outcomeUncertain = event.interruption?.resubmitDisposition === 'outcome-uncertain';
+          throw createNimiError({
+            message: outcomeUncertain
+              ? ensureOutcomeUncertainMessage(`Nimi text generation failed: ${event.reasonCode}`)
+              : `Nimi text generation failed: ${event.reasonCode}.`,
+            code: event.reasonCode,
+            reasonCode: event.reasonCode,
+            actionHint: outcomeUncertain ? (event.actionHint || NIMI_OUTCOME_UNCERTAIN_ACTION_HINT) : event.actionHint,
+            traceId: event.traceId,
+            source: 'runtime',
+            interruption: event.interruption,
+            retryable: !outcomeUncertain && event.interruption?.resubmitDisposition === 'caller-may-resubmit',
+          });
+        }
       }
-      request.signal?.throwIfAborted();
+      if (request.signal?.aborted) {
+        if (observedCompletion) {
+          throw createPostTerminalPresentationCanceledError({
+            cancelReason: request.signal.reason,
+            ...observedCompletion,
+          });
+        }
+        request.signal.throwIfAborted();
+      }
     } catch (error) {
       failed = true;
-      primaryFailure = request.signal?.aborted ? request.signal.reason : error;
+      if (isOutcomeUncertainError(error)) {
+        primaryFailure = projectImmediateExecutionFailure(error, {
+          methodId: '/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn',
+          submitted: dispatched,
+          canceled: Boolean(request.signal?.aborted),
+          cancelReason: request.signal?.aborted ? request.signal.reason : undefined,
+        });
+      } else if (observedTerminal) {
+        primaryFailure = error;
+      } else if (request.signal?.aborted) {
+        primaryFailure = projectImmediateExecutionFailure(request.signal.reason ?? error, {
+          methodId: '/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn',
+          submitted: dispatched,
+          canceled: true,
+          cancelReason: request.signal.reason,
+        });
+      } else {
+        primaryFailure = projectImmediateExecutionFailure(error, {
+          methodId: '/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn',
+          submitted: dispatched,
+        });
+      }
       throw primaryFailure;
     } finally {
       request.signal?.removeEventListener('abort', abort);

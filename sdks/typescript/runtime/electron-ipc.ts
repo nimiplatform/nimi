@@ -7,7 +7,12 @@ import type {
   CoreStreamRequest,
   CoreUnaryRequest,
   JsonObject,
+  NimiExecutionInterruption,
 } from '../types';
+import {
+  isImmediateExecutionMethod,
+  projectImmediateExecutionFailure,
+} from './immediate-execution-outcome';
 
 type ElectronInvoke = (command: string, payload?: unknown) => Promise<unknown>;
 type ElectronListenUnsubscribe = () => void;
@@ -156,6 +161,7 @@ export class RuntimeElectronIpcTransportError extends Error {
   readonly retryable: boolean;
   readonly source = 'runtime';
   readonly details?: JsonObject;
+  readonly interruption?: NimiExecutionInterruption;
 
   constructor(
     code: string,
@@ -166,6 +172,7 @@ export class RuntimeElectronIpcTransportError extends Error {
       readonly actionHint?: string;
       readonly traceId?: string;
       readonly retryable?: boolean;
+      readonly interruption?: NimiExecutionInterruption;
     } = {},
   ) {
     super(message);
@@ -174,8 +181,9 @@ export class RuntimeElectronIpcTransportError extends Error {
     this.reasonCode = fields.reasonCode ?? code;
     this.actionHint = fields.actionHint ?? 'check_runtime_bridge_and_daemon';
     this.traceId = fields.traceId ?? '';
-    this.retryable = Boolean(fields.retryable);
+    this.retryable = fields.interruption?.resubmitDisposition === 'outcome-uncertain' ? false : Boolean(fields.retryable);
     this.details = details;
+    this.interruption = fields.interruption;
   }
 }
 
@@ -423,9 +431,22 @@ function emitResponseMetadata(
   }
 }
 
+function readStreamInterruption(value: unknown): NimiExecutionInterruption | undefined {
+  const record = asObject(value);
+  if (record.cause === 'runtime-restart'
+    && (record.resubmitDisposition === 'caller-may-resubmit' || record.resubmitDisposition === 'outcome-uncertain')) {
+    return { cause: 'runtime-restart', resubmitDisposition: record.resubmitDisposition };
+  }
+  if (record.cause === 'unspecified' && record.resubmitDisposition === 'outcome-uncertain') {
+    return { cause: 'unspecified', resubmitDisposition: 'outcome-uncertain' };
+  }
+  return undefined;
+}
+
 function toStreamError(error: unknown): RuntimeElectronIpcTransportError {
   const input = asObject(error);
   const reasonCode = normalizeText(input.reasonCode ?? input.reason_code) ?? 'SDK_RUNTIME_ELECTRON_STREAM_REMOTE_ERROR';
+  const interruption = readStreamInterruption(input.interruption);
   return new RuntimeElectronIpcTransportError(
     reasonCode,
     normalizeText(input.message) ?? 'Runtime stream reported an error',
@@ -433,12 +454,14 @@ function toStreamError(error: unknown): RuntimeElectronIpcTransportError {
       actionHint: normalizeText(input.actionHint ?? input.action_hint),
       traceId: normalizeText(input.traceId ?? input.trace_id),
       retryable: typeof input.retryable === 'boolean' ? input.retryable : undefined,
+      ...(interruption ? { interruption: { ...interruption } } : {}),
     },
     {
       reasonCode,
       actionHint: normalizeText(input.actionHint ?? input.action_hint) ?? 'retry_or_reopen_stream',
       traceId: normalizeText(input.traceId ?? input.trace_id),
       retryable: typeof input.retryable === 'boolean' ? input.retryable : undefined,
+      interruption,
     },
   );
 }
@@ -456,7 +479,12 @@ function assertMethodKind(methodId: string, actual: string, expected: string): v
 export function createRuntimeElectronIpcTransport(
   options: RuntimeElectronIpcTransportOptions = {},
 ): CoreTransport {
-  const invokeUnaryBytes = async (methodId: string, body: Uint8Array, request: CoreUnaryRequest): Promise<Uint8Array> => {
+  const invokeUnaryBytes = async (
+    methodId: string,
+    body: Uint8Array,
+    request: CoreUnaryRequest,
+    onSubmitted?: () => void,
+  ): Promise<Uint8Array> => {
     const invoke = ensureInvoke();
     const { metadata } = splitRuntimeMetadata(request.metadata);
     const requestId = createClientUnaryRequestId(metadata?.idempotencyKey);
@@ -476,6 +504,7 @@ export function createRuntimeElectronIpcTransport(
     }
     let rawResponse: unknown;
     try {
+      onSubmitted?.();
       rawResponse = await invoke(createCommandName('unary'), {
         payload: {
           methodId,
@@ -513,6 +542,7 @@ export function createRuntimeElectronIpcTransport(
     methodId: string,
     body: Uint8Array,
     request: CoreStreamRequest,
+    onSubmitted?: () => void,
   ): Promise<AsyncIterable<Uint8Array>> => {
     const invoke = ensureInvoke();
     const listen = ensureListen();
@@ -630,6 +660,7 @@ export function createRuntimeElectronIpcTransport(
           flush();
         }
       }));
+      onSubmitted?.();
       const opened = asObject(await invoke(createCommandName('stream_open'), {
         payload: {
           methodId,
@@ -713,12 +744,25 @@ export function createRuntimeElectronIpcTransport(
 
   return {
     async unary<Response = unknown, Body = unknown>(request: CoreUnaryRequest<Body>): Promise<Response> {
+      let submitted = false;
       try {
         const codec = getRuntimeWireCodec(request.methodId);
         assertMethodKind(request.methodId, codec.kind, 'unary');
-        const response = await invokeUnaryBytes(request.methodId, codec.encodeRequest(request.body), request);
+        const response = await invokeUnaryBytes(request.methodId, codec.encodeRequest(request.body), request, () => {
+          submitted = true;
+        });
         return codec.decodeResponse(response) as Response;
       } catch (error) {
+        if (isImmediateExecutionMethod(request.methodId)) {
+          throw projectImmediateExecutionFailure(error, {
+            methodId: request.methodId,
+            submitted,
+            requestBody: request.body,
+            defaultReasonCode: ReasonCode.SDK_RUNTIME_ELECTRON_UNARY_FAILED,
+            defaultActionHint: 'check_runtime_bridge_and_daemon',
+            defaultSource: 'runtime',
+          });
+        }
         if (error && typeof error === 'object' && (error as { readonly name?: unknown }).name === 'AbortError') {
           throw error;
         }
@@ -735,14 +779,27 @@ export function createRuntimeElectronIpcTransport(
       request: CoreStreamRequest<Body>,
     ): AsyncIterable<Response> {
       let ended = false;
+      let submitted = false;
       let source: Promise<{ codec: ReturnType<typeof getRuntimeWireCodec>; iterator: AsyncIterator<Uint8Array> }> | undefined;
       const open = () => source ??= (async () => {
         try {
           const codec = getRuntimeWireCodec(request.methodId);
           assertMethodKind(request.methodId, codec.kind, 'server_stream');
-          const stream = await openStreamBytes(request.methodId, codec.encodeRequest(request.body), request);
+          const stream = await openStreamBytes(request.methodId, codec.encodeRequest(request.body), request, () => {
+            submitted = true;
+          });
           return { codec, iterator: stream[Symbol.asyncIterator]() };
         } catch (error) {
+          if (isImmediateExecutionMethod(request.methodId)) {
+            throw projectImmediateExecutionFailure(error, {
+              methodId: request.methodId,
+              submitted,
+              requestBody: request.body,
+              defaultReasonCode: ReasonCode.SDK_RUNTIME_ELECTRON_STREAM_OPEN_FAILED,
+              defaultActionHint: 'check_runtime_bridge_and_daemon',
+              defaultSource: 'runtime',
+            });
+          }
           throw asNimiError(error, {
             reasonCode: ReasonCode.SDK_RUNTIME_ELECTRON_STREAM_OPEN_FAILED,
             actionHint: 'check_runtime_bridge_and_daemon',
@@ -764,6 +821,16 @@ export function createRuntimeElectronIpcTransport(
           } catch (error) {
             ended = true;
             try { await current.iterator.return?.(); } catch { /* Preserve the stream/decoder failure. */ }
+            if (isImmediateExecutionMethod(request.methodId)) {
+              throw projectImmediateExecutionFailure(error, {
+                methodId: request.methodId,
+                submitted,
+                requestBody: request.body,
+                defaultReasonCode: ReasonCode.SDK_RUNTIME_ELECTRON_STREAM_FAILED,
+                defaultActionHint: 'retry_or_reopen_stream',
+                defaultSource: 'runtime',
+              });
+            }
             throw asNimiError(error, {
               reasonCode: ReasonCode.SDK_RUNTIME_ELECTRON_STREAM_FAILED,
               actionHint: 'retry_or_reopen_stream',

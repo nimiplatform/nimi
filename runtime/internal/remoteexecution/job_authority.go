@@ -64,9 +64,29 @@ func (h *ProviderMediaHost) jobOutboundContext(ctx context.Context, captured con
 }
 
 type jobDispatchIntentKey struct{}
+type immediateDispatchObserverKey struct{}
 
 // WithJobDispatchIntent is supplied by the original Job writer for its create
 // execution. Query/stop of a retained receipt does not mint another intent.
 func WithJobDispatchIntent(ctx context.Context, mark func(context.Context) error) context.Context {
 	return context.WithValue(ctx, jobDispatchIntentKey{}, mark)
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.r122
+// WithImmediateDispatchObserver marks the earliest point where an immediate
+// Cloud execution may reach the remote provider transport.
+func WithImmediateDispatchObserver(ctx context.Context, mark func()) context.Context {
+	if mark == nil {
+		return ctx
+	}
+	return context.WithValue(ctx, immediateDispatchObserverKey{}, mark)
+}
+
+func NotifyImmediateDispatch(ctx context.Context) {
+	if ctx == nil {
+		return
+	}
+	if mark, _ := ctx.Value(immediateDispatchObserverKey{}).(func()); mark != nil {
+		mark()
+	}
 }

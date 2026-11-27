@@ -51,10 +51,14 @@ function encodeStatus(
   return writer.finish();
 }
 
-function encodeExecutionInterruption(): Uint8Array {
+function encodeExecutionInterruption(cause = 1, disposition = 1): Uint8Array {
   const writer = new BinaryWriter();
-  writer.tag(1, WireType.Varint).int32(1);
-  writer.tag(2, WireType.Varint).int32(1);
+  if (cause !== 0) {
+    writer.tag(1, WireType.Varint).int32(cause);
+  }
+  if (disposition !== 0) {
+    writer.tag(2, WireType.Varint).int32(disposition);
+  }
   return writer.finish();
 }
 
@@ -239,4 +243,59 @@ test('normalizeServiceError rejects over-bounded ErrorInfo recovery metadata', (
 
   assert.equal(normalized.reasonCode, 'RUNTIME_GRPC_INTERNAL');
   assert.equal(normalized.actionHint, 'check_request_and_app_auth');
+});
+
+test('normalizeServiceError decodes OUTCOME_UNCERTAIN on restart and non-restart cloud failures and rejects invalid pairs', () => {
+  // 1) Cloud restart after dispatch: AI_EXECUTION_INTERRUPTED + RUNTIME_RESTART + OUTCOME_UNCERTAIN -> retryable=false.
+  const restartUncertain = normalizeServiceError(grpc, createServiceError(
+    grpc.status.UNAVAILABLE,
+    'Runtime restarted after dispatch.',
+    encodeStatus(grpc.status.UNAVAILABLE, 'Runtime restarted after dispatch.', {
+      reason: ReasonCode.AI_EXECUTION_INTERRUPTED,
+      metadata: {
+        action_hint: 'confirm_outcome_and_charges_before_new_request',
+        retryable: 'true', // outcome-uncertain must override retryable to false
+      },
+    }, [{
+      typeUrl: 'type.googleapis.com/nimi.runtime.v1.ExecutionInterruption',
+      value: encodeExecutionInterruption(1, 2),
+    }]),
+  ));
+  assert.equal(restartUncertain.reasonCode, ReasonCode.AI_EXECUTION_INTERRUPTED);
+  assert.equal(restartUncertain.retryable, false);
+  assert.deepEqual(restartUncertain.interruption, { cause: 'runtime-restart', resubmitDisposition: 'outcome-uncertain' });
+  assert.match(restartUncertain.message, /charges/i);
+
+  // 2) Runtime stays running + Cloud timeout: AI_PROVIDER_TIMEOUT + UNSPECIFIED + OUTCOME_UNCERTAIN -> retryable=false.
+  const runningTimeout = normalizeServiceError(grpc, createServiceError(
+    grpc.status.DEADLINE_EXCEEDED,
+    'Cloud provider request timed out.',
+    encodeStatus(grpc.status.DEADLINE_EXCEEDED, 'Cloud provider request timed out.', {
+      reason: ReasonCode.AI_PROVIDER_TIMEOUT,
+      metadata: { action_hint: 'confirm_outcome_and_charges_before_new_request' },
+    }, [{
+      typeUrl: 'type.googleapis.com/nimi.runtime.v1.ExecutionInterruption',
+      value: encodeExecutionInterruption(0, 2),
+    }]),
+  ));
+  assert.equal(runningTimeout.reasonCode, ReasonCode.AI_PROVIDER_TIMEOUT);
+  assert.equal(runningTimeout.retryable, false);
+  assert.equal(runningTimeout.actionHint, 'confirm_outcome_and_charges_before_new_request');
+  assert.deepEqual(runningTimeout.interruption, { cause: 'unspecified', resubmitDisposition: 'outcome-uncertain' });
+  assert.match(runningTimeout.message, /unknown/i);
+  assert.match(runningTimeout.message, /charges/i);
+
+  // 3) Invalid pair: UNSPECIFIED + CALLER_MAY_RESUBMIT is rejected as malformed status details.
+  const invalidPair = normalizeServiceError(grpc, createServiceError(
+    grpc.status.DEADLINE_EXCEEDED,
+    'bad interruption',
+    encodeStatus(grpc.status.DEADLINE_EXCEEDED, 'bad interruption', {
+      reason: ReasonCode.AI_PROVIDER_TIMEOUT,
+    }, [{
+      typeUrl: 'type.googleapis.com/nimi.runtime.v1.ExecutionInterruption',
+      value: encodeExecutionInterruption(0, 1),
+    }]),
+  ));
+  assert.equal(invalidPair.reasonCode, 'RUNTIME_GRPC_DEADLINE_EXCEEDED');
+  assert.equal(invalidPair.interruption, undefined);
 });

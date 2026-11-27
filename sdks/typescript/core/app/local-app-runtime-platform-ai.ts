@@ -11,6 +11,7 @@ import {
 } from './local-app-text-decision.js';
 import { ReasonCode, createNimiError } from '../../types/index.js';
 import { withTextStreamCleanupFailure } from '../text-stream-cleanup.js';
+import { projectImmediateExecutionFailure } from '../../runtime/immediate-execution-outcome.js';
 import { TextEmbedPurpose } from '../../core-generated/runtime-protobuf/runtime/v1/ai.js';
 import type { NimiUsage } from '../contracts/index.js';
 import { copyNimiLocalAppBytes, exactNimiLocalAppBytes, isNimiLocalAppByteView } from './local-app-bytes.js';
@@ -101,7 +102,8 @@ import {
 } from './local-app-runtime-platform-validation.js';
 import {
   projectVisionLocateResult, localVisionLocateFromRuntime, runtimeVisionLocateFromLocal, localLocateGeometry,
-  projectLocalExecutionInterruption, localInterruptionFromRuntime, runtimeInterruptionFromLocal,
+  projectLocalExecutionInterruption, projectLocalTextTurnInterruption,
+  localInterruptionFromRuntime, localTextTurnInterruptionFromRuntime, runtimeInterruptionFromLocal,
   type NimiLocalAppExecutionInterruption, type NimiLocalAppVisionLocateResult,
 } from './local-app-runtime-platform-vision.js';
 export type { NimiLocalAppExecutionInterruption, NimiLocalAppVisionLocateResult, NimiLocalAppVisionLocation } from './local-app-runtime-platform-vision.js';
@@ -622,7 +624,7 @@ export function createNimiLocalAppAIConsumptionClient(
     scenario: Object.freeze({
       execute: async (spec, options) => {
         const call = validateScenarioExecuteOptions(options);
-        if (call.signal?.aborted) throw scenarioExecuteCanceledError();
+        if (call.signal?.aborted) throw scenarioExecuteCanceledError(call.signal.reason);
         const prepared = prepareScenarioExecuteSpec(spec);
         return runScenarioExecuteCall(
           call,
@@ -1222,7 +1224,16 @@ function runScenarioExecuteCall<T>(
       settle(() => reject(error));
       if (!controller.signal.aborted) controller.abort(error);
     };
-    const onAbort = () => stop(scenarioExecuteCanceledError());
+    const onAbort = () => stop(projectImmediateExecutionFailure(
+      callerSignal?.reason ?? scenarioExecuteCanceledError(),
+      {
+        methodId: '/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario',
+        submitted: true,
+        canceled: true,
+        cancelReason: callerSignal?.reason,
+        defaultSource: 'sdk',
+      },
+    ));
     callerSignal?.addEventListener('abort', onAbort, { once: true });
     if (call.timeoutMs !== undefined) {
       const timeoutMs = call.timeoutMs;
@@ -1262,14 +1273,18 @@ function isCarrierTimeout(error: unknown): boolean {
   return reasonCode === 'timeout' || reasonCode === ReasonCode.OPERATION_TIMEOUT;
 }
 
-function scenarioExecuteCanceledError(): Error {
+function scenarioExecuteCanceledError(reason?: unknown): Error {
+  const detail = reason instanceof Error && reason.message.trim()
+    ? reason.message.trim()
+    : (typeof reason === 'string' && reason.trim() ? reason.trim() : '');
   return createNimiError({
-    message: 'Local-app scenario execution was canceled by its caller.',
+    message: detail || 'Local-app scenario execution was canceled by its caller.',
     code: ReasonCode.OPERATION_ABORTED,
     reasonCode: ReasonCode.OPERATION_ABORTED,
     actionHint: 'retry_if_still_needed',
     retryable: false,
     source: 'sdk',
+    ...(reason !== undefined ? { cause: reason, details: { canceled: true, ...(detail ? { cancelReason: detail } : {}) } } : {}),
   });
 }
 
@@ -1478,7 +1493,7 @@ function projectTextTurnEvent(value: unknown): NimiLocalAppTextTurnEvent {
   }
   if (record.type === 'failed') {
     assertExactProjectionKeys(record, ['type', 'sequence', 'traceId', 'reasonCode', 'actionHint', ...(Object.hasOwn(record, 'interruption') ? ['interruption'] : [])], 'text-turn failed');
-    const interruption = projectLocalExecutionInterruption(record.interruption ?? undefined, record.reasonCode, 'failed');
+    const interruption = projectLocalTextTurnInterruption(record.interruption ?? undefined, record.reasonCode);
     return Object.freeze({ ...base, type: 'failed', reasonCode: boundedProjectionText(record.reasonCode, 'text-turn reasonCode', 128), actionHint: optionalProjectionText(record.actionHint, 'text-turn actionHint', 512), ...(interruption ? { interruption } : {}) });
   }
   return localAppProjectionError('text-turn event type');
@@ -2202,7 +2217,7 @@ function projectRuntimeTextTurnEvent(event: StreamLocalAppTextTurnEvent): unknow
         type: 'failed',
         reasonCode: runtimeReasonToken(event.payload.failed.reasonCode),
         actionHint: event.payload.failed.actionHint,
-        ...(event.payload.failed.interruption ? { interruption: localInterruptionFromRuntime(event.payload.failed.interruption) } : {}),
+        ...(event.payload.failed.interruption ? { interruption: localTextTurnInterruptionFromRuntime(event.payload.failed.interruption) } : {}),
       };
     default:
       return localAppProjectionError('text-turn Runtime event');

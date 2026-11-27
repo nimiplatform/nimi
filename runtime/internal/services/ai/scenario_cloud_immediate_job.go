@@ -9,6 +9,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/remoteexecution"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -23,6 +24,7 @@ func (s *Service) captureImmediateCloudScenarioJob(
 	ignored []*runtimev1.IgnoredScenarioExtension,
 	assembly *cloudResolvedAssembly,
 ) (*runtimev1.ScenarioJob, context.Context, error) {
+	markImmediateCloudExecution(ctx)
 	job, jobCtx, err := s.prepareCloudScenarioJob(ctx, head, scenarioType, mode, modelResolved, ignored, assembly)
 	if err != nil {
 		return nil, nil, err
@@ -30,6 +32,9 @@ func (s *Service) captureImmediateCloudScenarioJob(
 	if !s.scenarioJobs.startExecution(job.GetJobId()) {
 		return nil, nil, grpcerr.WithReasonCode(codes.Canceled, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED)
 	}
+	jobCtx = remoteexecution.WithImmediateDispatchObserver(jobCtx, func() {
+		markImmediateCloudDispatchPossible(ctx)
+	})
 	return job, jobCtx, nil
 }
 

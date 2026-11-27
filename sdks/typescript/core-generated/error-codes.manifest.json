@@ -122,6 +122,7 @@
     "SDK_AI_SNAPSHOT_EXECUTION_MISMATCH",
     "SDK_AI_SNAPSHOT_SCOPE_MISMATCH",
     "SDK_AI_SNAPSHOT_STORE_REQUIRED",
+    "SDK_AI_STREAM_CLEANUP_FAILED",
     "SDK_AI_STREAM_FINISH_REASON_UNKNOWN",
     "SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING",
     "SDK_CONFORMANCE_PROFILE_UNSUPPORTED",
@@ -827,6 +828,11 @@
     },
     {
       "name": "SDK_AI_SNAPSHOT_STORE_REQUIRED",
+      "family": "SDK_AI",
+      "source_rule": "S-ERROR-003"
+    },
+    {
+      "name": "SDK_AI_STREAM_CLEANUP_FAILED",
       "family": "SDK_AI",
       "source_rule": "S-ERROR-003"
     },

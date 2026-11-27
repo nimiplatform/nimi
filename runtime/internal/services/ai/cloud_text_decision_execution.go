@@ -268,6 +268,9 @@ func (s *Service) executeCapturedCloudDecide(ctx context.Context, effective *clo
 	if s == nil || effective == nil || effective.driver == nil || s.remoteDecideHost == nil {
 		return capabilitydriver.CloudDecideResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
+	if _, isProviderHost := s.remoteDecideHost.(*remoteexecution.ProviderDecideHost); !isProviderHost {
+		remoteexecution.NotifyImmediateDispatch(ctx)
+	}
 	response, err := s.remoteDecideHost.ExecuteDecide(ctx, effective.connector, effective.target, effective.mapped, effective.dispatchAudit())
 	if err != nil {
 		return capabilitydriver.CloudDecideResult{}, effective.driver.NormalizeReason(err)

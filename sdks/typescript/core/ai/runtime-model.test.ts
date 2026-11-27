@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -1019,4 +1020,583 @@ test('Runtime-backed Nimi AI fails closed for subject identity and invalid input
     }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_AI_INPUT_INVALID,
   );
+});
+
+test('Runtime-backed Nimi AI preserves OUTCOME_UNCERTAIN on restart, non-restart partial stream, and premature close', async () => {
+  // 1) Cloud restart after dispatch emits OUTCOME_UNCERTAIN with retryable=false and billing notice.
+  async function* restartUncertainStream(): AsyncIterable<StreamScenarioEvent> {
+    yield {
+      eventType: 7,
+      sequence: '1',
+      traceId: 'trace-cloud-restart-uncertain',
+      payload: {
+        oneofKind: 'failed',
+        failed: {
+          reasonCode: RuntimeProtoReasonCode.AI_EXECUTION_INTERRUPTED,
+          actionHint: 'confirm_outcome_and_charges_before_new_request',
+          interruption: {
+            cause: ExecutionInterruptionCause.RUNTIME_RESTART,
+            resubmitDisposition: ExecutionResubmitDisposition.OUTCOME_UNCERTAIN,
+          },
+        },
+      },
+    };
+  }
+  await assert.rejects(
+    collectNimiTextStream(runtimeScenarioStreamToNimiEvents(restartUncertainStream(), { modelId: 'text.generate' })),
+    (error: unknown) => {
+      const shaped = error as {
+        reasonCode?: string;
+        actionHint?: string;
+        retryable?: boolean;
+        message?: string;
+        interruption?: { cause?: string; resubmitDisposition?: string };
+      };
+      assert.equal(shaped.reasonCode, ReasonCode.AI_EXECUTION_INTERRUPTED);
+      assert.equal(shaped.retryable, false);
+      assert.equal(shaped.actionHint, 'confirm_outcome_and_charges_before_new_request');
+      assert.deepEqual(shaped.interruption, { cause: 'runtime-restart', resubmitDisposition: 'outcome-uncertain' });
+      assert.match(String(shaped.message), /unknown/i);
+      assert.match(String(shaped.message), /charges/i);
+      return true;
+    },
+  );
+
+  // 2) Runtime stays running and partial stream breaks -> actual reason + UNSPECIFIED + OUTCOME_UNCERTAIN.
+  async function* partialBrokenStream(): AsyncIterable<StreamScenarioEvent> {
+    yield {
+      eventType: 2,
+      sequence: '1',
+      traceId: 'trace-partial-broken',
+      payload: {
+        oneofKind: 'delta',
+        delta: {
+          delta: {
+            oneofKind: 'textOutputItem',
+            textOutputItem: {
+              itemIndex: 0,
+              delta: { oneofKind: 'text', text: { text: 'partial' } },
+              itemCompleted: false,
+            },
+          },
+        },
+      },
+    };
+    yield {
+      eventType: 7,
+      sequence: '2',
+      traceId: 'trace-partial-broken',
+      payload: {
+        oneofKind: 'failed',
+        failed: {
+          reasonCode: RuntimeProtoReasonCode.AI_STREAM_BROKEN,
+          actionHint: 'confirm_outcome_and_charges_before_new_request',
+          interruption: {
+            cause: ExecutionInterruptionCause.UNSPECIFIED,
+            resubmitDisposition: ExecutionResubmitDisposition.OUTCOME_UNCERTAIN,
+          },
+        },
+      },
+    };
+  }
+  await assert.rejects(
+    collectNimiTextStream(runtimeScenarioStreamToNimiEvents(partialBrokenStream(), { modelId: 'text.generate' })),
+    (error: unknown) => {
+      const shaped = error as {
+        reasonCode?: string;
+        actionHint?: string;
+        retryable?: boolean;
+        interruption?: { cause?: string; resubmitDisposition?: string };
+      };
+      assert.equal(shaped.reasonCode, ReasonCode.AI_STREAM_BROKEN);
+      assert.equal(shaped.retryable, false);
+      assert.equal(shaped.actionHint, 'confirm_outcome_and_charges_before_new_request');
+      assert.deepEqual(shaped.interruption, { cause: 'unspecified', resubmitDisposition: 'outcome-uncertain' });
+      return true;
+    },
+  );
+
+  // 3) Premature silent close without completed/failed emits OUTCOME_UNCERTAIN without inferring restart.
+  async function* prematureCloseStream(): AsyncIterable<StreamScenarioEvent> {
+    yield {
+      eventType: 2,
+      sequence: '1',
+      traceId: 'trace-premature',
+      payload: {
+        oneofKind: 'delta',
+        delta: {
+          delta: {
+            oneofKind: 'textOutputItem',
+            textOutputItem: {
+              itemIndex: 0,
+              delta: { oneofKind: 'text', text: { text: 'halfway' } },
+              itemCompleted: false,
+            },
+          },
+        },
+      },
+    };
+  }
+  await assert.rejects(
+    collectNimiTextStream(runtimeScenarioStreamToNimiEvents(prematureCloseStream(), { modelId: 'text.generate' })),
+    (error: unknown) => {
+      const shaped = error as {
+        reasonCode?: string;
+        actionHint?: string;
+        retryable?: boolean;
+        message?: string;
+        interruption?: { cause?: string; resubmitDisposition?: string };
+      };
+      assert.equal(shaped.reasonCode, 'SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING');
+      assert.equal(shaped.retryable, false);
+      assert.equal(shaped.actionHint, 'confirm_outcome_and_charges_before_new_request');
+      assert.deepEqual(shaped.interruption, { cause: 'unspecified', resubmitDisposition: 'outcome-uncertain' });
+      assert.match(String(shaped.message), /charges/i);
+      return true;
+    },
+  );
+});
+
+test('Runtime-backed Nimi AI confirmed LOCAL premature close and cancel omit cloud billing without claiming definite stop', async () => {
+  // 1) Confirmed LOCAL stream ending prematurely reports missing terminal outcome,
+  //    retryable=false, NO cloud charges, and NO caller-may-resubmit claim.
+  async function* localPrematureStream(): AsyncIterable<StreamScenarioEvent> {
+    yield {
+      eventType: 1,
+      sequence: '1',
+      traceId: 'trace-local-premature',
+      payload: {
+        oneofKind: 'started',
+        started: {
+          modelResolved: 'qwen3-local',
+          routeDecision: RoutePolicy.LOCAL,
+          voiceOutputMode: 0,
+        },
+      },
+    };
+    yield {
+      eventType: 2,
+      sequence: '2',
+      traceId: 'trace-local-premature',
+      payload: {
+        oneofKind: 'delta',
+        delta: {
+          delta: {
+            oneofKind: 'textOutputItem',
+            textOutputItem: {
+              itemIndex: 0,
+              delta: { oneofKind: 'text', text: { text: 'local partial' } },
+              itemCompleted: false,
+            },
+          },
+        },
+      },
+    };
+  }
+  await assert.rejects(
+    collectNimiTextStream(runtimeScenarioStreamToNimiEvents(localPrematureStream(), { modelId: 'text.generate' })),
+    (error: unknown) => {
+      const shaped = error as {
+        reasonCode?: string;
+        actionHint?: string;
+        retryable?: boolean;
+        message?: string;
+        interruption?: { cause?: string; resubmitDisposition?: string };
+        details?: { route?: string; outcomeStatus?: string };
+      };
+      assert.equal(shaped.reasonCode, 'SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING');
+      assert.equal(shaped.retryable, false);
+      assert.equal(shaped.actionHint, 'confirm_local_execution_before_new_request');
+      assert.equal(shaped.interruption, undefined);
+      assert.equal(shaped.details?.route, 'local');
+      assert.equal(shaped.details?.outcomeStatus, 'unknown');
+      assert.doesNotMatch(String(shaped.message), /cloud|charges|bill/i);
+      assert.match(String(shaped.message), /do not assume local execution has already stopped/i);
+      return true;
+    },
+  );
+
+  // 2) Confirmed LOCAL stream canceled after first chunk via public createNimiRuntimeAIModel.
+  let streamCalls = 0;
+  const controller = new AbortController();
+  const cancelReason = new Error('User stopped local run');
+  const localCancelModel = createNimiRuntimeAIModel({
+    appId: 'app-local-cancel',
+    runtime: {
+      executeScenario: async () => { throw new Error('unused'); },
+      async *streamScenario() {
+        streamCalls++;
+        yield {
+          eventType: 1,
+          sequence: '1',
+          traceId: 'trace-local-cancel',
+          payload: {
+            oneofKind: 'started',
+            started: { modelResolved: 'qwen3-local', routeDecision: RoutePolicy.LOCAL, voiceOutputMode: 0 },
+          },
+        };
+        yield {
+          eventType: 2,
+          sequence: '2',
+          traceId: 'trace-local-cancel',
+          payload: {
+            oneofKind: 'delta',
+            delta: {
+              delta: {
+                oneofKind: 'textOutputItem',
+                textOutputItem: {
+                  itemIndex: 0,
+                  delta: { oneofKind: 'text', text: { text: 'first' } },
+                  itemCompleted: false,
+                },
+              },
+            },
+          },
+        };
+        controller.abort(cancelReason);
+        throw cancelReason;
+      },
+    },
+  });
+  await assert.rejects(
+    collectNimiTextStream(await localCancelModel.streamText!({
+      messages: [{ role: 'user', content: [textPart('Local cancel.')] }],
+      signal: controller.signal,
+    })),
+    (error: unknown) => {
+      const shaped = error as {
+        reasonCode?: string;
+        actionHint?: string;
+        retryable?: boolean;
+        message?: string;
+        cause?: unknown;
+        interruption?: unknown;
+        details?: { route?: string; canceled?: boolean; cancelReason?: string };
+      };
+      assert.equal(shaped.reasonCode, 'OPERATION_ABORTED');
+      assert.equal(shaped.retryable, false);
+      assert.equal(shaped.actionHint, 'confirm_local_execution_before_new_request');
+      assert.equal(shaped.interruption, undefined);
+      assert.equal(shaped.details?.route, 'local');
+      assert.equal(shaped.details?.canceled, true);
+      assert.equal(shaped.details?.cancelReason, 'User stopped local run');
+      assert.equal(shaped.cause, cancelReason);
+      assert.doesNotMatch(String(shaped.message), /cloud|charges|bill/i);
+      return true;
+    },
+  );
+  assert.equal(streamCalls, 1);
+});
+
+test('Runtime-backed Nimi AI distinguishes pre-dispatch cancel from post-dispatch Cloud/unknown cancel across sync and stream', async () => {
+  // 1) Pre-dispatch cancel in both sync and stream -> 0 transport calls, no billing notice, no OUTCOME_UNCERTAIN.
+  let syncCalls = 0;
+  let streamCalls = 0;
+  const preModel = createNimiRuntimeAIModel({
+    appId: 'app-pre-cancel',
+    runtime: {
+      executeScenario: async () => { syncCalls++; throw new Error('must not dispatch'); },
+      async *streamScenario() { streamCalls++; throw new Error('must not dispatch'); },
+    },
+  });
+  const preAbort = new AbortController();
+  const preReason = new Error('Aborted before dispatch');
+  preAbort.abort(preReason);
+
+  await assert.rejects(
+    preModel.generateText({ messages: [{ role: 'user', content: [textPart('Sync pre-cancel')] }], signal: preAbort.signal }),
+    (error: unknown) => {
+      const shaped = error as { reasonCode?: string; retryable?: boolean; interruption?: unknown; message?: string; cause?: unknown };
+      assert.equal(shaped.reasonCode, 'OPERATION_ABORTED');
+      assert.equal(shaped.retryable, false);
+      assert.equal(shaped.interruption, undefined);
+      assert.equal(shaped.cause, preReason);
+      assert.doesNotMatch(String(shaped.message), /charges|cloud/i);
+      return true;
+    },
+  );
+  await assert.rejects(
+    collectNimiTextStream(await preModel.streamText!({
+      messages: [{ role: 'user', content: [textPart('Stream pre-cancel')] }],
+      signal: preAbort.signal,
+    })),
+    (error: unknown) => {
+      const shaped = error as { reasonCode?: string; retryable?: boolean; interruption?: unknown; message?: string; cause?: unknown };
+      assert.equal(shaped.reasonCode, 'OPERATION_ABORTED');
+      assert.equal(shaped.retryable, false);
+      assert.equal(shaped.interruption, undefined);
+      assert.equal(shaped.cause, preReason);
+      assert.doesNotMatch(String(shaped.message), /charges|cloud/i);
+      return true;
+    },
+  );
+  assert.equal(syncCalls, 0);
+  assert.equal(streamCalls, 0);
+
+  // 2) Post-dispatch Cloud stream cancel after first chunk -> preserves cancel cause AND OUTCOME_UNCERTAIN + billing notice.
+  let cloudStreamCalls = 0;
+  const cloudAbort = new AbortController();
+  const cloudCancelReason = new Error('User canceled cloud stream');
+  const cloudModel = createNimiRuntimeAIModel({
+    appId: 'app-cloud-cancel',
+    runtime: {
+      executeScenario: async () => {
+        cloudAbort.abort(cloudCancelReason);
+        throw cloudCancelReason;
+      },
+      async *streamScenario() {
+        cloudStreamCalls++;
+        yield {
+          eventType: 1,
+          sequence: '1',
+          traceId: 'trace-cloud-cancel',
+          payload: {
+            oneofKind: 'started',
+            started: { modelResolved: 'gpt-5', routeDecision: RoutePolicy.CLOUD, voiceOutputMode: 0 },
+          },
+        };
+        yield {
+          eventType: 2,
+          sequence: '2',
+          traceId: 'trace-cloud-cancel',
+          payload: {
+            oneofKind: 'delta',
+            delta: {
+              delta: {
+                oneofKind: 'textOutputItem',
+                textOutputItem: {
+                  itemIndex: 0,
+                  delta: { oneofKind: 'text', text: { text: 'cloud first' } },
+                  itemCompleted: false,
+                },
+              },
+            },
+          },
+        };
+        cloudAbort.abort(cloudCancelReason);
+        throw cloudCancelReason;
+      },
+    },
+  });
+  await assert.rejects(
+    collectNimiTextStream(await cloudModel.streamText!({
+      messages: [{ role: 'user', content: [textPart('Cloud stream cancel')] }],
+      signal: cloudAbort.signal,
+    })),
+    (error: unknown) => {
+      const shaped = error as {
+        reasonCode?: string;
+        actionHint?: string;
+        retryable?: boolean;
+        message?: string;
+        cause?: unknown;
+        interruption?: { cause?: string; resubmitDisposition?: string };
+        details?: { route?: string; canceled?: boolean; cancelReason?: string };
+      };
+      assert.equal(shaped.reasonCode, 'OPERATION_ABORTED');
+      assert.equal(shaped.retryable, false);
+      assert.equal(shaped.actionHint, 'confirm_outcome_and_charges_before_new_request');
+      assert.deepEqual(shaped.interruption, { cause: 'unspecified', resubmitDisposition: 'outcome-uncertain' });
+      assert.equal(shaped.details?.route, 'cloud');
+      assert.equal(shaped.details?.canceled, true);
+      assert.equal(shaped.details?.cancelReason, 'User canceled cloud stream');
+      assert.equal(shaped.cause, cloudCancelReason);
+      assert.match(String(shaped.message), /charges/i);
+      return true;
+    },
+  );
+  assert.equal(cloudStreamCalls, 1);
+
+  // 3) Sync post-dispatch unknown-route cancel -> OUTCOME_UNCERTAIN + billing notice + cancel cause.
+  const syncAbort = new AbortController();
+  const syncReason = new Error('User canceled sync call');
+  let unknownSyncCalls = 0;
+  const syncModel = createNimiRuntimeAIModel({
+    appId: 'app-sync-cancel',
+    runtime: {
+      executeScenario: async () => {
+        unknownSyncCalls++;
+        syncAbort.abort(syncReason);
+        throw syncReason;
+      },
+      async *streamScenario() { throw new Error('unused'); },
+    },
+  });
+  await assert.rejects(
+    syncModel.generateText({ messages: [{ role: 'user', content: [textPart('Sync post cancel')] }], signal: syncAbort.signal }),
+    (error: unknown) => {
+      const shaped = error as {
+        reasonCode?: string;
+        actionHint?: string;
+        retryable?: boolean;
+        message?: string;
+        cause?: unknown;
+        interruption?: { cause?: string; resubmitDisposition?: string };
+      };
+      assert.equal(shaped.reasonCode, 'OPERATION_ABORTED');
+      assert.equal(shaped.retryable, false);
+      assert.equal(shaped.actionHint, 'confirm_outcome_and_charges_before_new_request');
+      assert.deepEqual(shaped.interruption, { cause: 'unspecified', resubmitDisposition: 'outcome-uncertain' });
+      assert.equal(shaped.cause, syncReason);
+      assert.match(String(shaped.message), /charges/i);
+      return true;
+    },
+  );
+  assert.equal(unknownSyncCalls, 1);
+});
+
+test('Runtime-backed Nimi AI stream cleanup failure after emitted done and usage stays distinct from OUTCOME_UNCERTAIN and never triggers replay', async () => {
+  const cleanupError = new Error('Underlying gRPC stream teardown failed');
+  let streamCalls = 0;
+  const model = createNimiRuntimeAIModel({
+    appId: 'app-post-done-cleanup',
+    runtime: {
+      executeScenario: async () => { throw new Error('unused'); },
+      streamScenario() {
+        streamCalls += 1;
+        const events = [
+          {
+            eventType: 1,
+            sequence: '1',
+            traceId: 'trace-done-cleanup',
+            payload: {
+              oneofKind: 'started' as const,
+              started: { modelResolved: 'gpt-5', routeDecision: RoutePolicy.CLOUD, voiceOutputMode: 0 },
+            },
+          },
+          {
+            eventType: 2,
+            sequence: '2',
+            traceId: 'trace-done-cleanup',
+            payload: {
+              oneofKind: 'delta' as const,
+              delta: {
+                delta: {
+                  oneofKind: 'textOutputItem' as const,
+                  textOutputItem: {
+                    itemIndex: 0,
+                    delta: { oneofKind: 'text' as const, text: { text: 'Completed answer.' } },
+                    itemCompleted: true,
+                  },
+                },
+              },
+            },
+          },
+          {
+            eventType: 3,
+            sequence: '3',
+            traceId: 'trace-done-cleanup',
+            payload: {
+              oneofKind: 'usage' as const,
+              usage: { inputTokens: '12', outputTokens: '8', computeMs: '45' },
+            },
+          },
+          {
+            eventType: 4,
+            sequence: '4',
+            traceId: 'trace-done-cleanup',
+            payload: {
+              oneofKind: 'completed' as const,
+              completed: { finishReason: FinishReason.STOP },
+            },
+          },
+        ];
+        return {
+          [Symbol.asyncIterator]() {
+            let index = 0;
+            return {
+              async next() {
+                if (index < events.length) {
+                  return { value: events[index++]!, done: false as const };
+                }
+                return { value: undefined, done: true as const };
+              },
+              async return() {
+                throw cleanupError;
+              },
+            };
+          },
+        };
+      },
+    },
+  });
+
+  const observed: unknown[] = [];
+  await assert.rejects(async () => {
+    for await (const event of await model.streamText!({
+      messages: [{ role: 'user', content: [textPart('Complete then fail cleanup')] }],
+    })) {
+      observed.push(event);
+    }
+  }, (error: unknown) => {
+    const shaped = error as {
+      reasonCode?: string;
+      actionHint?: string;
+      retryable?: boolean;
+      traceId?: string;
+      message?: string;
+      cause?: unknown;
+      interruption?: unknown;
+      details?: {
+        phase?: string;
+        terminalObserved?: boolean;
+        terminalOutcome?: string;
+        finishReason?: string;
+        route?: string;
+        usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number };
+      };
+    };
+    assert.equal(shaped.reasonCode, 'SDK_AI_STREAM_CLEANUP_FAILED');
+    for (const manifestRelativePath of [
+      '../../core-generated/error-codes.manifest.json',
+      '../../../generators/shared/generated/error-codes.manifest.json',
+    ]) {
+      const manifest = JSON.parse(
+        readFileSync(new URL(manifestRelativePath, import.meta.url), 'utf8'),
+      ) as {
+        values: string[];
+        codes: Array<{ name: string; family: string; source_rule: string }>;
+      };
+      assert.ok(
+        manifest.values.includes(shaped.reasonCode!),
+        `${manifestRelativePath} values must include ${shaped.reasonCode}`,
+      );
+      assert.deepEqual(
+        manifest.codes.find((entry) => entry.name === shaped.reasonCode),
+        {
+          name: 'SDK_AI_STREAM_CLEANUP_FAILED',
+          family: 'SDK_AI',
+          source_rule: 'S-ERROR-003',
+        },
+        `${manifestRelativePath} codes must classify ${shaped.reasonCode}`,
+      );
+    }
+    assert.equal(shaped.retryable, false);
+    assert.equal(shaped.traceId, 'trace-done-cleanup');
+    assert.equal(shaped.actionHint, 'inspect_stream_cleanup_without_replaying_completed_request');
+    assert.notEqual(shaped.actionHint, 'confirm_outcome_and_charges_before_new_request');
+    assert.notEqual(shaped.actionHint, 'resubmit_request');
+    assert.equal(shaped.interruption, undefined);
+    assert.equal(shaped.cause, cleanupError);
+    assert.doesNotMatch(String(shaped.message), /outcome is unknown|charges may already have accrued/i);
+    assert.equal(shaped.details?.phase, 'stream-cleanup');
+    assert.equal(shaped.details?.terminalObserved, true);
+    assert.equal(shaped.details?.terminalOutcome, 'done');
+    assert.equal(shaped.details?.finishReason, 'stop');
+    assert.equal(shaped.details?.route, 'cloud');
+    assert.deepEqual(shaped.details?.usage, { promptTokens: 12, completionTokens: 8, totalTokens: 20 });
+    return true;
+  });
+
+  assert.equal(streamCalls, 1);
+  // Caller observed the complete done event and usage, and no contradictory second error event was emitted.
+  const doneEvents = observed.filter((event) => (event as { type?: string }).type === 'done');
+  const errorEvents = observed.filter((event) => (event as { type?: string }).type === 'error');
+  assert.equal(doneEvents.length, 1);
+  assert.equal(errorEvents.length, 0);
+  assert.deepEqual(doneEvents[0], {
+    type: 'done',
+    finishReason: 'stop',
+    usage: { promptTokens: 12, completionTokens: 8, totalTokens: 20 },
+  });
 });

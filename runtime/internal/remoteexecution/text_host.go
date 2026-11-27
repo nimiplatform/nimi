@@ -91,7 +91,10 @@ func (h *ProviderTextHost) ExecuteText(
 	var attempt *aitelemetry.Attempt
 	defer func() { finishCloudAttempt(attempt, response.Usage, executionErr) }()
 	if invocation, serialized := request.TextBehavior(); invocation != nil {
-		dispatchCtx := nimillm.WithTextBehaviorDispatchObserver(ctx, func() { attempt = aitelemetry.Begin(ctx) })
+		dispatchCtx := nimillm.WithTextBehaviorDispatchObserver(ctx, func() {
+			NotifyImmediateDispatch(ctx)
+			attempt = aitelemetry.Begin(ctx)
+		})
 		result, err := h.transport.ExecuteTextBehaviorWithTarget(dispatchCtx, request.ProviderModelID(), remoteTarget, invocation, serialized, nil)
 		if err != nil {
 			return capabilitydriver.CloudTextTransportResponse{Usage: result.Usage}, h.auditedError(audit, dispatchExit(ctx, "error"), err)
@@ -101,6 +104,7 @@ func (h *ProviderTextHost) ExecuteText(
 		}
 		return capabilitydriver.CloudTextTransportResponse{Items: result.Items, Usage: result.Usage, FinishReason: result.FinishReason}, nil
 	}
+	NotifyImmediateDispatch(ctx)
 	attempt = aitelemetry.Begin(ctx)
 	text, toolCalls, usage, finish, err := h.transport.GenerateTextScenarioWithTarget(
 		ctx,
@@ -145,7 +149,10 @@ func (h *ProviderTextHost) StreamText(
 	var attempt *aitelemetry.Attempt
 	defer func() { finishCloudAttempt(attempt, response.Usage, executionErr) }()
 	if invocation, serialized := request.TextBehavior(); invocation != nil {
-		dispatchCtx := nimillm.WithTextBehaviorDispatchObserver(ctx, func() { attempt = aitelemetry.Begin(ctx) })
+		dispatchCtx := nimillm.WithTextBehaviorDispatchObserver(ctx, func() {
+			NotifyImmediateDispatch(ctx)
+			attempt = aitelemetry.Begin(ctx)
+		})
 		result, err := h.transport.ExecuteTextBehaviorWithTarget(dispatchCtx, request.ProviderModelID(), remoteTarget, invocation, serialized, onDelta)
 		if err != nil {
 			return capabilitydriver.CloudTextTransportResponse{Usage: result.Usage}, h.auditedError(audit, dispatchExit(ctx, "error"), err)
@@ -155,6 +162,7 @@ func (h *ProviderTextHost) StreamText(
 		}
 		return capabilitydriver.CloudTextTransportResponse{Items: result.Items, Usage: result.Usage, FinishReason: result.FinishReason}, nil
 	}
+	NotifyImmediateDispatch(ctx)
 	attempt = aitelemetry.Begin(ctx)
 	var text strings.Builder
 	usage, finish, err := h.transport.StreamGenerateTextScenarioWithTarget(

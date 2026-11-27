@@ -362,3 +362,120 @@ test('node-grpc Runtime transport rejects authorization in caller metadata', asy
       && String((error as { message?: string }).message || '').includes('transport auth channel'),
   );
 });
+
+test('node-grpc projects OUTCOME_UNCERTAIN without inferring restart when submitted immediate AI call loses transport', async () => {
+  let unaryCalls = 0;
+  let streamCalls = 0;
+  const bridge: RuntimeNodeGrpcBridge = {
+    async unary() {
+      unaryCalls += 1;
+      throw Object.assign(new Error('transport disconnected'), {
+        reasonCode: 'RUNTIME_GRPC_UNAVAILABLE',
+        actionHint: 'retry_or_check_runtime_daemon',
+        retryable: true,
+      });
+    },
+    async *serverStream() {
+      streamCalls += 1;
+      throw Object.assign(new Error('stream deadline exceeded'), {
+        reasonCode: 'RUNTIME_GRPC_DEADLINE_EXCEEDED',
+        actionHint: 'retry_or_check_runtime_daemon',
+        retryable: true,
+      });
+    },
+  };
+  const runtime = new Runtime({ transport: { type: 'node-grpc', bridge } });
+
+  // Non-execution RPC keeps its normal transport retryable attribute.
+  await assert.rejects(
+    runtime.ready(),
+    (error: unknown) => {
+      const shaped = error as { retryable?: boolean; interruption?: unknown };
+      assert.equal(shaped.retryable, true);
+      assert.equal(shaped.interruption, undefined);
+      return true;
+    },
+  );
+  assert.equal(unaryCalls, 1);
+
+  // Submitted immediate Cloud-capable ExecuteScenario with no Runtime detail projects OUTCOME_UNCERTAIN.
+  await assert.rejects(
+    runtime.ai.executeScenario({
+      head: { appId: 'nimi.app', subjectUserId: 'user-1', timeoutMs: 5000 },
+      scenarioType: ScenarioType.TEXT_GENERATE,
+      executionMode: ExecutionMode.SYNC,
+      extensions: [],
+    }),
+    (error: unknown) => {
+      const shaped = error as {
+        reasonCode?: string;
+        actionHint?: string;
+        retryable?: boolean;
+        message?: string;
+        interruption?: { cause?: string; resubmitDisposition?: string };
+      };
+      assert.equal(shaped.reasonCode, 'RUNTIME_GRPC_UNAVAILABLE');
+      assert.equal(shaped.retryable, false);
+      assert.equal(shaped.actionHint, 'confirm_outcome_and_charges_before_new_request');
+      assert.deepEqual(shaped.interruption, {
+        cause: 'unspecified',
+        resubmitDisposition: 'outcome-uncertain',
+      });
+      assert.match(String(shaped.message), /unknown/i);
+      assert.match(String(shaped.message), /charges/i);
+      return true;
+    },
+  );
+  assert.equal(unaryCalls, 2);
+
+  // Pre-aborted immediate call is never submitted and does not project OUTCOME_UNCERTAIN.
+  const preAborted = new AbortController();
+  preAborted.abort();
+  await assert.rejects(
+    runtime.ai.executeScenario({
+      head: { appId: 'nimi.app', subjectUserId: 'user-1', timeoutMs: 5000 },
+      scenarioType: ScenarioType.TEXT_GENERATE,
+      executionMode: ExecutionMode.SYNC,
+      extensions: [],
+    }, { signal: preAborted.signal }),
+    (error: unknown) => {
+      const shaped = error as { reasonCode?: string; retryable?: boolean; interruption?: unknown };
+      assert.equal(shaped.reasonCode, 'OPERATION_ABORTED');
+      assert.equal(shaped.retryable, false);
+      assert.equal(shaped.interruption, undefined);
+      return true;
+    },
+  );
+  assert.equal(unaryCalls, 2);
+
+  // Submitted immediate StreamScenario losing transport projects OUTCOME_UNCERTAIN without replay.
+  await assert.rejects(
+    (async () => {
+      for await (const _event of runtime.ai.streamScenario({
+        head: { appId: 'nimi.app', subjectUserId: 'user-1', timeoutMs: 5000 },
+        scenarioType: ScenarioType.TEXT_GENERATE,
+        executionMode: ExecutionMode.STREAM,
+        extensions: [],
+      })) {
+        // never reached
+      }
+    })(),
+    (error: unknown) => {
+      const shaped = error as {
+        reasonCode?: string;
+        actionHint?: string;
+        retryable?: boolean;
+        interruption?: { cause?: string; resubmitDisposition?: string };
+      };
+      assert.equal(shaped.reasonCode, 'RUNTIME_GRPC_DEADLINE_EXCEEDED');
+      assert.equal(shaped.retryable, false);
+      assert.equal(shaped.actionHint, 'confirm_outcome_and_charges_before_new_request');
+      assert.deepEqual(shaped.interruption, {
+        cause: 'unspecified',
+        resubmitDisposition: 'outcome-uncertain',
+      });
+      return true;
+    },
+  );
+  assert.equal(streamCalls, 1);
+});

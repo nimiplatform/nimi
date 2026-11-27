@@ -281,6 +281,7 @@ func (s *Service) finishCloudScenarioJobFailureWithUsage(ctx context.Context, jo
 		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED
 		reason = runtimev1.ReasonCode_ACTION_EXECUTED
 	}
+	dispatched := s.scenarioJobs.dispatchMayHaveOccurred(jobID) || immediateCloudDispatchPossible(ctx)
 	_, _, _ = s.transitionScenarioJob(jobID, jobStatus, eventType, func(job *runtimev1.ScenarioJob) {
 		if usage != nil {
 			job.Usage = proto.Clone(usage).(*runtimev1.UsageStats)
@@ -290,7 +291,11 @@ func (s *Service) finishCloudScenarioJobFailureWithUsage(ctx context.Context, jo
 		if reason == runtimev1.ReasonCode_AI_EXECUTION_INTERRUPTED {
 			job.ReasonDetail = interruptedCapturedAssemblyDetail(job)
 			job.ReasonMetadata = nil
-			job.Interruption = runtimeRestartExecutionInterruption()
+			interruption := runtimeRestartExecutionInterruption()
+			if dispatched {
+				interruption.ResubmitDisposition = runtimev1.ExecutionResubmitDisposition_EXECUTION_RESUBMIT_DISPOSITION_OUTCOME_UNCERTAIN
+			}
+			job.Interruption = interruption
 		} else {
 			job.ReasonDetail = sanitizeScenarioJobReasonDetail(err, reason)
 			if jobStatus == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {

@@ -127,3 +127,49 @@ test('LocalAgent configuration errors name the integration and point to Agent Ce
   assert.doesNotMatch(result.message,/model does not support|AI Capabilities|private prompt/);
  }
 });
+
+test('uncertain immediate cloud outcomes disclose unknown result and possible provider charges', () => {
+  const fromInterruption = toChatUserFacingRuntimeError(
+    {
+      reasonCode: 'AI_PROVIDER_TIMEOUT',
+      message: 'request timed out',
+      interruption: {
+        cause: 'unspecified',
+        resubmitDisposition: 'outcome-uncertain',
+      },
+    },
+    'Nimi Chat could not complete this request.',
+    i18n.t,
+  );
+  assert.equal(fromInterruption.code, 'AI_PROVIDER_TIMEOUT');
+  assert.match(fromInterruption.message, /outcome is unknown/i);
+  assert.match(fromInterruption.message, /charges may already have accrued/i);
+  assert.match(fromInterruption.message, /additional charges/i);
+
+  const fromActionHint = toChatUserFacingRuntimeError(
+    {
+      reasonCode: 'AI_EXECUTION_INTERRUPTED',
+      actionHint: 'confirm_outcome_and_charges_before_new_request',
+      message: 'Execution interrupted',
+    },
+    'Agent response failed',
+    i18n.t,
+  );
+  assert.match(fromActionHint.message, /outcome is unknown/i);
+  assert.match(fromActionHint.message, /charges may already have accrued/i);
+  assert.match(fromActionHint.message, /additional charges/i);
+
+  const fromLocalPremature = toChatUserFacingRuntimeError(
+    {
+      reasonCode: 'SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING',
+      actionHint: 'confirm_local_execution_before_new_request',
+      message: 'Nimi stream ended without done evidence.',
+      details: { route: 'local', outcomeStatus: 'unknown' },
+    },
+    'Nimi Chat could not complete this request.',
+    i18n.t,
+  );
+  assert.equal(fromLocalPremature.code, 'SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING');
+  assert.doesNotMatch(fromLocalPremature.message, /cloud|charges|bill/i);
+  assert.match(fromLocalPremature.message, /do not assume local execution has already stopped/i);
+});
