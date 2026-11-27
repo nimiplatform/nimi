@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createNimiError } from '@nimiplatform/sdk/types';
 import { BrowserSessionRenewalBlockedError, createBrowserSessionReader, createBrowserSessionRenewal } from '../src/auth/browser-session-reader.js';
+import { loadWebCurrentAccount } from '../src/auth/web-account-adapter.js';
 
 const error = (reasonCode: string) =>
   createNimiError({ reasonCode, source: 'realm', message: reasonCode });
@@ -67,6 +68,38 @@ test('a confirmed rejection retains its reason across readers without another re
   await assert.rejects(createBrowserSessionRenewal(input).renew(), value => value === failure);
   await assert.rejects(createBrowserSessionRenewal(input).renew(), { reasonCode: 'AUTH_REFRESH_TOKEN_REPLAY_DETECTED' });
   assert.equal(calls, 1);
+});
+
+test('expired or revoked renewal shows signed-out state without retrying after reload', async () => {
+  for (const reason of ['AUTH_TOKEN_EXPIRED', 'AUTH_SESSION_REVOKED']) {
+    const storage = renewalStorage();
+    let rotations = 0;
+    const input = { storage, key: 'origin', renew: async () => { rotations++; throw error(reason); } };
+    const readPage = () => loadWebCurrentAccount(createBrowserSessionReader({
+      read: async () => ({ error: error('AUTH_REQUIRED') }),
+      renew: createBrowserSessionRenewal(input).renew,
+      exclusive: direct,
+    }));
+    assert.equal(await readPage(), null);
+    assert.equal(storage.getItem('origin'), reason);
+    assert.equal(await readPage(), null);
+    assert.equal(rotations, 1);
+  }
+});
+
+test('account restriction remains visible without retrying renewal after reload', async () => {
+  const storage = renewalStorage();
+  const restriction = error('AUTH_ACCOUNT_RESTRICTED');
+  let rotations = 0;
+  const input = { storage, key: 'origin', renew: async () => { rotations++; throw restriction; } };
+  const readPage = () => loadWebCurrentAccount(createBrowserSessionReader({
+    read: async () => ({ error: error('AUTH_REQUIRED') }),
+    renew: createBrowserSessionRenewal(input).renew,
+    exclusive: direct,
+  }));
+  await assert.rejects(readPage(), value => value === restriction);
+  await assert.rejects(readPage(), { reasonCode: 'AUTH_ACCOUNT_RESTRICTED' });
+  assert.equal(rotations, 1);
 });
 
 test('a confirmed fresh login does not depend on marker storage; a failed account read never clears it', async () => {

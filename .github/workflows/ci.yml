@@ -235,6 +235,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Setup Rust for Kit native smoke tests
+        if: needs.changes.outputs.kit_changed == 'true'
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: 1.99.1
+
+      - name: Build the Kit native smoke test addon
+        if: needs.changes.outputs.kit_changed == 'true'
+        working-directory: kit/shell/protected-local-node
+        run: cargo build --locked --target-dir target
+
       - name: Test and build selected workspace consumers
         env:
           WORKSPACE_FILTERS: ${{ needs.changes.outputs.workspace_filters }}
@@ -266,6 +277,14 @@ jobs:
 
       - name: Test Kit native crates on the supported Windows host
         run: pnpm test:kit:native
+
+      - name: Install Kit smoke test dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Test the Win32 Job Object and NTFS guards through Electron Kit
+        run: >-
+          node scripts/with-workspace-surfaces.mjs -- pnpm --filter @nimiplatform/kit exec
+          vitest run --config ui/vitest.config.ts shell/electron/test/agent-session-protected-smoke.test.ts
 
   windows-runtime-tests:
     needs: changes
@@ -308,7 +327,7 @@ jobs:
         if: needs.changes.outputs.windows_runtime_changed == 'true'
         working-directory: runtime
         run: |
-          go test -count=1 -timeout=15m ./cmd/nimi ./cmd/nimi-source-supervisor ./internal/appstorage ./internal/daemon ./internal/daemonctl ./internal/engine ./internal/entrypoint ./internal/nimiappinstall ./internal/nimiappnative ./internal/nimiapppackage ./internal/protectedlocal ./internal/services/localservice ./tools/repair-local-agent-chat
+          go test -count=1 -timeout=15m ./cmd/nimi ./cmd/nimi-source-supervisor ./internal/appstorage ./internal/daemon ./internal/daemonctl ./internal/engine ./internal/entrypoint ./internal/nimiappinstall ./internal/nimiappnative ./internal/nimiapppackage ./internal/protectedlocal ./internal/services/localservice ./tools/local-model-recovery ./tools/repair-local-agent-chat
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           go test -count=1 -timeout=10m ./internal/grpcserver -run 'Test(ResolveWindowsProfileImagePath|ProtectedProductControlRootReadsCurrentWindowsProfileMapping)'
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

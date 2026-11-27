@@ -4,7 +4,6 @@ import { isIP } from 'node:net';
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-034a
 
 const MAX_EXTERNAL_URL_BYTES = 2048;
-const CONTROL_CHAR_PATTERN = /[\x00-\x1f\x7f]/u;
 const RESERVED_EXTERNAL_HOST_SUFFIXES = Object.freeze([
   'localhost',
   'local',
@@ -32,8 +31,14 @@ export function parseManagedWebExternalUrl(raw: unknown): string | undefined {
   if (typeof raw !== 'string' || raw.length === 0 || raw.trim() !== raw) {
     return undefined;
   }
-  if (Buffer.byteLength(raw, 'utf8') > MAX_EXTERNAL_URL_BYTES || CONTROL_CHAR_PATTERN.test(raw)) {
+  if (Buffer.byteLength(raw, 'utf8') > MAX_EXTERNAL_URL_BYTES) {
     return undefined;
+  }
+  for (const character of raw) {
+    const unit = character.charCodeAt(0);
+    if (unit <= 0x1f || unit === 0x7f) {
+      return undefined;
+    }
   }
   let parsed: URL;
   try {

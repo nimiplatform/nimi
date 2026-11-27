@@ -1018,6 +1018,7 @@ func TestVoxCPMLoadoutStructuralContractRejectsWrongFormatHeaderArchitectureAndT
 }
 
 func TestZImageAndIdeogram4LoadoutsUseExactRecipeModelContracts(t *testing.T) {
+	setLocalRuntimePlatformForTest(t, "windows", "amd64")
 	svc := newLoadoutTestService(t, t.TempDir())
 	zMain := importModelAssetBytesForLoadoutTest(t, svc, "z-image.gguf", validImageTestGGUF())
 	ideogramMain := importModelAssetBytesForLoadoutTest(t, svc, "ideogram4.gguf", validIdeogram4ImageTestGGUFWithoutMetadata())
@@ -1077,6 +1078,7 @@ func TestQwenImageLoadoutsShareCompanionsAndAdmitCustomMainByStructuralContract(
 }
 
 func TestQwenImageLoadoutContractRejectsChatGGUFAndFluxVAE(t *testing.T) {
+	setLocalRuntimePlatformForTest(t, "windows", "amd64")
 	svc := newLoadoutTestService(t, t.TempDir())
 	qwenMain := importModelAssetBytesForLoadoutTest(t, svc, "qwen-main.gguf", validQwenImageTestGGUF("qwen-main"))
 	encoder := importModelAssetBytesForLoadoutTest(t, svc, "qwen-vl.gguf", validQwenVLTestGGUF())
@@ -1101,6 +1103,7 @@ func TestQwenImageLoadoutContractRejectsChatGGUFAndFluxVAE(t *testing.T) {
 }
 
 func TestImageLoadoutRecipeContractsRejectWrongAxesAndMissingIdeogramUncond(t *testing.T) {
+	setLocalRuntimePlatformForTest(t, "windows", "amd64")
 	svc := newLoadoutTestService(t, t.TempDir())
 	zMain := importModelAssetBytesForLoadoutTest(t, svc, "z-image.gguf", validImageTestGGUF())
 	ideogramMain := importModelAssetBytesForLoadoutTest(t, svc, "ideogram4.gguf", validIdeogram4ImageTestGGUFWithoutMetadata())
@@ -1146,6 +1149,7 @@ func TestImageLoadoutRecipeContractsRejectWrongAxesAndMissingIdeogramUncond(t *t
 }
 
 func TestQwenImageLoadoutMissingSlotCommitsUnresolvedWithoutDownloadAndCannotSelect(t *testing.T) {
+	setLocalRuntimePlatformForTest(t, "windows", "amd64")
 	svc := newLoadoutTestService(t, t.TempDir())
 	prepared, err := svc.PrepareLoadout(context.Background(), &runtimev1.PrepareLoadoutRequest{
 		CapabilityContract: capabilitydriver.StableDiffusionCapabilityContract,

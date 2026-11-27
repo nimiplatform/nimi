@@ -51,7 +51,7 @@ import {
   type HomeMessageFilter,
   type HomeSystemItemMessage,
 } from './home-messages-model.js';
-import { DesktopAIExecutionRoute, type PendingAttentionRecord, type WorkSessionRecord } from '@nimiplatform/sdk/runtime/generated';
+import type { PendingAttentionRecord, WorkSessionRecord } from '@nimiplatform/sdk/runtime/generated';
 import { createRuntimeAgentAIConfigAdapter } from '../../infra/runtime-agent-ai-config.js';
 import { useHumanChatList } from '../chat/use-human-chat-list.js';
 import { loadHumanContactPage } from '../relationship/human-contact-data.js';

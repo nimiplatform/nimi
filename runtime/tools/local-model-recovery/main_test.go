@@ -9,12 +9,14 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/services/localservice"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -280,25 +282,50 @@ func TestMigrationOptionsProducePrepareableImageDraftWithoutCommit(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := svc.PrepareLoadout(context.Background(), &runtimev1.PrepareLoadoutRequest{
-		CapabilityContract: capabilitydriver.StableDiffusionCapabilityContract,
-		RecipeId:           "z-image",
-		Options:            rawOptions,
-		DisplayName:        "Legacy image raw options",
-	}); err == nil {
-		t.Fatal("raw legacy image topology unexpectedly passed current Prepare")
+	const recipeID = "z-image"
+	driver := capabilitydriver.StableDiffusionImageDriver{}
+	features, reason := driver.ImplementationSupportedFeatures(recipeID)
+	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+		t.Fatalf("z-image features: %s", reason)
+	}
+	if _, reason := driver.ProjectRecipe(recipeID, rawOptions, features); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID {
+		t.Fatalf("raw legacy image topology projection = %s", reason)
+	}
+	draftOptions := migrationOptions(legacyPortable)
+	if _, reason := driver.ProjectRecipe(recipeID, draftOptions, features); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+		t.Fatalf("sanitized image draft projection = %s", reason)
 	}
 
 	prepared, err := svc.PrepareLoadout(context.Background(), &runtimev1.PrepareLoadoutRequest{
 		CapabilityContract: capabilitydriver.StableDiffusionCapabilityContract,
-		RecipeId:           "z-image",
-		Options:            migrationOptions(legacyPortable),
+		RecipeId:           recipeID,
+		Options:            draftOptions,
 		DisplayName:        "Legacy image migration draft",
 	})
-	if err != nil {
-		t.Fatalf("sanitized migration draft Prepare: %v", err)
+	switch runtime.GOOS + "/" + runtime.GOARCH {
+	case "windows/amd64", "darwin/arm64":
+		if err != nil {
+			t.Fatalf("sanitized migration draft Prepare: %v", err)
+		}
+		_, rawErr := svc.PrepareLoadout(context.Background(), &runtimev1.PrepareLoadoutRequest{
+			CapabilityContract: capabilitydriver.StableDiffusionCapabilityContract,
+			RecipeId:           recipeID,
+			Options:            rawOptions,
+			DisplayName:        "Legacy image raw options",
+		})
+		rawReason, _ := grpcerr.ExtractReasonCode(rawErr)
+		if rawReason != runtimev1.ReasonCode_AI_CONFIG_INVALID {
+			t.Fatalf("raw legacy image topology Prepare: %v", rawErr)
+		}
+		draftOptions = prepared.GetProposedLoadout().GetOptions()
+	default:
+		reason, _ := grpcerr.ExtractReasonCode(err)
+		metadata, _ := grpcerr.ExtractReasonMetadata(err)
+		if reason != runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE || metadata["local_reason"] != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED.String() {
+			t.Fatalf("sanitized migration draft Prepare on unsupported host: %v", err)
+		}
 	}
-	options := prepared.GetProposedLoadout().GetOptions().AsMap()
+	options := draftOptions.AsMap()
 	if _, exists := options["modelFamily"]; exists {
 		t.Fatalf("migration draft retained modelFamily: %v", options)
 	}

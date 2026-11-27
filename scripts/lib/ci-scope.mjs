@@ -55,7 +55,8 @@ export function selectCiScope(files, { full = false, docsReviewTargets = [] } = 
   const carrierSource = codePaths.some(file => /^kit\/shell\/protected-local(?:-node)?\//u.test(file)
     && !macPackageFiles.test(file) && !windowsPackageFiles.test(file));
   const macosCarrier = proto || carrierSource || touches(/^rust-toolchain\.toml$/u);
-  const kitNative = macosCarrier || touches(/^kit\/shell\/capabilities\//u);
+  const harnessSecurity = touches(/^kit\/shell\/electron\/(?:src\/main\/harness-security-host\.ts|test\/agent-session-protected-smoke\.test\.ts)$/u);
+  const kitNative = macosCarrier || harnessSecurity || touches(/^kit\/shell\/capabilities\//u);
   const kitNativePackage = macosCarrier || touches(/^(?:kit\/package\.json|config\/product-update-policy\.mjs|\.github\/workflows\/release-kit\.yml|scripts\/release\/(?:component-version|build-component-package)\.mjs)$/u);
   const protectedLocalCore = shared || proto || touches(/^kit\/shell\/protected-local\//u);
   const desktop = protectedLocalCore || touches(/^apps\/desktop\/(?!AGENTS\.md$)/u);

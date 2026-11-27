@@ -5,7 +5,9 @@ import path from 'node:path';
 import { repoRoot, writeJson, writeText } from './context.mjs';
 
 function destination(t) {
-  const directory = fs.mkdtempSync(path.join(repoRoot, '.nimi/local/sdk-generation-test-'));
+  const localRoot = path.join(repoRoot, '.nimi/local');
+  fs.mkdirSync(localRoot, { recursive: true });
+  const directory = fs.mkdtempSync(path.join(localRoot, 'sdk-generation-test-'));
   t.after(() => {
     for (const name of fs.readdirSync(directory)) {
       const file = path.join(directory, name);

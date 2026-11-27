@@ -102,7 +102,6 @@ For the hosted Web build, `pnpm build:web` accepts the App Tools release setting
 
 For an official Android debug run, match the registered package (optionally `NIMI_ANDROID_PACKAGE_NAME`) and signing certificate. If needed, use the same Gradle `nimiDebugKeystore` property as Zhiyu. Get the SHA-256 certificate fingerprint from the signed APK or its signing report. Verify the HTTPS callback host on the phone with `adb shell pm get-app-links <registered-package>` before testing sign-in.
 
-
 With a Runtime that supports integration snapshot subscriptions, authorize `session.observeProgress` from the PC development provider to the local Web source. Its full snapshots coalesce intermediate changes; reconnect reads current state from the same PC session. The provider observes Pi durable commits, and cold observation opens no model or scheduler. Switching between the fixed and source Runtime on the same machine is a separate lifetime and primary-binding operation.
 
 ## Support

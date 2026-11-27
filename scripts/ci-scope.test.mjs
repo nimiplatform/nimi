@@ -62,6 +62,14 @@ test('native and proto changes retain their supported platform checks', () => {
   assert.equal(nodeBinding.kit_native_changed, true);
   assert.equal(nodeBinding.macos_carrier_changed, true);
   assert.equal(nodeBinding.macos_host_changed, true);
+  for (const file of [
+    'kit/shell/electron/src/main/harness-security-host.ts',
+    'kit/shell/electron/test/agent-session-protected-smoke.test.ts',
+  ]) {
+    const scope = selectCiScope([file]);
+    assert.equal(scope.kit_changed, true, file);
+    assert.equal(scope.kit_native_changed, true, file);
+  }
   const proto = selectCiScope(['proto/runtime/v1/model.proto']);
   for (const flag of ['proto_changed', 'sdk_changed', 'runtime_changed', 'kit_native_changed', 'desktop_changed', 'macos_host_changed']) {
     assert.equal(proto[flag], true, flag);

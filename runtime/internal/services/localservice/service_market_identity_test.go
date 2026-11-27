@@ -143,6 +143,7 @@ func TestRecipeRecommendationOrderingAndRequiredSlotReduction(t *testing.T) {
 }
 
 func TestCUDAOnlyImageRecipeSlotsRemainVisibleAsUnsupportedOnAppleSilicon(t *testing.T) {
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	svc := newLoadoutTestService(t, t.TempDir())
 	host := &runtimev1.LocalDeviceProfile{
 		Os: "darwin", Arch: "arm64", TotalRamBytes: 128 << 30,
