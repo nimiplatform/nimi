@@ -2,6 +2,10 @@
 
 # Changelog
 
+## Unreleased — Realm foundation slimdown (breaking, next 0.x minor)
+
+Removes retired Web WalletAuth adapter methods, views, icons, and helpers from `@nimiplatform/kit/auth` (`walletChallenge`, `walletLogin`, `handleWalletLogin`, `AuthViewWalletSelect`, `MetaMaskIcon`, `BinanceIcon`, `OKXIcon`, `parseChainId`, `resolveWalletProvider`, `WalletType`, `WalletProvider`, `showWallet`). Removes `post_liked` server notification filter from `@nimiplatform/kit/core/notifications`, and narrows `@nimiplatform/kit/features/chat/realm` and the Rust `kit/shell/protected-local` carrier to `RESOURCE` attachments without `POST_REF`, `ASSET`, or `BUNDLE`. Update matching Realm, Runtime, native carriers, SDK, and Kit builds together.
+
 ## 0.24.0-rc.19 — Local candidate
 
 The Kit package targets SDK `^0.24.0-rc.12` and matching `0.24.0-rc.19` native carriers. Native Apps importing `./shell/renderer/tauri` must move to the Electron renderer integration. See the [component migration notes](../RELEASE.md#migration-for-the-next-component-releases).

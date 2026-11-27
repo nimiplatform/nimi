@@ -1,9 +1,7 @@
 import {
   checkNimiRealmAuthEmail,
-  createNimiRealmWalletChallenge,
   loginNimiRealmAuthPassword,
   loginNimiRealmOAuth,
-  loginNimiRealmWallet,
   requestNimiRealmEmailOtp,
   isNimiRealmExpectedAnonymousSessionError,
   toNimiRealmAuthUserRecord,
@@ -88,10 +86,6 @@ export function createWebAccountAuthAdapter(
         throw new Error('Realm returned bearer material to the browser-session surface.');
       }
     })),
-    walletChallenge: (input) => createNimiRealmWalletChallenge(createWebBrowserRealm(), input),
-    walletLogin: async (input) => observe(() => runWebBrowserSessionLogin(async realm => rejectBearerResponse(
-      await loginNimiRealmWallet(realm, input, BROWSER_SESSION_RESPONSE),
-    ))),
     oauthLogin: async (input) => observe(() => runWebBrowserSessionLogin(async realm => rejectBearerResponse(
       await loginNimiRealmOAuth(realm, input, BROWSER_SESSION_RESPONSE),
     ))),

@@ -4,7 +4,7 @@ import type { RealmModel } from '@nimiplatform/kit/core/sdk-contract';
 type RealmGeneratedMessageViewDto = RealmModel<'MessageViewDto'>;
 type RealmGeneratedMessageReplyViewDto = RealmModel<'MessageReplyViewDto'>;
 export type RealmSendMessageInputDto = RealmModel<'SendMessageInputDto'>;
-export type RealmAttachmentTargetType = 'RESOURCE' | 'ASSET' | 'BUNDLE';
+export type RealmAttachmentTargetType = 'RESOURCE';
 export type RealmAttachmentDisplayKind = 'IMAGE' | 'VIDEO' | 'AUDIO' | 'TEXT' | 'CARD';
 export type RealmAttachmentEnvelope = {
   targetType: RealmAttachmentTargetType;
@@ -23,7 +23,6 @@ export type RealmAttachmentEnvelope = {
 export type RealmMessagePayload =
   | { content: string }
   | { attachment: RealmAttachmentEnvelope }
-  | { postId: string }
   | { userId: string; snapshot?: Record<string, unknown> }
   | { url: string; title?: string }
   | {
@@ -64,7 +63,7 @@ function normalizeFiniteNumber(value: unknown): number | undefined {
 
 function normalizeAttachmentTargetType(value: unknown): RealmAttachmentTargetType | null {
   const normalized = normalizeString(value).toUpperCase();
-  if (normalized === 'RESOURCE' || normalized === 'ASSET' || normalized === 'BUNDLE') {
+  if (normalized === 'RESOURCE') {
     return normalized as RealmAttachmentTargetType;
   }
   return null;
@@ -151,11 +150,6 @@ export function normalizeRealmMessagePayload(input: unknown): RealmMessageViewDt
   const attachment = normalizeAttachmentEnvelope(record.attachment);
   if (attachment) {
     return { attachment };
-  }
-
-  const postId = normalizeString(record.postId);
-  if (postId) {
-    return { postId };
   }
 
   const userId = normalizeString(record.userId);

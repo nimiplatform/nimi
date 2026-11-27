@@ -148,8 +148,6 @@ func convertMessageType(value string) (runtimev1.RealmChatMessageType, error) {
 		return runtimev1.RealmChatMessageType_REALM_CHAT_MESSAGE_TYPE_TEXT, nil
 	case "ATTACHMENT":
 		return runtimev1.RealmChatMessageType_REALM_CHAT_MESSAGE_TYPE_ATTACHMENT, nil
-	case "POST_REF":
-		return runtimev1.RealmChatMessageType_REALM_CHAT_MESSAGE_TYPE_POST_REF, nil
 	case "USER_REF":
 		return runtimev1.RealmChatMessageType_REALM_CHAT_MESSAGE_TYPE_USER_REF, nil
 	case "LINK_REF":
@@ -193,14 +191,6 @@ func convertMessagePayload(messageType runtimev1.RealmChatMessageType, raw json.
 			return nil, err
 		}
 		return &runtimev1.RealmChatMessagePayload{Payload: &runtimev1.RealmChatMessagePayload_Attachment{Attachment: attachment}}, nil
-	case runtimev1.RealmChatMessageType_REALM_CHAT_MESSAGE_TYPE_POST_REF:
-		var payload struct {
-			PostID string `json:"postId"`
-		}
-		if err := decodeStrictJSON(raw, &payload); err != nil || strings.TrimSpace(payload.PostID) == "" {
-			return nil, fmt.Errorf("invalid Realm Chat post reference")
-		}
-		return &runtimev1.RealmChatMessagePayload{Payload: &runtimev1.RealmChatMessagePayload_PostRef{PostRef: &runtimev1.RealmChatPostRefPayload{PostId: payload.PostID}}}, nil
 	case runtimev1.RealmChatMessageType_REALM_CHAT_MESSAGE_TYPE_USER_REF:
 		var payload wireUserRef
 		if err := decodeStrictJSON(raw, &payload); err != nil || strings.TrimSpace(payload.UserID) == "" {
@@ -279,10 +269,6 @@ func convertAttachment(input wireAttachment) (*runtimev1.RealmChatAttachmentPayl
 	switch input.TargetType {
 	case "RESOURCE":
 		targetType = runtimev1.RealmAttachmentTargetType_REALM_ATTACHMENT_TARGET_TYPE_RESOURCE
-	case "ASSET":
-		targetType = runtimev1.RealmAttachmentTargetType_REALM_ATTACHMENT_TARGET_TYPE_ASSET
-	case "BUNDLE":
-		targetType = runtimev1.RealmAttachmentTargetType_REALM_ATTACHMENT_TARGET_TYPE_BUNDLE
 	default:
 		return nil, fmt.Errorf("unknown Realm attachment target type")
 	}

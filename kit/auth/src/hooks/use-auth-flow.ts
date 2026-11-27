@@ -14,7 +14,6 @@ import {
   handleVerifyEmailOtp as doVerifyEmailOtp,
   handleResendOtp as doResendOtp,
   handleVerify2Fa as doVerify2Fa,
-  handleWalletLogin as doWalletLogin,
 } from '../logic/auth-menu-handlers-ext.js';
 import { resolveEmailEntryRoute } from '../logic/auth-email-flow.js';
 import { AUTH_COPY } from '../logic/auth-copy.js';
@@ -80,10 +79,8 @@ export type UseAuthFlowReturn = {
   handleOtpVerify: (event: FormEvent) => void;
   handleResendOtp: () => void;
   handleVerify2Fa: (event: FormEvent) => void;
-  handleWalletLogin: (walletType: 'metamask' | 'okx' | 'binance') => void;
   handleGoogleLogin: () => void;
   handleTikTokLogin: () => void;
-  handleWeb3Login: () => void;
 };
 
 function handleUnexpectedAsyncError(
@@ -305,10 +302,6 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
         setView('main');
         setEmbeddedStage('credential');
       }
-    } else if (view === 'wallet_select') {
-      setView('main');
-      setEmbeddedStage('email');
-      setShowAlternatives(true);
     } else if (embeddedStage === 'credential') {
       setView('main');
       setEmbeddedStage('email');
@@ -384,18 +377,11 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     handleVerify2Fa: (event: FormEvent) => {
       void doVerify2Fa(event, tempToken, twoFactorCode, setters, adapter);
     },
-    handleWalletLogin: (walletType) => {
-      void doWalletLogin(walletType, setters, adapter);
-    },
     handleGoogleLogin: () => {
       void doGoogleLogin(setters, adapter);
     },
     handleTikTokLogin: () => {
       void doSocialLogin('TIKTOK', setters, adapter);
-    },
-    handleWeb3Login: () => {
-      setView('wallet_select');
-      setLoginError(null);
     },
   };
 }

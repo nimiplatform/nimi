@@ -22,7 +22,6 @@
 ## 相关文档
 
 - [创作者经济与价值流转体系](/zh/realm/creator-economy)
-- [资产挂载与绑定规范](/zh/realm/asset-and-binding)
 
 ## Source Basis
 

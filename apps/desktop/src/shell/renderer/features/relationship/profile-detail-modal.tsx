@@ -27,7 +27,6 @@ export type HumanProfileDetailSeed = {
   countryCode?: string | null;
   gender?: string | null;
   friendsCount?: number;
-  postsCount?: number;
   likesCount?: number;
   isFriend?: boolean;
   isPendingFriendRequest?: boolean;

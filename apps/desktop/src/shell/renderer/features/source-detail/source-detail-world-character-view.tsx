@@ -38,7 +38,7 @@ type CharacterSourceDetailPageProps = {
     status: ReactNode;
     sourceNotice: ReactNode;
   };
-  stats?: { friendsCount: number; postsCount: number; likesCount: number } | null;
+  stats?: { friendsCount: number; likesCount: number } | null;
   onBack?: () => void;
   onOpenWorld: () => void;
   onPrimaryAction: () => void;

@@ -19,7 +19,7 @@ Official account authentication keeps Web Account Auth for Realm-owned browser s
   - `realm`: none
 
 ## When To Use It
-- Use `WebAccountAuthPage` with `WebAccountAuthAdapter` for Web email, OTP, password, two-factor, wallet, and provider interaction. The adapter must request Realm's browser-session response and expose no token persistence.
+- Use `WebAccountAuthPage` with `WebAccountAuthAdapter` for Web email, OTP, password, two-factor, and provider interaction. The adapter must request Realm's browser-session response and expose no token persistence.
 - Use `DesktopBrowserAuthGate` with `ShellOAuthCodeBridge` and `DesktopBrowserAuthRuntimeBroker` for Desktop. It has no credential methods and no bearer projection.
 - Custom OAuth bridge callers must supply `expectedState` from the current
   attempt. The host ignores unrelated callbacks without consuming its listener;

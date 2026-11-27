@@ -13,9 +13,6 @@ import type {
   RealmTypedCallOptions,
   RealmTypedClient,
   UserPrivateDto,
-  WalletChallengeDto,
-  WalletChallengeResponseDto,
-  WalletLoginDto,
 } from '../core-generated/realm-typed-client';
 import {
   AccountStatusValues,
@@ -37,9 +34,6 @@ export type NimiRealmOAuthLoginResult = OAuthLoginResultDto;
 
 export type NimiRealmCheckEmailResponse = CheckEmailResponseDto;
 export type NimiRealmEmailOtpRequestResult = EmailOtpResponseDto;
-export type NimiRealmWalletChallengeInput = WalletChallengeDto;
-export type NimiRealmWalletLoginInput = WalletLoginDto;
-export type NimiRealmWalletChallengeResult = WalletChallengeResponseDto;
 export type NimiRealmOAuthLoginInput = OAuthLoginDto;
 
 export interface NimiRealmAuthApi {
@@ -51,8 +45,6 @@ export interface NimiRealmAuthApi {
     | 'requestEmailOtp'
     | 'verify2Fa'
     | 'verifyEmailOtp'
-    | 'walletChallenge'
-    | 'walletLogin'
   >;
 }
 
@@ -141,7 +133,6 @@ function toNimiRealmAuthTokenUser(value: unknown): AuthUserDto | null {
     || !isStringArray(record.tags)
     || !isAuthUserTiers(record.tiers)
     || typeof record.updatedAt !== 'string'
-    || !isAuthUserWallets(record.wallets)
   ) {
     return null;
   }
@@ -176,25 +167,6 @@ export function normalizeNimiRealmEmailOtpRequestResult(value: unknown): NimiRea
   return {
     success: record.success,
     message: typeof message === 'string' ? message : '',
-  };
-}
-
-export function normalizeNimiRealmWalletChallengeResult(value: unknown): NimiRealmWalletChallengeResult {
-  const record = toRecord(value);
-  if (
-    !record
-    || typeof record.message !== 'string'
-    || typeof record.nonce !== 'string'
-    || typeof record.walletAddress !== 'string'
-    || typeof record.expiresAt !== 'string'
-  ) {
-    throw malformedNimiRealmAuthResponse('Realm wallet challenge response is malformed.');
-  }
-  return {
-    expiresAt: record.expiresAt,
-    message: record.message,
-    nonce: record.nonce,
-    walletAddress: record.walletAddress,
   };
 }
 
@@ -282,21 +254,6 @@ function isAuthUserTiers(value: unknown): value is AuthUserDto['tiers'] {
     && typeof record.vitalityScore === 'number'
     && Number.isFinite(record.vitalityScore),
   );
-}
-
-function isAuthUserWallets(value: unknown): value is AuthUserDto['wallets'] {
-  return Array.isArray(value) && value.every((item) => {
-    const record = toRecord(item);
-    return Boolean(
-      record
-      && typeof record.address === 'string'
-      && isStringArray(record.boundOnChains)
-      && isOptionalString(record.chainNamespace)
-      && typeof record.createdAt === 'string'
-      && typeof record.id === 'string'
-      && isOptionalString(record.updatedAt),
-    );
-  });
 }
 
 function isOptionalFiniteNumber(value: unknown): boolean {
@@ -401,26 +358,6 @@ export async function verifyNimiRealmTwoFactor(
   const body: Auth2faVerifyDto = { tempToken, code };
   return normalizeNimiRealmAuthTokens(
     await realm.auth.verify2Fa({ path: {}, body }, options),
-  );
-}
-
-export async function createNimiRealmWalletChallenge(
-  realm: NimiRealmAuthApi,
-  input: NimiRealmWalletChallengeInput,
-  options?: RealmTypedCallOptions,
-): Promise<NimiRealmWalletChallengeResult> {
-  return normalizeNimiRealmWalletChallengeResult(
-    await realm.auth.walletChallenge({ path: {}, body: input }, options),
-  );
-}
-
-export async function loginNimiRealmWallet(
-  realm: NimiRealmAuthApi,
-  input: NimiRealmWalletLoginInput,
-  options?: RealmTypedCallOptions,
-): Promise<NimiRealmOAuthLoginResult> {
-  return normalizeNimiRealmOAuthLoginResult(
-    await realm.auth.walletLogin({ path: {}, body: input }, options),
   );
 }
 

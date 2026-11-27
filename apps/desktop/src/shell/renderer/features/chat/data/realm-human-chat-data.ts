@@ -113,7 +113,6 @@ function projectCanonicalRealmMessagePayload(payload: NimiRealmRealtimeMessagePa
   switch (payload.type) {
     case 'text': return { content: payload.content };
     case 'attachment': return { attachment: projectCanonicalRealmAttachment(payload.attachment) };
-    case 'post-ref': return { postId: payload.postId };
     case 'user-ref': return {
       userId: payload.userId,
       ...(payload.snapshot ? { snapshot: { ...payload.snapshot } } : {}),

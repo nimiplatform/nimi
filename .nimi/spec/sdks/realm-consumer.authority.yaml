@@ -281,7 +281,7 @@ units:
     title: First-party Web auth uses the Realm browser session contract
     modality: must
     statement: The Nimi Web account surface uses generated public Realm auth and account operations with credentialed requests and the fixed browser-session response mode so Realm owns the secure HttpOnly SameSite browser session cookie and current-account confirmation; Web and the SDK keep no raw access or refresh bearer in a URL, localStorage, durable metadata, or parallel session store.
-    condition: Whenever first-party Web performs account login, registration, recovery, two-factor, provider, wallet, password, or current-account interaction.
+    condition: Whenever first-party Web performs account login, registration, recovery, two-factor, provider, password, or current-account interaction.
     failure: Reject a token-mode response, handwritten REST bypass, Web-owned session truth, insecure cookie posture, or durable bearer persistence.
     relations:
       - type: applies_to

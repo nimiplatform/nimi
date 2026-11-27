@@ -19,7 +19,6 @@ import {
   AuthViewEmailSetPassword,
   AuthViewEmail2Fa,
 } from './auth-view-email.js';
-import { AuthViewWalletSelect } from './auth-view-wallet-select.js';
 import { AuthVisualBackground } from './auth-visual-background.js';
 
 function renderLogo(
@@ -238,10 +237,6 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
                       if (!ensureConsent()) return;
                       flow.handleTikTokLogin();
                     }}
-                    onWeb3Login={alternatives?.showWallet ? () => {
-                      if (!ensureConsent()) return;
-                      flow.handleWeb3Login();
-                    } : undefined}
                     testIds={{
                       emailInput: testIds?.emailInput,
                       emailSubmitArrow: testIds?.emailSubmitArrow,
@@ -389,16 +384,6 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
                     pending={flow.pending}
                     onTwoFactorCodeChange={flow.setTwoFactorCode}
                     onSubmit={flow.handleVerify2Fa}
-                    onBack={flow.handleHeaderBack}
-                  />
-                </AnimateIn>
-              ) : null}
-
-              {alternatives?.showWallet && flow.view === 'wallet_select' ? (
-                <AnimateIn className="w-full">
-                  <AuthViewWalletSelect
-                    pending={flow.pending}
-                    onWalletLogin={flow.handleWalletLogin}
                     onBack={flow.handleHeaderBack}
                   />
                 </AnimateIn>

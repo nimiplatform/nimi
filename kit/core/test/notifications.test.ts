@@ -11,8 +11,8 @@ describe('notification headless primitives', () => {
     expect(getNimiNotificationCategory('system_announcement')).toBe('system');
     expect(getNimiNotificationCategory('friend_request_accepted')).toBe('request');
     expect(getNimiNotificationCategory('friend_request_rejected')).toBe('request');
-    expect(getNimiNotificationCategory('post_liked')).toBe('like');
-    expect(getNimiNotificationServerFilter('like')).toBe('post_liked');
+    expect(getNimiNotificationCategory('post_liked')).toBe('system');
+    expect(getNimiNotificationServerFilter('like')).toBeNull();
     expect(getNimiNotificationServerFilter('system')).toBe('system_announcement');
     expect(getNimiNotificationServerFilter('request')).toBeNull();
   });

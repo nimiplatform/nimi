@@ -208,7 +208,6 @@ const realmGroups: DefaultTheme.SidebarItem[] = [
     items: [
       { text: '聊天', link: '/zh/realm/chat' },
       { text: '社交与经济', link: '/zh/realm/social-and-economy' },
-      { text: '资产与绑定', link: '/zh/realm/asset-and-binding' },
       { text: '通行', link: '/zh/realm/transit' },
     ],
   },

@@ -122,7 +122,14 @@ export function SettingsRealmRows(props: SettingsRouteViewProps) {
         <div className="inline-flex items-center gap-2">
           <StatusBadge tone={accountSettingsProjection.status === 'error' ? 'danger' : 'info'}>
             {accountSettingsProjection.status === 'ready'
-              ? `${accountSettingsProjection.eligibility.tier}: ${accountSettingsProjection.eligibility.status}`
+              ? t('Settings.creatorEligibilitySummary', {
+                world: accountSettingsProjection.eligibility.canCreateWorld
+                  ? t('Settings.capabilityAvailable')
+                  : t('Settings.capabilityRestricted'),
+                persona: accountSettingsProjection.eligibility.canCreatePersonaCharacter
+                  ? t('Settings.capabilityAvailable')
+                  : t('Settings.capabilityRestricted'),
+              })
               : accountSettingsProjection.status === 'error'
                 ? accountSettingsProjection.error
                 : t('Settings.notLoaded')}

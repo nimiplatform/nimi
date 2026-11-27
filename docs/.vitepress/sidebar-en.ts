@@ -208,7 +208,6 @@ const realmGroups: DefaultTheme.SidebarItem[] = [
     items: [
       { text: 'Chat', link: '/realm/chat' },
       { text: 'Social And Economy', link: '/realm/social-and-economy' },
-      { text: 'Asset And Binding', link: '/realm/asset-and-binding' },
       { text: 'Transit', link: '/realm/transit' },
     ],
   },

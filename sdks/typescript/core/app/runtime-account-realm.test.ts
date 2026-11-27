@@ -99,7 +99,10 @@ test('Desktop product Realm transport admits exact product operations and reject
   await transport.unary({ methodId: 'getMe', body: { path: {} } });
   await transport.unary({ methodId: 'listChats', body: { path: {}, query: {} } });
   await transport.unary({ methodId: 'addFriendByHandle', body: { path: { handle: 'alice' } } });
-  await transport.unary({ methodId: 'EconomyController_getBalances', body: { path: {} } });
+  await assert.rejects(
+    () => transport.unary({ methodId: 'EconomyController_getBalances', body: { path: {} } }),
+    { reasonCode: 'SDK_RUNTIME_REALM_OPERATION_NOT_ADMITTED' },
+  );
   await assert.rejects(
     () => transport.unary({ methodId: 'createArbitrarySignedUpload', body: { path: {} } }),
     { reasonCode: 'SDK_RUNTIME_REALM_OPERATION_NOT_ADMITTED' },
@@ -107,7 +110,7 @@ test('Desktop product Realm transport admits exact product operations and reject
   for (const methodId of ['getHomeFeed', 'getExploreFeed', 'getPost', 'createPost', 'likePost']) {
     await assert.rejects(() => transport.unary({ methodId, body: {} }), { reasonCode: 'SDK_RUNTIME_REALM_OPERATION_NOT_ADMITTED' });
   }
-  assert.deepEqual(calls, ['createImageDirectUpload', 'getMe', 'listChats', 'addFriendByHandle', 'EconomyController_getBalances']);
+  assert.deepEqual(calls, ['createImageDirectUpload', 'getMe', 'listChats', 'addFriendByHandle']);
 });
 
 test('exact-handle friendship reaches the Runtime carrier through the public typed social facade', async () => {

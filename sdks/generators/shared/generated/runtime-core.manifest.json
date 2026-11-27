@@ -9397,7 +9397,6 @@
       "RealmChatMessagePayload",
       "RealmChatMessageRecalled",
       "RealmChatMessageReply",
-      "RealmChatPostRefPayload",
       "RealmChatRead",
       "RealmChatSnapshot",
       "RealmChatSubscriptionTarget",
@@ -42035,13 +42034,6 @@
             "number": 2
           },
           {
-            "name": "post_ref",
-            "type": "RealmChatPostRefPayload",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
             "name": "user_ref",
             "type": "RealmChatUserRefPayload",
             "repeated": false,
@@ -42136,19 +42128,6 @@
             "repeated": false,
             "optional": false,
             "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/realm_realtime.proto"
-      },
-      {
-        "name": "RealmChatPostRefPayload",
-        "fields": [
-          {
-            "name": "post_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
           }
         ],
         "source_file": "proto/runtime/v1/realm_realtime.proto"
@@ -55360,9 +55339,7 @@
         "name": "RealmAttachmentTargetType",
         "values": [
           "REALM_ATTACHMENT_TARGET_TYPE_UNSPECIFIED",
-          "REALM_ATTACHMENT_TARGET_TYPE_RESOURCE",
-          "REALM_ATTACHMENT_TARGET_TYPE_ASSET",
-          "REALM_ATTACHMENT_TARGET_TYPE_BUNDLE"
+          "REALM_ATTACHMENT_TARGET_TYPE_RESOURCE"
         ],
         "source_file": "proto/runtime/v1/realm_realtime.proto"
       },
@@ -55372,7 +55349,6 @@
           "REALM_CHAT_MESSAGE_TYPE_UNSPECIFIED",
           "REALM_CHAT_MESSAGE_TYPE_TEXT",
           "REALM_CHAT_MESSAGE_TYPE_ATTACHMENT",
-          "REALM_CHAT_MESSAGE_TYPE_POST_REF",
           "REALM_CHAT_MESSAGE_TYPE_USER_REF",
           "REALM_CHAT_MESSAGE_TYPE_LINK_REF",
           "REALM_CHAT_MESSAGE_TYPE_FRIEND_REQUEST",

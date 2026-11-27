@@ -28,7 +28,6 @@ const (
 	RealmChatMessageType_REALM_CHAT_MESSAGE_TYPE_UNSPECIFIED    RealmChatMessageType = 0
 	RealmChatMessageType_REALM_CHAT_MESSAGE_TYPE_TEXT           RealmChatMessageType = 1
 	RealmChatMessageType_REALM_CHAT_MESSAGE_TYPE_ATTACHMENT     RealmChatMessageType = 2
-	RealmChatMessageType_REALM_CHAT_MESSAGE_TYPE_POST_REF       RealmChatMessageType = 3
 	RealmChatMessageType_REALM_CHAT_MESSAGE_TYPE_USER_REF       RealmChatMessageType = 4
 	RealmChatMessageType_REALM_CHAT_MESSAGE_TYPE_LINK_REF       RealmChatMessageType = 5
 	RealmChatMessageType_REALM_CHAT_MESSAGE_TYPE_FRIEND_REQUEST RealmChatMessageType = 6
@@ -42,7 +41,6 @@ var (
 		0: "REALM_CHAT_MESSAGE_TYPE_UNSPECIFIED",
 		1: "REALM_CHAT_MESSAGE_TYPE_TEXT",
 		2: "REALM_CHAT_MESSAGE_TYPE_ATTACHMENT",
-		3: "REALM_CHAT_MESSAGE_TYPE_POST_REF",
 		4: "REALM_CHAT_MESSAGE_TYPE_USER_REF",
 		5: "REALM_CHAT_MESSAGE_TYPE_LINK_REF",
 		6: "REALM_CHAT_MESSAGE_TYPE_FRIEND_REQUEST",
@@ -53,7 +51,6 @@ var (
 		"REALM_CHAT_MESSAGE_TYPE_UNSPECIFIED":    0,
 		"REALM_CHAT_MESSAGE_TYPE_TEXT":           1,
 		"REALM_CHAT_MESSAGE_TYPE_ATTACHMENT":     2,
-		"REALM_CHAT_MESSAGE_TYPE_POST_REF":       3,
 		"REALM_CHAT_MESSAGE_TYPE_USER_REF":       4,
 		"REALM_CHAT_MESSAGE_TYPE_LINK_REF":       5,
 		"REALM_CHAT_MESSAGE_TYPE_FRIEND_REQUEST": 6,
@@ -94,8 +91,6 @@ type RealmAttachmentTargetType int32
 const (
 	RealmAttachmentTargetType_REALM_ATTACHMENT_TARGET_TYPE_UNSPECIFIED RealmAttachmentTargetType = 0
 	RealmAttachmentTargetType_REALM_ATTACHMENT_TARGET_TYPE_RESOURCE    RealmAttachmentTargetType = 1
-	RealmAttachmentTargetType_REALM_ATTACHMENT_TARGET_TYPE_ASSET       RealmAttachmentTargetType = 2
-	RealmAttachmentTargetType_REALM_ATTACHMENT_TARGET_TYPE_BUNDLE      RealmAttachmentTargetType = 3
 )
 
 // Enum value maps for RealmAttachmentTargetType.
@@ -103,14 +98,10 @@ var (
 	RealmAttachmentTargetType_name = map[int32]string{
 		0: "REALM_ATTACHMENT_TARGET_TYPE_UNSPECIFIED",
 		1: "REALM_ATTACHMENT_TARGET_TYPE_RESOURCE",
-		2: "REALM_ATTACHMENT_TARGET_TYPE_ASSET",
-		3: "REALM_ATTACHMENT_TARGET_TYPE_BUNDLE",
 	}
 	RealmAttachmentTargetType_value = map[string]int32{
 		"REALM_ATTACHMENT_TARGET_TYPE_UNSPECIFIED": 0,
 		"REALM_ATTACHMENT_TARGET_TYPE_RESOURCE":    1,
-		"REALM_ATTACHMENT_TARGET_TYPE_ASSET":       2,
-		"REALM_ATTACHMENT_TARGET_TYPE_BUNDLE":      3,
 	}
 )
 
@@ -724,50 +715,6 @@ func (x *RealmChatAttachmentPayload) GetUnavailable() bool {
 	return false
 }
 
-type RealmChatPostRefPayload struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	PostId        string                 `protobuf:"bytes,1,opt,name=post_id,json=postId,proto3" json:"post_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RealmChatPostRefPayload) Reset() {
-	*x = RealmChatPostRefPayload{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RealmChatPostRefPayload) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RealmChatPostRefPayload) ProtoMessage() {}
-
-func (x *RealmChatPostRefPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RealmChatPostRefPayload.ProtoReflect.Descriptor instead.
-func (*RealmChatPostRefPayload) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *RealmChatPostRefPayload) GetPostId() string {
-	if x != nil {
-		return x.PostId
-	}
-	return ""
-}
-
 type RealmChatUserSnapshot struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -780,7 +727,7 @@ type RealmChatUserSnapshot struct {
 
 func (x *RealmChatUserSnapshot) Reset() {
 	*x = RealmChatUserSnapshot{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[8]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -792,7 +739,7 @@ func (x *RealmChatUserSnapshot) String() string {
 func (*RealmChatUserSnapshot) ProtoMessage() {}
 
 func (x *RealmChatUserSnapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[8]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -805,7 +752,7 @@ func (x *RealmChatUserSnapshot) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RealmChatUserSnapshot.ProtoReflect.Descriptor instead.
 func (*RealmChatUserSnapshot) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{8}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *RealmChatUserSnapshot) GetId() string {
@@ -846,7 +793,7 @@ type RealmChatUserRefPayload struct {
 
 func (x *RealmChatUserRefPayload) Reset() {
 	*x = RealmChatUserRefPayload{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[9]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -858,7 +805,7 @@ func (x *RealmChatUserRefPayload) String() string {
 func (*RealmChatUserRefPayload) ProtoMessage() {}
 
 func (x *RealmChatUserRefPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[9]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -871,7 +818,7 @@ func (x *RealmChatUserRefPayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RealmChatUserRefPayload.ProtoReflect.Descriptor instead.
 func (*RealmChatUserRefPayload) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{9}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *RealmChatUserRefPayload) GetUserId() string {
@@ -898,7 +845,7 @@ type RealmChatLinkRefPayload struct {
 
 func (x *RealmChatLinkRefPayload) Reset() {
 	*x = RealmChatLinkRefPayload{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[10]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -910,7 +857,7 @@ func (x *RealmChatLinkRefPayload) String() string {
 func (*RealmChatLinkRefPayload) ProtoMessage() {}
 
 func (x *RealmChatLinkRefPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[10]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -923,7 +870,7 @@ func (x *RealmChatLinkRefPayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RealmChatLinkRefPayload.ProtoReflect.Descriptor instead.
 func (*RealmChatLinkRefPayload) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{10}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *RealmChatLinkRefPayload) GetUrl() string {
@@ -951,7 +898,7 @@ type RealmChatFriendRequestPayload struct {
 
 func (x *RealmChatFriendRequestPayload) Reset() {
 	*x = RealmChatFriendRequestPayload{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[11]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -963,7 +910,7 @@ func (x *RealmChatFriendRequestPayload) String() string {
 func (*RealmChatFriendRequestPayload) ProtoMessage() {}
 
 func (x *RealmChatFriendRequestPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[11]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -976,7 +923,7 @@ func (x *RealmChatFriendRequestPayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RealmChatFriendRequestPayload.ProtoReflect.Descriptor instead.
 func (*RealmChatFriendRequestPayload) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{11}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *RealmChatFriendRequestPayload) GetRequestId() string {
@@ -1010,7 +957,7 @@ type RealmChatSystemPayload struct {
 
 func (x *RealmChatSystemPayload) Reset() {
 	*x = RealmChatSystemPayload{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[12]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1022,7 +969,7 @@ func (x *RealmChatSystemPayload) String() string {
 func (*RealmChatSystemPayload) ProtoMessage() {}
 
 func (x *RealmChatSystemPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[12]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1035,7 +982,7 @@ func (x *RealmChatSystemPayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RealmChatSystemPayload.ProtoReflect.Descriptor instead.
 func (*RealmChatSystemPayload) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{12}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *RealmChatSystemPayload) GetCode() string {
@@ -1058,7 +1005,6 @@ type RealmChatMessagePayload struct {
 	//
 	//	*RealmChatMessagePayload_Text
 	//	*RealmChatMessagePayload_Attachment
-	//	*RealmChatMessagePayload_PostRef
 	//	*RealmChatMessagePayload_UserRef
 	//	*RealmChatMessagePayload_LinkRef
 	//	*RealmChatMessagePayload_FriendRequest
@@ -1070,7 +1016,7 @@ type RealmChatMessagePayload struct {
 
 func (x *RealmChatMessagePayload) Reset() {
 	*x = RealmChatMessagePayload{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[13]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1082,7 +1028,7 @@ func (x *RealmChatMessagePayload) String() string {
 func (*RealmChatMessagePayload) ProtoMessage() {}
 
 func (x *RealmChatMessagePayload) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[13]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1095,7 +1041,7 @@ func (x *RealmChatMessagePayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RealmChatMessagePayload.ProtoReflect.Descriptor instead.
 func (*RealmChatMessagePayload) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{13}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *RealmChatMessagePayload) GetPayload() isRealmChatMessagePayload_Payload {
@@ -1118,15 +1064,6 @@ func (x *RealmChatMessagePayload) GetAttachment() *RealmChatAttachmentPayload {
 	if x != nil {
 		if x, ok := x.Payload.(*RealmChatMessagePayload_Attachment); ok {
 			return x.Attachment
-		}
-	}
-	return nil
-}
-
-func (x *RealmChatMessagePayload) GetPostRef() *RealmChatPostRefPayload {
-	if x != nil {
-		if x, ok := x.Payload.(*RealmChatMessagePayload_PostRef); ok {
-			return x.PostRef
 		}
 	}
 	return nil
@@ -1180,10 +1117,6 @@ type RealmChatMessagePayload_Attachment struct {
 	Attachment *RealmChatAttachmentPayload `protobuf:"bytes,2,opt,name=attachment,proto3,oneof"`
 }
 
-type RealmChatMessagePayload_PostRef struct {
-	PostRef *RealmChatPostRefPayload `protobuf:"bytes,3,opt,name=post_ref,json=postRef,proto3,oneof"`
-}
-
 type RealmChatMessagePayload_UserRef struct {
 	UserRef *RealmChatUserRefPayload `protobuf:"bytes,4,opt,name=user_ref,json=userRef,proto3,oneof"`
 }
@@ -1203,8 +1136,6 @@ type RealmChatMessagePayload_System struct {
 func (*RealmChatMessagePayload_Text) isRealmChatMessagePayload_Payload() {}
 
 func (*RealmChatMessagePayload_Attachment) isRealmChatMessagePayload_Payload() {}
-
-func (*RealmChatMessagePayload_PostRef) isRealmChatMessagePayload_Payload() {}
 
 func (*RealmChatMessagePayload_UserRef) isRealmChatMessagePayload_Payload() {}
 
@@ -1227,7 +1158,7 @@ type RealmChatMessageReply struct {
 
 func (x *RealmChatMessageReply) Reset() {
 	*x = RealmChatMessageReply{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[14]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1239,7 +1170,7 @@ func (x *RealmChatMessageReply) String() string {
 func (*RealmChatMessageReply) ProtoMessage() {}
 
 func (x *RealmChatMessageReply) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[14]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1252,7 +1183,7 @@ func (x *RealmChatMessageReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RealmChatMessageReply.ProtoReflect.Descriptor instead.
 func (*RealmChatMessageReply) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{14}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *RealmChatMessageReply) GetId() string {
@@ -1309,7 +1240,7 @@ type RealmChatMessage struct {
 
 func (x *RealmChatMessage) Reset() {
 	*x = RealmChatMessage{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[15]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1321,7 +1252,7 @@ func (x *RealmChatMessage) String() string {
 func (*RealmChatMessage) ProtoMessage() {}
 
 func (x *RealmChatMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[15]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1334,7 +1265,7 @@ func (x *RealmChatMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RealmChatMessage.ProtoReflect.Descriptor instead.
 func (*RealmChatMessage) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{15}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *RealmChatMessage) GetId() string {
@@ -1423,7 +1354,7 @@ type RealmChatMessageMutation struct {
 
 func (x *RealmChatMessageMutation) Reset() {
 	*x = RealmChatMessageMutation{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[16]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1435,7 +1366,7 @@ func (x *RealmChatMessageMutation) String() string {
 func (*RealmChatMessageMutation) ProtoMessage() {}
 
 func (x *RealmChatMessageMutation) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[16]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1448,7 +1379,7 @@ func (x *RealmChatMessageMutation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RealmChatMessageMutation.ProtoReflect.Descriptor instead.
 func (*RealmChatMessageMutation) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{16}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *RealmChatMessageMutation) GetMessage() *RealmChatMessage {
@@ -1469,7 +1400,7 @@ type RealmChatMessageRecalled struct {
 
 func (x *RealmChatMessageRecalled) Reset() {
 	*x = RealmChatMessageRecalled{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[17]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1481,7 +1412,7 @@ func (x *RealmChatMessageRecalled) String() string {
 func (*RealmChatMessageRecalled) ProtoMessage() {}
 
 func (x *RealmChatMessageRecalled) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[17]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1494,7 +1425,7 @@ func (x *RealmChatMessageRecalled) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RealmChatMessageRecalled.ProtoReflect.Descriptor instead.
 func (*RealmChatMessageRecalled) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{17}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *RealmChatMessageRecalled) GetChatId() string {
@@ -1530,7 +1461,7 @@ type RealmChatRead struct {
 
 func (x *RealmChatRead) Reset() {
 	*x = RealmChatRead{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[18]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1542,7 +1473,7 @@ func (x *RealmChatRead) String() string {
 func (*RealmChatRead) ProtoMessage() {}
 
 func (x *RealmChatRead) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[18]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1555,7 +1486,7 @@ func (x *RealmChatRead) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RealmChatRead.ProtoReflect.Descriptor instead.
 func (*RealmChatRead) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{18}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *RealmChatRead) GetChatId() string {
@@ -1607,7 +1538,7 @@ type RealmChatDurableEvent struct {
 
 func (x *RealmChatDurableEvent) Reset() {
 	*x = RealmChatDurableEvent{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[19]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1619,7 +1550,7 @@ func (x *RealmChatDurableEvent) String() string {
 func (*RealmChatDurableEvent) ProtoMessage() {}
 
 func (x *RealmChatDurableEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[19]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1632,7 +1563,7 @@ func (x *RealmChatDurableEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RealmChatDurableEvent.ProtoReflect.Descriptor instead.
 func (*RealmChatDurableEvent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{19}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *RealmChatDurableEvent) GetStreamId() string {
@@ -1760,7 +1691,7 @@ type RealmChatTypingEvent struct {
 
 func (x *RealmChatTypingEvent) Reset() {
 	*x = RealmChatTypingEvent{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[20]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1772,7 +1703,7 @@ func (x *RealmChatTypingEvent) String() string {
 func (*RealmChatTypingEvent) ProtoMessage() {}
 
 func (x *RealmChatTypingEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[20]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1785,7 +1716,7 @@ func (x *RealmChatTypingEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RealmChatTypingEvent.ProtoReflect.Descriptor instead.
 func (*RealmChatTypingEvent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{20}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *RealmChatTypingEvent) GetChatId() string {
@@ -1828,7 +1759,7 @@ type RealmPresenceEvent struct {
 
 func (x *RealmPresenceEvent) Reset() {
 	*x = RealmPresenceEvent{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[21]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1840,7 +1771,7 @@ func (x *RealmPresenceEvent) String() string {
 func (*RealmPresenceEvent) ProtoMessage() {}
 
 func (x *RealmPresenceEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[21]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1853,7 +1784,7 @@ func (x *RealmPresenceEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RealmPresenceEvent.ProtoReflect.Descriptor instead.
 func (*RealmPresenceEvent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{21}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *RealmPresenceEvent) GetUserId() string {
@@ -1903,7 +1834,7 @@ type RealmChatUserSummary struct {
 
 func (x *RealmChatUserSummary) Reset() {
 	*x = RealmChatUserSummary{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[22]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1915,7 +1846,7 @@ func (x *RealmChatUserSummary) String() string {
 func (*RealmChatUserSummary) ProtoMessage() {}
 
 func (x *RealmChatUserSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[22]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1928,7 +1859,7 @@ func (x *RealmChatUserSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RealmChatUserSummary.ProtoReflect.Descriptor instead.
 func (*RealmChatUserSummary) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{22}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *RealmChatUserSummary) GetId() string {
@@ -2022,7 +1953,7 @@ type RealmChatSnapshot struct {
 
 func (x *RealmChatSnapshot) Reset() {
 	*x = RealmChatSnapshot{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[23]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2034,7 +1965,7 @@ func (x *RealmChatSnapshot) String() string {
 func (*RealmChatSnapshot) ProtoMessage() {}
 
 func (x *RealmChatSnapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[23]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2047,7 +1978,7 @@ func (x *RealmChatSnapshot) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RealmChatSnapshot.ProtoReflect.Descriptor instead.
 func (*RealmChatSnapshot) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{23}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *RealmChatSnapshot) GetChatId() string {
@@ -2102,7 +2033,7 @@ type ListRealmChatsRequest struct {
 
 func (x *ListRealmChatsRequest) Reset() {
 	*x = ListRealmChatsRequest{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[24]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2114,7 +2045,7 @@ func (x *ListRealmChatsRequest) String() string {
 func (*ListRealmChatsRequest) ProtoMessage() {}
 
 func (x *ListRealmChatsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[24]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2127,7 +2058,7 @@ func (x *ListRealmChatsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRealmChatsRequest.ProtoReflect.Descriptor instead.
 func (*ListRealmChatsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{24}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ListRealmChatsRequest) GetCursor() string {
@@ -2159,7 +2090,7 @@ type RealmChatListItem struct {
 
 func (x *RealmChatListItem) Reset() {
 	*x = RealmChatListItem{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[25]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2171,7 +2102,7 @@ func (x *RealmChatListItem) String() string {
 func (*RealmChatListItem) ProtoMessage() {}
 
 func (x *RealmChatListItem) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[25]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2184,7 +2115,7 @@ func (x *RealmChatListItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RealmChatListItem.ProtoReflect.Descriptor instead.
 func (*RealmChatListItem) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{25}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *RealmChatListItem) GetChatId() string {
@@ -2246,7 +2177,7 @@ type ListRealmChatsResponse struct {
 
 func (x *ListRealmChatsResponse) Reset() {
 	*x = ListRealmChatsResponse{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[26]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2258,7 +2189,7 @@ func (x *ListRealmChatsResponse) String() string {
 func (*ListRealmChatsResponse) ProtoMessage() {}
 
 func (x *ListRealmChatsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[26]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2271,7 +2202,7 @@ func (x *ListRealmChatsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRealmChatsResponse.ProtoReflect.Descriptor instead.
 func (*ListRealmChatsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{26}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ListRealmChatsResponse) GetItems() []*RealmChatListItem {
@@ -2296,7 +2227,7 @@ type OpenRealmRealtimeChannelRequest struct {
 
 func (x *OpenRealmRealtimeChannelRequest) Reset() {
 	*x = OpenRealmRealtimeChannelRequest{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[27]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2308,7 +2239,7 @@ func (x *OpenRealmRealtimeChannelRequest) String() string {
 func (*OpenRealmRealtimeChannelRequest) ProtoMessage() {}
 
 func (x *OpenRealmRealtimeChannelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[27]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2321,7 +2252,7 @@ func (x *OpenRealmRealtimeChannelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenRealmRealtimeChannelRequest.ProtoReflect.Descriptor instead.
 func (*OpenRealmRealtimeChannelRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{27}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{26}
 }
 
 type OpenRealmRealtimeChannelResponse struct {
@@ -2336,7 +2267,7 @@ type OpenRealmRealtimeChannelResponse struct {
 
 func (x *OpenRealmRealtimeChannelResponse) Reset() {
 	*x = OpenRealmRealtimeChannelResponse{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[28]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2348,7 +2279,7 @@ func (x *OpenRealmRealtimeChannelResponse) String() string {
 func (*OpenRealmRealtimeChannelResponse) ProtoMessage() {}
 
 func (x *OpenRealmRealtimeChannelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[28]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2361,7 +2292,7 @@ func (x *OpenRealmRealtimeChannelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenRealmRealtimeChannelResponse.ProtoReflect.Descriptor instead.
 func (*OpenRealmRealtimeChannelResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{28}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *OpenRealmRealtimeChannelResponse) GetRealtimeSessionId() string {
@@ -2401,7 +2332,7 @@ type RealmChatSubscriptionTarget struct {
 
 func (x *RealmChatSubscriptionTarget) Reset() {
 	*x = RealmChatSubscriptionTarget{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[29]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2413,7 +2344,7 @@ func (x *RealmChatSubscriptionTarget) String() string {
 func (*RealmChatSubscriptionTarget) ProtoMessage() {}
 
 func (x *RealmChatSubscriptionTarget) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[29]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2426,7 +2357,7 @@ func (x *RealmChatSubscriptionTarget) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RealmChatSubscriptionTarget.ProtoReflect.Descriptor instead.
 func (*RealmChatSubscriptionTarget) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{29}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *RealmChatSubscriptionTarget) GetChatId() string {
@@ -2444,7 +2375,7 @@ type RealmPresenceSubscriptionTarget struct {
 
 func (x *RealmPresenceSubscriptionTarget) Reset() {
 	*x = RealmPresenceSubscriptionTarget{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[30]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2456,7 +2387,7 @@ func (x *RealmPresenceSubscriptionTarget) String() string {
 func (*RealmPresenceSubscriptionTarget) ProtoMessage() {}
 
 func (x *RealmPresenceSubscriptionTarget) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[30]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2469,7 +2400,7 @@ func (x *RealmPresenceSubscriptionTarget) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RealmPresenceSubscriptionTarget.ProtoReflect.Descriptor instead.
 func (*RealmPresenceSubscriptionTarget) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{30}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{29}
 }
 
 type RealmChatInboxSubscriptionTarget struct {
@@ -2480,7 +2411,7 @@ type RealmChatInboxSubscriptionTarget struct {
 
 func (x *RealmChatInboxSubscriptionTarget) Reset() {
 	*x = RealmChatInboxSubscriptionTarget{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[31]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2492,7 +2423,7 @@ func (x *RealmChatInboxSubscriptionTarget) String() string {
 func (*RealmChatInboxSubscriptionTarget) ProtoMessage() {}
 
 func (x *RealmChatInboxSubscriptionTarget) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[31]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2505,7 +2436,7 @@ func (x *RealmChatInboxSubscriptionTarget) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RealmChatInboxSubscriptionTarget.ProtoReflect.Descriptor instead.
 func (*RealmChatInboxSubscriptionTarget) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{31}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{30}
 }
 
 type RealmChatInboxEvent struct {
@@ -2519,7 +2450,7 @@ type RealmChatInboxEvent struct {
 
 func (x *RealmChatInboxEvent) Reset() {
 	*x = RealmChatInboxEvent{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[32]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2531,7 +2462,7 @@ func (x *RealmChatInboxEvent) String() string {
 func (*RealmChatInboxEvent) ProtoMessage() {}
 
 func (x *RealmChatInboxEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[32]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2544,7 +2475,7 @@ func (x *RealmChatInboxEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RealmChatInboxEvent.ProtoReflect.Descriptor instead.
 func (*RealmChatInboxEvent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{32}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *RealmChatInboxEvent) GetChatId() string {
@@ -2583,7 +2514,7 @@ type SubscribeRealmRealtimeEventsRequest struct {
 
 func (x *SubscribeRealmRealtimeEventsRequest) Reset() {
 	*x = SubscribeRealmRealtimeEventsRequest{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[33]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2595,7 +2526,7 @@ func (x *SubscribeRealmRealtimeEventsRequest) String() string {
 func (*SubscribeRealmRealtimeEventsRequest) ProtoMessage() {}
 
 func (x *SubscribeRealmRealtimeEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[33]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2608,7 +2539,7 @@ func (x *SubscribeRealmRealtimeEventsRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use SubscribeRealmRealtimeEventsRequest.ProtoReflect.Descriptor instead.
 func (*SubscribeRealmRealtimeEventsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{33}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *SubscribeRealmRealtimeEventsRequest) GetChannelId() string {
@@ -2698,7 +2629,7 @@ type SubscribeRealmRealtimeEventsResponse struct {
 
 func (x *SubscribeRealmRealtimeEventsResponse) Reset() {
 	*x = SubscribeRealmRealtimeEventsResponse{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[34]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2710,7 +2641,7 @@ func (x *SubscribeRealmRealtimeEventsResponse) String() string {
 func (*SubscribeRealmRealtimeEventsResponse) ProtoMessage() {}
 
 func (x *SubscribeRealmRealtimeEventsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[34]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2723,7 +2654,7 @@ func (x *SubscribeRealmRealtimeEventsResponse) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use SubscribeRealmRealtimeEventsResponse.ProtoReflect.Descriptor instead.
 func (*SubscribeRealmRealtimeEventsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{34}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *SubscribeRealmRealtimeEventsResponse) GetRealtimeSessionId() string {
@@ -2889,7 +2820,7 @@ type AckRealmRealtimeEventsRequest struct {
 
 func (x *AckRealmRealtimeEventsRequest) Reset() {
 	*x = AckRealmRealtimeEventsRequest{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[35]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2901,7 +2832,7 @@ func (x *AckRealmRealtimeEventsRequest) String() string {
 func (*AckRealmRealtimeEventsRequest) ProtoMessage() {}
 
 func (x *AckRealmRealtimeEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[35]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2914,7 +2845,7 @@ func (x *AckRealmRealtimeEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AckRealmRealtimeEventsRequest.ProtoReflect.Descriptor instead.
 func (*AckRealmRealtimeEventsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{35}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *AckRealmRealtimeEventsRequest) GetChannelId() string {
@@ -2948,7 +2879,7 @@ type CloseRealmRealtimeSubscriptionRequest struct {
 
 func (x *CloseRealmRealtimeSubscriptionRequest) Reset() {
 	*x = CloseRealmRealtimeSubscriptionRequest{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[36]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2960,7 +2891,7 @@ func (x *CloseRealmRealtimeSubscriptionRequest) String() string {
 func (*CloseRealmRealtimeSubscriptionRequest) ProtoMessage() {}
 
 func (x *CloseRealmRealtimeSubscriptionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[36]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2973,7 +2904,7 @@ func (x *CloseRealmRealtimeSubscriptionRequest) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use CloseRealmRealtimeSubscriptionRequest.ProtoReflect.Descriptor instead.
 func (*CloseRealmRealtimeSubscriptionRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{36}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *CloseRealmRealtimeSubscriptionRequest) GetChannelId() string {
@@ -2999,7 +2930,7 @@ type CloseRealmRealtimeChannelRequest struct {
 
 func (x *CloseRealmRealtimeChannelRequest) Reset() {
 	*x = CloseRealmRealtimeChannelRequest{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[37]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3011,7 +2942,7 @@ func (x *CloseRealmRealtimeChannelRequest) String() string {
 func (*CloseRealmRealtimeChannelRequest) ProtoMessage() {}
 
 func (x *CloseRealmRealtimeChannelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[37]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3024,7 +2955,7 @@ func (x *CloseRealmRealtimeChannelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseRealmRealtimeChannelRequest.ProtoReflect.Descriptor instead.
 func (*CloseRealmRealtimeChannelRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{37}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *CloseRealmRealtimeChannelRequest) GetChannelId() string {
@@ -3043,7 +2974,7 @@ type AckRealmRealtimeEventsResponse struct {
 
 func (x *AckRealmRealtimeEventsResponse) Reset() {
 	*x = AckRealmRealtimeEventsResponse{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[38]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3055,7 +2986,7 @@ func (x *AckRealmRealtimeEventsResponse) String() string {
 func (*AckRealmRealtimeEventsResponse) ProtoMessage() {}
 
 func (x *AckRealmRealtimeEventsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[38]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3068,7 +2999,7 @@ func (x *AckRealmRealtimeEventsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AckRealmRealtimeEventsResponse.ProtoReflect.Descriptor instead.
 func (*AckRealmRealtimeEventsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{38}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *AckRealmRealtimeEventsResponse) GetAck() *Ack {
@@ -3087,7 +3018,7 @@ type CloseRealmRealtimeSubscriptionResponse struct {
 
 func (x *CloseRealmRealtimeSubscriptionResponse) Reset() {
 	*x = CloseRealmRealtimeSubscriptionResponse{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[39]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3099,7 +3030,7 @@ func (x *CloseRealmRealtimeSubscriptionResponse) String() string {
 func (*CloseRealmRealtimeSubscriptionResponse) ProtoMessage() {}
 
 func (x *CloseRealmRealtimeSubscriptionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[39]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3112,7 +3043,7 @@ func (x *CloseRealmRealtimeSubscriptionResponse) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use CloseRealmRealtimeSubscriptionResponse.ProtoReflect.Descriptor instead.
 func (*CloseRealmRealtimeSubscriptionResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{39}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *CloseRealmRealtimeSubscriptionResponse) GetAck() *Ack {
@@ -3131,7 +3062,7 @@ type CloseRealmRealtimeChannelResponse struct {
 
 func (x *CloseRealmRealtimeChannelResponse) Reset() {
 	*x = CloseRealmRealtimeChannelResponse{}
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[40]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3143,7 +3074,7 @@ func (x *CloseRealmRealtimeChannelResponse) String() string {
 func (*CloseRealmRealtimeChannelResponse) ProtoMessage() {}
 
 func (x *CloseRealmRealtimeChannelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[40]
+	mi := &file_runtime_v1_realm_realtime_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3156,7 +3087,7 @@ func (x *CloseRealmRealtimeChannelResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use CloseRealmRealtimeChannelResponse.ProtoReflect.Descriptor instead.
 func (*CloseRealmRealtimeChannelResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{40}
+	return file_runtime_v1_realm_realtime_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *CloseRealmRealtimeChannelResponse) GetAck() *Ack {
@@ -3218,9 +3149,7 @@ const file_runtime_v1_realm_realtime_proto_rawDesc = "" +
 	"\apreview\x18\v \x01(\v2+.nimi.runtime.v1.RealmChatAttachmentPayloadR\apreview\x12?\n" +
 	"\bdelivery\x18\f \x01(\v2#.nimi.runtime.v1.RealmMediaDeliveryR\bdelivery\x12!\n" +
 	"\fexternal_url\x18\r \x01(\tR\vexternalUrl\x12 \n" +
-	"\vunavailable\x18\x0e \x01(\bR\vunavailableJ\x04\b\x06\x10\aJ\x04\b\a\x10\bR\x03urlR\tthumbnail\"2\n" +
-	"\x17RealmChatPostRefPayload\x12\x17\n" +
-	"\apost_id\x18\x01 \x01(\tR\x06postId\"\x81\x01\n" +
+	"\vunavailable\x18\x0e \x01(\bR\vunavailableJ\x04\b\x06\x10\aJ\x04\b\a\x10\bR\x03urlR\tthumbnail\"\x81\x01\n" +
 	"\x15RealmChatUserSnapshot\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06handle\x18\x02 \x01(\tR\x06handle\x12!\n" +
@@ -3240,18 +3169,17 @@ const file_runtime_v1_realm_realtime_proto_rawDesc = "" +
 	"\x0frequest_message\x18\x03 \x01(\tR\x0erequestMessage\"F\n" +
 	"\x16RealmChatSystemPayload\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\xa1\x04\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\xea\x03\n" +
 	"\x17RealmChatMessagePayload\x12;\n" +
 	"\x04text\x18\x01 \x01(\v2%.nimi.runtime.v1.RealmChatTextPayloadH\x00R\x04text\x12M\n" +
 	"\n" +
 	"attachment\x18\x02 \x01(\v2+.nimi.runtime.v1.RealmChatAttachmentPayloadH\x00R\n" +
 	"attachment\x12E\n" +
-	"\bpost_ref\x18\x03 \x01(\v2(.nimi.runtime.v1.RealmChatPostRefPayloadH\x00R\apostRef\x12E\n" +
 	"\buser_ref\x18\x04 \x01(\v2(.nimi.runtime.v1.RealmChatUserRefPayloadH\x00R\auserRef\x12E\n" +
 	"\blink_ref\x18\x05 \x01(\v2(.nimi.runtime.v1.RealmChatLinkRefPayloadH\x00R\alinkRef\x12W\n" +
 	"\x0efriend_request\x18\x06 \x01(\v2..nimi.runtime.v1.RealmChatFriendRequestPayloadH\x00R\rfriendRequest\x12A\n" +
 	"\x06system\x18\a \x01(\v2'.nimi.runtime.v1.RealmChatSystemPayloadH\x00R\x06systemB\t\n" +
-	"\apayload\"\xd7\x01\n" +
+	"\apayloadJ\x04\b\x03\x10\x04R\bpost_ref\"\xd7\x01\n" +
 	"\x15RealmChatMessageReply\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\tsender_id\x18\x02 \x01(\tR\bsenderId\x129\n" +
@@ -3416,22 +3344,19 @@ const file_runtime_v1_realm_realtime_proto_rawDesc = "" +
 	"&CloseRealmRealtimeSubscriptionResponse\x12&\n" +
 	"\x03ack\x18\x01 \x01(\v2\x14.nimi.runtime.v1.AckR\x03ack\"K\n" +
 	"!CloseRealmRealtimeChannelResponse\x12&\n" +
-	"\x03ack\x18\x01 \x01(\v2\x14.nimi.runtime.v1.AckR\x03ack*\xef\x02\n" +
+	"\x03ack\x18\x01 \x01(\v2\x14.nimi.runtime.v1.AckR\x03ack*\xf1\x02\n" +
 	"\x14RealmChatMessageType\x12'\n" +
 	"#REALM_CHAT_MESSAGE_TYPE_UNSPECIFIED\x10\x00\x12 \n" +
 	"\x1cREALM_CHAT_MESSAGE_TYPE_TEXT\x10\x01\x12&\n" +
 	"\"REALM_CHAT_MESSAGE_TYPE_ATTACHMENT\x10\x02\x12$\n" +
-	" REALM_CHAT_MESSAGE_TYPE_POST_REF\x10\x03\x12$\n" +
 	" REALM_CHAT_MESSAGE_TYPE_USER_REF\x10\x04\x12$\n" +
 	" REALM_CHAT_MESSAGE_TYPE_LINK_REF\x10\x05\x12*\n" +
 	"&REALM_CHAT_MESSAGE_TYPE_FRIEND_REQUEST\x10\x06\x12\"\n" +
 	"\x1eREALM_CHAT_MESSAGE_TYPE_SYSTEM\x10\a\x12\"\n" +
-	"\x1eREALM_CHAT_MESSAGE_TYPE_RECALL\x10\b*\xc5\x01\n" +
+	"\x1eREALM_CHAT_MESSAGE_TYPE_RECALL\x10\b\"\x04\b\x03\x10\x03* REALM_CHAT_MESSAGE_TYPE_POST_REF*\xc9\x01\n" +
 	"\x19RealmAttachmentTargetType\x12,\n" +
 	"(REALM_ATTACHMENT_TARGET_TYPE_UNSPECIFIED\x10\x00\x12)\n" +
-	"%REALM_ATTACHMENT_TARGET_TYPE_RESOURCE\x10\x01\x12&\n" +
-	"\"REALM_ATTACHMENT_TARGET_TYPE_ASSET\x10\x02\x12'\n" +
-	"#REALM_ATTACHMENT_TARGET_TYPE_BUNDLE\x10\x03*\x96\x02\n" +
+	"%REALM_ATTACHMENT_TARGET_TYPE_RESOURCE\x10\x01\"\x04\b\x02\x10\x02\"\x04\b\x03\x10\x03*\"REALM_ATTACHMENT_TARGET_TYPE_ASSET*#REALM_ATTACHMENT_TARGET_TYPE_BUNDLE*\x96\x02\n" +
 	"\x1aRealmAttachmentDisplayKind\x12-\n" +
 	")REALM_ATTACHMENT_DISPLAY_KIND_UNSPECIFIED\x10\x00\x12'\n" +
 	"#REALM_ATTACHMENT_DISPLAY_KIND_IMAGE\x10\x01\x12'\n" +
@@ -3460,7 +3385,7 @@ func file_runtime_v1_realm_realtime_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_realm_realtime_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_runtime_v1_realm_realtime_proto_msgTypes = make([]protoimpl.MessageInfo, 41)
+var file_runtime_v1_realm_realtime_proto_msgTypes = make([]protoimpl.MessageInfo, 40)
 var file_runtime_v1_realm_realtime_proto_goTypes = []any{
 	(RealmChatMessageType)(0),                      // 0: nimi.runtime.v1.RealmChatMessageType
 	(RealmAttachmentTargetType)(0),                 // 1: nimi.runtime.v1.RealmAttachmentTargetType
@@ -3472,43 +3397,42 @@ var file_runtime_v1_realm_realtime_proto_goTypes = []any{
 	(*RealmMediaVideo)(nil),                        // 7: nimi.runtime.v1.RealmMediaVideo
 	(*RealmMediaDelivery)(nil),                     // 8: nimi.runtime.v1.RealmMediaDelivery
 	(*RealmChatAttachmentPayload)(nil),             // 9: nimi.runtime.v1.RealmChatAttachmentPayload
-	(*RealmChatPostRefPayload)(nil),                // 10: nimi.runtime.v1.RealmChatPostRefPayload
-	(*RealmChatUserSnapshot)(nil),                  // 11: nimi.runtime.v1.RealmChatUserSnapshot
-	(*RealmChatUserRefPayload)(nil),                // 12: nimi.runtime.v1.RealmChatUserRefPayload
-	(*RealmChatLinkRefPayload)(nil),                // 13: nimi.runtime.v1.RealmChatLinkRefPayload
-	(*RealmChatFriendRequestPayload)(nil),          // 14: nimi.runtime.v1.RealmChatFriendRequestPayload
-	(*RealmChatSystemPayload)(nil),                 // 15: nimi.runtime.v1.RealmChatSystemPayload
-	(*RealmChatMessagePayload)(nil),                // 16: nimi.runtime.v1.RealmChatMessagePayload
-	(*RealmChatMessageReply)(nil),                  // 17: nimi.runtime.v1.RealmChatMessageReply
-	(*RealmChatMessage)(nil),                       // 18: nimi.runtime.v1.RealmChatMessage
-	(*RealmChatMessageMutation)(nil),               // 19: nimi.runtime.v1.RealmChatMessageMutation
-	(*RealmChatMessageRecalled)(nil),               // 20: nimi.runtime.v1.RealmChatMessageRecalled
-	(*RealmChatRead)(nil),                          // 21: nimi.runtime.v1.RealmChatRead
-	(*RealmChatDurableEvent)(nil),                  // 22: nimi.runtime.v1.RealmChatDurableEvent
-	(*RealmChatTypingEvent)(nil),                   // 23: nimi.runtime.v1.RealmChatTypingEvent
-	(*RealmPresenceEvent)(nil),                     // 24: nimi.runtime.v1.RealmPresenceEvent
-	(*RealmChatUserSummary)(nil),                   // 25: nimi.runtime.v1.RealmChatUserSummary
-	(*RealmChatSnapshot)(nil),                      // 26: nimi.runtime.v1.RealmChatSnapshot
-	(*ListRealmChatsRequest)(nil),                  // 27: nimi.runtime.v1.ListRealmChatsRequest
-	(*RealmChatListItem)(nil),                      // 28: nimi.runtime.v1.RealmChatListItem
-	(*ListRealmChatsResponse)(nil),                 // 29: nimi.runtime.v1.ListRealmChatsResponse
-	(*OpenRealmRealtimeChannelRequest)(nil),        // 30: nimi.runtime.v1.OpenRealmRealtimeChannelRequest
-	(*OpenRealmRealtimeChannelResponse)(nil),       // 31: nimi.runtime.v1.OpenRealmRealtimeChannelResponse
-	(*RealmChatSubscriptionTarget)(nil),            // 32: nimi.runtime.v1.RealmChatSubscriptionTarget
-	(*RealmPresenceSubscriptionTarget)(nil),        // 33: nimi.runtime.v1.RealmPresenceSubscriptionTarget
-	(*RealmChatInboxSubscriptionTarget)(nil),       // 34: nimi.runtime.v1.RealmChatInboxSubscriptionTarget
-	(*RealmChatInboxEvent)(nil),                    // 35: nimi.runtime.v1.RealmChatInboxEvent
-	(*SubscribeRealmRealtimeEventsRequest)(nil),    // 36: nimi.runtime.v1.SubscribeRealmRealtimeEventsRequest
-	(*SubscribeRealmRealtimeEventsResponse)(nil),   // 37: nimi.runtime.v1.SubscribeRealmRealtimeEventsResponse
-	(*AckRealmRealtimeEventsRequest)(nil),          // 38: nimi.runtime.v1.AckRealmRealtimeEventsRequest
-	(*CloseRealmRealtimeSubscriptionRequest)(nil),  // 39: nimi.runtime.v1.CloseRealmRealtimeSubscriptionRequest
-	(*CloseRealmRealtimeChannelRequest)(nil),       // 40: nimi.runtime.v1.CloseRealmRealtimeChannelRequest
-	(*AckRealmRealtimeEventsResponse)(nil),         // 41: nimi.runtime.v1.AckRealmRealtimeEventsResponse
-	(*CloseRealmRealtimeSubscriptionResponse)(nil), // 42: nimi.runtime.v1.CloseRealmRealtimeSubscriptionResponse
-	(*CloseRealmRealtimeChannelResponse)(nil),      // 43: nimi.runtime.v1.CloseRealmRealtimeChannelResponse
-	(*timestamppb.Timestamp)(nil),                  // 44: google.protobuf.Timestamp
-	(*RealtimeControlStatus)(nil),                  // 45: nimi.runtime.v1.RealtimeControlStatus
-	(*Ack)(nil),                                    // 46: nimi.runtime.v1.Ack
+	(*RealmChatUserSnapshot)(nil),                  // 10: nimi.runtime.v1.RealmChatUserSnapshot
+	(*RealmChatUserRefPayload)(nil),                // 11: nimi.runtime.v1.RealmChatUserRefPayload
+	(*RealmChatLinkRefPayload)(nil),                // 12: nimi.runtime.v1.RealmChatLinkRefPayload
+	(*RealmChatFriendRequestPayload)(nil),          // 13: nimi.runtime.v1.RealmChatFriendRequestPayload
+	(*RealmChatSystemPayload)(nil),                 // 14: nimi.runtime.v1.RealmChatSystemPayload
+	(*RealmChatMessagePayload)(nil),                // 15: nimi.runtime.v1.RealmChatMessagePayload
+	(*RealmChatMessageReply)(nil),                  // 16: nimi.runtime.v1.RealmChatMessageReply
+	(*RealmChatMessage)(nil),                       // 17: nimi.runtime.v1.RealmChatMessage
+	(*RealmChatMessageMutation)(nil),               // 18: nimi.runtime.v1.RealmChatMessageMutation
+	(*RealmChatMessageRecalled)(nil),               // 19: nimi.runtime.v1.RealmChatMessageRecalled
+	(*RealmChatRead)(nil),                          // 20: nimi.runtime.v1.RealmChatRead
+	(*RealmChatDurableEvent)(nil),                  // 21: nimi.runtime.v1.RealmChatDurableEvent
+	(*RealmChatTypingEvent)(nil),                   // 22: nimi.runtime.v1.RealmChatTypingEvent
+	(*RealmPresenceEvent)(nil),                     // 23: nimi.runtime.v1.RealmPresenceEvent
+	(*RealmChatUserSummary)(nil),                   // 24: nimi.runtime.v1.RealmChatUserSummary
+	(*RealmChatSnapshot)(nil),                      // 25: nimi.runtime.v1.RealmChatSnapshot
+	(*ListRealmChatsRequest)(nil),                  // 26: nimi.runtime.v1.ListRealmChatsRequest
+	(*RealmChatListItem)(nil),                      // 27: nimi.runtime.v1.RealmChatListItem
+	(*ListRealmChatsResponse)(nil),                 // 28: nimi.runtime.v1.ListRealmChatsResponse
+	(*OpenRealmRealtimeChannelRequest)(nil),        // 29: nimi.runtime.v1.OpenRealmRealtimeChannelRequest
+	(*OpenRealmRealtimeChannelResponse)(nil),       // 30: nimi.runtime.v1.OpenRealmRealtimeChannelResponse
+	(*RealmChatSubscriptionTarget)(nil),            // 31: nimi.runtime.v1.RealmChatSubscriptionTarget
+	(*RealmPresenceSubscriptionTarget)(nil),        // 32: nimi.runtime.v1.RealmPresenceSubscriptionTarget
+	(*RealmChatInboxSubscriptionTarget)(nil),       // 33: nimi.runtime.v1.RealmChatInboxSubscriptionTarget
+	(*RealmChatInboxEvent)(nil),                    // 34: nimi.runtime.v1.RealmChatInboxEvent
+	(*SubscribeRealmRealtimeEventsRequest)(nil),    // 35: nimi.runtime.v1.SubscribeRealmRealtimeEventsRequest
+	(*SubscribeRealmRealtimeEventsResponse)(nil),   // 36: nimi.runtime.v1.SubscribeRealmRealtimeEventsResponse
+	(*AckRealmRealtimeEventsRequest)(nil),          // 37: nimi.runtime.v1.AckRealmRealtimeEventsRequest
+	(*CloseRealmRealtimeSubscriptionRequest)(nil),  // 38: nimi.runtime.v1.CloseRealmRealtimeSubscriptionRequest
+	(*CloseRealmRealtimeChannelRequest)(nil),       // 39: nimi.runtime.v1.CloseRealmRealtimeChannelRequest
+	(*AckRealmRealtimeEventsResponse)(nil),         // 40: nimi.runtime.v1.AckRealmRealtimeEventsResponse
+	(*CloseRealmRealtimeSubscriptionResponse)(nil), // 41: nimi.runtime.v1.CloseRealmRealtimeSubscriptionResponse
+	(*CloseRealmRealtimeChannelResponse)(nil),      // 42: nimi.runtime.v1.CloseRealmRealtimeChannelResponse
+	(*timestamppb.Timestamp)(nil),                  // 43: google.protobuf.Timestamp
+	(*RealtimeControlStatus)(nil),                  // 44: nimi.runtime.v1.RealtimeControlStatus
+	(*Ack)(nil),                                    // 45: nimi.runtime.v1.Ack
 }
 var file_runtime_v1_realm_realtime_proto_depIdxs = []int32{
 	4,  // 0: nimi.runtime.v1.RealmMediaImageFamily.sources:type_name -> nimi.runtime.v1.RealmMediaImageSource
@@ -3519,74 +3443,73 @@ var file_runtime_v1_realm_realtime_proto_depIdxs = []int32{
 	2,  // 5: nimi.runtime.v1.RealmChatAttachmentPayload.display_kind:type_name -> nimi.runtime.v1.RealmAttachmentDisplayKind
 	9,  // 6: nimi.runtime.v1.RealmChatAttachmentPayload.preview:type_name -> nimi.runtime.v1.RealmChatAttachmentPayload
 	8,  // 7: nimi.runtime.v1.RealmChatAttachmentPayload.delivery:type_name -> nimi.runtime.v1.RealmMediaDelivery
-	11, // 8: nimi.runtime.v1.RealmChatUserRefPayload.snapshot:type_name -> nimi.runtime.v1.RealmChatUserSnapshot
+	10, // 8: nimi.runtime.v1.RealmChatUserRefPayload.snapshot:type_name -> nimi.runtime.v1.RealmChatUserSnapshot
 	3,  // 9: nimi.runtime.v1.RealmChatMessagePayload.text:type_name -> nimi.runtime.v1.RealmChatTextPayload
 	9,  // 10: nimi.runtime.v1.RealmChatMessagePayload.attachment:type_name -> nimi.runtime.v1.RealmChatAttachmentPayload
-	10, // 11: nimi.runtime.v1.RealmChatMessagePayload.post_ref:type_name -> nimi.runtime.v1.RealmChatPostRefPayload
-	12, // 12: nimi.runtime.v1.RealmChatMessagePayload.user_ref:type_name -> nimi.runtime.v1.RealmChatUserRefPayload
-	13, // 13: nimi.runtime.v1.RealmChatMessagePayload.link_ref:type_name -> nimi.runtime.v1.RealmChatLinkRefPayload
-	14, // 14: nimi.runtime.v1.RealmChatMessagePayload.friend_request:type_name -> nimi.runtime.v1.RealmChatFriendRequestPayload
-	15, // 15: nimi.runtime.v1.RealmChatMessagePayload.system:type_name -> nimi.runtime.v1.RealmChatSystemPayload
-	0,  // 16: nimi.runtime.v1.RealmChatMessageReply.type:type_name -> nimi.runtime.v1.RealmChatMessageType
-	16, // 17: nimi.runtime.v1.RealmChatMessageReply.payload:type_name -> nimi.runtime.v1.RealmChatMessagePayload
-	0,  // 18: nimi.runtime.v1.RealmChatMessage.type:type_name -> nimi.runtime.v1.RealmChatMessageType
-	16, // 19: nimi.runtime.v1.RealmChatMessage.payload:type_name -> nimi.runtime.v1.RealmChatMessagePayload
-	17, // 20: nimi.runtime.v1.RealmChatMessage.reply_to:type_name -> nimi.runtime.v1.RealmChatMessageReply
-	44, // 21: nimi.runtime.v1.RealmChatMessage.created_at:type_name -> google.protobuf.Timestamp
-	44, // 22: nimi.runtime.v1.RealmChatMessage.edited_at:type_name -> google.protobuf.Timestamp
-	18, // 23: nimi.runtime.v1.RealmChatMessageMutation.message:type_name -> nimi.runtime.v1.RealmChatMessage
-	44, // 24: nimi.runtime.v1.RealmChatMessageRecalled.recalled_at:type_name -> google.protobuf.Timestamp
-	44, // 25: nimi.runtime.v1.RealmChatRead.read_at:type_name -> google.protobuf.Timestamp
-	44, // 26: nimi.runtime.v1.RealmChatDurableEvent.occurred_at:type_name -> google.protobuf.Timestamp
-	19, // 27: nimi.runtime.v1.RealmChatDurableEvent.message_created:type_name -> nimi.runtime.v1.RealmChatMessageMutation
-	19, // 28: nimi.runtime.v1.RealmChatDurableEvent.message_edited:type_name -> nimi.runtime.v1.RealmChatMessageMutation
-	20, // 29: nimi.runtime.v1.RealmChatDurableEvent.message_recalled:type_name -> nimi.runtime.v1.RealmChatMessageRecalled
-	21, // 30: nimi.runtime.v1.RealmChatDurableEvent.chat_read:type_name -> nimi.runtime.v1.RealmChatRead
-	44, // 31: nimi.runtime.v1.RealmChatTypingEvent.expires_at:type_name -> google.protobuf.Timestamp
-	44, // 32: nimi.runtime.v1.RealmPresenceEvent.occurred_at:type_name -> google.protobuf.Timestamp
-	44, // 33: nimi.runtime.v1.RealmChatUserSummary.created_at:type_name -> google.protobuf.Timestamp
-	8,  // 34: nimi.runtime.v1.RealmChatUserSummary.avatar_media:type_name -> nimi.runtime.v1.RealmMediaDelivery
-	25, // 35: nimi.runtime.v1.RealmChatSnapshot.other_user:type_name -> nimi.runtime.v1.RealmChatUserSummary
-	18, // 36: nimi.runtime.v1.RealmChatSnapshot.messages:type_name -> nimi.runtime.v1.RealmChatMessage
-	44, // 37: nimi.runtime.v1.RealmChatSnapshot.applied_at:type_name -> google.protobuf.Timestamp
-	25, // 38: nimi.runtime.v1.RealmChatListItem.other_user:type_name -> nimi.runtime.v1.RealmChatUserSummary
-	18, // 39: nimi.runtime.v1.RealmChatListItem.last_message:type_name -> nimi.runtime.v1.RealmChatMessage
-	44, // 40: nimi.runtime.v1.RealmChatListItem.created_at:type_name -> google.protobuf.Timestamp
-	44, // 41: nimi.runtime.v1.RealmChatListItem.updated_at:type_name -> google.protobuf.Timestamp
-	44, // 42: nimi.runtime.v1.RealmChatListItem.last_message_at:type_name -> google.protobuf.Timestamp
-	28, // 43: nimi.runtime.v1.ListRealmChatsResponse.items:type_name -> nimi.runtime.v1.RealmChatListItem
-	45, // 44: nimi.runtime.v1.OpenRealmRealtimeChannelResponse.status:type_name -> nimi.runtime.v1.RealtimeControlStatus
-	44, // 45: nimi.runtime.v1.RealmChatInboxEvent.occurred_at:type_name -> google.protobuf.Timestamp
-	32, // 46: nimi.runtime.v1.SubscribeRealmRealtimeEventsRequest.chat:type_name -> nimi.runtime.v1.RealmChatSubscriptionTarget
-	33, // 47: nimi.runtime.v1.SubscribeRealmRealtimeEventsRequest.presence:type_name -> nimi.runtime.v1.RealmPresenceSubscriptionTarget
-	34, // 48: nimi.runtime.v1.SubscribeRealmRealtimeEventsRequest.inbox:type_name -> nimi.runtime.v1.RealmChatInboxSubscriptionTarget
-	44, // 49: nimi.runtime.v1.SubscribeRealmRealtimeEventsResponse.occurred_at:type_name -> google.protobuf.Timestamp
-	45, // 50: nimi.runtime.v1.SubscribeRealmRealtimeEventsResponse.control:type_name -> nimi.runtime.v1.RealtimeControlStatus
-	22, // 51: nimi.runtime.v1.SubscribeRealmRealtimeEventsResponse.chat:type_name -> nimi.runtime.v1.RealmChatDurableEvent
-	23, // 52: nimi.runtime.v1.SubscribeRealmRealtimeEventsResponse.typing:type_name -> nimi.runtime.v1.RealmChatTypingEvent
-	24, // 53: nimi.runtime.v1.SubscribeRealmRealtimeEventsResponse.presence:type_name -> nimi.runtime.v1.RealmPresenceEvent
-	26, // 54: nimi.runtime.v1.SubscribeRealmRealtimeEventsResponse.snapshot:type_name -> nimi.runtime.v1.RealmChatSnapshot
-	35, // 55: nimi.runtime.v1.SubscribeRealmRealtimeEventsResponse.inbox:type_name -> nimi.runtime.v1.RealmChatInboxEvent
-	46, // 56: nimi.runtime.v1.AckRealmRealtimeEventsResponse.ack:type_name -> nimi.runtime.v1.Ack
-	46, // 57: nimi.runtime.v1.CloseRealmRealtimeSubscriptionResponse.ack:type_name -> nimi.runtime.v1.Ack
-	46, // 58: nimi.runtime.v1.CloseRealmRealtimeChannelResponse.ack:type_name -> nimi.runtime.v1.Ack
-	27, // 59: nimi.runtime.v1.RuntimeRealmRealtimeService.ListRealmChats:input_type -> nimi.runtime.v1.ListRealmChatsRequest
-	30, // 60: nimi.runtime.v1.RuntimeRealmRealtimeService.OpenRealmRealtimeChannel:input_type -> nimi.runtime.v1.OpenRealmRealtimeChannelRequest
-	36, // 61: nimi.runtime.v1.RuntimeRealmRealtimeService.SubscribeRealmRealtimeEvents:input_type -> nimi.runtime.v1.SubscribeRealmRealtimeEventsRequest
-	38, // 62: nimi.runtime.v1.RuntimeRealmRealtimeService.AckRealmRealtimeEvents:input_type -> nimi.runtime.v1.AckRealmRealtimeEventsRequest
-	39, // 63: nimi.runtime.v1.RuntimeRealmRealtimeService.CloseRealmRealtimeSubscription:input_type -> nimi.runtime.v1.CloseRealmRealtimeSubscriptionRequest
-	40, // 64: nimi.runtime.v1.RuntimeRealmRealtimeService.CloseRealmRealtimeChannel:input_type -> nimi.runtime.v1.CloseRealmRealtimeChannelRequest
-	29, // 65: nimi.runtime.v1.RuntimeRealmRealtimeService.ListRealmChats:output_type -> nimi.runtime.v1.ListRealmChatsResponse
-	31, // 66: nimi.runtime.v1.RuntimeRealmRealtimeService.OpenRealmRealtimeChannel:output_type -> nimi.runtime.v1.OpenRealmRealtimeChannelResponse
-	37, // 67: nimi.runtime.v1.RuntimeRealmRealtimeService.SubscribeRealmRealtimeEvents:output_type -> nimi.runtime.v1.SubscribeRealmRealtimeEventsResponse
-	41, // 68: nimi.runtime.v1.RuntimeRealmRealtimeService.AckRealmRealtimeEvents:output_type -> nimi.runtime.v1.AckRealmRealtimeEventsResponse
-	42, // 69: nimi.runtime.v1.RuntimeRealmRealtimeService.CloseRealmRealtimeSubscription:output_type -> nimi.runtime.v1.CloseRealmRealtimeSubscriptionResponse
-	43, // 70: nimi.runtime.v1.RuntimeRealmRealtimeService.CloseRealmRealtimeChannel:output_type -> nimi.runtime.v1.CloseRealmRealtimeChannelResponse
-	65, // [65:71] is the sub-list for method output_type
-	59, // [59:65] is the sub-list for method input_type
-	59, // [59:59] is the sub-list for extension type_name
-	59, // [59:59] is the sub-list for extension extendee
-	0,  // [0:59] is the sub-list for field type_name
+	11, // 11: nimi.runtime.v1.RealmChatMessagePayload.user_ref:type_name -> nimi.runtime.v1.RealmChatUserRefPayload
+	12, // 12: nimi.runtime.v1.RealmChatMessagePayload.link_ref:type_name -> nimi.runtime.v1.RealmChatLinkRefPayload
+	13, // 13: nimi.runtime.v1.RealmChatMessagePayload.friend_request:type_name -> nimi.runtime.v1.RealmChatFriendRequestPayload
+	14, // 14: nimi.runtime.v1.RealmChatMessagePayload.system:type_name -> nimi.runtime.v1.RealmChatSystemPayload
+	0,  // 15: nimi.runtime.v1.RealmChatMessageReply.type:type_name -> nimi.runtime.v1.RealmChatMessageType
+	15, // 16: nimi.runtime.v1.RealmChatMessageReply.payload:type_name -> nimi.runtime.v1.RealmChatMessagePayload
+	0,  // 17: nimi.runtime.v1.RealmChatMessage.type:type_name -> nimi.runtime.v1.RealmChatMessageType
+	15, // 18: nimi.runtime.v1.RealmChatMessage.payload:type_name -> nimi.runtime.v1.RealmChatMessagePayload
+	16, // 19: nimi.runtime.v1.RealmChatMessage.reply_to:type_name -> nimi.runtime.v1.RealmChatMessageReply
+	43, // 20: nimi.runtime.v1.RealmChatMessage.created_at:type_name -> google.protobuf.Timestamp
+	43, // 21: nimi.runtime.v1.RealmChatMessage.edited_at:type_name -> google.protobuf.Timestamp
+	17, // 22: nimi.runtime.v1.RealmChatMessageMutation.message:type_name -> nimi.runtime.v1.RealmChatMessage
+	43, // 23: nimi.runtime.v1.RealmChatMessageRecalled.recalled_at:type_name -> google.protobuf.Timestamp
+	43, // 24: nimi.runtime.v1.RealmChatRead.read_at:type_name -> google.protobuf.Timestamp
+	43, // 25: nimi.runtime.v1.RealmChatDurableEvent.occurred_at:type_name -> google.protobuf.Timestamp
+	18, // 26: nimi.runtime.v1.RealmChatDurableEvent.message_created:type_name -> nimi.runtime.v1.RealmChatMessageMutation
+	18, // 27: nimi.runtime.v1.RealmChatDurableEvent.message_edited:type_name -> nimi.runtime.v1.RealmChatMessageMutation
+	19, // 28: nimi.runtime.v1.RealmChatDurableEvent.message_recalled:type_name -> nimi.runtime.v1.RealmChatMessageRecalled
+	20, // 29: nimi.runtime.v1.RealmChatDurableEvent.chat_read:type_name -> nimi.runtime.v1.RealmChatRead
+	43, // 30: nimi.runtime.v1.RealmChatTypingEvent.expires_at:type_name -> google.protobuf.Timestamp
+	43, // 31: nimi.runtime.v1.RealmPresenceEvent.occurred_at:type_name -> google.protobuf.Timestamp
+	43, // 32: nimi.runtime.v1.RealmChatUserSummary.created_at:type_name -> google.protobuf.Timestamp
+	8,  // 33: nimi.runtime.v1.RealmChatUserSummary.avatar_media:type_name -> nimi.runtime.v1.RealmMediaDelivery
+	24, // 34: nimi.runtime.v1.RealmChatSnapshot.other_user:type_name -> nimi.runtime.v1.RealmChatUserSummary
+	17, // 35: nimi.runtime.v1.RealmChatSnapshot.messages:type_name -> nimi.runtime.v1.RealmChatMessage
+	43, // 36: nimi.runtime.v1.RealmChatSnapshot.applied_at:type_name -> google.protobuf.Timestamp
+	24, // 37: nimi.runtime.v1.RealmChatListItem.other_user:type_name -> nimi.runtime.v1.RealmChatUserSummary
+	17, // 38: nimi.runtime.v1.RealmChatListItem.last_message:type_name -> nimi.runtime.v1.RealmChatMessage
+	43, // 39: nimi.runtime.v1.RealmChatListItem.created_at:type_name -> google.protobuf.Timestamp
+	43, // 40: nimi.runtime.v1.RealmChatListItem.updated_at:type_name -> google.protobuf.Timestamp
+	43, // 41: nimi.runtime.v1.RealmChatListItem.last_message_at:type_name -> google.protobuf.Timestamp
+	27, // 42: nimi.runtime.v1.ListRealmChatsResponse.items:type_name -> nimi.runtime.v1.RealmChatListItem
+	44, // 43: nimi.runtime.v1.OpenRealmRealtimeChannelResponse.status:type_name -> nimi.runtime.v1.RealtimeControlStatus
+	43, // 44: nimi.runtime.v1.RealmChatInboxEvent.occurred_at:type_name -> google.protobuf.Timestamp
+	31, // 45: nimi.runtime.v1.SubscribeRealmRealtimeEventsRequest.chat:type_name -> nimi.runtime.v1.RealmChatSubscriptionTarget
+	32, // 46: nimi.runtime.v1.SubscribeRealmRealtimeEventsRequest.presence:type_name -> nimi.runtime.v1.RealmPresenceSubscriptionTarget
+	33, // 47: nimi.runtime.v1.SubscribeRealmRealtimeEventsRequest.inbox:type_name -> nimi.runtime.v1.RealmChatInboxSubscriptionTarget
+	43, // 48: nimi.runtime.v1.SubscribeRealmRealtimeEventsResponse.occurred_at:type_name -> google.protobuf.Timestamp
+	44, // 49: nimi.runtime.v1.SubscribeRealmRealtimeEventsResponse.control:type_name -> nimi.runtime.v1.RealtimeControlStatus
+	21, // 50: nimi.runtime.v1.SubscribeRealmRealtimeEventsResponse.chat:type_name -> nimi.runtime.v1.RealmChatDurableEvent
+	22, // 51: nimi.runtime.v1.SubscribeRealmRealtimeEventsResponse.typing:type_name -> nimi.runtime.v1.RealmChatTypingEvent
+	23, // 52: nimi.runtime.v1.SubscribeRealmRealtimeEventsResponse.presence:type_name -> nimi.runtime.v1.RealmPresenceEvent
+	25, // 53: nimi.runtime.v1.SubscribeRealmRealtimeEventsResponse.snapshot:type_name -> nimi.runtime.v1.RealmChatSnapshot
+	34, // 54: nimi.runtime.v1.SubscribeRealmRealtimeEventsResponse.inbox:type_name -> nimi.runtime.v1.RealmChatInboxEvent
+	45, // 55: nimi.runtime.v1.AckRealmRealtimeEventsResponse.ack:type_name -> nimi.runtime.v1.Ack
+	45, // 56: nimi.runtime.v1.CloseRealmRealtimeSubscriptionResponse.ack:type_name -> nimi.runtime.v1.Ack
+	45, // 57: nimi.runtime.v1.CloseRealmRealtimeChannelResponse.ack:type_name -> nimi.runtime.v1.Ack
+	26, // 58: nimi.runtime.v1.RuntimeRealmRealtimeService.ListRealmChats:input_type -> nimi.runtime.v1.ListRealmChatsRequest
+	29, // 59: nimi.runtime.v1.RuntimeRealmRealtimeService.OpenRealmRealtimeChannel:input_type -> nimi.runtime.v1.OpenRealmRealtimeChannelRequest
+	35, // 60: nimi.runtime.v1.RuntimeRealmRealtimeService.SubscribeRealmRealtimeEvents:input_type -> nimi.runtime.v1.SubscribeRealmRealtimeEventsRequest
+	37, // 61: nimi.runtime.v1.RuntimeRealmRealtimeService.AckRealmRealtimeEvents:input_type -> nimi.runtime.v1.AckRealmRealtimeEventsRequest
+	38, // 62: nimi.runtime.v1.RuntimeRealmRealtimeService.CloseRealmRealtimeSubscription:input_type -> nimi.runtime.v1.CloseRealmRealtimeSubscriptionRequest
+	39, // 63: nimi.runtime.v1.RuntimeRealmRealtimeService.CloseRealmRealtimeChannel:input_type -> nimi.runtime.v1.CloseRealmRealtimeChannelRequest
+	28, // 64: nimi.runtime.v1.RuntimeRealmRealtimeService.ListRealmChats:output_type -> nimi.runtime.v1.ListRealmChatsResponse
+	30, // 65: nimi.runtime.v1.RuntimeRealmRealtimeService.OpenRealmRealtimeChannel:output_type -> nimi.runtime.v1.OpenRealmRealtimeChannelResponse
+	36, // 66: nimi.runtime.v1.RuntimeRealmRealtimeService.SubscribeRealmRealtimeEvents:output_type -> nimi.runtime.v1.SubscribeRealmRealtimeEventsResponse
+	40, // 67: nimi.runtime.v1.RuntimeRealmRealtimeService.AckRealmRealtimeEvents:output_type -> nimi.runtime.v1.AckRealmRealtimeEventsResponse
+	41, // 68: nimi.runtime.v1.RuntimeRealmRealtimeService.CloseRealmRealtimeSubscription:output_type -> nimi.runtime.v1.CloseRealmRealtimeSubscriptionResponse
+	42, // 69: nimi.runtime.v1.RuntimeRealmRealtimeService.CloseRealmRealtimeChannel:output_type -> nimi.runtime.v1.CloseRealmRealtimeChannelResponse
+	64, // [64:70] is the sub-list for method output_type
+	58, // [58:64] is the sub-list for method input_type
+	58, // [58:58] is the sub-list for extension type_name
+	58, // [58:58] is the sub-list for extension extendee
+	0,  // [0:58] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_realm_realtime_proto_init() }
@@ -3596,28 +3519,27 @@ func file_runtime_v1_realm_realtime_proto_init() {
 	}
 	file_runtime_v1_common_proto_init()
 	file_runtime_v1_realtime_control_proto_init()
-	file_runtime_v1_realm_realtime_proto_msgTypes[13].OneofWrappers = []any{
+	file_runtime_v1_realm_realtime_proto_msgTypes[12].OneofWrappers = []any{
 		(*RealmChatMessagePayload_Text)(nil),
 		(*RealmChatMessagePayload_Attachment)(nil),
-		(*RealmChatMessagePayload_PostRef)(nil),
 		(*RealmChatMessagePayload_UserRef)(nil),
 		(*RealmChatMessagePayload_LinkRef)(nil),
 		(*RealmChatMessagePayload_FriendRequest)(nil),
 		(*RealmChatMessagePayload_System)(nil),
 	}
-	file_runtime_v1_realm_realtime_proto_msgTypes[15].OneofWrappers = []any{}
-	file_runtime_v1_realm_realtime_proto_msgTypes[19].OneofWrappers = []any{
+	file_runtime_v1_realm_realtime_proto_msgTypes[14].OneofWrappers = []any{}
+	file_runtime_v1_realm_realtime_proto_msgTypes[18].OneofWrappers = []any{
 		(*RealmChatDurableEvent_MessageCreated)(nil),
 		(*RealmChatDurableEvent_MessageEdited)(nil),
 		(*RealmChatDurableEvent_MessageRecalled)(nil),
 		(*RealmChatDurableEvent_ChatRead)(nil),
 	}
-	file_runtime_v1_realm_realtime_proto_msgTypes[33].OneofWrappers = []any{
+	file_runtime_v1_realm_realtime_proto_msgTypes[32].OneofWrappers = []any{
 		(*SubscribeRealmRealtimeEventsRequest_Chat)(nil),
 		(*SubscribeRealmRealtimeEventsRequest_Presence)(nil),
 		(*SubscribeRealmRealtimeEventsRequest_Inbox)(nil),
 	}
-	file_runtime_v1_realm_realtime_proto_msgTypes[34].OneofWrappers = []any{
+	file_runtime_v1_realm_realtime_proto_msgTypes[33].OneofWrappers = []any{
 		(*SubscribeRealmRealtimeEventsResponse_Control)(nil),
 		(*SubscribeRealmRealtimeEventsResponse_Chat)(nil),
 		(*SubscribeRealmRealtimeEventsResponse_Typing)(nil),
@@ -3631,7 +3553,7 @@ func file_runtime_v1_realm_realtime_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_realm_realtime_proto_rawDesc), len(file_runtime_v1_realm_realtime_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   41,
+			NumMessages:   40,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

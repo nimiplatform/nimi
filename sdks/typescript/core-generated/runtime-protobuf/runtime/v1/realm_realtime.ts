@@ -188,15 +188,6 @@ export interface RealmChatAttachmentPayload {
     unavailable: boolean;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.RealmChatPostRefPayload
- */
-export interface RealmChatPostRefPayload {
-    /**
-     * @generated from protobuf field: string post_id = 1
-     */
-    postId: string;
-}
-/**
  * @generated from protobuf message nimi.runtime.v1.RealmChatUserSnapshot
  */
 export interface RealmChatUserSnapshot {
@@ -292,12 +283,6 @@ export interface RealmChatMessagePayload {
          * @generated from protobuf field: nimi.runtime.v1.RealmChatAttachmentPayload attachment = 2
          */
         attachment: RealmChatAttachmentPayload;
-    } | {
-        oneofKind: "postRef";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.RealmChatPostRefPayload post_ref = 3
-         */
-        postRef: RealmChatPostRefPayload;
     } | {
         oneofKind: "userRef";
         /**
@@ -938,10 +923,6 @@ export enum RealmChatMessageType {
      */
     ATTACHMENT = 2,
     /**
-     * @generated from protobuf enum value: REALM_CHAT_MESSAGE_TYPE_POST_REF = 3;
-     */
-    POST_REF = 3,
-    /**
      * @generated from protobuf enum value: REALM_CHAT_MESSAGE_TYPE_USER_REF = 4;
      */
     USER_REF = 4,
@@ -973,15 +954,7 @@ export enum RealmAttachmentTargetType {
     /**
      * @generated from protobuf enum value: REALM_ATTACHMENT_TARGET_TYPE_RESOURCE = 1;
      */
-    RESOURCE = 1,
-    /**
-     * @generated from protobuf enum value: REALM_ATTACHMENT_TARGET_TYPE_ASSET = 2;
-     */
-    ASSET = 2,
-    /**
-     * @generated from protobuf enum value: REALM_ATTACHMENT_TARGET_TYPE_BUNDLE = 3;
-     */
-    BUNDLE = 3
+    RESOURCE = 1
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.RealmAttachmentDisplayKind
@@ -1555,53 +1528,6 @@ class RealmChatAttachmentPayload$Type extends MessageType<RealmChatAttachmentPay
  */
 export const RealmChatAttachmentPayload = new RealmChatAttachmentPayload$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class RealmChatPostRefPayload$Type extends MessageType<RealmChatPostRefPayload> {
-    constructor() {
-        super("nimi.runtime.v1.RealmChatPostRefPayload", [
-            { no: 1, name: "post_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<RealmChatPostRefPayload>): RealmChatPostRefPayload {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.postId = "";
-        if (value !== undefined)
-            reflectionMergePartial<RealmChatPostRefPayload>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RealmChatPostRefPayload): RealmChatPostRefPayload {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string post_id */ 1:
-                    message.postId = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: RealmChatPostRefPayload, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string post_id = 1; */
-        if (message.postId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.postId);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.RealmChatPostRefPayload
- */
-export const RealmChatPostRefPayload = new RealmChatPostRefPayload$Type();
-// @generated message type with reflection information, may provide speed optimized methods
 class RealmChatUserSnapshot$Type extends MessageType<RealmChatUserSnapshot> {
     constructor() {
         super("nimi.runtime.v1.RealmChatUserSnapshot", [
@@ -1905,7 +1831,6 @@ class RealmChatMessagePayload$Type extends MessageType<RealmChatMessagePayload> 
         super("nimi.runtime.v1.RealmChatMessagePayload", [
             { no: 1, name: "text", kind: "message", oneof: "payload", T: () => RealmChatTextPayload },
             { no: 2, name: "attachment", kind: "message", oneof: "payload", T: () => RealmChatAttachmentPayload },
-            { no: 3, name: "post_ref", kind: "message", oneof: "payload", T: () => RealmChatPostRefPayload },
             { no: 4, name: "user_ref", kind: "message", oneof: "payload", T: () => RealmChatUserRefPayload },
             { no: 5, name: "link_ref", kind: "message", oneof: "payload", T: () => RealmChatLinkRefPayload },
             { no: 6, name: "friend_request", kind: "message", oneof: "payload", T: () => RealmChatFriendRequestPayload },
@@ -1934,12 +1859,6 @@ class RealmChatMessagePayload$Type extends MessageType<RealmChatMessagePayload> 
                     message.payload = {
                         oneofKind: "attachment",
                         attachment: RealmChatAttachmentPayload.internalBinaryRead(reader, reader.uint32(), options, (message.payload as any).attachment)
-                    };
-                    break;
-                case /* nimi.runtime.v1.RealmChatPostRefPayload post_ref */ 3:
-                    message.payload = {
-                        oneofKind: "postRef",
-                        postRef: RealmChatPostRefPayload.internalBinaryRead(reader, reader.uint32(), options, (message.payload as any).postRef)
                     };
                     break;
                 case /* nimi.runtime.v1.RealmChatUserRefPayload user_ref */ 4:
@@ -1984,9 +1903,6 @@ class RealmChatMessagePayload$Type extends MessageType<RealmChatMessagePayload> 
         /* nimi.runtime.v1.RealmChatAttachmentPayload attachment = 2; */
         if (message.payload.oneofKind === "attachment")
             RealmChatAttachmentPayload.internalBinaryWrite(message.payload.attachment, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.RealmChatPostRefPayload post_ref = 3; */
-        if (message.payload.oneofKind === "postRef")
-            RealmChatPostRefPayload.internalBinaryWrite(message.payload.postRef, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         /* nimi.runtime.v1.RealmChatUserRefPayload user_ref = 4; */
         if (message.payload.oneofKind === "userRef")
             RealmChatUserRefPayload.internalBinaryWrite(message.payload.userRef, writer.tag(4, WireType.LengthDelimited).fork(), options).join();

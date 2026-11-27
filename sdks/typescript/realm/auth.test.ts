@@ -9,11 +9,9 @@ import type {
 
 import {
   checkNimiRealmAuthEmail,
-  createNimiRealmWalletChallenge,
   isNimiRealmExpectedAnonymousSessionError,
   loginNimiRealmAuthPassword,
   loginNimiRealmOAuth,
-  loginNimiRealmWallet,
   NIMI_REALM_OAUTH_LOGIN_STATE,
   NIMI_REALM_OAUTH_PROVIDER,
   normalizeNimiRealmAuthTokens,
@@ -47,7 +45,6 @@ const AUTH_USER_FIXTURE = {
     vitalityScore: 0,
   },
   updatedAt: '2026-06-05T00:00:00.000Z',
-  wallets: [],
 } satisfies AuthUserDto;
 
 const AUTH_TOKENS_FIXTURE = {
@@ -98,7 +95,6 @@ test('Realm auth view normalizes token payloads and user records', () => {
     'tags',
     'tiers',
     'updatedAt',
-    'wallets',
   ] as const) {
     const malformedUser: Record<string, unknown> = { ...AUTH_USER_FIXTURE };
     delete malformedUser[requiredField];
@@ -119,17 +115,6 @@ test('Realm auth view normalizes token payloads and user records', () => {
       socialProfiles: [{ handle: 'user-one', platform: 'site', followers: 'many' }],
     },
     { ...AUTH_USER_FIXTURE, tiers: { assetTier: 1 } },
-    { ...AUTH_USER_FIXTURE, wallets: [{ id: 'wallet-1' }] },
-    {
-      ...AUTH_USER_FIXTURE,
-      wallets: [{
-        address: '0x123',
-        boundOnChains: [],
-        chainNamespace: 1,
-        createdAt: 'now',
-        id: 'wallet-1',
-      }],
-    },
     { ...AUTH_USER_FIXTURE, status: 'FUTURE_STATUS' },
   ]) {
     assert.throws(
@@ -174,7 +159,7 @@ test('Realm auth helpers map SDK-friendly calls to generated Realm auth requests
       },
       async passwordLogin(request) {
         calls.push({ method: 'passwordLogin', request });
-        return { loginState: NIMI_REALM_OAUTH_LOGIN_STATE.OK };
+        return { loginState: NIMI_REALM_OAUTH_LOGIN_STATE.OK, tokens: AUTH_TOKENS_FIXTURE };
       },
       async requestEmailOtp(request) {
         calls.push({ method: 'requestEmailOtp', request });
@@ -192,22 +177,9 @@ test('Realm auth helpers map SDK-friendly calls to generated Realm auth requests
           tokenType: 'Bearer',
         } satisfies AuthTokensDto;
       },
-      async walletChallenge(request) {
-        calls.push({ method: 'walletChallenge', request });
-        return {
-          expiresAt: '2026-06-05T00:00:00.000Z',
-          message: 'sign',
-          nonce: 'nonce',
-          walletAddress: '0x123',
-        };
-      },
-      async walletLogin(request) {
-        calls.push({ method: 'walletLogin', request });
-        return { loginState: NIMI_REALM_OAUTH_LOGIN_STATE.OK };
-      },
       async oauthLogin(request) {
         calls.push({ method: 'oauthLogin', request });
-        return { loginState: NIMI_REALM_OAUTH_LOGIN_STATE.OK };
+        return { loginState: NIMI_REALM_OAUTH_LOGIN_STATE.OK, tokens: AUTH_TOKENS_FIXTURE };
       },
     },
   };
@@ -216,24 +188,20 @@ test('Realm auth helpers map SDK-friendly calls to generated Realm auth requests
     available: true,
     entryRoute: 'login_with_password',
   });
-  await loginNimiRealmAuthPassword(realm, 'test@example.com', 'pw');
+  const passwordResult = await loginNimiRealmAuthPassword(realm, 'test@example.com', 'pw');
+  assert.equal(passwordResult.tokens?.user?.id, 'user-1');
+  assert.equal('wallets' in (passwordResult.tokens?.user ?? {}), false);
   assert.deepEqual(await requestNimiRealmEmailOtp(realm, 'test@example.com'), {
     success: true,
     message: 'sent',
   });
   assert.equal((await verifyNimiRealmEmailOtp(realm, 'test@example.com', '123456')).tempToken, 'tmp');
   assert.equal((await verifyNimiRealmTwoFactor(realm, 'tmp', '654321')).tokenType, 'Bearer');
-  assert.equal((await createNimiRealmWalletChallenge(realm, { walletAddress: '0x123' })).nonce, 'nonce');
-  await loginNimiRealmWallet(realm, {
-    message: 'sign',
-    nonce: 'nonce',
-    signature: 'sig',
-    walletAddress: '0x123',
-  });
-  await loginNimiRealmOAuth(realm, {
+  const oauthResult = await loginNimiRealmOAuth(realm, {
     provider: NIMI_REALM_OAUTH_PROVIDER.GOOGLE,
     idToken: 'id-token',
   });
+  assert.equal(oauthResult.tokens?.user?.id, 'user-1');
 
   assert.deepEqual(calls.map((call) => call.method), [
     'checkEmail',
@@ -241,15 +209,13 @@ test('Realm auth helpers map SDK-friendly calls to generated Realm auth requests
     'requestEmailOtp',
     'verifyEmailOtp',
     'verify2Fa',
-    'walletChallenge',
-    'walletLogin',
     'oauthLogin',
   ]);
   assert.deepEqual(calls[0]?.request, {
     path: {},
     body: { email: 'test@example.com' },
   });
-  assert.deepEqual(calls[7]?.request, {
+  assert.deepEqual(calls[5]?.request, {
     path: {},
     body: {
       provider: NIMI_REALM_OAUTH_PROVIDER.GOOGLE,

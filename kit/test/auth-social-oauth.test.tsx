@@ -97,7 +97,7 @@ describe('social OAuth config', () => {
 });
 
 describe('AuthViewMain alternatives', () => {
-  it('renders google, tiktok, and web3 entry points', () => {
+  it('renders google and tiktok entry points without wallet auth', () => {
     const markup = renderToStaticMarkup(
       <AuthViewMain
         email=""
@@ -110,13 +110,12 @@ describe('AuthViewMain alternatives', () => {
         onAlternativeToggle={() => undefined}
         onGoogleLogin={() => undefined}
         onTikTokLogin={() => undefined}
-        onWeb3Login={() => undefined}
       />,
     );
 
     expect(markup).toContain('aria-label="Google unavailable: missing google"');
     expect(markup).toContain('aria-label="TikTok unavailable: missing tiktok"');
     expect(markup).not.toContain('Twitter');
-    expect(markup).toContain('aria-label="Auth.web3"');
+    expect(markup).not.toContain('aria-label="Auth.web3"');
   });
 });

@@ -21,7 +21,7 @@ test('world character source detail uses the shared character page surface', () 
   const markup = renderToStaticMarkup(
     React.createElement(SourceDetailView, {
       source,
-      stats: { friendsCount: 2, postsCount: 3, likesCount: 5 },
+      stats: { friendsCount: 2, likesCount: 5 },
       loading: false,
       error: false,
       onBack: () => {},

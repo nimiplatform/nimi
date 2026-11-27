@@ -3,9 +3,6 @@
 // Platform adapter
 export type {
   WebAccountAuthAdapter,
-  WalletChallengeInput,
-  WalletChallengeResult,
-  WalletLoginInput,
 } from './platform/web-account-auth-adapter.js';
 
 // Types
@@ -13,8 +10,6 @@ export type {
   AuthView,
   EmbeddedAuthStage,
   WebAccountAuthMode,
-  WalletType,
-  WalletProvider,
   WebAccountAuthWindow,
   RememberedLogin,
   WebAccountAuthMenuProps,
@@ -53,11 +48,6 @@ export {
   type AuthFormActions,
   type AuthFormModel,
 } from './logic/auth-form-state.js';
-
-export {
-  parseChainId,
-  resolveWalletProvider,
-} from './logic/wallet-helpers.js';
 
 export {
   getGoogleClientId,
@@ -120,7 +110,6 @@ export {
   handleVerifyEmailOtp,
   handleResendOtp,
   handleVerify2Fa,
-  handleWalletLogin,
 } from './logic/auth-menu-handlers-ext.js';
 
 // Hooks
@@ -134,9 +123,7 @@ export {
   AuthViewEmailOtpVerify,
   AuthViewEmail2Fa,
 } from './components/auth-view-email.js';
-export { AuthViewWalletSelect } from './components/auth-view-wallet-select.js';
 export { CircleIconButton } from './components/auth-menu-header.js';
 export { OtpInput } from './components/auth-otp-input.js';
-export { MetaMaskIcon, BinanceIcon, OKXIcon } from './components/auth-wallet-icons.js';
 export { AnimateIn, LoadingSpinner } from './components/primitives.js';
 export { WebAccountAuthPage } from './components/web-account-auth-page.js';

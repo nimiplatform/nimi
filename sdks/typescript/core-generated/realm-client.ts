@@ -37,18 +37,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/accounts/{id}/friendship-actions"
   },
   {
-    "operationId": "archiveAsset",
-    "service": "Assets",
-    "method": "POST",
-    "path": "/api/assets/{assetId}/archive"
-  },
-  {
-    "operationId": "archiveBundle",
-    "service": "Bundles",
-    "method": "POST",
-    "path": "/api/bundles/{bundleId}/archive"
-  },
-  {
     "operationId": "authorizeRuntimeClient",
     "service": "Runtime access",
     "method": "POST",
@@ -65,12 +53,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Runtime access",
     "method": "POST",
     "path": "/api/auth/primary-runtime/bind"
-  },
-  {
-    "operationId": "bindWallet",
-    "service": "Me",
-    "method": "POST",
-    "path": "/api/human/me/wallets"
   },
   {
     "operationId": "blockUser",
@@ -103,34 +85,16 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/check-handle"
   },
   {
-    "operationId": "cloneAsset",
-    "service": "Assets",
-    "method": "POST",
-    "path": "/api/assets/{assetId}/clone"
-  },
-  {
     "operationId": "confirmMyPrimaryRuntime",
     "service": "Runtime access",
     "method": "POST",
     "path": "/api/auth/primary-runtime/confirm"
   },
   {
-    "operationId": "createAsset",
-    "service": "Assets",
-    "method": "POST",
-    "path": "/api/assets"
-  },
-  {
     "operationId": "createAudioDirectUpload",
     "service": "Resources",
     "method": "POST",
     "path": "/api/resources/audio/direct-upload"
-  },
-  {
-    "operationId": "createBundle",
-    "service": "Bundles",
-    "method": "POST",
-    "path": "/api/bundles"
   },
   {
     "operationId": "createImageDirectUpload",
@@ -169,138 +133,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/auth/me/2fa/disable"
   },
   {
-    "operationId": "EconomyController_calculateWithdrawal",
-    "service": "Economy (Currency)",
-    "method": "GET",
-    "path": "/api/economy/withdrawals/calculate"
-  },
-  {
-    "operationId": "EconomyController_cancelSubscription",
-    "service": "Economy (Currency)",
-    "method": "POST",
-    "path": "/api/economy/subscription/cancel"
-  },
-  {
-    "operationId": "EconomyController_canWithdraw",
-    "service": "Economy (Currency)",
-    "method": "GET",
-    "path": "/api/economy/withdrawals/can-withdraw"
-  },
-  {
-    "operationId": "EconomyController_createConnectDashboard",
-    "service": "Economy (Currency)",
-    "method": "POST",
-    "path": "/api/economy/connect/dashboard"
-  },
-  {
-    "operationId": "EconomyController_createConnectOnboarding",
-    "service": "Economy (Currency)",
-    "method": "POST",
-    "path": "/api/economy/connect/onboarding"
-  },
-  {
-    "operationId": "EconomyController_createPortalSession",
-    "service": "Economy (Currency)",
-    "method": "POST",
-    "path": "/api/economy/subscription/portal"
-  },
-  {
-    "operationId": "EconomyController_createSparkCheckout",
-    "service": "Economy (Currency)",
-    "method": "POST",
-    "path": "/api/economy/spark/checkout"
-  },
-  {
-    "operationId": "EconomyController_createSubscriptionCheckout",
-    "service": "Economy (Currency)",
-    "method": "POST",
-    "path": "/api/economy/subscription/checkout"
-  },
-  {
-    "operationId": "EconomyController_createWithdrawal",
-    "service": "Economy (Currency)",
-    "method": "POST",
-    "path": "/api/economy/withdrawals/create"
-  },
-  {
-    "operationId": "EconomyController_getBalances",
-    "service": "Economy (Currency)",
-    "method": "GET",
-    "path": "/api/economy/balances"
-  },
-  {
-    "operationId": "EconomyController_getConnectStatus",
-    "service": "Economy (Currency)",
-    "method": "GET",
-    "path": "/api/economy/connect/status"
-  },
-  {
-    "operationId": "EconomyController_getGemHistory",
-    "service": "Economy (Currency)",
-    "method": "GET",
-    "path": "/api/economy/gem/history"
-  },
-  {
-    "operationId": "EconomyController_getRevenueShareConfig",
-    "service": "Economy (Currency)",
-    "method": "GET",
-    "path": "/api/economy/revenue-share/config"
-  },
-  {
-    "operationId": "EconomyController_getSourceOrigin",
-    "service": "Economy (Currency)",
-    "method": "POST",
-    "path": "/api/economy/revenue-share/source-origin"
-  },
-  {
-    "operationId": "EconomyController_getSparkHistory",
-    "service": "Economy (Currency)",
-    "method": "GET",
-    "path": "/api/economy/spark/history"
-  },
-  {
-    "operationId": "EconomyController_getSparkPackages",
-    "service": "Economy (Currency)",
-    "method": "GET",
-    "path": "/api/economy/spark/packages"
-  },
-  {
-    "operationId": "EconomyController_getSubscription",
-    "service": "Economy (Currency)",
-    "method": "GET",
-    "path": "/api/economy/subscription"
-  },
-  {
-    "operationId": "EconomyController_getSubscriptionTiers",
-    "service": "Economy (Currency)",
-    "method": "GET",
-    "path": "/api/economy/subscription/tiers"
-  },
-  {
-    "operationId": "EconomyController_getWithdrawal",
-    "service": "Economy (Currency)",
-    "method": "GET",
-    "path": "/api/economy/withdrawals/by-id/{id}"
-  },
-  {
-    "operationId": "EconomyController_getWithdrawalConfig",
-    "service": "Economy (Currency)",
-    "method": "GET",
-    "path": "/api/economy/withdrawals/config"
-  },
-  {
-    "operationId": "EconomyController_getWithdrawalHistory",
-    "service": "Economy (Currency)",
-    "method": "GET",
-    "path": "/api/economy/withdrawals/history"
-  },
-  {
-    "operationId": "EconomyController_previewRevenueDistribution",
-    "service": "Economy (Currency)",
-    "method": "POST",
-    "path": "/api/economy/revenue-share/preview"
-  },
-  {
     "operationId": "editMessage",
     "service": "Human Chats",
     "method": "PATCH",
@@ -331,40 +163,16 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/me/export"
   },
   {
-    "operationId": "FeedbackController_getMyFeedbacks",
-    "service": "Support (Feedback)",
-    "method": "GET",
-    "path": "/api/support/feedback"
-  },
-  {
-    "operationId": "FeedbackController_submitFeedback",
-    "service": "Support (Feedback)",
-    "method": "POST",
-    "path": "/api/support/feedback"
-  },
-  {
     "operationId": "finalizeResource",
     "service": "Resources",
     "method": "POST",
     "path": "/api/resources/{resourceId}/finalize"
   },
   {
-    "operationId": "getAsset",
-    "service": "Assets",
-    "method": "GET",
-    "path": "/api/assets/{assetId}"
-  },
-  {
     "operationId": "getAuthJwks",
     "service": "Jwks",
     "method": "GET",
     "path": "/api/auth/jwks"
-  },
-  {
-    "operationId": "getBundle",
-    "service": "Bundles",
-    "method": "GET",
-    "path": "/api/bundles/{bundleId}"
   },
   {
     "operationId": "getChatById",
@@ -463,12 +271,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/me/tiers"
   },
   {
-    "operationId": "getMyWallets",
-    "service": "Me",
-    "method": "GET",
-    "path": "/api/human/me/wallets"
-  },
-  {
     "operationId": "getResource",
     "service": "Resources",
     "method": "GET",
@@ -545,18 +347,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Auth",
     "method": "POST",
     "path": "/api/auth/oauth/link"
-  },
-  {
-    "operationId": "listAssets",
-    "service": "Assets",
-    "method": "GET",
-    "path": "/api/assets"
-  },
-  {
-    "operationId": "listBundles",
-    "service": "Bundles",
-    "method": "GET",
-    "path": "/api/bundles"
   },
   {
     "operationId": "listChats",
@@ -667,28 +457,10 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/auth/me/2fa/prepare"
   },
   {
-    "operationId": "prepareBindWallet",
-    "service": "Me",
-    "method": "POST",
-    "path": "/api/human/me/wallets/prepare-bind"
-  },
-  {
     "operationId": "prepareMyPrimaryRuntime",
     "service": "Runtime access",
     "method": "POST",
     "path": "/api/auth/primary-runtime/prepare"
-  },
-  {
-    "operationId": "publishBundle",
-    "service": "Bundles",
-    "method": "POST",
-    "path": "/api/bundles/{bundleId}/publish"
-  },
-  {
-    "operationId": "publishReadyAsset",
-    "service": "Assets",
-    "method": "POST",
-    "path": "/api/assets/{assetId}/publish-ready"
   },
   {
     "operationId": "recallMessage",
@@ -781,60 +553,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/auth/account-terminal"
   },
   {
-    "operationId": "TransitController_abandon",
-    "service": "Transits",
-    "method": "POST",
-    "path": "/api/world/transit/{id}/abandon"
-  },
-  {
-    "operationId": "TransitController_complete",
-    "service": "Transits",
-    "method": "POST",
-    "path": "/api/world/transit/{id}/complete"
-  },
-  {
-    "operationId": "TransitController_createTransit",
-    "service": "Transits",
-    "method": "POST",
-    "path": "/api/world/transit"
-  },
-  {
-    "operationId": "TransitController_getActiveTransit",
-    "service": "Transits",
-    "method": "GET",
-    "path": "/api/world/transit/active/{runtimeSourceRef}"
-  },
-  {
-    "operationId": "TransitController_getTransit",
-    "service": "Transits",
-    "method": "GET",
-    "path": "/api/world/transit/{id}"
-  },
-  {
-    "operationId": "TransitController_listTransits",
-    "service": "Transits",
-    "method": "GET",
-    "path": "/api/world/transit"
-  },
-  {
-    "operationId": "TransitController_start",
-    "service": "Transits",
-    "method": "POST",
-    "path": "/api/world/transit/{id}/start"
-  },
-  {
-    "operationId": "translateText",
-    "service": "Translation",
-    "method": "POST",
-    "path": "/api/translation/translate"
-  },
-  {
-    "operationId": "unbindWallet",
-    "service": "Me",
-    "method": "DELETE",
-    "path": "/api/human/me/wallets/{walletId}"
-  },
-  {
     "operationId": "unblockUser",
     "service": "Me",
     "method": "DELETE",
@@ -845,18 +563,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Auth",
     "method": "DELETE",
     "path": "/api/auth/oauth/{provider}"
-  },
-  {
-    "operationId": "updateAsset",
-    "service": "Assets",
-    "method": "PATCH",
-    "path": "/api/assets/{assetId}"
-  },
-  {
-    "operationId": "updateBundle",
-    "service": "Bundles",
-    "method": "PATCH",
-    "path": "/api/bundles/{bundleId}"
   },
   {
     "operationId": "updateMe",
@@ -911,42 +617,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Auth",
     "method": "POST",
     "path": "/api/auth/email/otp/verify"
-  },
-  {
-    "operationId": "VisibilityController_checkCanDm",
-    "service": "Visibility (V1)",
-    "method": "GET",
-    "path": "/api/human/visibility/check/dm"
-  },
-  {
-    "operationId": "VisibilityController_checkCanView",
-    "service": "Visibility (V1)",
-    "method": "GET",
-    "path": "/api/human/visibility/check/view"
-  },
-  {
-    "operationId": "VisibilityController_checkCanViewPublic",
-    "service": "Visibility (V1)",
-    "method": "GET",
-    "path": "/api/human/visibility/check/view/public"
-  },
-  {
-    "operationId": "VisibilityController_getUserSettings",
-    "service": "Visibility (V1)",
-    "method": "GET",
-    "path": "/api/human/visibility/user/settings"
-  },
-  {
-    "operationId": "walletChallenge",
-    "service": "Auth",
-    "method": "POST",
-    "path": "/api/auth/wallet/challenge"
-  },
-  {
-    "operationId": "walletLogin",
-    "service": "Auth",
-    "method": "POST",
-    "path": "/api/auth/wallet/login"
   },
   {
     "operationId": "WorldCoreController_createPersonaCharacter",

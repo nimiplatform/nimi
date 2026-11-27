@@ -19,8 +19,6 @@ function authAdapter() {
     requestEmailOtp: vi.fn(),
     verifyEmailOtp: vi.fn(),
     verifyTwoFactor: vi.fn(),
-    walletChallenge: vi.fn(),
-    walletLogin: vi.fn(),
     oauthLogin: vi.fn(),
     updatePassword: vi.fn(),
     loadCurrentUser: vi.fn(),
@@ -182,7 +180,6 @@ describe('WebAccountAuthPage entry action semantics', () => {
         alternatives={{
           googleDisabledReason: 'Coming soon',
           tikTokDisabledReason: 'Coming soon',
-          showWallet: false,
         }}
         appearance={{ theme: 'default' }}
         background={null}
@@ -397,7 +394,6 @@ describe('WebAccountAuthPage entry action semantics', () => {
           adapter={adapter}
           session={{ mode: 'embedded' }}
           branding={{ networkLabel: 'Nimi', logo: '/logo.png' }}
-          alternatives={{ showWallet: true }}
           consent={{
             checked,
             onChange: setChecked,
@@ -447,10 +443,11 @@ describe('WebAccountAuthPage entry action semantics', () => {
       expect(checkbox()?.getAttribute('aria-invalid')).toBe('true');
       expect(document.activeElement).toBe(checkbox());
 
-      // Alternative sign-in (wallet) is also gated before consent is checked.
+      // Alternative sign-in (Google) is also gated before consent is checked.
       act(() => container.querySelector<HTMLButtonElement>('[data-testid="alt-toggle"]')?.click());
-      act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Auth.web3"]')?.click());
+      act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Google"]')?.click());
       expect(container.querySelector('[data-testid="email-input"]')).not.toBeNull();
+      expect(adapter.oauthLogin).not.toHaveBeenCalled();
       expect(container.querySelector('[role="alert"]')?.textContent).toBe('请先阅读并同意《服务条款》和《隐私政策》');
 
       // Checking consent clears the alert and unlocks submission.

@@ -27,7 +27,6 @@ type RealmMethodModule<Keys extends readonly RealmTypedMethodName[]> = Readonly<
 
 export const REALM_AUTH_METHODS = [
   'bindEmail',
-  'bindWallet',
   'changeEmail',
   'checkEmail',
   'disable2Fa',
@@ -43,8 +42,6 @@ export const REALM_AUTH_METHODS = [
   'updatePassword',
   'verify2Fa',
   'verifyEmailOtp',
-  'walletChallenge',
-  'walletLogin',
 ] as const satisfies readonly RealmTypedMethodName[];
 
 export const REALM_ACCOUNT_METHODS = [
@@ -155,14 +152,6 @@ export const REALM_WORLD_PUBLIC_METHODS = [
   'worldPublicControllerListWorldCharacterCatalog',
 ] as const satisfies readonly RealmTypedMethodName[];
 
-export const REALM_TRANSIT_METHODS = [
-  'transitControllerAbandon',
-  'transitControllerComplete',
-  'transitControllerGetActiveTransit',
-  'transitControllerGetTransit',
-  'transitControllerListTransits',
-] as const satisfies readonly RealmTypedMethodName[];
-
 export type RealmAuthModule = RealmMethodModule<typeof REALM_AUTH_METHODS>;
 export type RealmAccountModule = RealmMethodModule<typeof REALM_ACCOUNT_METHODS>;
 export type RealmSocialModule = RealmMethodModule<typeof REALM_SOCIAL_METHODS>;
@@ -171,7 +160,6 @@ export type RealmResourceModule = RealmMethodModule<typeof REALM_RESOURCE_METHOD
 export type RealmNotificationModule = RealmMethodModule<typeof REALM_NOTIFICATION_METHODS>;
 export type RealmWorldCoreModule = RealmMethodModule<typeof REALM_WORLD_CORE_METHODS>;
 export type RealmWorldPublicModule = RealmMethodModule<typeof REALM_WORLD_PUBLIC_METHODS>;
-export type RealmTransitModule = RealmMethodModule<typeof REALM_TRANSIT_METHODS>;
 
 export interface RealmOptions extends CoreClientOptions {}
 
@@ -189,7 +177,6 @@ export class Realm {
   readonly notifications: RealmNotificationModule;
   readonly worldCore: RealmWorldCoreModule;
   readonly worldPublic: RealmWorldPublicModule;
-  readonly transit: RealmTransitModule;
 
   constructor(options: RealmOptions) {
     this.#core = new CoreClient(options);
@@ -203,7 +190,6 @@ export class Realm {
     this.notifications = bindRealmModule(generated, REALM_NOTIFICATION_METHODS);
     this.worldCore = bindRealmModule(generated, REALM_WORLD_CORE_METHODS);
     this.worldPublic = bindRealmModule(generated, REALM_WORLD_PUBLIC_METHODS);
-    this.transit = bindRealmModule(generated, REALM_TRANSIT_METHODS);
   }
 
   me(options = {}): ReturnType<RealmTypedClient['getMe']> {

@@ -19,7 +19,6 @@ Realm 是 Nimi 的服务端业务层，负责维护跨应用的账户体系、�
 ### 核心领域契约
 - [社交与即时通讯](/zh/realm/chat)：经由 Runtime 中介的人与人 `DirectChat`、输入状态（typing）、收件箱（inbox）与在线状态（`Presence`）；
 - [社交图谱与经济系统](/zh/realm/social-and-economy)：共享好友关系、关注体系与价值流转；
-- [数字资产与世界绑定](/zh/realm/asset-and-binding)：创作者资产与世界资源的关联管理；
 - [跨世界漫游（Transit）](/zh/realm/transit)：围绕系统主世界 OASIS 展开的跨世界连续性协议设计。
 
 ### 创作者经济与应用互联

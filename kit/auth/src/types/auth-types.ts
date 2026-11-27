@@ -18,29 +18,7 @@ export type AuthView =
   | 'email_otp'
   | 'email_otp_verify'
   | 'email_set_password'
-  | 'email_2fa'
-  | 'wallet_select';
-
-// ---------------------------------------------------------------------------
-// Wallet types
-// ---------------------------------------------------------------------------
-
-export type WalletType = 'metamask' | 'okx' | 'binance';
-
-export type WalletProvider = {
-  isMetaMask?: boolean;
-  isOkxWallet?: boolean;
-  isOKXWallet?: boolean;
-  isOkx?: boolean;
-  isBinance?: boolean;
-  isBinanceWallet?: boolean;
-  isBinanceChain?: boolean;
-  providers?: WalletProvider[];
-  request: (args: {
-    method: string;
-    params?: unknown[] | Record<string, unknown>;
-  }) => Promise<unknown>;
-};
+  | 'email_2fa';
 
 // ---------------------------------------------------------------------------
 // Google window extension
@@ -61,10 +39,6 @@ export type WebAccountAuthWindow = Window & {
       };
     };
   };
-  ethereum?: WalletProvider;
-  okxwallet?: WalletProvider;
-  BinanceChain?: WalletProvider;
-  binanceWallet?: WalletProvider;
 };
 
 // ---------------------------------------------------------------------------
@@ -186,7 +160,6 @@ export type WebAccountAuthBackgroundState = {
 export type WebAccountAuthAlternatives = {
   googleDisabledReason?: string;
   tikTokDisabledReason?: string;
-  showWallet?: boolean;
 };
 
 export type WebAccountAuthPageProps = {

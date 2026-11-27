@@ -84,8 +84,11 @@ func TestRealmBrokerOperationSetContainsExactDesktopProductVocabulary(t *testing
 		"WorldPublicController_listPersonaCharacterCatalog":  {method: http.MethodGet, path: "/api/world/persona-characters/catalog"},
 		"WorldPublicController_listCharacterCatalog":         {method: http.MethodGet, path: "/api/world/character-sources/catalog"},
 	}
-	if len(realmBrokerOperations) != 85 {
-		t.Fatalf("Realm broker operation count = %d, want 85", len(realmBrokerOperations))
+	if len(realmBrokerOperations) != 76 {
+		t.Fatalf("Realm broker operation count = %d, want 76", len(realmBrokerOperations))
+	}
+	if _, ok := realmBrokerOperations["EconomyController_getBalances"]; ok {
+		t.Fatal("retired EconomyController operation must not remain admitted")
 	}
 	for _, id := range []string{"applyFriendshipAction", "getMyRelationshipWithUser", "getMyHandleChangeEligibility", "updateMyHandle", "listMyAccountSessions", "revokeMyAccountSession", "revokeMyOtherAccountSessions"} {
 		op, ok := realmBrokerOperations[id]

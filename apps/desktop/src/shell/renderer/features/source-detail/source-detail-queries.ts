@@ -14,7 +14,6 @@ import { toSourceDetailData } from './source-detail-model.js';
 
 export type SourceDetailStats = {
   friendsCount: number;
-  postsCount: number;
   likesCount: number;
 };
 
@@ -28,18 +27,15 @@ export type SourceDisplayDetailSelection = CharacterSourceRefV3;
 function normalizeSourceStats(raw: JsonObject): SourceDetailStats | null {
   const statsData = parseOptionalJsonObject(raw.stats) as (JsonObject & {
     friendsCount?: number;
-    postsCount?: number;
     likesCount?: number;
   }) | undefined;
   if (!statsData
     || typeof statsData.friendsCount !== 'number'
-    || typeof statsData.postsCount !== 'number'
     || typeof statsData.likesCount !== 'number') {
     return null;
   }
   return {
     friendsCount: statsData.friendsCount,
-    postsCount: statsData.postsCount,
     likesCount: statsData.likesCount,
   };
 }

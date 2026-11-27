@@ -104,9 +104,6 @@ function mapPersonaSource(raw: unknown, worldsMap: SourceWorldProjectionMap): Ex
   const friendsCount = asNumber(stats?.friendsCount)
     ?? asNumber(source.friendsCount)
     ?? asNumber(source.friendCount);
-  const postsCount = asNumber(stats?.postsCount)
-    ?? asNumber(source.postsCount)
-    ?? asNumber(source.postCount);
   const likesCount = asNumber(stats?.likesCount)
     ?? asNumber(source.likesCount)
     ?? asNumber(source.likeCount);
@@ -131,7 +128,6 @@ function mapPersonaSource(raw: unknown, worldsMap: SourceWorldProjectionMap): Ex
     isOnline,
     tags,
     friendsCount,
-    postsCount,
     likesCount,
   };
 }

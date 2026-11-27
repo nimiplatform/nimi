@@ -1,6 +1,6 @@
 export type NimiNotificationCategory = 'request' | 'mention' | 'like' | 'system';
 export type NimiNotificationFilterTab = 'all' | NimiNotificationCategory;
-export type NimiNotificationServerFilter = 'post_liked' | 'system_announcement' | null;
+export type NimiNotificationServerFilter = 'system_announcement' | null;
 
 export type NimiNotificationBadgeKey =
   | 'friendRequestReceived'
@@ -18,9 +18,7 @@ const REQUEST_NOTIFICATION_TYPES = new Set<string>([
   'friend_request_rejected',
 ]);
 
-const LIKE_NOTIFICATION_TYPES = new Set<string>([
-  'post_liked',
-]);
+const LIKE_NOTIFICATION_TYPES = new Set<string>([]);
 
 const MENTION_NOTIFICATION_TYPES = new Set<string>([]);
 
@@ -28,8 +26,6 @@ export function getNimiNotificationServerFilter(
   tab: NimiNotificationFilterTab,
 ): NimiNotificationServerFilter {
   switch (tab) {
-    case 'like':
-      return 'post_liked';
     case 'system':
       return 'system_announcement';
     default:

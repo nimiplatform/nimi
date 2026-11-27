@@ -22,7 +22,7 @@ export type HumanProfileData = {
   city: string | null;
   countryCode: string | null;
   gender: string | null;
-  stats: { friendsCount?: number; postsCount: number; likesCount: number } | null;
+  stats: { friendsCount?: number; likesCount: number } | null;
 };
 
 type UserProfileDto = RealmModel<'UserProfileDto'>;
@@ -111,7 +111,6 @@ export function toHumanProfileData(raw: HumanProfileSource): HumanProfileData {
     stats: stats
       ? {
           ...(typeof stats.friendsCount === 'number' ? { friendsCount: stats.friendsCount } : {}),
-          postsCount: typeof stats.postsCount === 'number' ? stats.postsCount : 0,
           likesCount: typeof stats.likesCount === 'number'
             ? stats.likesCount
             : typeof stats.likeCount === 'number'

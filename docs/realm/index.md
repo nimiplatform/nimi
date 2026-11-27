@@ -19,7 +19,6 @@ Platform responsibilities are divided across four layers:
 ### Core Domain Primitives
 - [Chat & Communication](/realm/chat) — Runtime-mediated human-to-human `DirectChat`, typing indicators, inbox, and `Presence`.
 - [Social & Economic Systems](/realm/social-and-economy) — Shared social graphs, follows, and economic value flows.
-- [Assets and Bindings](/realm/asset-and-binding) — Creator assets and resource associations.
 - [Transit & Continuity](/realm/transit) — Protocol design for cross-world continuity centered on the OASIS system primary world.
 
 ### Creator Ecosystem and App Interconnect

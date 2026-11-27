@@ -29,7 +29,6 @@ export type ExplorePersonaSourceCardData = {
   // Social/Stats
   tags: string[];
   friendsCount?: number;
-  postsCount?: number;
   likesCount?: number;
   sourceState?: CharacterSourceState;
 };

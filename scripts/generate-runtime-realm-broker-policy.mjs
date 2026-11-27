@@ -34,7 +34,6 @@ const desktopSourceReadinessAuthorizationProfile = 'protected_desktop_source_rea
 const desktopProductAuthorizationProfiles = new Set([
   'protected_desktop_product',
   'protected_desktop_sensitive',
-  'protected_desktop_commerce',
 ]);
 const bundledAvatarSourceReadinessAuthorizationProfile = 'protected_bundled_avatar_source_readiness';
 const bundledAvatarRealmOperationID = 'WorldCoreController_listPersonaCharacters';

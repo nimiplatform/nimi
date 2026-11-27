@@ -44,7 +44,10 @@ test('Realm facade exposes generated operation modules over CoreClient', async (
   assert.equal(typeof realm.auth.checkEmail, 'function');
   assert.equal(typeof realm.auth.passwordLogin, 'function');
   assert.equal(typeof realm.auth.prepare2Fa, 'function');
-  assert.equal(typeof realm.auth.walletChallenge, 'function');
+  assert.equal('walletChallenge' in realm.auth, false);
+  assert.equal('walletLogin' in realm.auth, false);
+  assert.equal('bindWallet' in realm.auth, false);
+  assert.equal('transit' in realm, false);
   assert.equal(typeof realm.account.getMe, 'function');
   assert.equal(typeof realm.account.getMyCreatorEligibility, 'function');
   assert.equal(typeof realm.notifications.getUnreadCount, 'function');

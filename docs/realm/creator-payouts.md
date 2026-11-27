@@ -22,7 +22,6 @@ Understanding creator compensation in Realm requires distinguishing four concept
 ## Related Documentation
 
 - [Creator Economy Architecture](/realm/creator-economy)
-- [Asset Attachment and Binding](/realm/asset-and-binding)
 
 ## Source Basis
 

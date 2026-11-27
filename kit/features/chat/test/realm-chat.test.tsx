@@ -557,8 +557,8 @@ describe('chat realm helpers', () => {
       text: null,
       payload: {
         attachment: {
-          targetType: 'ASSET',
-          targetId: 'asset-1',
+          targetType: 'RESOURCE',
+          targetId: 'resource-1',
           displayKind: 'CARD',
           title: 'Original Song',
           preview: {

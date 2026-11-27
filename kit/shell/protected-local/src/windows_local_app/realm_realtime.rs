@@ -307,7 +307,6 @@ fn project_message_payload(
         MessagePayload::Attachment(value) => {
             json!({"type":"attachment","attachment":project_attachment(value)?})
         }
-        MessagePayload::PostRef(value) => json!({"type":"post-ref","postId":value.post_id}),
         MessagePayload::UserRef(value) => {
             json!({"type":"user-ref","userId":value.user_id,"snapshot":value.snapshot.map(|snapshot|json!({"id":snapshot.id,"handle":snapshot.handle,"displayName":snapshot.display_name,"avatarUrl":snapshot.avatar_url}))})
         }
@@ -381,7 +380,6 @@ fn message_type(value: i32) -> Result<&'static str, LocalAppOperationError> {
     match value {
         1 => Ok("text"),
         2 => Ok("attachment"),
-        3 => Ok("post-ref"),
         4 => Ok("user-ref"),
         5 => Ok("link-ref"),
         6 => Ok("friend-request"),
@@ -393,8 +391,6 @@ fn message_type(value: i32) -> Result<&'static str, LocalAppOperationError> {
 fn attachment_target(value: i32) -> Result<&'static str, LocalAppOperationError> {
     match value {
         1 => Ok("resource"),
-        2 => Ok("asset"),
-        3 => Ok("bundle"),
         _ => Err(untrusted()),
     }
 }

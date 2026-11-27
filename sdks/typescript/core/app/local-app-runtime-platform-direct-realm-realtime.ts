@@ -242,7 +242,6 @@ function projectMessagePayload(value: RealmChatMessagePayload | undefined): Reco
   switch (value?.payload.oneofKind) {
     case 'text': return { type: 'text', content: value.payload.text.content };
     case 'attachment': return { type: 'attachment', attachment: projectAttachment(value.payload.attachment) };
-    case 'postRef': return { type: 'post-ref', postId: value.payload.postRef.postId };
     case 'userRef': return {
       type: 'user-ref', userId: value.payload.userRef.userId,
       snapshot: value.payload.userRef.snapshot ? { ...value.payload.userRef.snapshot } : null,
@@ -268,8 +267,6 @@ function projectAttachment(value: RealmChatAttachmentPayload): Record<string, un
   return {
     targetType: projectRuntimeEnum(value.targetType, {
       [RealmAttachmentTargetType.RESOURCE]: 'resource',
-      [RealmAttachmentTargetType.ASSET]: 'asset',
-      [RealmAttachmentTargetType.BUNDLE]: 'bundle',
     }, 'Realm attachment target'),
     targetId: value.targetId,
     displayKind: value.displayKind === RealmAttachmentDisplayKind.UNSPECIFIED ? null : projectRuntimeEnum(value.displayKind, {
@@ -295,7 +292,6 @@ function messageType(value: RealmChatMessageType) {
   return projectRuntimeEnum(value, {
     [RealmChatMessageType.TEXT]: 'text',
     [RealmChatMessageType.ATTACHMENT]: 'attachment',
-    [RealmChatMessageType.POST_REF]: 'post-ref',
     [RealmChatMessageType.USER_REF]: 'user-ref',
     [RealmChatMessageType.LINK_REF]: 'link-ref',
     [RealmChatMessageType.FRIEND_REQUEST]: 'friend-request',

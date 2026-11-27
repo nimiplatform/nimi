@@ -205,6 +205,56 @@
         "file": "sdks/typescript/CHANGELOG.md",
         "heading": "0.22.0 \u2014 Realm media delivery (development)"
       }
+    },
+    {
+      "rule": "PACKAGE_MESSAGE_NO_DELETE",
+      "path": "runtime/v1/realm_realtime.proto",
+      "message": "Previously present message \"RealmChatPostRefPayload\" was deleted from package \"nimi.runtime.v1\".",
+      "reason": "Authorized pre-release Realm foundation slimdown hard cut retires Post references and Asset/Bundle chat attachment targets; only RESOURCE attachments remain supported. Removed wire numbers and names stay reserved; deploy matching Realm, Runtime, native carriers, SDK, and Kit together.",
+      "migration": {
+        "file": "sdks/typescript/CHANGELOG.md",
+        "heading": "Unreleased \u2014 Realm foundation slimdown (breaking, next 0.x minor)"
+      }
+    },
+    {
+      "rule": "ENUM_VALUE_NO_DELETE",
+      "path": "runtime/v1/realm_realtime.proto",
+      "message": "Previously present enum value \"3\" on enum \"RealmChatMessageType\" was deleted.",
+      "reason": "Authorized pre-release Realm foundation slimdown hard cut retires Post references and Asset/Bundle chat attachment targets; only RESOURCE attachments remain supported. Removed wire numbers and names stay reserved; deploy matching Realm, Runtime, native carriers, SDK, and Kit together.",
+      "migration": {
+        "file": "sdks/typescript/CHANGELOG.md",
+        "heading": "Unreleased \u2014 Realm foundation slimdown (breaking, next 0.x minor)"
+      }
+    },
+    {
+      "rule": "ENUM_VALUE_NO_DELETE",
+      "path": "runtime/v1/realm_realtime.proto",
+      "message": "Previously present enum value \"2\" on enum \"RealmAttachmentTargetType\" was deleted.",
+      "reason": "Authorized pre-release Realm foundation slimdown hard cut retires Post references and Asset/Bundle chat attachment targets; only RESOURCE attachments remain supported. Removed wire numbers and names stay reserved; deploy matching Realm, Runtime, native carriers, SDK, and Kit together.",
+      "migration": {
+        "file": "sdks/typescript/CHANGELOG.md",
+        "heading": "Unreleased \u2014 Realm foundation slimdown (breaking, next 0.x minor)"
+      }
+    },
+    {
+      "rule": "ENUM_VALUE_NO_DELETE",
+      "path": "runtime/v1/realm_realtime.proto",
+      "message": "Previously present enum value \"3\" on enum \"RealmAttachmentTargetType\" was deleted.",
+      "reason": "Authorized pre-release Realm foundation slimdown hard cut retires Post references and Asset/Bundle chat attachment targets; only RESOURCE attachments remain supported. Removed wire numbers and names stay reserved; deploy matching Realm, Runtime, native carriers, SDK, and Kit together.",
+      "migration": {
+        "file": "sdks/typescript/CHANGELOG.md",
+        "heading": "Unreleased \u2014 Realm foundation slimdown (breaking, next 0.x minor)"
+      }
+    },
+    {
+      "rule": "FIELD_NO_DELETE",
+      "path": "runtime/v1/realm_realtime.proto",
+      "message": "Previously present field \"3\" with name \"post_ref\" on message \"RealmChatMessagePayload\" was deleted.",
+      "reason": "Authorized pre-release Realm foundation slimdown hard cut retires Post references and Asset/Bundle chat attachment targets; only RESOURCE attachments remain supported. Removed wire numbers and names stay reserved; deploy matching Realm, Runtime, native carriers, SDK, and Kit together.",
+      "migration": {
+        "file": "sdks/typescript/CHANGELOG.md",
+        "heading": "Unreleased \u2014 Realm foundation slimdown (breaking, next 0.x minor)"
+      }
     }
   ]
 }

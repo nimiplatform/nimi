@@ -114,7 +114,7 @@ test('world character hero shows no era badge guessed from the archetype, no bot
     const markup = renderToStaticMarkup(
       React.createElement(SourceDetailView, {
         source,
-        stats: { friendsCount: 0, postsCount: 0, likesCount: 0 },
+        stats: { friendsCount: 0, likesCount: 0 },
         loading: false,
         error: false,
         onBack: () => {},
@@ -161,7 +161,7 @@ test('world character hero opens the existing partner without implying immediate
     const markup = renderToStaticMarkup(
       React.createElement(SourceDetailView, {
         source,
-        stats: { friendsCount: 0, postsCount: 0, likesCount: 0 },
+        stats: { friendsCount: 0, likesCount: 0 },
         loading: false,
         error: false,
         onBack: () => {},
@@ -194,7 +194,7 @@ test('world character hero shows a disabled joining state while the join is in f
     const markup = renderToStaticMarkup(
       React.createElement(SourceDetailView, {
         source,
-        stats: { friendsCount: 0, postsCount: 0, likesCount: 0 },
+        stats: { friendsCount: 0, likesCount: 0 },
         loading: false,
         error: false,
         primaryActionJoining: true,
@@ -240,7 +240,7 @@ test('world character hero keeps banner and avatar placement and shows the expli
     const markup = renderToStaticMarkup(
       React.createElement(SourceDetailView, {
         source,
-        stats: { friendsCount: 0, postsCount: 0, likesCount: 0 },
+        stats: { friendsCount: 0, likesCount: 0 },
         loading: false,
         error: false,
         onBack: () => {},

@@ -408,7 +408,7 @@ func TestCompleteLoginRejectsSealedTicketAndInertExchange(t *testing.T) {
 
 // TestProductionAuthorizationURLEmitsPKCEOauthShape locks the realm OAuth
 // authorize URL contract from the runtime side
-// (realm:spec/realm/oauth.authority.yaml rule.realm.oauth.r002 /
+// (realm:spec/realm/auth-policy.authority.yaml rule.realm.oauth.r002 /
 // rule.realm.oauth.r003 / rule.realm.oauth.r005 /
 // rule.realm.oauth.r011). Any drift back to the legacy
 // `#/login?desktop_callback=&desktop_state=` web-relay shape must fail this

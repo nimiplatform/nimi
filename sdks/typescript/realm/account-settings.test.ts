@@ -39,7 +39,12 @@ test('Realm account/settings helpers map to generated Realm modules', async () =
       },
       async getMyCreatorEligibility(request) {
         calls.push({ method: 'getMyCreatorEligibility', request });
-        return { isEligible: true };
+        return {
+          isEligible: true,
+          canCreateWorld: false,
+          canCreatePersonaCharacter: true,
+          message: 'Persona creation is available without a subscription.',
+        };
       },
     },
     auth: {
@@ -74,7 +79,12 @@ test('Realm account/settings helpers map to generated Realm modules', async () =
   assert.equal((await updateNimiRealmUserSettings(realm, { profileVisibility: 'FRIENDS' })).profileVisibility, 'FRIENDS');
   assert.equal((await loadNimiRealmUserNotificationSettings(realm)).channels?.email, true);
   assert.equal((await updateNimiRealmUserNotificationSettings(realm, { channels: { email: false } })).channels?.email, false);
-  assert.equal((await loadNimiRealmCreatorEligibility(realm)).isEligible, true);
+  const eligibility = await loadNimiRealmCreatorEligibility(realm);
+  assert.equal(eligibility.isEligible, true);
+  assert.equal(eligibility.canCreateWorld, false);
+  assert.equal(eligibility.canCreatePersonaCharacter, true);
+  assert.equal('tier' in eligibility, false);
+  assert.equal('status' in eligibility, false);
   assert.deepEqual(await updateNimiRealmPassword(realm, { newPassword: 'next' }), { ok: true });
   assert.equal((await prepareNimiRealmTwoFactor(realm, { code: '654321' })).secret, 'secret');
   assert.deepEqual(await enableNimiRealmTwoFactor(realm, { challengeId: 'a'.repeat(64), code: '123456' }), { enabled: true, success: true });

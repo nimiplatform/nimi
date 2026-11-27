@@ -31,7 +31,6 @@ Regular Nimi Apps interact with Realm only through explicitly admitted `client.r
 ## Related Documentation
 
 - [Creator Payouts and Settlement Flows](/realm/creator-payouts)
-- [Asset Attachment & Binding Specification](/realm/asset-and-binding)
 
 ## Source Basis
 

@@ -28,7 +28,6 @@ export function resolveWebAuthAlternatives(adapter: WebAccountAuthAdapter, comin
   return {
     googleDisabledReason: adapter.googleClientId ? undefined : comingSoon,
     tikTokDisabledReason: import.meta.env?.VITE_NIMI_TIKTOK_CLIENT_ID?.trim() ? undefined : comingSoon,
-    showWallet: false,
   };
 }
 

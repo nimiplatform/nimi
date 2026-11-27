@@ -18,7 +18,6 @@ function normalizeMessageType(value: unknown): RealmMessageViewDto['type'] | nul
   const allowed = new Set<RealmMessageViewDto['type']>([
     'TEXT',
     'ATTACHMENT',
-    'POST_REF',
     'USER_REF',
     'LINK_REF',
     'FRIEND_REQUEST',

@@ -166,7 +166,6 @@ type AuthUserDto struct {
 	Tags               []string                   `json:"tags"`
 	Tiers              *AuthUserTierSummaryDto    `json:"tiers"`
 	UpdatedAt          string                     `json:"updatedAt"`
-	Wallets            []AuthUserWalletDto        `json:"wallets"`
 }
 
 type AuthUserSocialProfileDto struct {
@@ -183,15 +182,6 @@ type AuthUserTierSummaryDto struct {
 	InfluenceTier   float64 `json:"influenceTier"`
 	InteractionTier float64 `json:"interactionTier"`
 	VitalityScore   float64 `json:"vitalityScore"`
-}
-
-type AuthUserWalletDto struct {
-	Address        string   `json:"address"`
-	BoundOnChains  []string `json:"boundOnChains"`
-	ChainNamespace string   `json:"chainNamespace,omitempty"`
-	CreatedAt      string   `json:"createdAt"`
-	Id             string   `json:"id"`
-	UpdatedAt      string   `json:"updatedAt,omitempty"`
 }
 
 type Gender string

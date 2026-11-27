@@ -334,15 +334,12 @@ export enum RealmAttachmentDisplayKind {
 export enum RealmAttachmentTargetType {
   UNSPECIFIED = 0,
   RESOURCE = 1,
-  ASSET = 2,
-  BUNDLE = 3,
 }
 
 export enum RealmChatMessageType {
   UNSPECIFIED = 0,
   TEXT = 1,
   ATTACHMENT = 2,
-  POST_REF = 3,
   USER_REF = 4,
   LINK_REF = 5,
   FRIEND_REQUEST = 6,

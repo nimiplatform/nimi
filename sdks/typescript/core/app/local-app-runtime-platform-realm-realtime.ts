@@ -17,14 +17,13 @@ export type NimiRealmRealtimeTarget =
 export type NimiRealmRealtimeMessagePayload =
   | { readonly type: 'text'; readonly content: string }
   | { readonly type: 'attachment'; readonly attachment: NimiRealmChatAttachment }
-  | { readonly type: 'post-ref'; readonly postId: string }
   | { readonly type: 'user-ref'; readonly userId: string; readonly snapshot: NimiRealmChatUserSnapshot | null }
   | { readonly type: 'link-ref'; readonly url: string; readonly title: string | null }
   | { readonly type: 'friend-request'; readonly requestId: string; readonly status: string; readonly requestMessage: string | null }
   | { readonly type: 'system'; readonly code: string | null; readonly message: string | null };
 
 export type NimiRealmChatAttachment = {
-  readonly targetType: 'resource' | 'asset' | 'bundle';
+  readonly targetType: 'resource';
   readonly targetId: string;
   readonly displayKind: 'image' | 'video' | 'audio' | 'text' | 'card' | null;
   readonly title: string | null;
@@ -68,7 +67,7 @@ export type NimiRealmRealtimeMessage = {
   readonly chatId: string;
   readonly senderId: string;
   readonly clientMessageId: string | null;
-  readonly messageType: 'text' | 'attachment' | 'post-ref' | 'user-ref' | 'link-ref' | 'friend-request' | 'system' | 'recall';
+  readonly messageType: 'text' | 'attachment' | 'user-ref' | 'link-ref' | 'friend-request' | 'system' | 'recall';
   readonly text: string | null;
   readonly payload: NimiRealmRealtimeMessagePayload | null;
   readonly isRead: boolean;
@@ -239,7 +238,7 @@ function projectChatEvent(record: Record<string, unknown>): NimiRealmRealtimeCha
 export function projectRealmChatMessage(value: unknown): NimiRealmRealtimeMessage {
   const record=requiredRecord(value, 'Realm Realtime message'); assertExactProjectionKeys(record,['id','chatId','senderId','clientMessageId','messageType','text','payload','isRead','replyTo','createdAt','editedAt'],'Realm Realtime message');
   if(typeof record.isRead!=='boolean')fail('Realm Realtime message');
-  const messageType=oneOf(record.messageType,['text','attachment','post-ref','user-ref','link-ref','friend-request','system','recall']);
+  const messageType=oneOf(record.messageType,['text','attachment','user-ref','link-ref','friend-request','system','recall']);
   return Object.freeze({id:selector(record.id),chatId:selector(record.chatId),senderId:selector(record.senderId),clientMessageId:nullableText(record.clientMessageId),messageType,text:nullableText(record.text),payload:projectMessagePayload(record.payload,messageType),isRead:record.isRead,replyTo:record.replyTo===null?null:projectMessageReply(record.replyTo),createdAt:requiredTimestamp(record.createdAt),editedAt:record.editedAt===null?null:requiredTimestamp(record.editedAt)});
 }
 
@@ -250,11 +249,10 @@ function projectMessagePayload(value: unknown, messageType: NimiRealmRealtimeMes
   }
   if (messageType === 'recall') fail('Realm Chat recall payload');
   const record=requiredRecord(value,'Realm Chat message payload');
-  const type=oneOf(record.type,['text','attachment','post-ref','user-ref','link-ref','friend-request','system']);
+  const type=oneOf(record.type,['text','attachment','user-ref','link-ref','friend-request','system']);
   if(type!==messageType)fail('Realm Chat message payload');
   if(type==='text'){assertExactProjectionKeys(record,['type','content'],type);return Object.freeze({type,content:text(record.content,'content',false,64*1024)});}
   if(type==='attachment'){assertExactProjectionKeys(record,['type','attachment'],type);return Object.freeze({type,attachment:projectRealmChatAttachment(record.attachment)});}
-  if(type==='post-ref'){assertExactProjectionKeys(record,['type','postId'],type);return Object.freeze({type,postId:selector(record.postId)});}
   if(type==='user-ref'){assertExactProjectionKeys(record,['type','userId','snapshot'],type);return Object.freeze({type,userId:selector(record.userId),snapshot:record.snapshot===null?null:projectRealmChatUserSnapshot(record.snapshot)});}
   if(type==='link-ref'){assertExactProjectionKeys(record,['type','url','title'],type);return Object.freeze({type,url:text(record.url,'url',false,4096),title:nullableText(record.title)});}
   if(type==='friend-request'){assertExactProjectionKeys(record,['type','requestId','status','requestMessage'],type);return Object.freeze({type,requestId:selector(record.requestId),status:text(record.status,'status',false,128),requestMessage:nullableText(record.requestMessage)});}
@@ -264,7 +262,7 @@ function projectMessagePayload(value: unknown, messageType: NimiRealmRealtimeMes
 function projectMessageReply(value: unknown): NimiRealmRealtimeMessageReply {
   const record=requiredRecord(value,'Realm Chat reply');
   assertExactProjectionKeys(record,['id','senderId','messageType','text','payload'],'Realm Chat reply');
-  const messageType=oneOf(record.messageType,['text','attachment','post-ref','user-ref','link-ref','friend-request','system','recall']);
+  const messageType=oneOf(record.messageType,['text','attachment','user-ref','link-ref','friend-request','system','recall']);
   return Object.freeze({id:selector(record.id),senderId:selector(record.senderId),messageType,text:nullableText(record.text),payload:projectMessagePayload(record.payload,messageType)});
 }
 
@@ -272,7 +270,7 @@ export function projectRealmChatAttachment(value: unknown): NimiRealmChatAttachm
   const record=requiredRecord(value,'Realm Chat attachment');
   assertExactProjectionKeys(record,['targetType','targetId','displayKind','title','subtitle','delivery','externalUrl','unavailable','width','height','duration','preview'],'Realm Chat attachment');
   if(!Number.isSafeInteger(record.width)||!Number.isSafeInteger(record.height)||typeof record.duration!=='number'||!Number.isFinite(record.duration)||(record.width as number)<0||(record.height as number)<0||record.duration<0)fail('Realm Chat attachment');
-  return Object.freeze({targetType:oneOf(record.targetType,['resource','asset','bundle']),targetId:selector(record.targetId),displayKind:record.displayKind===null?null:oneOf(record.displayKind,['image','video','audio','text','card']),title:nullableText(record.title),subtitle:nullableText(record.subtitle),delivery:projectRealmMediaDelivery(record.delivery),externalUrl:nullableText(record.externalUrl),unavailable:requiredBoolean(record.unavailable),width:record.width as number,height:record.height as number,duration:record.duration,preview:record.preview===null?null:projectRealmChatAttachment(record.preview)});
+  return Object.freeze({targetType:oneOf(record.targetType,['resource']),targetId:selector(record.targetId),displayKind:record.displayKind===null?null:oneOf(record.displayKind,['image','video','audio','text','card']),title:nullableText(record.title),subtitle:nullableText(record.subtitle),delivery:projectRealmMediaDelivery(record.delivery),externalUrl:nullableText(record.externalUrl),unavailable:requiredBoolean(record.unavailable),width:record.width as number,height:record.height as number,duration:record.duration,preview:record.preview===null?null:projectRealmChatAttachment(record.preview)});
 }
 
 export function projectRealmChatUserSnapshot(value: unknown): NimiRealmChatUserSnapshot {

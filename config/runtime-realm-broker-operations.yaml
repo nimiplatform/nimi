@@ -1,7 +1,7 @@
 # Non-authoritative machine configuration (active consumer contract).
 # Normative authority: .nimi/spec/runtime/rpc-foundations.authority.yaml
 # The realm scheme resolves relative to the Realm .nimi authority root.
-# External Realm authority (cross-repo): realm:spec/realm/core.authority.yaml + realm:spec/realm/feed.authority.yaml + realm:spec/realm/asset.authority.yaml
+# External Realm authority (cross-repo): realm:spec/realm/core.authority.yaml
 version: 4
 table_family: protocol_surface
 owner: runtime
@@ -83,22 +83,13 @@ surfaces:
   - prepare2Fa
   - enable2Fa
   - disable2Fa
-  - EconomyController_canWithdraw
-  - EconomyController_createSparkCheckout
-  - EconomyController_createWithdrawal
-  - EconomyController_getBalances
-  - EconomyController_getGemHistory
-  - EconomyController_getSparkHistory
-  - EconomyController_getSparkPackages
-  - EconomyController_getSubscription
-  - EconomyController_getWithdrawalHistory
 source_rule: K-ACCSVC-023
 authority_status: admitted_exact_protected_runtime_operations
 production_consumption: admitted_exact_rows_only
 generic_proxy: forbidden
 unlisted_operation_disposition: deny_broker_operation_not_admitted
 description: >
-  Exact RuntimeAccountService.InvokeRealmUnary admission for protected Desktop product journeys and the six Desktop-supervised Local App realm.data operations. Every row requires either the verified protected Desktop account host, the fixed independent bundled Avatar native-host profile, or the verified Local App carrier with a current Runtime-derived operation decision, plus the current authenticated account, Runtime-only Realm bearer custody, the configured canonical Realm base, and the row-specific OpenAPI request shape. No other Realm operation is admitted by this table. Sensitive account and commerce rows remain separately classified. Packet issuance and all raw materialization transport stay outside this protected broker.
+  Exact RuntimeAccountService.InvokeRealmUnary admission for protected Desktop product journeys and the six Desktop-supervised Local App realm.data operations. Every row requires either the verified protected Desktop account host, the fixed independent bundled Avatar native-host profile, or the verified Local App carrier with a current Runtime-derived operation decision, plus the current authenticated account, Runtime-only Realm bearer custody, the configured canonical Realm base, and the row-specific OpenAPI request shape. No other Realm operation is admitted by this table. Sensitive account rows remain separately classified. Packet issuance and all raw materialization transport stay outside this protected broker.
 
 operation_schema:
   required_fields:
@@ -120,7 +111,6 @@ operation_schema:
     - protected_bundled_avatar_source_readiness
     - protected_desktop_product
     - protected_desktop_sensitive
-    - protected_desktop_commerce
     - protected_local_app_world_core
     - protected_local_app_persona_character_owner
   credential_response_policy_values:
@@ -156,14 +146,6 @@ policy_templates:
     source_rule: K-ACCSVC-023
   desktop_sensitive: &desktop_sensitive
     authorization_profile: protected_desktop_sensitive
-    allowed_runtime_caller_modes: [ ACCOUNT_CALLER_MODE_DESKTOP_SHELL ]
-    protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
-    realm_base_policy: runtime-configured-canonical-exact
-    response_max_bytes: 1048576
-    credential_response_policy: forbidden
-    source_rule: K-ACCSVC-023
-  desktop_commerce: &desktop_commerce
-    authorization_profile: protected_desktop_commerce
     allowed_runtime_caller_modes: [ ACCOUNT_CALLER_MODE_DESKTOP_SHELL ]
     protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
     realm_base_policy: runtime-configured-canonical-exact
@@ -707,78 +689,6 @@ operations:
     path_template: /api/auth/me/2fa/disable
     request_schema_ref: realm-openapi://operation/disable2Fa/request
     response_schema_ref: realm-openapi://operation/disable2Fa/response
-
-  - <<: *desktop_commerce
-    operation_id: EconomyController_canWithdraw
-    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
-    http_method: GET
-    path_template: /api/economy/withdrawals/can-withdraw
-    request_schema_ref: realm-openapi://operation/EconomyController_canWithdraw/request
-    response_schema_ref: realm-openapi://operation/EconomyController_canWithdraw/response
-
-  - <<: *desktop_commerce
-    operation_id: EconomyController_createSparkCheckout
-    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
-    http_method: POST
-    path_template: /api/economy/spark/checkout
-    request_schema_ref: realm-openapi://operation/EconomyController_createSparkCheckout/request
-    response_schema_ref: realm-openapi://operation/EconomyController_createSparkCheckout/response
-
-  - <<: *desktop_commerce
-    operation_id: EconomyController_createWithdrawal
-    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
-    http_method: POST
-    path_template: /api/economy/withdrawals/create
-    request_schema_ref: realm-openapi://operation/EconomyController_createWithdrawal/request
-    response_schema_ref: realm-openapi://operation/EconomyController_createWithdrawal/response
-
-  - <<: *desktop_commerce
-    operation_id: EconomyController_getBalances
-    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
-    http_method: GET
-    path_template: /api/economy/balances
-    request_schema_ref: realm-openapi://operation/EconomyController_getBalances/request
-    response_schema_ref: realm-openapi://operation/EconomyController_getBalances/response
-
-  - <<: *desktop_commerce
-    operation_id: EconomyController_getGemHistory
-    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
-    http_method: GET
-    path_template: /api/economy/gem/history
-    request_schema_ref: realm-openapi://operation/EconomyController_getGemHistory/request
-    response_schema_ref: realm-openapi://operation/EconomyController_getGemHistory/response
-
-  - <<: *desktop_commerce
-    operation_id: EconomyController_getSparkHistory
-    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
-    http_method: GET
-    path_template: /api/economy/spark/history
-    request_schema_ref: realm-openapi://operation/EconomyController_getSparkHistory/request
-    response_schema_ref: realm-openapi://operation/EconomyController_getSparkHistory/response
-
-  - <<: *desktop_commerce
-    operation_id: EconomyController_getSparkPackages
-    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
-    http_method: GET
-    path_template: /api/economy/spark/packages
-    request_schema_ref: realm-openapi://operation/EconomyController_getSparkPackages/request
-    response_schema_ref: realm-openapi://operation/EconomyController_getSparkPackages/response
-
-  - <<: *desktop_commerce
-    operation_id: EconomyController_getSubscription
-    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
-    http_method: GET
-    path_template: /api/economy/subscription
-    request_schema_ref: realm-openapi://operation/EconomyController_getSubscription/request
-    response_schema_ref: realm-openapi://operation/EconomyController_getSubscription/response
-
-  - <<: *desktop_commerce
-    operation_id: EconomyController_getWithdrawalHistory
-    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
-    http_method: GET
-    path_template: /api/economy/withdrawals/history
-    request_schema_ref: realm-openapi://operation/EconomyController_getWithdrawalHistory/request
-    response_schema_ref: realm-openapi://operation/EconomyController_getWithdrawalHistory/response
 
   - <<: *desktop_product
     operation_id: createImageDirectUpload

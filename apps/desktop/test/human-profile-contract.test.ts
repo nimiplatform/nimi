@@ -7,8 +7,8 @@ import {
 } from '../src/shell/renderer/features/profile/profile-model.js';
 
 test('an omitted friend count stays hidden while a disclosed zero remains a number', () => {
-  assert.equal(toHumanProfileData({ id: 'a', stats: { postsCount: 4 } }).stats?.friendsCount, undefined);
-  assert.equal(toHumanProfileData({ id: 'b', stats: { postsCount: 4, friendsCount: 0 } }).stats?.friendsCount, 0);
+  assert.equal(toHumanProfileData({ id: 'a', stats: {} }).stats?.friendsCount, undefined);
+  assert.equal(toHumanProfileData({ id: 'b', stats: { friendsCount: 0 } }).stats?.friendsCount, 0);
 });
 
 test('human profile projection preserves only UserProfile fields', () => {
@@ -22,7 +22,6 @@ test('human profile projection preserves only UserProfile fields', () => {
     createdAt: '2026-07-31T00:00:00.000Z',
     stats: {
       friendsCount: 3,
-      postsCount: 4,
       likesCount: 5,
     },
   });
@@ -31,7 +30,6 @@ test('human profile projection preserves only UserProfile fields', () => {
   assert.equal(profile.coverUrl, '/alice-cover.png');
   assert.deepEqual(profile.stats, {
     friendsCount: 3,
-    postsCount: 4,
     likesCount: 5,
   });
   assert.equal('sourceRef' in profile, false);

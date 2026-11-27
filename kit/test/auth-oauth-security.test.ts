@@ -4,7 +4,6 @@ import {
   DESKTOP_CALLBACK_TIMEOUT_MS,
   createDesktopOAuthCallbackRedirectUri,
   createDesktopOAuthCallbackState,
-  handleWalletLogin,
   localizeAuthError,
   toDesktopBrowserAuthErrorMessage,
   toErrorMessage,
@@ -124,49 +123,5 @@ describe('auth error rendering', () => {
   it('surfaces RuntimeAccountService availability failures for desktop browser auth', () => {
     expect(toDesktopBrowserAuthErrorMessage(new Error('Runtime account login could not start: electron-runtime-endpoint-unavailable')))
       .toBe('本机账号服务暂时不可用，请确认 Nimi 服务已启动后重试。');
-  });
-});
-
-describe('wallet login error handling', () => {
-  it('keeps cancellations silent but surfaces non-cancellation failures to the UI', async () => {
-    const loginErrors: Array<string | null> = [];
-    const setters = {
-      setPending: () => undefined,
-      setLoginError: (value: string | null) => {
-        loginErrors.push(value);
-      },
-    };
-    const adapter = {
-      walletChallenge: async () => ({ message: 'challenge', nonce: 'nonce' }),
-      walletLogin: async () => ({ tokens: null }),
-    };
-
-    Object.defineProperty(window, 'ethereum', {
-      configurable: true,
-      value: {
-        isMetaMask: true,
-        request: async ({ method }: { method: string }) => {
-          if (method === 'eth_requestAccounts') return ['0x123'];
-          if (method === 'eth_chainId') return '0x1';
-          throw Object.assign(new Error('User rejected the request'), { code: 4001 });
-        },
-      },
-    });
-
-    await handleWalletLogin('metamask', setters as never, adapter as never);
-    expect(loginErrors).toEqual([null]);
-
-    (window as typeof window & {
-      ethereum: { request: (input: { method: string }) => Promise<unknown> };
-    }).ethereum.request = async ({ method }: { method: string }) => {
-      if (method === 'eth_requestAccounts') return ['0x123'];
-      if (method === 'eth_chainId') return '0x1';
-      throw new Error('signature verification failed');
-    };
-
-    await handleWalletLogin('metamask', setters as never, adapter as never);
-    expect(loginErrors.slice(0, 2)).toEqual([null, null]);
-    expect(loginErrors[2]).toEqual(expect.any(String));
-    expect(loginErrors[2]).not.toBe('');
   });
 });

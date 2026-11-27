@@ -18,7 +18,6 @@ export type RestrictedHumanProfileSeed = {
   countryCode?: string | null;
   gender?: string | null;
   friendsCount?: number;
-  postsCount?: number;
   likesCount?: number;
 };
 

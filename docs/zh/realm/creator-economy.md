@@ -31,7 +31,6 @@ Realm Economy 为在 Nimi 中创作角色与体验的创作者提供可审计的
 ## 相关文档
 
 - [创作者收益与结算流水](/zh/realm/creator-payouts)
-- [资产挂载与绑定规范](/zh/realm/asset-and-binding)
 
 ## Source Basis
 

@@ -34,12 +34,6 @@ export const AUTH_COPY = {
   twoFactorCodeRequired: '请输入 6 位 2FA 验证码',
   twoFactorSuccess: '2FA 验证成功，已登录。',
   twoFactorFailed: '2FA 验证失败，请重试。',
-  walletLoginTimeout: '钱包登录超时，请重试。',
-  walletAddressMissing: '钱包未返回地址',
-  walletChallengeInvalid: '无效的钱包签名挑战',
-  walletSignatureFailed: '钱包签名失败',
-  walletLoginSuccess: '钱包登录成功。',
-  walletLoginFailed: '钱包登录失败，请重试。',
 } as const;
 
 const AUTH_ERROR_TRANSLATIONS: Array<[needle: string, localized: string]> = [
@@ -75,10 +69,6 @@ export function formatProviderLoginSuccessMessage(providerLabel: string): string
 
 export function formatProviderLoginFailureMessage(providerLabel: string): string {
   return `${providerLabel} 登录失败，请重试。`;
-}
-
-export function walletUnavailableMessage(providerLabel: string): string {
-  return `未检测到 ${providerLabel} 钱包`;
 }
 
 export function toAuthUiErrorMessage(

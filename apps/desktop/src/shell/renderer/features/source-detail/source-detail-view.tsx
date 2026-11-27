@@ -6,7 +6,7 @@ import { CharacterSourceDetailPage } from './source-detail-world-character-view.
 
 type SourceDetailViewProps = {
   source: SourceDetailData;
-  stats?: { friendsCount: number; postsCount: number; likesCount: number } | null;
+  stats?: { friendsCount: number; likesCount: number } | null;
   loading: boolean;
   error: boolean;
   retrying?: boolean;

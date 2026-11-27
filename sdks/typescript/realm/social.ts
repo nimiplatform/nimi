@@ -201,8 +201,7 @@ function isUserStats(value: unknown): value is UserStatsDto {
   const record = toRecord(value);
   return Boolean(
     record
-    && isOptionalFiniteNumber(record.friendsCount)
-    && isOptionalFiniteNumber(record.postsCount),
+    && isOptionalFiniteNumber(record.friendsCount),
   );
 }
 

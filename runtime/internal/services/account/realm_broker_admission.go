@@ -7,7 +7,6 @@ import (
 const realmBrokerProtectedDesktopSourceReadinessProfile = "protected_desktop_source_readiness"
 const realmBrokerProtectedDesktopProductProfile = "protected_desktop_product"
 const realmBrokerProtectedDesktopSensitiveProfile = "protected_desktop_sensitive"
-const realmBrokerProtectedDesktopCommerceProfile = "protected_desktop_commerce"
 const realmBrokerProtectedBundledAvatarSourceReadinessProfile = "protected_bundled_avatar_source_readiness"
 const realmBrokerProtectedLocalAppWorldCoreProfile = "protected_local_app_world_core"
 const realmBrokerProtectedLocalAppPersonaCharacterOwnerProfile = "protected_local_app_persona_character_owner"
@@ -27,7 +26,6 @@ func (operation realmUnaryOperation) admitsProtectedDesktopCaller(caller *runtim
 			operation.authorizationProfile == realmBrokerProtectedDesktopProductProfile ||
 			operation.authorizationProfile == realmBrokerProtectedLocalAppWorldCoreProfile ||
 			operation.authorizationProfile == realmBrokerProtectedDesktopSensitiveProfile ||
-			operation.authorizationProfile == realmBrokerProtectedDesktopCommerceProfile ||
 			operation.authorizationProfile == realmBrokerProtectedBundledAvatarSourceReadinessProfile ||
 			operation.authorizationProfile == realmBrokerProtectedLocalAppPersonaCharacterOwnerProfile
 	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST:

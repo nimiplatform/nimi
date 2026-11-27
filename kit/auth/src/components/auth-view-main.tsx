@@ -24,7 +24,6 @@ export function AuthViewMain(props: {
   onAlternativeToggle: () => void;
   onGoogleLogin: () => void;
   onTikTokLogin: () => void;
-  onWeb3Login?: () => void;
   testIds?: AuthViewMainTestIds;
 }) {
   const { t } = useTranslation();
@@ -41,7 +40,6 @@ export function AuthViewMain(props: {
     onAlternativeToggle,
     onGoogleLogin,
     onTikTokLogin,
-    onWeb3Login,
     testIds,
   } = props;
 
@@ -148,24 +146,6 @@ export function AuthViewMain(props: {
                     <span className="text-[length:var(--nimi-type-caption-size,0.75rem)] text-[var(--nimi-text-muted)]">{tikTokDisabledReason}</span>
                   ) : null}
                 </div>
-
-                {onWeb3Login ? (
-                  <div className="flex flex-col items-center gap-1.5">
-                    <CircleIconButton
-                      label={t('Auth.web3')}
-                      onClick={onWeb3Login}
-                      disabled={pending}
-                      className="h-[3.25rem] w-[3.25rem] border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-base)]"
-                    >
-                      <svg viewBox="0 0 24 24" className="mx-auto h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <rect x="2.5" y="6" width="19" height="12" rx="2.5" />
-                        <path d="M2.5 10.5h19" />
-                        <circle cx="17.5" cy="14" r="1.4" />
-                      </svg>
-                    </CircleIconButton>
-                    <span className="text-[length:var(--nimi-type-caption-size,0.75rem)] font-medium text-[var(--nimi-text-secondary)]">{t('Auth.web3')}</span>
-                  </div>
-                ) : null}
               </div>
             </Surface>
         </motion.div>

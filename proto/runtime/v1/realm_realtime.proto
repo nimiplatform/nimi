@@ -12,7 +12,8 @@ enum RealmChatMessageType {
   REALM_CHAT_MESSAGE_TYPE_UNSPECIFIED = 0;
   REALM_CHAT_MESSAGE_TYPE_TEXT = 1;
   REALM_CHAT_MESSAGE_TYPE_ATTACHMENT = 2;
-  REALM_CHAT_MESSAGE_TYPE_POST_REF = 3;
+  reserved 3;
+  reserved "REALM_CHAT_MESSAGE_TYPE_POST_REF";
   REALM_CHAT_MESSAGE_TYPE_USER_REF = 4;
   REALM_CHAT_MESSAGE_TYPE_LINK_REF = 5;
   REALM_CHAT_MESSAGE_TYPE_FRIEND_REQUEST = 6;
@@ -23,8 +24,8 @@ enum RealmChatMessageType {
 enum RealmAttachmentTargetType {
   REALM_ATTACHMENT_TARGET_TYPE_UNSPECIFIED = 0;
   REALM_ATTACHMENT_TARGET_TYPE_RESOURCE = 1;
-  REALM_ATTACHMENT_TARGET_TYPE_ASSET = 2;
-  REALM_ATTACHMENT_TARGET_TYPE_BUNDLE = 3;
+  reserved 2, 3;
+  reserved "REALM_ATTACHMENT_TARGET_TYPE_ASSET", "REALM_ATTACHMENT_TARGET_TYPE_BUNDLE";
 }
 
 enum RealmAttachmentDisplayKind {
@@ -90,10 +91,6 @@ message RealmChatAttachmentPayload {
   bool unavailable = 14;
 }
 
-message RealmChatPostRefPayload {
-  string post_id = 1;
-}
-
 message RealmChatUserSnapshot {
   string id = 1;
   string handle = 2;
@@ -123,10 +120,11 @@ message RealmChatSystemPayload {
 }
 
 message RealmChatMessagePayload {
+  reserved 3;
+  reserved "post_ref";
   oneof payload {
     RealmChatTextPayload text = 1;
     RealmChatAttachmentPayload attachment = 2;
-    RealmChatPostRefPayload post_ref = 3;
     RealmChatUserRefPayload user_ref = 4;
     RealmChatLinkRefPayload link_ref = 5;
     RealmChatFriendRequestPayload friend_request = 6;
