@@ -885,6 +885,9 @@ func (b *Backend) StreamGenerateTextRich(ctx context.Context, modelID string, in
 	if !terminalSeen || !doneSeen {
 		return usage, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_STREAM_BROKEN)
 	}
+	// Drain any trailing SSE newline/chunked terminator after [DONE] so HTTP/1.1
+	// keep-alive connections can be recycled cleanly when the body closes.
+	_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 4096))
 
 	return usage, finish, nil
 }

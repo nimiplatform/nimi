@@ -2,6 +2,8 @@ package nimillm
 
 import (
 	"context"
+	"log/slog"
+	"net/url"
 	"strings"
 	"time"
 
@@ -34,6 +36,7 @@ type CloudProvider struct {
 
 	allowLoopbackEndpoint bool
 	chatGPTPlanInventory  *chatGPTPlanInventoryCache
+	connPool              *cloudConnectionPool
 }
 
 // NewCloudProvider creates a CloudProvider from the given config.
@@ -72,6 +75,23 @@ func NewCloudProvider(cfg CloudConfig) *CloudProvider {
 		httpTimeout:           cfg.HTTPTimeout,
 		allowLoopbackEndpoint: cfg.AllowLoopbackEndpoint,
 		chatGPTPlanInventory:  newChatGPTPlanInventoryCache(),
+		connPool:              newCloudConnectionPool(),
+	}
+}
+
+// CloseIdleConnections closes all idle outbound HTTP connections held by this
+// CloudProvider's bounded connection pool and probe backends.
+func (p *CloudProvider) CloseIdleConnections() {
+	if p == nil {
+		return
+	}
+	if p.connPool != nil {
+		p.connPool.CloseIdleConnections()
+	}
+	for _, b := range p.backends {
+		if b != nil && b.client != nil {
+			b.client.CloseIdleConnections()
+		}
 	}
 }
 
@@ -266,11 +286,10 @@ func (p *CloudProvider) backendFromTarget(target *RemoteTarget) *Backend {
 	if target.ProviderType == chatGPTPlanProvider && !chatGPTPlanTargetEndpointAllowed(target, p.allowLoopbackEndpoint) {
 		return nil
 	}
-	backend := NewSecuredBackendWithHeaders(
+	backend := p.newTargetBackend(
 		"cloud-"+target.ProviderType,
 		endpoint,
-		target.APIKey,
-		target.Headers,
+		target,
 		p.probeTimeout(),
 		allowLoopback,
 	)
@@ -287,6 +306,39 @@ func (p *CloudProvider) backendFromTarget(target *RemoteTarget) *Backend {
 	if target.ProviderType == chatGPTPlanProvider {
 		// SIWC tokens reach only the fixed public resource, never a redirect.
 		return backend.withoutRedirects()
+	}
+	return backend
+}
+
+func (p *CloudProvider) newTargetBackend(name string, baseURL string, target *RemoteTarget, timeout time.Duration, allowLoopback bool) *Backend {
+	if p == nil || p.connPool == nil {
+		return NewSecuredBackendWithHeaders(name, baseURL, target.APIKey, target.Headers, timeout, allowLoopback)
+	}
+	normalized := normalizeBackendBaseURL(baseURL)
+	if normalized == "" {
+		return nil
+	}
+	started := time.Now()
+	if _, err := p.connPool.resolveAndValidate(context.Background(), normalized, allowLoopback); err != nil {
+		slog.Warn("provider endpoint resolution failed", "backend", name,
+			"failure_class", endpointResolutionFailureClass(err), "elapsed_ms", time.Since(started).Milliseconds())
+		return nil
+	}
+	origin, err := url.Parse(normalized)
+	if err != nil {
+		slog.Warn("provider endpoint resolution failed", "backend", name,
+			"failure_class", endpointResolutionFailureClass(err), "elapsed_ms", time.Since(started).Milliseconds())
+		return nil
+	}
+	transport := &securedHTTPTransport{
+		origin:        origin,
+		allowLoopback: allowLoopback,
+		pool:          p.connPool,
+		poolScope:     newCloudConnectionScope(target),
+	}
+	backend := newBackend(name, normalized, target.APIKey, target.Headers, timeout, transport, true, allowLoopback)
+	if backend != nil {
+		backend.endpointResolve = time.Since(started)
 	}
 	return backend
 }

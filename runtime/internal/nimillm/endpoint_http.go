@@ -48,14 +48,18 @@ func newSecuredHTTPClient(ctx context.Context, targetURL string, allowLoopback b
 	return client, nil
 }
 
+func wrapSecuredEndpointForbidden(err error) error {
+	return grpcerr.WrapWithReasonCode(
+		codes.FailedPrecondition,
+		runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN,
+		err,
+		grpcerr.ReasonOptions{Message: "provider endpoint is not permitted"},
+	)
+}
+
 func validateSecuredProviderEndpoint(ctx context.Context, targetURL string, allowLoopback bool) error {
 	if err := endpointsec.ValidateEndpoint(ctx, targetURL, allowLoopback); err != nil {
-		return grpcerr.WrapWithReasonCode(
-			codes.FailedPrecondition,
-			runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN,
-			err,
-			grpcerr.ReasonOptions{Message: "provider endpoint is not permitted"},
-		)
+		return wrapSecuredEndpointForbidden(err)
 	}
 	return nil
 }
@@ -63,20 +67,19 @@ func validateSecuredProviderEndpoint(ctx context.Context, targetURL string, allo
 func securedProviderTransport(ctx context.Context, targetURL string, allowLoopback bool) (*http.Transport, error) {
 	transport, err := endpointsec.NewPinnedTransport(ctx, targetURL, allowLoopback)
 	if err != nil {
-		return nil, grpcerr.WrapWithReasonCode(
-			codes.FailedPrecondition,
-			runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN,
-			err,
-			grpcerr.ReasonOptions{Message: "provider endpoint is not permitted"},
-		)
+		return nil, wrapSecuredEndpointForbidden(err)
 	}
 	return transport, nil
 }
 
 // Every outbound send (initial request, subsequent same-origin send, same-origin
 // GET/HEAD redirect, or cross-origin artifact redirect) validates its actual
-// destination and current address set immediately before sending and uses a
-// fresh pinned one-shot transport without pooled cross-send reuse.
+// destination and current address set immediately before sending.
+// Standalone sends, redirects, cross-origin artifact fetches, and gated async
+// jobs always use a fresh pinned one-shot transport. Same-origin non-gated
+// non-empty-body POST sends on a CloudProvider target-bound backend may reuse a
+// bounded, strictly keyed HTTP/1.1 connection from pool after per-request
+// destination and peer-IP validation succeeds.
 // @nimi-authority: rule.nimi.runtime.security-core.r034
 // @nimi-authority: rule.nimi.runtime.security-core.r035
 type securedHTTPTransport struct {
@@ -85,6 +88,24 @@ type securedHTTPTransport struct {
 	allowLoopback   bool
 	initialConsumed atomic.Bool
 	buildTransport  func(ctx context.Context, targetURL string, allowLoopback bool) (*http.Transport, error)
+	pool            *cloudConnectionPool
+	poolScope       *cloudConnectionScope
+}
+
+func (t *securedHTTPTransport) canUseBoundedPool(request *http.Request) bool {
+	if t.pool == nil || t.poolScope == nil || t.buildTransport != nil || t.initial != nil {
+		return false
+	}
+	if request == nil || request.Method != http.MethodPost {
+		return false
+	}
+	if request.Body == nil || request.Body == http.NoBody || request.ContentLength == 0 {
+		return false
+	}
+	if gate, ok := request.Context().Value(outboundGateKey{}).(OutboundGate); ok && gate != nil {
+		return false
+	}
+	return true
 }
 
 func (t *securedHTTPTransport) newValidatedTransport(ctx context.Context, targetURL string) (*http.Transport, error) {
@@ -109,6 +130,9 @@ func (t *securedHTTPTransport) RoundTrip(request *http.Request) (*http.Response,
 		return nil, fmt.Errorf("provider request Host differs from its validated destination")
 	}
 	if t.origin != nil && sameProviderHTTPOrigin(request.URL, t.origin) {
+		if t.canUseBoundedPool(request) {
+			return t.pool.roundTrip(request, t.poolScope, t.allowLoopback)
+		}
 		if t.initial != nil && !t.initialConsumed.Swap(true) {
 			return httpClientWithOutboundGate(request.Context(), &http.Client{Transport: t.initial}).Transport.RoundTrip(request)
 		}

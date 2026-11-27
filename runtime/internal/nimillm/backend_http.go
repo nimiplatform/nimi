@@ -139,5 +139,8 @@ func DecodeResponseJSON(response *http.Response, target any) error {
 	if err := json.NewDecoder(response.Body).Decode(target); err != nil {
 		return providerResponseDecodeError(err)
 	}
+	// Drain any small trailing whitespace/chunked terminator (e.g. newline after
+	// JSON) so HTTP/1.1 keep-alive connections can be recycled cleanly on Close.
+	_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 4096))
 	return nil
 }
