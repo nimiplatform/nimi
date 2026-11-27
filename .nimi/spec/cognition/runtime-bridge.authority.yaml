@@ -252,6 +252,18 @@ units:
         target: definition.nimi.cognition.runtime-bridge.memory-adapter-outcome
       - type: applies_to
         target: definition.nimi.cognition.runtime-bridge.memory-handoff-plane
+  - id: rule.nimi.cognition.runtime-bridge.damaged-handoff
+    kind: rule
+    title: Proven damage to one pending handoff can be settled in delivery order
+    modality: must
+    statement: Before delivering retained event bytes Runtime checks their committed digest and owner coordinates. If the bytes no longer match and the committed event, active Agent binding, lifecycle, operation, sequence and original digest are still identifiable, Runtime may request an ordered content-free rejection from Cognition. Cognition preserves an existing matching receipt and its real outcome. Otherwise only the next contiguous sequence may receive a durable rejected marker with zero Memory effect. Runtime acknowledges that result before releasing the bad copy and letting later events proceed. The received and ready frontiers may cover the settled marker without representing the damaged payload as valid custody.
+    condition: Whenever an already committed pending handoff has damaged payload bytes.
+    failure: Keep ambiguous identity, a gap, an authorization failure or an unavailable owner unresolved. Never fill in missing source content, change a prior Memory decision, resurrect a forgotten target, or discard a valid payload because of a retryable failure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.core-algorithm-boundary
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.memory-handoff-plane
   - id: rule.nimi.cognition.runtime-bridge.r020
     kind: rule
     title: Memory delivery received terminal and ready frontiers remain distinct

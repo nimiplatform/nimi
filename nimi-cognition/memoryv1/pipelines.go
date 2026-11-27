@@ -286,13 +286,10 @@ func baselinePreferenceValue(value string) string {
 }
 
 func (c *Core) ExecuteRemember(ctx context.Context, operationID string) (DecisionResult, error) {
-	return c.executeRememberWithPipeline(ctx, operationID, BaselineRemember{})
+	return c.executeRememberWithPipeline(ctx, operationID, nil)
 }
 
 func (c *Core) executeRememberWithPipeline(ctx context.Context, operationID string, pipeline RememberPipeline) (DecisionResult, error) {
-	if pipeline == nil || pipeline.Descriptor().Name == "" || pipeline.Descriptor().Operation != "remember" || pipeline.Revision() == "" {
-		return DecisionResult{Outcome: OutcomeInvalid}, contractError(OutcomeInvalid, "remember_pipeline")
-	}
 	if prior, ok, err := c.terminalDecision(ctx, operationID); err != nil {
 		return DecisionResult{Outcome: OutcomeUnavailable}, err
 	} else if ok {
@@ -304,6 +301,23 @@ func (c *Core) executeRememberWithPipeline(ctx context.Context, operationID stri
 	request, err := c.loadCustody(ctx, operationID)
 	if err != nil {
 		return DecisionResult{Outcome: errorOutcome(err)}, err
+	}
+	if pipeline == nil {
+		bound, found, err := c.operationRoute(ctx, operationID)
+		if err != nil {
+			return DecisionResult{Outcome: OutcomeUnavailable}, err
+		}
+		switch {
+		case !found, bound.Pipeline == PipelineRememberBaseline && bound.AlgorithmRevision == (preferenceRemember{}).Revision():
+			pipeline = preferenceRemember{}
+		case bound.Pipeline == PipelineRememberBaseline && bound.AlgorithmRevision == (BaselineRemember{}).Revision():
+			pipeline = BaselineRemember{}
+		default:
+			return DecisionResult{Outcome: OutcomeUnsupported}, contractError(OutcomeUnsupported, "remember_revision")
+		}
+	}
+	if pipeline.Descriptor().Name == "" || pipeline.Descriptor().Operation != "remember" || pipeline.Revision() == "" {
+		return DecisionResult{Outcome: OutcomeInvalid}, contractError(OutcomeInvalid, "remember_pipeline")
 	}
 	if _, err := c.bindRoute(ctx, routeBindingRequest{OperationID: operationID, OperationKind: "remember", BankRef: request.BankRef, Pipeline: pipeline.Descriptor().Name, AlgorithmRevision: pipeline.Revision(), Snapshot: CapabilitySnapshot{Available: []Capability{}}}); err != nil {
 		return DecisionResult{Outcome: errorOutcome(err)}, err
@@ -374,7 +388,7 @@ func (c *Core) loadCustody(ctx context.Context, operationID string) (CommitReque
 func (c *Core) terminalDecision(ctx context.Context, operationID string) (DecisionResult, bool, error) {
 	var outcome Outcome
 	var raw []byte
-	err := c.db.QueryRowContext(ctx, `SELECT outcome, result_json FROM memory_operations WHERE operation_id = ? AND operation_kind IN ('commit', 'cutoff_noop')`, operationID).Scan(&outcome, &raw)
+	err := c.db.QueryRowContext(ctx, `SELECT outcome, result_json FROM memory_operations WHERE operation_id = ? AND operation_kind IN ('commit', 'cutoff_noop', 'rejected_handoff')`, operationID).Scan(&outcome, &raw)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return DecisionResult{}, false, contractError(OutcomeInvalid, "unknown_operation")

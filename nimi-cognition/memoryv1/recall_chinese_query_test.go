@@ -5,9 +5,54 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 )
 
 const chineseProjectRecallQuery = "请从你当前获准读取的长期记忆中，找出这轮开发验收项目的代号，保存一份标题为“已存测试项目名”的短 Markdown 新成果：第一行写找到的代号，第二行写依据来自哪条已提交的长期记忆。如未获得该信息，请明确写“未找到”，不要猜测。此次委托不提供代号本身；不读取规范聊天，不查询外部服务，不访问其他工作成果，也不改变任何已有记忆或旧成果。实际保存后简短说明。"
+
+func TestFTSRecallSingleHanCharacterRanksRelevanceAndOccurrence(t *testing.T) {
+	ctx := context.Background()
+	for _, tc := range []struct {
+		name, first, second string
+		yearsOlder          int
+	}{
+		{"equally relevant older fact entered later", "我喜欢喝绿茶。", "我喜欢喝红茶。", 2},
+		{"more occurrences at equal age", "我喜欢茶叶茶汤。", "我喜欢牛奶茶汤。", 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			now := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)
+			core, err := Open(t.TempDir(), WithClock(func() time.Time { return now }))
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() {
+				if err := core.Close(); err != nil {
+					t.Error(err)
+				}
+			})
+			bank := ensureTestBank(t, core, "han-ranking")
+			occurred := now
+			for i, text := range []string{tc.first, tc.second} {
+				seq := uint64(i + 1)
+				id := fmt.Sprintf("han-%d", seq)
+				req := testCommit(bank, seq, id, "remember-"+id, text)
+				req.CommittedAt = occurred.AddDate(-i*tc.yearsOlder, 0, 0)
+				if _, err := core.ReceiveCommittedEvent(ctx, req); err != nil {
+					t.Fatal(err)
+				}
+				if result, err := core.ExecuteRemember(ctx, req.OperationID); err != nil || len(result.AffectedMemoryRefs) != 1 {
+					t.Fatalf("remember %s: %+v, %v", id, result, err)
+				}
+				now = now.Add(time.Minute)
+			}
+			caps := CapabilitySnapshot{Available: []Capability{CapabilityFTSIndex}}
+			result, err := core.Recall(ctx, testRecallRequest(bank, "single-han", "茶", 2, caps), nil)
+			if err != nil || len(result.Hits) != 2 || result.Hits[0].Content != tc.first || result.Hits[1].Content != tc.second {
+				t.Fatalf("single-character Recall: %+v, %v", result, err)
+			}
+		})
+	}
+}
 
 func TestFTSRecallChineseNaturalQuestionRanksLexicalTopicsWithinExactBank(t *testing.T) {
 	ctx := context.Background()
@@ -50,7 +95,7 @@ func TestFTSRecallChineseNaturalQuestionRanksLexicalTopicsWithinExactBank(t *tes
 		t.Fatal("stale lifecycle returned Chinese hits")
 	}
 	var revision string
-	if err := core.db.QueryRowContext(ctx, `SELECT algorithm_revision FROM memory_operation_routes WHERE operation_id = 'chinese-natural-0'`).Scan(&revision); err != nil || revision != "fts-2" {
+	if err := core.db.QueryRowContext(ctx, `SELECT algorithm_revision FROM memory_operation_routes WHERE operation_id = 'chinese-natural-0'`).Scan(&revision); err != nil || revision != "fts-3" {
 		t.Fatalf("query revision not bound: %q %v", revision, err)
 	}
 	var currentGeneration string

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestBaselineRememberRecognizesExplicitChineseLongTermRequest(t *testing.T) {
@@ -924,7 +925,7 @@ func TestRecallSnapshotRejectsRetiredBindingAfterQueryEmbedding(t *testing.T) {
 	if got.err == nil || len(got.result.Hits) != 0 || got.result.Outcome == OutcomeReady {
 		t.Fatalf("retired Recall returned hits: %+v %v", got.result, got.err)
 	}
-	if result, err := core.recallFTS(ctx, request); err == nil || len(result.Hits) != 0 {
+	if result, err := core.recallFTS(ctx, request, time.Time{}); err == nil || len(result.Hits) != 0 {
 		t.Fatalf("FTS snapshot accepted retired binding: %+v %v", result, err)
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 )
 
 type routeBindingRequest struct {
@@ -19,9 +20,20 @@ type routeBindingRequest struct {
 }
 
 type routeBinding struct {
+	BoundAt           time.Time
 	Pipeline          PipelineName
 	AlgorithmRevision string
 	ConfigRevision    uint64
+}
+
+// operationRoute reads a previous selection before consulting a newer router.
+func (c *Core) operationRoute(ctx context.Context, id string) (routeBinding, bool, error) {
+	var route routeBinding
+	err := c.db.QueryRowContext(ctx, "SELECT pipeline,algorithm_revision,config_revision FROM memory_operation_routes WHERE operation_id=?", id).Scan(&route.Pipeline, &route.AlgorithmRevision, &route.ConfigRevision)
+	if errors.Is(err, sql.ErrNoRows) {
+		return route, false, nil
+	}
+	return route, err == nil, err
 }
 
 func (c *Core) bindRoute(ctx context.Context, request routeBindingRequest) (routeBinding, error) {
@@ -43,25 +55,27 @@ func (c *Core) bindRoute(ctx context.Context, request routeBindingRequest) (rout
 	}
 	defer func() { _ = tx.Rollback() }()
 	var existing routeBinding
-	var existingKind, existingBank, existingRequestKey string
-	err = tx.QueryRowContext(ctx, `SELECT operation_kind, bank_ref, request_key, pipeline, algorithm_revision, config_revision FROM memory_operation_routes WHERE operation_id = ?`, request.OperationID).Scan(&existingKind, &existingBank, &existingRequestKey, &existing.Pipeline, &existing.AlgorithmRevision, &existing.ConfigRevision)
+	var existingKind, existingBank, existingRequestKey, createdAt string
+	err = tx.QueryRowContext(ctx, `SELECT operation_kind, bank_ref, request_key, pipeline, algorithm_revision, config_revision, created_at FROM memory_operation_routes WHERE operation_id = ?`, request.OperationID).Scan(&existingKind, &existingBank, &existingRequestKey, &existing.Pipeline, &existing.AlgorithmRevision, &existing.ConfigRevision, &createdAt)
 	if err == nil {
 		if existingKind != request.OperationKind || existingBank != request.BankRef || existingRequestKey != requestKey {
 			return routeBinding{}, contractError(OutcomeConflict, "route_retry")
 		}
-		return existing, nil
+		existing.BoundAt, err = parseTime(createdAt)
+		return existing, err
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
 		return routeBinding{}, fmt.Errorf("bind memory route: inspect existing: %w", err)
 	}
-	now := formatTime(c.now())
+	boundAt := c.now()
+	now := formatTime(boundAt)
 	if _, err := tx.ExecContext(ctx, `INSERT INTO memory_operation_routes(operation_id, operation_kind, bank_ref, request_key, pipeline, algorithm_revision, config_revision, capabilities_json, outcome, created_at, updated_at) VALUES(?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`, request.OperationID, request.OperationKind, request.BankRef, requestKey, request.Pipeline, request.AlgorithmRevision, request.Snapshot.ConfigRevision, capabilitiesJSON, now, now); err != nil {
 		return routeBinding{}, fmt.Errorf("bind memory route: save: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
 		return routeBinding{}, fmt.Errorf("bind memory route: commit: %w", err)
 	}
-	return routeBinding{Pipeline: request.Pipeline, AlgorithmRevision: request.AlgorithmRevision, ConfigRevision: request.Snapshot.ConfigRevision}, nil
+	return routeBinding{BoundAt: boundAt, Pipeline: request.Pipeline, AlgorithmRevision: request.AlgorithmRevision, ConfigRevision: request.Snapshot.ConfigRevision}, nil
 }
 
 func (c *Core) completeRoute(ctx context.Context, operationID string, outcome Outcome) error {

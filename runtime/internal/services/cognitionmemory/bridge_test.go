@@ -1,9 +1,11 @@
 package cognitionmemory
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -161,4 +163,129 @@ func mustBankRef(t *testing.T, owner *memoryv1.Core, binding Binding) string {
 		t.Fatalf("ensure bank: %v", err)
 	}
 	return result.BankRef
+}
+
+func TestDamagedOutboxPreservesPriorCustodyAndLaterDelivery(t *testing.T) {
+	for _, prior := range []bool{false, true} {
+		t.Run(fmt.Sprint("prior-custody-", prior), func(t *testing.T) {
+			f := newEmbeddingRecoveryFixture(t, "corruption")
+			facade := f.facade(nil)
+			bridge := facade.bridge
+			if err := f.backend.WriteTx(f.ctx, func(tx *sql.Tx) error {
+				for _, id := range []string{"damaged", "later"} {
+					if _, err := f.store.EnqueueCommittedEventTx(tx, f.binding.LocalAgentRef, testEnvelope("event-"+id, "op-"+id, "I prefer "+id+" tea")); err != nil {
+						return err
+					}
+				}
+				return nil
+			}); err != nil {
+				t.Fatal(err)
+			}
+			if prior {
+				item, err := f.store.NextPending(f.ctx, f.binding.BindingRef)
+				if err != nil {
+					t.Fatal(err)
+				}
+				item.Envelope.LifecycleCutoff = &runtimev1.CognitionMemoryLifecycleCutoffRef{Value: f.binding.LifecycleRef}
+				ack, err := f.owner.Commit(f.ctx, &runtimev1.CognitionMemoryCommitRequest{Envelope: item.Envelope})
+				if err != nil || ownerMemoryOutcome(ack.GetOutcome()) != memoryv1.OutcomeReceived {
+					t.Fatalf("prior custody: %v %v", ack, err)
+				}
+			}
+			corrupted := []byte{255}
+			if !prior {
+				var original []byte
+				if err := f.backend.DB().QueryRow("SELECT payload FROM runtime_cognition_memory_outbox WHERE operation_id='op-damaged'").Scan(&original); err != nil {
+					t.Fatal(err)
+				}
+				corrupted = bytes.Replace(original, []byte("I prefer damaged tea"), []byte("I prefer changed tea"), 1)
+				if bytes.Equal(original, corrupted) {
+					t.Fatal("test did not change the decodable payload")
+				}
+			}
+			if _, err := f.backend.DB().Exec("UPDATE runtime_cognition_memory_outbox SET payload=? WHERE operation_id='op-damaged'", corrupted); err != nil {
+				t.Fatal(err)
+			}
+			// Simulate losing the Runtime acknowledgement after the real owner settled.
+			item, err := f.store.NextPending(f.ctx, f.binding.BindingRef)
+			if err != nil || item.damagedDigest == "" {
+				t.Fatalf("damage: %+v %v", item, err)
+			}
+			handoff := memoryv1.DamagedHandoff{BindingRef: item.BindingRef, BankRef: item.BankRef, LifecycleRef: item.LifecycleRef, EventRef: item.EventRef, OperationID: item.OperationID, DeliverySequence: item.DeliverySequence, PayloadSHA256: item.damagedDigest}
+			if _, err := f.owner.RejectDamagedHandoff(f.ctx, handoff); err != nil {
+				t.Fatal(err)
+			}
+			settled, err := bridge.DrainOne(f.ctx, f.binding.LocalAgentRef)
+			want := memoryv1.OutcomeRejected
+			if prior {
+				want = memoryv1.OutcomeReceived
+			}
+			if err != nil || !settled.Drained || settled.Outcome != want {
+				t.Fatalf("settlement: %+v %v", settled, err)
+			}
+			decision, err := facade.ProcessRemember(f.ctx, f.binding.LocalAgentRef, settled.OperationID)
+			if err != nil || (prior && decision.Outcome != memoryv1.OutcomeAdmitted) || (!prior && decision.Outcome != memoryv1.OutcomeRejected) {
+				t.Fatalf("replayed decision: %+v %v", decision, err)
+			}
+			next, err := bridge.DrainOne(f.ctx, f.binding.LocalAgentRef)
+			if err != nil || next.OperationID != "op-later" {
+				t.Fatalf("later event blocked: %+v %v", next, err)
+			}
+			if _, err := facade.ProcessRemember(f.ctx, f.binding.LocalAgentRef, next.OperationID); err != nil {
+				t.Fatal(err)
+			}
+			status, err := f.owner.core.InspectStatus(f.ctx, f.binding.BindingRef, f.binding.BankRef)
+			if err != nil || status.Frontiers.Received != 3 || status.Frontiers.Ready != 3 {
+				t.Fatalf("frontiers: %+v %v", status, err)
+			}
+			rows, err := f.store.ListOutbox(f.ctx, f.binding.BindingRef)
+			if err != nil || rows[1].PayloadPresent || (!prior && (rows[1].State != "terminated" || rows[1].Outcome != "rejected")) {
+				t.Fatalf("runtime disposition: %+v %v", rows, err)
+			}
+			memories, err := f.owner.core.ListMemories(f.ctx, f.binding.BankRef, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			seen := map[string]bool{}
+			for _, m := range memories {
+				seen[m.EventRef] = true
+			}
+			if seen["event-damaged"] != prior || !seen["event-later"] {
+				t.Fatalf("unexpected canonical effects: %v", seen)
+			}
+		})
+	}
+}
+
+func TestReplayKeepsUnidentifiableHeadAndDrainsIndependentAgent(t *testing.T) {
+	ctx := context.Background()
+	backend := openTestBackend(t, filepath.Join(t.TempDir(), "state.json"))
+	store := NewStore(backend)
+	core, err := memoryv1.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer core.Close()
+	bridge := NewBridge(store, newTestOwnerPort(store, core, nil), func(context.Context, Binding) error { return nil })
+	for _, agent := range []string{"agent-a", "agent-b"} {
+		createTestBinding(t, backend, store, agent, true)
+		if err := backend.WriteTx(ctx, func(tx *sql.Tx) error {
+			_, err := store.EnqueueCommittedEventTx(tx, agent, testEnvelope(agent+"-event", agent+"-op", "I prefer jasmine tea"))
+			return err
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := backend.DB().Exec("UPDATE runtime_cognition_memory_outbox SET payload=NULL,request_key='' WHERE operation_id='agent-a-op'"); err != nil {
+		t.Fatal(err)
+	}
+	if err := bridge.ReplayStartup(ctx); err == nil {
+		t.Fatal("unidentifiable event reported as success")
+	}
+	for agent, want := range map[string]uint64{"agent-a": 0, "agent-b": 1} {
+		b, err := store.BindingForAgent(ctx, agent)
+		if err != nil || b.DeliveryFrontier != want {
+			t.Fatalf("%s frontier: %v %v", agent, b, err)
+		}
+	}
 }

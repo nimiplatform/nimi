@@ -153,6 +153,21 @@ func (b *Bridge) drainOneLocked(ctx context.Context, localAgentRef string) (Drai
 		}
 		return DrainResult{BindingRef: binding.BindingRef, Outcome: memoryv1.OutcomeUnavailable}, err
 	}
+	if item.damagedDigest != "" {
+		settled, err := b.owner.RejectDamagedHandoff(ctx, memoryv1.DamagedHandoff{BindingRef: item.BindingRef, BankRef: item.BankRef, LifecycleRef: item.LifecycleRef, EventRef: item.EventRef, OperationID: item.OperationID, DeliverySequence: item.DeliverySequence, PayloadSHA256: item.damagedDigest})
+		result := DrainResult{BindingRef: item.BindingRef, EventRef: item.EventRef, OperationID: item.OperationID, DeliverySequence: item.DeliverySequence, Outcome: settled.Outcome}
+		if err != nil {
+			return result, fmt.Errorf("settle damaged cognition memory handoff: %w", err)
+		}
+		if (settled.Outcome != memoryv1.OutcomeReceived && !settled.Outcome.TerminalRemember()) || settled.BankRef != item.BankRef || settled.EventRef != item.EventRef || settled.OperationID != item.OperationID || settled.DeliverySequence != item.DeliverySequence || settled.ReceivedFrontier < item.DeliverySequence {
+			return result, ErrConflict
+		}
+		if err := b.store.acknowledgeDamagedHandoff(ctx, item, settled.Outcome); err != nil {
+			return result, err
+		}
+		result.Drained = true
+		return result, nil
+	}
 	if item.State == "cutoff_non_effecting" {
 		settled, err := b.owner.ReceiveNoOpCutoff(ctx, binding.BindingRef, binding.BankRef, binding.LifecycleRef, item.EventRef, item.OperationID, item.DeliverySequence)
 		if err != nil {
@@ -214,21 +229,26 @@ func (b *Bridge) ReplayStartup(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("replay cognition memory startup: list bindings: %w", err)
 	}
+	var failures error
 	for _, binding := range bindings {
+		if err := ctx.Err(); err != nil {
+			return errors.Join(failures, err)
+		}
 		if !binding.Enabled || binding.AdoptionRequired {
 			continue
 		}
 		for {
 			result, err := b.DrainOne(ctx, binding.LocalAgentRef)
 			if err != nil {
-				return err
+				failures = errors.Join(failures, fmt.Errorf("replay cognition memory binding %s: %w", binding.BindingRef, err))
+				break
 			}
 			if !result.Drained {
 				break
 			}
 		}
 	}
-	return nil
+	return failures
 }
 
 func errorOutcome(err error) memoryv1.Outcome {

@@ -2,8 +2,10 @@ package memoryv1
 
 import (
 	"bytes"
+	"container/heap"
 	"encoding/json"
 	"math"
+	"sort"
 	"strconv"
 )
 
@@ -83,4 +85,23 @@ func cosineWithNorm(query, value []float64, queryNorm float64) float64 {
 		return 0
 	}
 	return dot / (queryNorm * math.Sqrt(norm))
+}
+
+func (h *memoryTopK) consider(item scoredMemory, limit int) {
+	if len(*h) < limit {
+		heap.Push(h, item)
+		return
+	}
+	if betterMemory(item, (*h)[0]) {
+		(*h)[0] = item
+		heap.Fix(h, 0)
+	}
+}
+func (h memoryTopK) ranked() []Memory {
+	sort.Slice(h, func(i, j int) bool { return betterMemory(h[i], h[j]) })
+	result := make([]Memory, len(h))
+	for i := range h {
+		result[i] = h[i].memory
+	}
+	return result
 }

@@ -1,15 +1,15 @@
 package memoryv1
 
 import (
-	"container/heap"
 	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
-	"sort"
+
 	"strings"
+	"time"
 	"unicode"
 )
 
@@ -163,27 +163,47 @@ func (c *Core) Recall(ctx context.Context, request RecallRequest, port Embedding
 	if bankState != "active" || bindingState != "active" || currentLifecycle != request.LifecycleRef {
 		return RecallResult{Outcome: OutcomeConflict}, contractError(OutcomeConflict, "recall_binding")
 	}
-	router := NewV1Router()
-	descriptor, outcome, err := router.SelectRecall(ctx, c, request.BankRef, request.Capabilities)
+	route, found, err := c.operationRoute(ctx, request.OperationID)
 	if err != nil {
-		return RecallResult{Outcome: outcome}, err
+		return RecallResult{Outcome: OutcomeUnavailable}, err
 	}
-	revision := "fts-2"
-	if descriptor.Name == PipelineRecallEmbedding {
-		revision = "embedding-1"
+	if !found {
+		descriptor, outcome, err := NewV1Router().SelectRecall(ctx, c, request.BankRef, request.Capabilities)
+		if err != nil {
+			return RecallResult{Outcome: outcome}, err
+		}
+		route.Pipeline = descriptor.Name
+		switch route.Pipeline {
+		case PipelineRecallFTS:
+			route.AlgorithmRevision = "fts-3"
+		case PipelineRecallEmbedding:
+			route.AlgorithmRevision = "embedding-2"
+		}
 	}
-	if _, err := c.bindRoute(ctx, routeBindingRequest{OperationID: request.OperationID, OperationKind: "recall", BankRef: request.BankRef, Pipeline: descriptor.Name, AlgorithmRevision: revision, Snapshot: request.Capabilities, OperationRequest: recallRouteRequest{IncludeRecentLife: request.IncludeRecentLife, BindingRef: request.BindingRef, LifecycleRef: request.LifecycleRef, Subject: request.Subject, Query: request.Query, Limit: request.Limit, ScopeTags: request.ScopeTags, FilterSlotKeys: request.FilterSlotKeys, AllowedSlotKeys: request.AllowedSlotKeys}}); err != nil {
-		return RecallResult{Outcome: errorOutcome(err), Pipeline: descriptor.Name}, err
+	route, err = c.bindRoute(ctx, routeBindingRequest{OperationID: request.OperationID, OperationKind: "recall", BankRef: request.BankRef, Pipeline: route.Pipeline, AlgorithmRevision: route.AlgorithmRevision, Snapshot: request.Capabilities, OperationRequest: recallRouteRequest{IncludeRecentLife: request.IncludeRecentLife, BindingRef: request.BindingRef, LifecycleRef: request.LifecycleRef, Subject: request.Subject, Query: request.Query, Limit: request.Limit, ScopeTags: request.ScopeTags, FilterSlotKeys: request.FilterSlotKeys, AllowedSlotKeys: request.AllowedSlotKeys}})
+	if err != nil {
+		return RecallResult{Outcome: errorOutcome(err)}, err
+	}
+	var rankAt time.Time
+	switch {
+	case route.Pipeline == PipelineRecallFTS && route.AlgorithmRevision == "fts-3",
+		route.Pipeline == PipelineRecallEmbedding && route.AlgorithmRevision == "embedding-2":
+		rankAt = route.BoundAt
+	case route.Pipeline == PipelineRecallFTS && route.AlgorithmRevision == "fts-2",
+		route.Pipeline == PipelineRecallEmbedding && route.AlgorithmRevision == "embedding-1":
+		// These operations bound the earlier relevance-only ranking.
+	default:
+		return RecallResult{Outcome: OutcomeUnsupported}, contractError(OutcomeUnsupported, "recall_revision")
 	}
 	var result RecallResult
 	if request.FilterSlotKeys && len(normalizedSlotKeys(request.AllowedSlotKeys)) == 0 {
-		result = RecallResult{Outcome: OutcomeNoHits, Pipeline: descriptor.Name}
+		result = RecallResult{Outcome: OutcomeNoHits, Pipeline: route.Pipeline}
 	} else {
-		switch descriptor.Name {
+		switch route.Pipeline {
 		case PipelineRecallFTS:
-			result, err = c.recallFTS(ctx, request)
+			result, err = c.recallFTS(ctx, request, rankAt)
 		case PipelineRecallEmbedding:
-			result, err = c.recallEmbedding(ctx, request, port)
+			result, err = c.recallEmbedding(ctx, request, port, rankAt)
 		default:
 			err = contractError(OutcomeUnsupported, "recall_pipeline")
 			result = RecallResult{Outcome: OutcomeUnsupported}
@@ -192,7 +212,7 @@ func (c *Core) Recall(ctx context.Context, request RecallRequest, port Embedding
 	if err == nil && request.IncludeRecentLife {
 		result, err = c.includeRecentLife(ctx, request, result)
 	}
-	if descriptor.Name == PipelineRecallEmbedding {
+	if route.Pipeline == PipelineRecallEmbedding {
 		return result, err
 	}
 	if err != nil {
@@ -263,7 +283,7 @@ func (c *Core) PendingEmbeddingRebuilds(ctx context.Context, bankRef string) ([]
 	return result, nil
 }
 
-func (c *Core) recallFTS(ctx context.Context, request RecallRequest) (RecallResult, error) {
+func (c *Core) recallFTS(ctx context.Context, request RecallRequest, rankAt time.Time) (RecallResult, error) {
 	query := ftsQuery(request.Query)
 	if query == "" {
 		return RecallResult{Outcome: OutcomeNoHits, Pipeline: PipelineRecallFTS}, nil
@@ -281,7 +301,8 @@ func (c *Core) recallFTS(ctx context.Context, request RecallRequest) (RecallResu
 		return RecallResult{Outcome: errorOutcome(err), Pipeline: PipelineRecallFTS}, err
 	}
 	_ = version
-	ftsSQL := `SELECT m.memory_ref, m.bank_ref, m.content, m.epistemic_status, m.lifecycle, m.occurred_at, m.updated_at, m.source_explanation, m.event_ref, m.scope_tag, m.slot_key FROM memory_fts JOIN visible_session_memories m ON m.memory_ref = memory_fts.memory_ref WHERE memory_fts.bank_ref = ? AND memory_fts MATCH ? AND m.bank_ref = ? AND m.lifecycle = ?`
+	const memoryColumns = `SELECT m.memory_ref, m.bank_ref, m.content, m.epistemic_status, m.lifecycle, m.occurred_at, m.updated_at, m.source_explanation, m.event_ref, m.scope_tag, m.slot_key`
+	ftsSQL := ` FROM memory_fts JOIN visible_session_memories m ON m.memory_ref = memory_fts.memory_ref WHERE memory_fts.bank_ref = ? AND memory_fts MATCH ? AND m.bank_ref = ? AND m.lifecycle = ?`
 	ftsArgs := []any{request.BankRef, query, request.BankRef, LifecycleCurrent}
 	if scopeClause, scopeArgs := scopeTagFilterClause("m.scope_tag", request.ScopeTags); scopeClause != "" {
 		ftsSQL += ` AND ` + scopeClause
@@ -294,22 +315,25 @@ func (c *Core) recallFTS(ctx context.Context, request RecallRequest) (RecallResu
 		}
 		// Match ONLY eligible slots; rank strictly over the eligible set so
 		// excluded legacy rows never influence IDF, order, or result limits.
-		ftsSQL += ` AND ` + slotClause + ` ORDER BY m.updated_at DESC, m.memory_ref ASC`
+		ftsSQL += ` AND ` + slotClause
 		ftsArgs = append(ftsArgs, slotArgs...)
+	}
+	// FTS5's built-in bm25 uses table-wide document frequencies. A new
+	// revision ranks only matching documents from this eligible bank/scope.
+	// Retain the previous selection and limits for already bound operations.
+	eligibleRanking := request.FilterSlotKeys || !rankAt.IsZero()
+	var hits []Memory
+	if eligibleRanking {
+		hits, err = rankEligibleFTS(ctx, tx, ftsSQL, ftsArgs, memoryColumns, request.Query, request.Limit, rankAt)
 	} else {
-		ftsSQL += ` ORDER BY bm25(memory_fts), m.updated_at DESC LIMIT ?`
-		ftsArgs = append(ftsArgs, request.Limit)
+		rows, queryErr := tx.QueryContext(ctx, memoryColumns+ftsSQL+` ORDER BY bm25(memory_fts), m.updated_at DESC LIMIT ?`, append(ftsArgs, request.Limit)...)
+		if queryErr != nil {
+			return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallFTS}, fmt.Errorf("recall memory fts: query: %w", queryErr)
+		}
+		hits, err = scanMemories(rows)
 	}
-	rows, err := tx.QueryContext(ctx, ftsSQL, ftsArgs...)
-	if err != nil {
-		return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallFTS}, fmt.Errorf("recall memory fts: query: %w", err)
-	}
-	hits, err := scanMemories(rows)
 	if err != nil {
 		return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallFTS}, err
-	}
-	if request.FilterSlotKeys && len(hits) > 0 {
-		hits = rankEligibleFTSMemories(request.Query, hits, request.Limit)
 	}
 	if err := populateLineageTx(ctx, tx, hits); err != nil {
 		return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallFTS}, err
@@ -477,7 +501,7 @@ func (c *Core) completeStaleEmbeddingGeneration(ctx context.Context, bankRef, ge
 	return nil
 }
 
-func (c *Core) recallEmbedding(ctx context.Context, request RecallRequest, port EmbeddingPort) (result RecallResult, resultErr error) {
+func (c *Core) recallEmbedding(ctx context.Context, request RecallRequest, port EmbeddingPort, rankAt time.Time) (result RecallResult, resultErr error) {
 	if !c.claimEmbeddingOperation(request.OperationID) {
 		return RecallResult{Outcome: OutcomeConflict}, contractError(OutcomeConflict, "embedding_operation_running")
 	}
@@ -579,12 +603,8 @@ func (c *Core) recallEmbedding(ctx context.Context, request RecallRequest, port 
 		}
 		item.score = cosineWithNorm(queryEmbedding.Vectors[0], vector, queryNorm)
 		if item.score >= 0.35 {
-			if len(candidates) < request.Limit {
-				heap.Push(&candidates, item)
-			} else if betterMemory(item, candidates[0]) {
-				candidates[0] = item
-				heap.Fix(&candidates, 0)
-			}
+			item.score *= recallAgeWeight(rankAt, item.memory.OccurredAt)
+			candidates.consider(item, request.Limit)
 		}
 	}
 	if err := rows.Close(); err != nil {
@@ -593,11 +613,7 @@ func (c *Core) recallEmbedding(ctx context.Context, request RecallRequest, port 
 	if err := rows.Err(); err != nil {
 		return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallEmbedding}, err
 	}
-	sort.Slice(candidates, func(i, j int) bool { return betterMemory(candidates[i], candidates[j]) })
-	hits := make([]Memory, len(candidates))
-	for index := range candidates {
-		hits[index] = candidates[index].memory
-	}
+	hits := candidates.ranked()
 	if err := populateLineageTx(ctx, tx, hits); err != nil {
 		return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallEmbedding}, err
 	}
@@ -769,107 +785,140 @@ func slotKeyFilterClause(column string, slotKeys []string) (string, []any) {
 }
 
 func recallTokens(value string) []string {
-	raw := ftsQuery(value)
-	if raw == "" {
-		return nil
-	}
-	parts := strings.Split(raw, " OR ")
-	out := make([]string, 0, len(parts))
-	for _, part := range parts {
-		tok := strings.Trim(part, `"`)
-		if tok != "" {
-			out = append(out, tok)
+	var tokens []string
+	seen := make(map[string]struct{})
+	visitFTSTerms(value, false, func(term string) {
+		if _, found := seen[term]; !found {
+			tokens = append(tokens, term)
+			seen[term] = struct{}{}
 		}
-	}
-	return out
+	})
+	return tokens
 }
 
-// rankEligibleFTSMemories ranks already-authorized eligible memories using ONLY
-// statistics from the eligible candidate set so excluded legacy rows can never
-// alter BM25 IDF, ordering, or result slots.
-func rankEligibleFTSMemories(query string, hits []Memory, limit int) []Memory {
-	qTokens := recallTokens(query)
-	if len(qTokens) == 0 {
-		if limit > 0 && len(hits) > limit {
-			return hits[:limit]
-		}
-		return hits
+// @nimi-authority: rule.nimi.cognition.memory.recall-age-ranking
+const recallAgeScaleDays = 90.0
+
+// Keep at least half of the relevance weight. A zero reference time means
+// the operation was bound to an earlier revision without age weighting.
+func recallAgeWeight(at, occurred time.Time) float64 {
+	if at.IsZero() || !at.After(occurred) {
+		return 1
 	}
-	type docInfo struct {
-		mem    Memory
-		counts map[string]int
-		length int
+	return 0.5 + 0.5/(1+at.Sub(occurred).Hours()/(24*recallAgeScaleDays))
+}
+
+// Rank in two passes through one SQLite read snapshot. Keep document
+// frequencies for the query and the best limit hits, not the whole bank.
+func rankEligibleFTS(ctx context.Context, tx *sql.Tx, from string, args []any, columns, query string, limit int, rankAt time.Time) ([]Memory, error) {
+	terms := recallTokens(query)
+	frequencies := make(map[string]int, len(terms))
+	for _, term := range terms {
+		frequencies[term] = 0
 	}
-	docs := make([]docInfo, len(hits))
-	df := make(map[string]int, len(qTokens))
-	totalLen := 0
-	for i, hit := range hits {
-		toks := recallTokens(hit.Content)
-		counts := make(map[string]int, len(toks))
-		for _, t := range toks {
-			counts[t]++
-		}
-		for _, qt := range qTokens {
-			if counts[qt] > 0 {
-				df[qt]++
+	counts := func(content string) (int, map[string]int) {
+		length := 0
+		matches := make(map[string]int, len(terms))
+		count := func(token string) {
+			length++
+			if _, wanted := frequencies[token]; wanted {
+				matches[token]++
 			}
 		}
-		docs[i] = docInfo{mem: hit, counts: counts, length: len(toks)}
-		totalLen += len(toks)
+		if rankAt.IsZero() {
+			// Slot-filtered fts-2 operations used distinct query terms for documents.
+			for _, token := range recallTokens(content) {
+				count(token)
+			}
+		} else {
+			visitFTSTerms(content, true, count)
+		}
+		return length, matches
 	}
-	n := float64(len(docs))
-	avgLen := 1.0
-	if len(docs) > 0 && totalLen > 0 {
-		avgLen = float64(totalLen) / n
+	stats, err := tx.QueryContext(ctx, "SELECT m.content"+from, args...)
+	if err != nil {
+		return nil, err
 	}
-	const k1, b = 1.2, 0.75
-	scored := make([]scoredMemory, len(docs))
-	for i, doc := range docs {
+	defer func() { _ = stats.Close() }()
+	var docs, total int
+	for stats.Next() {
+		var content string
+		if err := stats.Scan(&content); err != nil {
+			return nil, err
+		}
+		length, matched := counts(content)
+		docs++
+		total += length
+		for term := range matched {
+			frequencies[term]++
+		}
+	}
+	if err := stats.Err(); err != nil {
+		return nil, err
+	}
+	if err := stats.Close(); err != nil {
+		return nil, err
+	}
+	if docs == 0 {
+		return nil, nil
+	}
+	avg := float64(max(1, total)) / float64(docs)
+	idf := make(map[string]float64, len(terms))
+	for term, df := range frequencies {
+		idf[term] = math.Log(1 + (float64(docs-df)+0.5)/(float64(df)+0.5))
+	}
+	rows, err := tx.QueryContext(ctx, columns+from, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	candidates := make(memoryTopK, 0, limit)
+	for rows.Next() {
+		m, err := scanMemory(rows)
+		if err != nil {
+			return nil, err
+		}
+		length, matched := counts(m.Content)
 		score := 0.0
-		for _, qt := range qTokens {
-			tf := float64(doc.counts[qt])
-			if tf == 0 {
-				continue
+		const k1, b = 1.2, 0.75
+		for _, term := range terms {
+			tf := float64(matched[term])
+			if tf > 0 {
+				score += idf[term] * tf * (k1 + 1) / (tf + k1*(1-b+b*float64(length)/avg))
 			}
-			idf := math.Log((n-float64(df[qt])+0.5)/(float64(df[qt])+0.5) + 1.0)
-			score += idf * ((tf * (k1 + 1.0)) / (tf + k1*(1.0-b+b*(float64(doc.length)/avgLen))))
 		}
-		scored[i] = scoredMemory{memory: doc.mem, score: score}
+		candidates.consider(scoredMemory{memory: m, score: score * recallAgeWeight(rankAt, m.OccurredAt)}, limit)
 	}
-	sort.SliceStable(scored, func(i, j int) bool {
-		if scored[i].score != scored[j].score {
-			return scored[i].score > scored[j].score
-		}
-		if !scored[i].memory.UpdatedAt.Equal(scored[j].memory.UpdatedAt) {
-			return scored[i].memory.UpdatedAt.After(scored[j].memory.UpdatedAt)
-		}
-		return scored[i].memory.MemoryRef < scored[j].memory.MemoryRef
-	})
-	if limit > 0 && len(scored) > limit {
-		scored = scored[:limit]
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
-	out := make([]Memory, len(scored))
-	for i := range scored {
-		out[i] = scored[i].memory
+	return candidates.ranked(), rows.Close()
+}
+
+func scanMemory(rows *sql.Rows) (Memory, error) {
+	var item Memory
+	var occurredAt, updatedAt string
+	if err := rows.Scan(&item.MemoryRef, &item.BankRef, &item.Content, &item.EpistemicStatus, &item.Lifecycle, &occurredAt, &updatedAt, &item.SourceExplanation, &item.EventRef, &item.ScopeTag, &item.SlotKey); err != nil {
+		return Memory{}, err
 	}
-	return out
+	var err error
+	item.OccurredAt, err = parseTime(occurredAt)
+	if err != nil {
+		return Memory{}, err
+	}
+	item.UpdatedAt, err = parseTime(updatedAt)
+	if err != nil {
+		return Memory{}, err
+	}
+
+	return item, nil
 }
 
 func scanMemories(rows *sql.Rows) ([]Memory, error) {
 	defer func() { _ = rows.Close() }()
 	var result []Memory
 	for rows.Next() {
-		var item Memory
-		var occurredAt, updatedAt string
-		if err := rows.Scan(&item.MemoryRef, &item.BankRef, &item.Content, &item.EpistemicStatus, &item.Lifecycle, &occurredAt, &updatedAt, &item.SourceExplanation, &item.EventRef, &item.ScopeTag, &item.SlotKey); err != nil {
-			return nil, err
-		}
-		var err error
-		item.OccurredAt, err = parseTime(occurredAt)
-		if err != nil {
-			return nil, err
-		}
-		item.UpdatedAt, err = parseTime(updatedAt)
+		item, err := scanMemory(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -939,46 +988,32 @@ func finiteVector(vector []float64) bool {
 
 // @nimi-authority: rule.nimi.cognition.memory.r009
 func ftsQuery(value string) string {
-	var tokens []string
-	seen := make(map[string]struct{})
+	tokens := recallTokens(value)
+	for i, token := range tokens {
+		tokens[i] = `"` + strings.ReplaceAll(token, `"`, `""`) + `"`
+	}
+	return strings.Join(tokens, " OR ")
+}
+
+// Documents contain individual Han characters and overlapping bigrams.
+// Queries use a single character only when it stands alone in a Han run.
+func visitFTSTerms(value string, includeHanSingles bool, visit func(string)) {
 	var wordRun []rune
 	var hanRun []rune
-	quote := func(value string) string {
-		return `"` + strings.ReplaceAll(strings.ToLower(value), `"`, `""`) + `"`
-	}
-	appendToken := func(value string) {
-		token := quote(value)
-		if _, found := seen[token]; found {
-			return
-		}
-		seen[token] = struct{}{}
-		tokens = append(tokens, token)
-	}
 	flushWord := func() {
-		if len(wordRun) == 0 {
-			return
+		if len(wordRun) >= 2 {
+			visit(strings.ToLower(string(wordRun)))
 		}
-		token := string(wordRun)
 		wordRun = wordRun[:0]
-		if len([]rune(token)) < 2 {
-			return
-		}
-		appendToken(token)
 	}
 	flushHan := func() {
-		if len(hanRun) == 0 {
-			return
-		}
-		switch len(hanRun) {
-		case 1:
-			appendToken(string(hanRun))
-		default:
-			// Match the indexed lexical bigrams as independent terms, like
-			// word tokens in other scripts. A natural-language question is
-			// not a demand that its entire Han sentence occur verbatim.
-			for index := 0; index+1 < len(hanRun); index++ {
-				appendToken(string(hanRun[index : index+2]))
+		if includeHanSingles || len(hanRun) == 1 {
+			for _, char := range hanRun {
+				visit(string(char))
 			}
+		}
+		for index := 0; index+1 < len(hanRun); index++ {
+			visit(string(hanRun[index : index+2]))
 		}
 		hanRun = hanRun[:0]
 	}
@@ -997,7 +1032,6 @@ func ftsQuery(value string) string {
 	}
 	flushWord()
 	flushHan()
-	return strings.Join(tokens, " OR ")
 }
 
 // ftsIndexedContent keeps the original lexical stream and adds deterministic

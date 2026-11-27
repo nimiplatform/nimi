@@ -535,3 +535,42 @@ func TestCorrectionDoesNotReportFastDisabledOutcomeAsDurableDecision(t *testing.
 		t.Fatalf("disabled correction changed Memory: %v %v", current, err)
 	}
 }
+
+type interruptCutoffReply struct {
+	OwnerPort
+	attempts []string
+}
+
+func (p *interruptCutoffReply) ApplyCutoff(ctx context.Context, req *runtimev1.CognitionMemoryApplyCutoffRequest) (*runtimev1.CognitionMemoryApplyCutoffResponse, error) {
+	p.attempts = append(p.attempts, req.GetOperation().GetValue())
+	result, err := p.OwnerPort.ApplyCutoff(ctx, req)
+	if err == nil && len(p.attempts) == 1 {
+		// A transport can lose part of the acknowledgement after the owner
+		// committed. A success code alone cannot complete this operation.
+		result.Cutoff = nil
+		return result, nil
+	}
+	return result, err
+}
+
+func TestDeleteAllRetryFinishesOriginalCutoff(t *testing.T) {
+	f := newEmbeddingRecoveryFixture(t, "agent-delete-retry")
+	port := &interruptCutoffReply{OwnerPort: f.owner}
+	facade := f.facade(nil)
+	facade.owner = port
+	if result, err := facade.DeleteAll(f.ctx, f.binding.LocalAgentRef, true); err == nil || result.Outcome == memoryv1.OutcomeCommitted {
+		t.Fatal("incomplete owner reply reported success")
+	}
+	fenced, err := f.store.BindingForAgent(f.ctx, f.binding.LocalAgentRef)
+	if err != nil || fenced.Enabled {
+		t.Fatalf("fence: %+v %v", fenced, err)
+	}
+	result, err := facade.DeleteAll(f.ctx, f.binding.LocalAgentRef, true)
+	if err != nil || result.Outcome != memoryv1.OutcomeCommitted || len(port.attempts) != 2 || port.attempts[0] != port.attempts[1] {
+		t.Fatalf("retry: %+v %v attempts=%v", result, err, port.attempts)
+	}
+	after, err := f.store.BindingForAgent(f.ctx, f.binding.LocalAgentRef)
+	if err != nil || !after.Enabled || after.BindingRef == f.binding.BindingRef {
+		t.Fatalf("replacement: %+v %v", after, err)
+	}
+}

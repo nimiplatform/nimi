@@ -37,6 +37,7 @@ type OwnerPort interface {
 	NeedsEmbeddingRebuild(context.Context, string, memoryv1.CapabilitySnapshot) (bool, error)
 	QualifyMemoryRefs(context.Context, string, string, string, []string) (map[string]bool, error)
 	FindMemoryRefsBySource(context.Context, string, string, string, string) ([]string, error)
+	RejectDamagedHandoff(context.Context, memoryv1.DamagedHandoff) (memoryv1.CommitResult, error)
 	ReceiveNoOpCutoff(context.Context, string, string, string, string, string, uint64) (memoryv1.CommitResult, error)
 	NeutralizePendingReceiptsBySource(context.Context, string, string, string, string) (int64, error)
 	NeutralizeRestrictedPendingReceiptsBySource(context.Context, string, string, string) (int64, error)
@@ -56,6 +57,13 @@ func (a *OwnerAdapter) FindMemoryRefsBySource(ctx context.Context, bindingRef, b
 		return nil, err
 	}
 	return a.core.FindMemoryRefsBySource(ctx, bankRef, sourceKind, sourceValue)
+}
+
+func (a *OwnerAdapter) RejectDamagedHandoff(ctx context.Context, handoff memoryv1.DamagedHandoff) (memoryv1.CommitResult, error) {
+	if _, err := a.ownerBinding(ctx, handoff.BindingRef, handoff.BankRef); err != nil {
+		return memoryv1.CommitResult{Outcome: errorOutcome(err)}, err
+	}
+	return a.core.RejectDamagedHandoff(ctx, handoff)
 }
 
 func (a *OwnerAdapter) ReceiveNoOpCutoff(ctx context.Context, bindingRef, bankRef, lifecycleRef, eventRef, operationID string, deliverySequence uint64) (memoryv1.CommitResult, error) {

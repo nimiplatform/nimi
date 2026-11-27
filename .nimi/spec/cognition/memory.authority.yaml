@@ -132,6 +132,28 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.cognition.memory.v1-algorithm-plane
+  - id: rule.nimi.cognition.memory.local-preference-remember
+    kind: rule
+    title: Local Remember admits durable first-person preparation preferences
+    modality: must
+    statement: A separately admitted Baseline Remember revision may recognize a bounded, explicit first-person preference or habitual preparation of food or drink directly from a committed user message on device. Equivalent restatements of the same preparation in the same eligible bank and scope have no additional canonical effect. Explicit opposite preferences about adding the same ingredient to the same item follow the existing conflict lifecycle. A targeted user correction retains its own replacement semantics. Keep the original admitted wording and provenance.
+    condition: Whenever a new Remember operation uses the admitted local preference revision.
+    failure: Preserve earlier bound operations, privacy exclusions and the ordinary baseline outside the recognized forms. Never turn an uncertain parse into an asserted equivalence or use a cloud call for this judgment.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.v1-algorithm-plane
+  - id: rule.nimi.cognition.memory.recall-age-ranking
+    kind: rule
+    title: Local Recall ranks eligible hits with bounded natural decay
+    modality: must
+    statement: Independently admitted revisions of FTS Recall and Embedding Recall may gradually reduce the relative ranking weight of older eligible Memory using its occurrence time and the fixed operation time. Each revision preserves its own retrieval method, eligibility and relevance checks. Age alone never removes an eligible hit, changes canonical content, archives a Memory or establishes a forget barrier. A new operation may see a different ranking as time passes.
+    condition: Whenever a Recall operation selects an age-aware revision for an authorized bank.
+    failure: Resume an already bound operation with its recorded pipeline, revision and time, or return a typed failure. Explicit Forget and correction exclusions apply before a hit can be returned, including after an index rebuild or restart.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.canonical-derived-boundary
+      - type: applies_to
+        target: definition.nimi.cognition.memory.v1-algorithm-plane
   - id: rule.nimi.cognition.memory.r010
     kind: rule
     title: Memory routing never selects provider model or public configuration

@@ -3,6 +3,7 @@
 package cognitionmemory
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"database/sql"
@@ -51,6 +52,7 @@ type Binding struct {
 }
 
 type OutboxItem struct {
+	damagedDigest    string
 	OperationID      string
 	BindingRef       string
 	BankRef          string
@@ -286,9 +288,12 @@ func (s *Store) NextPending(ctx context.Context, bindingRef string) (OutboxItem,
 	}
 	var item OutboxItem
 	var payload []byte
+	var requestKey, eventKind, capturedLifecycle string
+	var ownerEvent bool
 	var bankRef, lifecycleRef sql.NullString
 	err := s.backend.DB().QueryRowContext(ctx, `
-		SELECT o.operation_id, o.event_ref, o.delivery_sequence, o.state, COALESCE(o.outcome, ''), o.payload IS NOT NULL, o.payload, s.bank_ref, s.lifecycle_ref
+		SELECT o.operation_id, o.event_ref, o.delivery_sequence, o.state, COALESCE(o.outcome, ''), o.payload IS NOT NULL, o.payload, s.bank_ref, s.lifecycle_ref, o.request_key, o.event_kind, o.lifecycle_ref,
+		        EXISTS(SELECT 1 FROM runtime_cognition_memory_committed_event e WHERE e.event_ref=o.event_ref AND e.local_agent_ref=s.local_agent_ref AND e.event_kind=o.event_kind)
 		FROM runtime_cognition_memory_outbox o
 		JOIN runtime_cognition_memory_stream s ON s.binding_ref = o.binding_ref
 		WHERE o.binding_ref = ?
@@ -296,7 +301,7 @@ func (s *Store) NextPending(ctx context.Context, bindingRef string) (OutboxItem,
 		ORDER BY o.delivery_sequence
 		LIMIT 1`,
 		bindingRef,
-	).Scan(&item.OperationID, &item.EventRef, &item.DeliverySequence, &item.State, &item.Outcome, &item.PayloadPresent, &payload, &bankRef, &lifecycleRef)
+	).Scan(&item.OperationID, &item.EventRef, &item.DeliverySequence, &item.State, &item.Outcome, &item.PayloadPresent, &payload, &bankRef, &lifecycleRef, &requestKey, &eventKind, &capturedLifecycle, &ownerEvent)
 	if err != nil {
 		return OutboxItem{}, err
 	}
@@ -312,13 +317,50 @@ func (s *Store) NextPending(ctx context.Context, bindingRef string) (OutboxItem,
 		item.Envelope = nil
 		return item, nil
 	}
+	if !ownerEvent || !validRef(item.OperationID) || !validRef(item.EventRef) || item.DeliverySequence == 0 || (capturedLifecycle != "" && capturedLifecycle != item.LifecycleRef) {
+		return OutboxItem{}, ErrConflict
+	}
+	digest, err := hex.DecodeString(requestKey)
+	if err != nil || len(digest) != sha256.Size {
+		return OutboxItem{}, fmt.Errorf("load pending cognition memory event: invalid committed digest")
+	}
+	sum := sha256.Sum256(payload)
+	if !bytes.Equal(sum[:], digest) {
+		item.damagedDigest = requestKey
+		return item, nil
+	}
 	envelope := &runtimev1.CognitionMemoryCommittedEventEnvelope{}
 	if err := proto.Unmarshal(payload, envelope); err != nil {
 		return OutboxItem{}, fmt.Errorf("load pending cognition memory event: decode payload: %w", err)
 	}
+	if envelope.GetBankBinding().GetValue() != bindingRef || envelope.GetEvent().GetValue() != item.EventRef || envelope.GetOperation().GetValue() != item.OperationID || envelope.GetDeliverySequence() != item.DeliverySequence || committedEventKind(envelope) != eventKind || (envelope.GetBank().GetValue() != "" && envelope.GetBank().GetValue() != item.BankRef) {
+		return OutboxItem{}, ErrConflict
+	}
 	envelope.Bank = &runtimev1.CognitionMemoryBankRef{Value: bankRef.String}
 	item.Envelope = envelope
 	return item, nil
+}
+
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.damaged-handoff
+func (s *Store) acknowledgeDamagedHandoff(ctx context.Context, item OutboxItem, outcome memoryv1.Outcome) error {
+	state, recorded := "received", "received"
+	if outcome == memoryv1.OutcomeRejected {
+		state, recorded = "terminated", "rejected"
+	}
+	return s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		res, err := tx.Exec(`UPDATE runtime_cognition_memory_outbox SET state=?,outcome=?,payload=NULL,received_at=? WHERE binding_ref=? AND operation_id=? AND event_ref=? AND delivery_sequence=? AND request_key=? AND state='pending' AND EXISTS(SELECT 1 FROM runtime_cognition_memory_stream WHERE binding_ref=? AND bank_ref=? AND lifecycle_ref=? AND state='active')`, state, recorded, s.now().UTC().Format(time.RFC3339Nano), item.BindingRef, item.OperationID, item.EventRef, item.DeliverySequence, item.damagedDigest, item.BindingRef, item.BankRef, item.LifecycleRef)
+		if err != nil {
+			return err
+		}
+		n, err := res.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if n != 1 {
+			return ErrConflict
+		}
+		return advanceDeliveryFrontierTx(tx, item.BindingRef)
+	})
 }
 
 // AcknowledgeCutoffNoOp records that Cognition accepted an ordered zero-payload
@@ -969,16 +1011,16 @@ func advanceDeliveryFrontierTx(tx *sql.Tx, bindingRef string) error {
 		return fmt.Errorf("advance cognition memory delivery frontier: load stream: %w", err)
 	}
 	for frontier+1 < nextSequence {
-		var state string
+		var state, outcome string
 		var receivedAt sql.NullString
-		err := tx.QueryRow(`SELECT state, received_at FROM runtime_cognition_memory_outbox WHERE binding_ref = ? AND delivery_sequence = ?`, bindingRef, frontier+1).Scan(&state, &receivedAt)
+		err := tx.QueryRow(`SELECT state, COALESCE(outcome,''), received_at FROM runtime_cognition_memory_outbox WHERE binding_ref = ? AND delivery_sequence = ?`, bindingRef, frontier+1).Scan(&state, &outcome, &receivedAt)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				break
 			}
 			return fmt.Errorf("advance cognition memory delivery frontier: inspect sequence: %w", err)
 		}
-		if state != "received" && !(state == "cutoff_non_effecting" && receivedAt.Valid) {
+		if state != "received" && !(receivedAt.Valid && (state == "cutoff_non_effecting" || state == "terminated" && outcome == "rejected")) {
 			break
 		}
 		frontier++
@@ -1005,7 +1047,7 @@ func boolInt(value bool) int {
 func (s *Store) disposeSettledOutboxCopies(ctx context.Context, agent string) error {
 	return s.backend.DisposeRecoveryPayloads(ctx, agent, func(tx *sql.Tx) (bool, bool, error) {
 		result, err := tx.ExecContext(ctx, `UPDATE main.runtime_cognition_memory_outbox AS copy
-   SET payload=NULL, state=settled.state, outcome=settled.outcome
+   SET payload=NULL, state=settled.state, outcome=settled.outcome, received_at=settled.received_at
    FROM live.runtime_cognition_memory_outbox AS settled, main.runtime_cognition_memory_stream AS stream
    WHERE copy.binding_ref=stream.binding_ref AND stream.local_agent_ref=?
    AND (copy.payload IS NOT NULL OR copy.state='pending')

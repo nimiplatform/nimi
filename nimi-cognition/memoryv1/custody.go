@@ -407,7 +407,7 @@ func (c *Core) ReceiveNoOpCutoff(
 		// outbox row, convert pending received/processing custody to cutoff_noop
 		// (or acknowledge already-terminal operations without conflict) so the
 		// delivery frontier never deadlocks.
-		if operation.Kind == "commit" && sameIdentity {
+		if sameIdentity && (operation.Kind == "commit" || operation.Kind == "rejected_handoff" && operation.Outcome == OutcomeRejected) {
 			if !operation.Outcome.TerminalRemember() {
 				now := formatTime(c.now())
 				resultJSON, marshalErr := json.Marshal(DecisionResult{Outcome: OutcomeNoEffect, OperationID: operationID})
@@ -461,27 +461,33 @@ func (c *Core) ReceiveNoOpCutoff(
 	if deliverySequence != frontiers.Received+1 {
 		return CommitResult{Outcome: OutcomeInvalid}, contractError(OutcomeInvalid, "delivery_gap")
 	}
+	return c.commitEmptyReceipt(ctx, tx, bindingRef, lifecycleRef, "cutoff_noop", requestKey, CommitResult{Outcome: OutcomeNoEffect, BankRef: bankRef, EventRef: eventRef, OperationID: operationID, DeliverySequence: deliverySequence})
+}
+
+// commitEmptyReceipt commits an owner decision for the validated next sequence.
+func (c *Core) commitEmptyReceipt(ctx context.Context, tx *sql.Tx, bindingRef, lifecycleRef, kind, requestKey string, result CommitResult) (CommitResult, error) {
 	now := formatTime(c.now())
-	resultJSON, err := json.Marshal(DecisionResult{Outcome: OutcomeNoEffect, OperationID: operationID})
+	resultJSON, err := json.Marshal(DecisionResult{Outcome: result.Outcome, OperationID: result.OperationID})
 	if err != nil {
-		return CommitResult{Outcome: OutcomeFailed}, fmt.Errorf("receive cutoff noop: encode result: %w", err)
+		return CommitResult{Outcome: OutcomeFailed}, fmt.Errorf("settle ordered handoff: encode result: %w", err)
 	}
-	if _, err := tx.ExecContext(ctx, `INSERT INTO memory_operations(operation_id, operation_kind, binding_ref, bank_ref, event_ref, delivery_sequence, request_key, outcome, result_json, created_at, updated_at) VALUES(?, 'cutoff_noop', ?, ?, ?, ?, ?, ?, ?, ?, ?)`, operationID, bindingRef, bankRef, eventRef, deliverySequence, requestKey, OutcomeNoEffect, resultJSON, now, now); err != nil {
-		return CommitResult{Outcome: OutcomeUnavailable}, fmt.Errorf("receive cutoff noop: save operation: %w", err)
+	if _, err := tx.ExecContext(ctx, `INSERT INTO memory_operations(operation_id, operation_kind, binding_ref, bank_ref, event_ref, delivery_sequence, request_key, outcome, result_json, created_at, updated_at) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, result.OperationID, kind, bindingRef, result.BankRef, result.EventRef, result.DeliverySequence, requestKey, result.Outcome, resultJSON, now, now); err != nil {
+		return CommitResult{Outcome: OutcomeUnavailable}, fmt.Errorf("settle ordered handoff: save operation: %w", err)
 	}
-	if _, err := tx.ExecContext(ctx, `INSERT INTO memory_receipts(operation_id, binding_ref, bank_ref, event_ref, delivery_sequence, request_key, lifecycle_ref, outcome, payload, committed_at, terminal_at) VALUES(?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`, operationID, bindingRef, bankRef, eventRef, deliverySequence, requestKey, lifecycleRef, OutcomeNoEffect, now, now); err != nil {
-		return CommitResult{Outcome: OutcomeUnavailable}, fmt.Errorf("receive cutoff noop: save receipt: %w", err)
+	if _, err := tx.ExecContext(ctx, `INSERT INTO memory_receipts(operation_id, binding_ref, bank_ref, event_ref, delivery_sequence, request_key, lifecycle_ref, outcome, payload, committed_at, terminal_at) VALUES(?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`, result.OperationID, bindingRef, result.BankRef, result.EventRef, result.DeliverySequence, requestKey, lifecycleRef, result.Outcome, now, now); err != nil {
+		return CommitResult{Outcome: OutcomeUnavailable}, fmt.Errorf("settle ordered handoff: save receipt: %w", err)
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE memory_frontiers SET received_frontier = ? WHERE binding_ref = ?`, deliverySequence, bindingRef); err != nil {
-		return CommitResult{Outcome: OutcomeUnavailable}, fmt.Errorf("receive cutoff noop: advance received frontier: %w", err)
+	if _, err := tx.ExecContext(ctx, `UPDATE memory_frontiers SET received_frontier = ? WHERE binding_ref = ?`, result.DeliverySequence, bindingRef); err != nil {
+		return CommitResult{Outcome: OutcomeUnavailable}, fmt.Errorf("settle ordered handoff: advance received frontier: %w", err)
 	}
 	if err := advanceReadyFrontierTx(ctx, tx, bindingRef); err != nil {
 		return CommitResult{Outcome: OutcomeUnavailable}, err
 	}
 	if err := tx.Commit(); err != nil {
-		return CommitResult{Outcome: OutcomeUnavailable}, fmt.Errorf("receive cutoff noop: commit: %w", err)
+		return CommitResult{Outcome: OutcomeUnavailable}, fmt.Errorf("settle ordered handoff: commit: %w", err)
 	}
-	return CommitResult{Outcome: OutcomeNoEffect, BankRef: bankRef, EventRef: eventRef, OperationID: operationID, DeliverySequence: deliverySequence, ReceivedFrontier: deliverySequence}, nil
+	result.ReceivedFrontier = result.DeliverySequence
+	return result, nil
 }
 
 // NeutralizePendingReceiptsBySource wipes payload and settles as no_effect any

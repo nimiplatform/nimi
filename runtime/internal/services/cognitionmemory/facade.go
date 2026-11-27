@@ -466,7 +466,7 @@ func (f *Facade) Correct(ctx context.Context, localAgentRef, memoryRef, correcte
 			}
 			break
 		}
-		if drained.Outcome == memoryv1.OutcomeNoEffect {
+		if drained.Outcome == memoryv1.OutcomeNoEffect || drained.Outcome == memoryv1.OutcomeRejected {
 			if drained.OperationID == operationID {
 				decision = memoryv1.DecisionResult{Outcome: memoryv1.OutcomeNoEffect, OperationID: operationID}
 				break
@@ -555,7 +555,7 @@ func (f *Facade) SetEnabled(ctx context.Context, localAgentRef string, enabled b
 		projection, err := f.Inspect(ctx, InspectIntent{LocalAgentRef: localAgentRef, Limit: 100})
 		return MutationOutcome{Outcome: memoryv1.OutcomeCommitted, Projection: projection}, err
 	}
-	return f.applyCutoff(ctx, localAgentRef, false, false)
+	return f.applyCutoff(ctx, localAgentRef, false)
 }
 
 func (f *Facade) DeleteAll(ctx context.Context, localAgentRef string, confirmed bool) (MutationOutcome, error) {
@@ -568,7 +568,10 @@ func (f *Facade) DeleteAll(ctx context.Context, localAgentRef string, confirmed 
 	if err != nil {
 		return MutationOutcome{Outcome: memoryv1.OutcomeUnavailable}, err
 	}
-	return f.applyCutoff(ctx, localAgentRef, true, binding.Enabled)
+	if err := f.authorize(ctx, binding); err != nil {
+		return MutationOutcome{Outcome: memoryv1.OutcomeInvalid}, err
+	}
+	return f.applyCutoff(ctx, localAgentRef, true)
 }
 
 // ResumeCutoff completes only a previously persisted cutoff saga. It creates
@@ -597,7 +600,7 @@ func (f *Facade) resumeCutoffLocked(ctx context.Context, localAgentRef string) e
 	if err := f.authorize(ctx, binding); err != nil {
 		return err
 	}
-	_, err = f.applyCutoff(ctx, localAgentRef, row.DeleteAll, row.DesiredEnabled)
+	_, err = f.applyCutoff(ctx, localAgentRef, row.DeleteAll)
 	return err
 }
 
@@ -606,12 +609,12 @@ type cutoffRow struct {
 	DeleteAll, PreviousEnabled, DesiredEnabled                                                                         bool
 }
 
-func (f *Facade) applyCutoff(ctx context.Context, localAgentRef string, deleteAll, desiredEnabled bool) (MutationOutcome, error) {
+func (f *Facade) applyCutoff(ctx context.Context, localAgentRef string, deleteAll bool) (MutationOutcome, error) {
 	row, found, err := f.pendingCutoff(ctx, localAgentRef)
 	if err != nil {
 		return MutationOutcome{Outcome: memoryv1.OutcomeUnavailable}, err
 	}
-	if found && (row.DeleteAll != deleteAll || row.DesiredEnabled != desiredEnabled) {
+	if found && row.DeleteAll != deleteAll {
 		return MutationOutcome{Outcome: memoryv1.OutcomeConflict}, ErrConflict
 	}
 	if !found {
@@ -619,6 +622,9 @@ func (f *Facade) applyCutoff(ctx context.Context, localAgentRef string, deleteAl
 		if err != nil {
 			return MutationOutcome{Outcome: memoryv1.OutcomeUnavailable}, err
 		}
+		// The fence temporarily disables the bank. Only a new operation captures
+		// the setting to restore; a retry uses the setting in the durable row.
+		desiredEnabled := deleteAll && binding.Enabled
 		if binding.BankRef == "" || binding.LifecycleRef == "" {
 			row = cutoffRow{OperationID: "cmcut_" + ulid.Make().String(), LocalAgentRef: localAgentRef, OldBindingRef: binding.BindingRef, ReplacementBindingRef: "cmb_" + ulid.Make().String(), NewLifecycleRef: "cmop_" + ulid.Make().String(), Phase: "cognition_committed", DeleteAll: deleteAll, PreviousEnabled: binding.Enabled, DesiredEnabled: desiredEnabled}
 			now := time.Now().UTC().Format(time.RFC3339Nano)
@@ -679,6 +685,9 @@ func (f *Facade) applyCutoff(ctx context.Context, localAgentRef string, deleteAl
 		if err != nil || outcome != memoryv1.OutcomeCommitted || result.GetCutoff().GetValue() != row.NewLifecycleRef || result.GetReplacementBankBinding().GetValue() != row.ReplacementBindingRef {
 			if err == nil {
 				err = fmt.Errorf("apply Cognition Memory cutoff: invalid owner response")
+			}
+			if outcome == memoryv1.OutcomeCommitted {
+				outcome = memoryv1.OutcomeUnavailable
 			}
 			return MutationOutcome{Outcome: outcome}, err
 		}
