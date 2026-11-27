@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
+	"strings"
 	"sync"
 	"time"
 	"unicode/utf8"
@@ -23,16 +24,18 @@ import (
 
 // Ephemeral launch ownership, not a persisted process or authorization record.
 type installedAppLaunch struct {
-	mu          sync.Mutex
-	id          protectedlocal.Identifier
-	owner       *protectedlocal.Connection
-	verified    nimiappinstall.InstalledLaunch
-	policy      protectedlocal.InstalledAppProcessPolicy
-	profileRoot string
-	expires     time.Time
-	bound       bool
-	closed      bool
-	liveness    protectedlocal.DesktopProcessLiveness
+	mu                sync.Mutex
+	id                protectedlocal.Identifier
+	owner             *protectedlocal.Connection
+	verified          nimiappinstall.InstalledLaunch
+	policy            protectedlocal.InstalledAppProcessPolicy
+	profileRoot       string
+	accountID         string
+	accountGeneration uint64
+	expires           time.Time
+	bound             bool
+	closed            bool
+	liveness          protectedlocal.DesktopProcessLiveness
 }
 
 func requireInstalledAppControl(ctx context.Context) error {
@@ -64,6 +67,16 @@ func (s *Service) PrepareInstalledAppLaunch(ctx context.Context, req *runtimev1.
 	if !ok || (supervisor.OS != protectedlocal.OSWindows && supervisor.OS != protectedlocal.OSMacOS) {
 		return nil, installedLaunchUnavailable()
 	}
+	var expectedAccountID string
+	var expectedAccountGeneration uint64
+	if reg, regErr := s.localAppKernel.Registrations().GetByHandle(ctx, string(selector)); regErr == nil && reg.SourceClass == localappkernel.SourceClassVerified {
+		account, generation, accountOK := s.authenticatedRuntimeAccount(ctx)
+		if !accountOK {
+			return nil, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+		}
+		expectedAccountID = strings.TrimSpace(account.GetAccountId())
+		expectedAccountGeneration = generation
+	}
 	var lease *installedAppLaunch
 	started := time.Now()
 	defer func() {
@@ -75,6 +88,18 @@ func (s *Service) PrepareInstalledAppLaunch(ctx context.Context, req *runtimev1.
 		trustClass, supportedSource := installedPackageTrustClass(verified.Registration.SourceClass)
 		if !supportedSource {
 			return installedLaunchMismatch()
+		}
+		if verified.Registration.SourceClass == localappkernel.SourceClassVerified {
+			account, generation, accountOK := s.authenticatedRuntimeAccount(ctx)
+			if !accountOK {
+				return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+			}
+			accountID := strings.TrimSpace(account.GetAccountId())
+			if expectedAccountGeneration != 0 && (generation != expectedAccountGeneration || accountID != expectedAccountID) {
+				return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)
+			}
+			expectedAccountID = accountID
+			expectedAccountGeneration = generation
 		}
 		handle, ok := localDevelopmentRegistrationIdentifier(verified.Registration.RegistrationHandle)
 		if !ok {
@@ -104,7 +129,8 @@ func (s *Service) PrepareInstalledAppLaunch(ctx context.Context, req *runtimev1.
 		} else if s.localDevelopmentRegistry == nil {
 			return installedLaunchUnavailable()
 		}
-		lease = &installedAppLaunch{id: id, owner: owner, verified: verified, profileRoot: profileRoot, expires: expires,
+		lease = &installedAppLaunch{id: id, owner: owner, verified: verified, profileRoot: profileRoot,
+			accountID: expectedAccountID, accountGeneration: expectedAccountGeneration, expires: expires,
 			policy: protectedlocal.InstalledAppProcessPolicy{RegistrationHandle: verified.Registration.RegistrationHandle,
 				TrustClass:       trustClass,
 				SourceGeneration: verified.Registration.SourceGeneration, DeclarationGeneration: verified.Registration.DeclarationGeneration,
@@ -141,9 +167,13 @@ func (s *Service) PrepareInstalledAppLaunch(ctx context.Context, req *runtimev1.
 		s.revokeInstalledLaunch(lease.id)
 		return nil, err
 	}
-	time.AfterFunc(time.Until(lease.expires), func() {
+	leaseDelay := lease.expires.Sub(s.now().UTC())
+	if leaseDelay < 0 {
+		leaseDelay = 0
+	}
+	time.AfterFunc(leaseDelay, func() {
 		lease.mu.Lock()
-		expired := !lease.bound && !lease.closed
+		expired := !lease.bound && !lease.closed && !s.now().UTC().Before(lease.expires)
 		if expired {
 			lease.closed = true
 		}
@@ -195,8 +225,21 @@ func (s *Service) bindInstalledAppProcess(ctx context.Context, req *runtimev1.Bi
 	if lease.closed || lease.bound || !s.now().UTC().Before(lease.expires) {
 		return nil, installedLaunchMismatch()
 	}
+	if lease.verified.Registration.SourceClass == localappkernel.SourceClassVerified {
+		account, generation, accountOK := s.authenticatedRuntimeAccount(ctx)
+		if !accountOK {
+			return nil, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+		}
+		if generation != lease.accountGeneration || strings.TrimSpace(account.GetAccountId()) != lease.accountID {
+			return nil, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)
+		}
+	}
 	started := time.Now()
-	process, liveness, err := protectedlocal.VerifyInstalledAppProcess(ctx, req.GetChildProcessId(), lease.policy)
+	verifyProcess := s.installedProcessVerifier
+	if verifyProcess == nil {
+		verifyProcess = protectedlocal.VerifyInstalledAppProcess
+	}
+	process, liveness, err := verifyProcess(ctx, req.GetChildProcessId(), lease.policy)
 	if s.logger != nil {
 		s.logger.Info("installed App child image verified", "app_id", lease.verified.Release.AppID, "duration_ms", time.Since(started).Milliseconds(), "error", err)
 	}
@@ -211,6 +254,15 @@ func (s *Service) bindInstalledAppProcess(ctx context.Context, req *runtimev1.Bi
 	}()
 	var deadline time.Time
 	err = s.appInstallCoordinator.WithInstalledLaunch(ctx, lease.policy.RegistrationHandle, func(current nimiappinstall.InstalledLaunch) error {
+		if current.Registration.SourceClass == localappkernel.SourceClassVerified {
+			account, generation, accountOK := s.authenticatedRuntimeAccount(ctx)
+			if !accountOK {
+				return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+			}
+			if generation != lease.accountGeneration || strings.TrimSpace(account.GetAccountId()) != lease.accountID {
+				return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)
+			}
+		}
 		if current.Registration.SourceClass != lease.verified.Registration.SourceClass ||
 			current.Registration.SourceGeneration != lease.policy.SourceGeneration || current.Registration.DeclarationGeneration != lease.policy.DeclarationGeneration ||
 			current.Release.ReleaseRef != lease.verified.Release.ReleaseRef || current.Release.PayloadRootDigest != lease.verified.Release.PayloadRootDigest ||

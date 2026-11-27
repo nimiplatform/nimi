@@ -127,11 +127,12 @@ type CommittedRelease struct {
 }
 
 type CommitPackageReleaseInput struct {
-	AppInfoJSON      []byte
-	LaunchConfigJSON []byte
-	JobID            string
-	Version          string
-	Registration     RegisterInstalledInput
+	AppInfoJSON               []byte
+	LaunchConfigJSON          []byte
+	JobID                     string
+	Version                   string
+	Registration              RegisterInstalledInput
+	InitialPolicyVerification *VerifiedPolicyVerification
 }
 
 type CommitPackageReleaseResult struct {
@@ -211,6 +212,29 @@ var packageLifecycleSchemaStatements = []string{
 		config_json BLOB NOT NULL CHECK(length(config_json) BETWEEN 1 AND 1048576),
 		PRIMARY KEY(app_id, source_class),
 		FOREIGN KEY(app_id, source_class) REFERENCES committed_app_release(app_id, source_class) ON DELETE CASCADE
+	)`,
+	`CREATE TABLE IF NOT EXISTS verified_app_policy_verification (
+		app_id TEXT NOT NULL,
+		source_class TEXT NOT NULL CHECK(source_class = 'verified'),
+		release_ref TEXT NOT NULL,
+		descriptor_id TEXT NOT NULL,
+		target_id TEXT NOT NULL,
+		policy_status TEXT NOT NULL CHECK(policy_status IN ('allowed','policy_blocked','row_absent')),
+		policy_reason TEXT NOT NULL,
+		policy_revision INTEGER NOT NULL CHECK(policy_revision >= 0),
+		registry_revision TEXT NOT NULL,
+		verified_unix_nano INTEGER NOT NULL CHECK(verified_unix_nano > 0),
+		PRIMARY KEY(app_id, source_class),
+		FOREIGN KEY(app_id, source_class) REFERENCES committed_app_release(app_id, source_class) ON DELETE CASCADE
+	)`,
+	`CREATE TABLE IF NOT EXISTS public_app_catalog_browse_snapshot (
+		target_id TEXT NOT NULL,
+		os TEXT NOT NULL,
+		arch TEXT NOT NULL,
+		registry_revision TEXT NOT NULL,
+		projection_json BLOB NOT NULL CHECK(length(projection_json) BETWEEN 1 AND 8388608),
+		updated_unix_nano INTEGER NOT NULL CHECK(updated_unix_nano > 0),
+		PRIMARY KEY(target_id, os, arch)
 	)`,
 }
 
@@ -493,6 +517,17 @@ func (store *PackageLifecycleStore) CommitPackageRelease(ctx context.Context, in
 	if err := validateInstalledInput(input.Registration); err != nil {
 		return CommitPackageReleaseResult{}, err
 	}
+	if input.InitialPolicyVerification != nil {
+		if input.Registration.SourceClass != SourceClassVerified {
+			return CommitPackageReleaseResult{}, ErrInvalidArgument
+		}
+		if err := validateVerifiedPolicyVerification(*input.InitialPolicyVerification); err != nil {
+			return CommitPackageReleaseResult{}, err
+		}
+		if input.InitialPolicyVerification.AppID != input.Registration.AppID {
+			return CommitPackageReleaseResult{}, ErrStateConflict
+		}
+	}
 	store.kernel.mu.Lock()
 	defer store.kernel.mu.Unlock()
 	tx, err := store.kernel.db.BeginTx(ctx, nil)
@@ -562,6 +597,19 @@ func (store *PackageLifecycleStore) CommitPackageRelease(ctx context.Context, in
 	if _, err := tx.ExecContext(ctx, `INSERT INTO app_package_launch_config(app_id, source_class, release_ref, config_json) VALUES (?, ?, ?, ?)
 		ON CONFLICT(app_id, source_class) DO UPDATE SET release_ref = excluded.release_ref, config_json = excluded.config_json`, job.AppID, string(job.SourceClass), job.TargetRef, input.LaunchConfigJSON); err != nil {
 		return CommitPackageReleaseResult{}, fmt.Errorf("write committed App launch configuration: %w", err)
+	}
+	if job.SourceClass == SourceClassVerified {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM verified_app_policy_verification WHERE app_id = ? AND source_class = 'verified'`, job.AppID); err != nil {
+			return CommitPackageReleaseResult{}, fmt.Errorf("clear prior verified App policy record: %w", err)
+		}
+		if input.InitialPolicyVerification != nil {
+			if input.InitialPolicyVerification.ReleaseRef != job.TargetRef {
+				return CommitPackageReleaseResult{}, ErrStateConflict
+			}
+			if err := upsertVerifiedPolicyTx(ctx, tx, *input.InitialPolicyVerification); err != nil {
+				return CommitPackageReleaseResult{}, err
+			}
+		}
 	}
 	result, err := tx.ExecContext(ctx, `UPDATE app_package_job SET phase = 'completed', completed_unix_nano = ?,
 		terminal_result = 'completed', reason_code = '', cancelable = 0, updated_unix_nano = ?

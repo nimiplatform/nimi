@@ -20,6 +20,7 @@ import {
   Download,
   FolderOpen,
   Info,
+  LoaderCircle,
   MoreHorizontal,
   PackageOpen,
   Play,
@@ -113,6 +114,8 @@ const APP_ACCESS_FEATURE_ICON = Object.freeze({
 
 export interface AppsDetailViewProps {
   readonly entry: DesktopAppsEntry;
+  readonly catalogUpdatedAtUnixMs?: number | null;
+  readonly catalogRefreshInProgress?: boolean;
   /** Shared App artwork, matching the library rail across source versions. */
   readonly iconUrl?: string | null;
   /** Other sources of the same App, for cross-source management. */
@@ -523,6 +526,8 @@ function LocalDevelopmentAppsDetailView({
 
 function InstalledAppsDetailView({
   entry,
+  catalogUpdatedAtUnixMs = null,
+  catalogRefreshInProgress = false,
   iconUrl = entry.iconUrl,
   sourceEntries,
   requestedSection,
@@ -601,7 +606,9 @@ function InstalledAppsDetailView({
     ? { status: 'error' }
     : entry.appInfo
       ? { status: 'loaded', content: storefrontView.introductionMarkdown || null, truncated: false }
-      : { status: 'loading' };
+      : entry.catalogStale && !release
+        ? { status: 'loaded', content: null, truncated: false }
+        : { status: 'loading' };
   const aboutDeveloper = entry.appInfo?.author?.trim()
     || (catalog?.publisherGithubNamespace?.trim() ? `@${catalog.publisherGithubNamespace.trim()}` : null);
   const aboutLinks = [
@@ -888,6 +895,39 @@ function InstalledAppsDetailView({
               </Popover>
             </div>
           </div>
+          {entry.catalogStale ? (() => {
+            const formattedTime = typeof catalogUpdatedAtUnixMs === 'number'
+              && Number.isFinite(catalogUpdatedAtUnixMs)
+              && catalogUpdatedAtUnixMs > 0
+              ? new Intl.DateTimeFormat(i18n.language || undefined, {
+                  dateStyle: 'medium',
+                  timeStyle: 'short',
+                }).format(new Date(catalogUpdatedAtUnixMs))
+              : null;
+            return (
+              <InlineAlert
+                tone={catalogRefreshInProgress ? 'info' : 'warning'}
+                className="mt-3"
+                data-testid="apps-detail-catalog-stale"
+                data-refreshing={catalogRefreshInProgress ? 'true' : undefined}
+              >
+                {catalogRefreshInProgress ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <LoaderCircle className="h-3.5 w-3.5 shrink-0 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                    <span>
+                      {formattedTime
+                        ? t('Apps.catalog.refreshingWithTime', { updatedAt: formattedTime })
+                        : t('Apps.catalog.refreshing')}
+                    </span>
+                  </span>
+                ) : formattedTime ? (
+                  t('Apps.catalog.staleWithTime', { updatedAt: formattedTime })
+                ) : (
+                  t('Apps.catalog.stale')
+                )}
+              </InlineAlert>
+            );
+          })() : null}
           {catalog?.policyBlocked ? (
             <InlineAlert tone="danger" className="mt-3" data-testid="apps-catalog-policy-blocked">
               {t('Apps.catalog.policyBlocked', { reason: catalog.policyReason ?? t('Apps.catalog.policyBlockedFallback') })}

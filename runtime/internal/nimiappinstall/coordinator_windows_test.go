@@ -54,6 +54,7 @@ type installFixtureTransport struct {
 	switchAfterAsset bool
 	blockAfterAsset  bool
 	blocked          bool
+	policyRevision   uint64
 	stallAsset       bool
 }
 
@@ -77,7 +78,7 @@ func (transport *installFixtureTransport) RoundTrip(request *http.Request) (*htt
 		if !ok {
 			return fixtureHTTPResponse(request, http.StatusNotFound, nil), nil
 		}
-		if path == "index.json" && (transport.blocked || (transport.switchAfterAsset && transport.revision == installTestNextRevision)) {
+		if path == "index.json" && (transport.blocked || transport.policyRevision > 0 || (transport.switchAfterAsset && transport.revision == installTestNextRevision)) {
 			var index map[string]any
 			if err := json.Unmarshal(raw, &index); err != nil {
 				return nil, err
@@ -85,7 +86,13 @@ func (transport *installFixtureTransport) RoundTrip(request *http.Request) (*htt
 			apps := index["apps"].(map[string]any)
 			row := apps[installTestAppID].(map[string]any)
 			if transport.blocked {
-				row["kill_switch"] = map[string]any{"active": true, "reason": "security-review-revoked", "revision": 1}
+				rev := transport.policyRevision
+				if rev == 0 {
+					rev = 1
+				}
+				row["kill_switch"] = map[string]any{"active": true, "reason": "security-review-revoked", "revision": rev}
+			} else if transport.policyRevision > 0 {
+				row["kill_switch"] = map[string]any{"active": false, "reason": nil, "revision": transport.policyRevision}
 			}
 			if transport.switchAfterAsset && transport.revision == installTestNextRevision {
 				// A new Registry commit alone preserves the selected release.
@@ -384,11 +391,13 @@ func TestInstalledLaunchChecksHostCurrentPolicyAndReservationWithoutScanningReso
 	}
 	called = false
 	transport.blocked = true
+	transport.policyRevision = 1
 	transport.revision = strings.Repeat("d", 40)
 	if err := coordinator.WithInstalledLaunch(ctx, handle, bind); !errors.Is(err, publicappregistry.ErrPolicyBlocked) || called {
 		t.Fatalf("policy bypass: %v", err)
 	}
 	transport.blocked = false
+	transport.policyRevision = 2
 	transport.revision = strings.Repeat("e", 40)
 	job, err := kernel.PackageLifecycle().Begin(ctx, localappkernel.BeginPackageJobInput{
 		AppID: result.Release.AppID, SourceClass: localappkernel.SourceClassVerified, Kind: localappkernel.PackageJobUninstall,

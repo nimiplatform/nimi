@@ -15,7 +15,12 @@ export interface AppCardActionPlan {
 }
 
 type AppsActionEntry = {
-  readonly catalogTarget: { readonly policyBlocked: boolean; readonly version?: string } | null;
+  readonly catalogTarget: {
+    readonly policyBlocked: boolean;
+    readonly version?: string;
+    readonly approvedTargetSelector?: Uint8Array;
+  } | null;
+  readonly catalogStale?: boolean;
   readonly committedRelease: Pick<CommittedAppRelease, 'sourceClass'> & { readonly version?: string } | null;
   readonly localDevelopment: unknown | null;
   readonly packageJob: Pick<AppPackageJob, 'cancelable' | 'phase'> | null;
@@ -103,11 +108,20 @@ export function actionPlanForEntry(entry: AppsActionEntry): AppCardActionPlan {
     : base;
 }
 
+function hasLiveCatalogAuthority(entry: AppsActionEntry): boolean {
+  if (!entry.catalogTarget || entry.catalogStale) return false;
+  if (entry.catalogTarget.approvedTargetSelector !== undefined && entry.catalogTarget.approvedTargetSelector.length === 0) {
+    return false;
+  }
+  return true;
+}
+
 export function canRequestCatalogInstall(entry: AppsActionEntry): boolean {
-  return Boolean(entry.catalogTarget && !entry.catalogTarget.policyBlocked && !entry.committedRelease && !packageJobActive(entry.packageJob));
+  return Boolean(hasLiveCatalogAuthority(entry) && !entry.catalogTarget!.policyBlocked && !entry.committedRelease && !packageJobActive(entry.packageJob));
 }
 
 export function hasAvailableCatalogUpdate(entry: AppsActionEntry): boolean {
+  if (!hasLiveCatalogAuthority(entry)) return false;
   const target = entry.catalogTarget?.version;
   const current = entry.committedRelease?.version;
   return Boolean(!entry.localDevelopment && entry.committedRelease?.sourceClass === AppPackageSourceClass.VERIFIED

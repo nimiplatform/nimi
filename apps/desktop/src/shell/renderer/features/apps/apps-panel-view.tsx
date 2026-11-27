@@ -303,6 +303,8 @@ export function AppsPanelView({
             ) : null}
             <AppsDetailView
               entry={selectedEntry}
+              catalogUpdatedAtUnixMs={projection?.status === 'loaded' ? projection.catalogUpdatedAtUnixMs ?? null : null}
+              catalogRefreshInProgress={projection?.status === 'loaded' ? Boolean(projection.catalogRefreshInProgress) : false}
               iconUrl={groups.find((group) => group.appId === selectedEntry.identity.appId)?.iconUrl ?? selectedEntry.iconUrl}
               sourceEntries={sourceEntries}
               requestedSection={requestedDetailSection}
@@ -889,7 +891,12 @@ function AppsHomeBody({
             <AppsAddMenu onImport={onImportLocal} onDeveloper={onOpenDeveloperMode} onBrowse={onFocusRailSearch} />
           )}
         />
-        <CatalogStatusNote status={projection.catalogStatus} onRetry={onRetry} />
+        <CatalogStatusNote
+          status={projection.catalogStatus}
+          updatedAtUnixMs={projection.catalogUpdatedAtUnixMs}
+          refreshInProgress={Boolean(projection.catalogRefreshInProgress)}
+          onRetry={onRetry}
+        />
       </div>
     );
   }
@@ -898,6 +905,15 @@ function AppsHomeBody({
 
   return (
     <div className="desktop-module-stack">
+      {projection.catalogStatus === 'stale' ? (
+        <CatalogStatusNote
+          status={projection.catalogStatus}
+          updatedAtUnixMs={projection.catalogUpdatedAtUnixMs}
+          refreshInProgress={Boolean(projection.catalogRefreshInProgress)}
+          onRetry={onRetry}
+        />
+      ) : null}
+
       <AppsAttentionSection entries={attentionEntries} iconUrls={iconUrls} pendingActions={pendingActions}
         actionDispatcherFor={actionDispatcherFor} onRefresh={onRetry} />
 
@@ -947,16 +963,68 @@ function AppsHomeBody({
 
       <AppsDiscoveryGrid groups={groups} actionDispatcherFor={actionDispatcherFor} />
 
-      <CatalogStatusNote status={projection.catalogStatus} onRetry={onRetry} />
+      {projection.catalogStatus !== 'stale' ? (
+        <CatalogStatusNote
+          status={projection.catalogStatus}
+          updatedAtUnixMs={projection.catalogUpdatedAtUnixMs}
+          refreshInProgress={Boolean(projection.catalogRefreshInProgress)}
+          onRetry={onRetry}
+        />
+      ) : null}
     </div>
   );
 }
 
-function CatalogStatusNote({ status, onRetry }: {
+function CatalogStatusNote({ status, updatedAtUnixMs, refreshInProgress = false, onRetry }: {
   readonly status: DesktopAppsCatalogProjection['status'];
+  readonly updatedAtUnixMs?: number | null;
+  readonly refreshInProgress?: boolean;
   readonly onRetry?: () => void;
 }): ReactElement | null {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  if (status === 'stale') {
+    const formattedTime = typeof updatedAtUnixMs === 'number' && Number.isFinite(updatedAtUnixMs) && updatedAtUnixMs > 0
+      ? new Intl.DateTimeFormat(i18n.language || undefined, {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        }).format(new Date(updatedAtUnixMs))
+      : null;
+    if (refreshInProgress) {
+      return (
+        <InlineAlert
+          tone="info"
+          data-testid="apps-catalog-stale"
+          data-refreshing="true"
+          data-updated-at={formattedTime && updatedAtUnixMs ? String(updatedAtUnixMs) : ''}
+        >
+          <span className="inline-flex items-center gap-1.5">
+            <LoaderCircle className="h-3.5 w-3.5 shrink-0 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+            <span>
+              {formattedTime
+                ? t('Apps.catalog.refreshingWithTime', { updatedAt: formattedTime })
+                : t('Apps.catalog.refreshing')}
+            </span>
+          </span>
+        </InlineAlert>
+      );
+    }
+    return (
+      <InlineAlert
+        tone="warning"
+        data-testid="apps-catalog-stale"
+        data-updated-at={formattedTime && updatedAtUnixMs ? String(updatedAtUnixMs) : ''}
+        action={onRetry ? (
+          <Button data-testid="apps-catalog-stale-retry" tone="secondary" size="sm" onClick={onRetry}>
+            {t('Apps.action.retry')}
+          </Button>
+        ) : undefined}
+      >
+        {formattedTime
+          ? t('Apps.catalog.staleWithTime', { updatedAt: formattedTime })
+          : t('Apps.catalog.stale')}
+      </InlineAlert>
+    );
+  }
   if (status === 'unavailable') {
     return (
       <p role="status" data-testid="apps-catalog-read-failed" className="mt-4 flex flex-wrap items-center gap-1.5 px-1 text-xs text-[var(--nimi-text-muted)]">

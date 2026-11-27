@@ -13,7 +13,7 @@ import { AppsLocalImportFeedback, useAppsLocalImport } from './apps-local-import
 import { packageJobKey } from './apps-downloads-observer.js';
 import { useAppsDownloads } from './apps-downloads-context.js';
 import { catalogTargetMatchesJob } from './apps-downloads-view.js';
-import { resolveRequestedAppDetailEntry, type DesktopAppsEntry } from './apps-panel-projection.js';
+import { resolveRequestedAppDetailEntry, timestampUnixMs, type DesktopAppsCatalogReadOptions, type DesktopAppsEntry } from './apps-panel-projection.js';
 import { AppPackageJobPhase, AppPackageJobKind, AppPackageSourceClass, ReasonCode, type AppPackageJob, type CancelAppPackageJobResponse } from '@nimiplatform/sdk/runtime/wire-types';
 
 export function assertCanceledPackageJobResponse(
@@ -82,12 +82,20 @@ export function AppsPanel({
     }
     return response.releases;
   }, [sdk]);
-  const listApprovedCatalogTargets = useCallback(async () => {
-    const response = await sdk.machineProduct().apps.listApprovedAppCatalogTargets({});
+  const listApprovedCatalogTargets = useCallback(async (options?: DesktopAppsCatalogReadOptions) => {
+    const response = await sdk.machineProduct().apps.listApprovedAppCatalogTargets({
+      forceRefresh: Boolean(options?.forceRefresh),
+      awaitRefresh: Boolean(options?.awaitRefresh),
+    });
     if (response.reasonCode !== ReasonCode.ACTION_EXECUTED) {
       throw new Error(`Runtime rejected approved App Catalog: ${String(response.reasonCode)}`);
     }
-    return response.targets;
+    return {
+      targets: response.targets,
+      stale: response.stale,
+      updatedAtUnixMs: timestampUnixMs(response.updatedAt) || null,
+      refreshInProgress: response.refreshInProgress,
+    };
   }, [sdk]);
   const startInstall = useCallback((approvedTargetSelector: Uint8Array) => (
     startAppsPackageInstall(sdk.machineProduct().apps.startAppPackageInstall, approvedTargetSelector)

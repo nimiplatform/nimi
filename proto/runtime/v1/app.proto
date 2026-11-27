@@ -604,11 +604,28 @@ message ApprovedAppCatalogTarget {
   string admission_trust_tier = 31;
 }
 
-message ListApprovedAppCatalogTargetsRequest {}
+message ListApprovedAppCatalogTargetsRequest {
+  // When true, start or join an immediate live official Registry refresh and
+  // wait for it instead of returning a persisted browse projection immediately.
+  bool force_refresh = 1;
+  // When true, join an active background refresh (or return the just-completed
+  // refresh result) and wait for it to settle without starting a duplicate fetch.
+  bool await_refresh = 2;
+}
 
 message ListApprovedAppCatalogTargetsResponse {
   repeated ApprovedAppCatalogTarget targets = 1;
   ReasonCode reason_code = 2;
+  // True when targets come from Runtime's persisted verified public browse
+  // projection (display-only; never grants install, update, or launch
+  // authority), either because live refresh failed or is still in progress.
+  bool stale = 3;
+  // Timestamp when this catalog projection was last verified online against
+  // the official Registry.
+  google.protobuf.Timestamp updated_at = 4;
+  // True when Runtime returned a persisted display-only browse projection
+  // immediately while a singleflight live Registry refresh is still running.
+  bool refresh_in_progress = 5;
 }
 
 message ListCommittedAppReleasesRequest {}

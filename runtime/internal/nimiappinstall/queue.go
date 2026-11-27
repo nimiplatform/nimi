@@ -197,7 +197,11 @@ func (coordinator *Coordinator) ResumeInstall(ctx context.Context, jobID string)
 	selector, err := publicSelector(job.TargetRef)
 	if err == nil {
 		var resolved publicappregistry.ResolvedApprovedTarget
+		observedSeq, observedAt := coordinator.BeginPolicyObservation()
 		resolved, err = coordinator.registry.Revalidate(ctx, selector)
+		if err != nil {
+			coordinator.recordObservedPolicyBlock(ctx, selector, err, observedSeq, observedAt)
+		}
 		if err == nil {
 			_, err = validateResolvedInstallTarget(resolved)
 		}

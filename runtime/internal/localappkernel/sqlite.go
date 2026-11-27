@@ -464,6 +464,14 @@ func (kernel *Kernel) PackageRoot() string {
 	return kernel.packageRoot
 }
 
+// Now returns the current UTC time from this kernel's configured clock.
+func (kernel *Kernel) Now() time.Time {
+	if kernel == nil || kernel.now == nil {
+		return time.Now().UTC()
+	}
+	return kernel.now().UTC()
+}
+
 // AppHostProfileRoot derives the Host technical profile of one Registered App
 // Subject from this kernel's bound root, host install scope, and verified
 // OS-user anchor. It is a path projection only; nothing is created or granted.

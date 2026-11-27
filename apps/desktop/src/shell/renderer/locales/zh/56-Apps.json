@@ -90,7 +90,11 @@
     "managedWebPlatform": "macOS · Windows（Nimi 受管容器）",
     "policyRevision": "Registry 策略修订",
     "rowAbsent": "当前目录已不再列出此应用，已安装的副本保持不变。",
-    "readFailed": "现在无法读取应用目录，请稍后再试。"
+    "readFailed": "现在无法读取应用目录，请稍后再试。",
+    "staleWithTime": "当前显示缓存的应用目录（更新于 {{updatedAt}}）。安装或更新应用需要重新连接官方目录。",
+    "stale": "当前显示缓存的应用目录。安装或更新应用需要重新连接官方目录。",
+    "refreshingWithTime": "当前显示缓存的应用目录（更新于 {{updatedAt}}）。正在检查更新…",
+    "refreshing": "当前显示缓存的应用目录。正在检查更新…"
   },
   "catalogNotImplemented": "公共 App 目录搜索尚未实现。",
   "focusFailed": "未能显示应用窗口，请再试一次。",

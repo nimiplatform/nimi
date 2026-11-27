@@ -1498,6 +1498,20 @@ export interface ApprovedAppCatalogTarget {
  * @generated from protobuf message nimi.runtime.v1.ListApprovedAppCatalogTargetsRequest
  */
 export interface ListApprovedAppCatalogTargetsRequest {
+    /**
+     * When true, start or join an immediate live official Registry refresh and
+     * wait for it instead of returning a persisted browse projection immediately.
+     *
+     * @generated from protobuf field: bool force_refresh = 1
+     */
+    forceRefresh: boolean;
+    /**
+     * When true, join an active background refresh (or return the just-completed
+     * refresh result) and wait for it to settle without starting a duplicate fetch.
+     *
+     * @generated from protobuf field: bool await_refresh = 2
+     */
+    awaitRefresh: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListApprovedAppCatalogTargetsResponse
@@ -1511,6 +1525,28 @@ export interface ListApprovedAppCatalogTargetsResponse {
      * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
      */
     reasonCode: ReasonCode;
+    /**
+     * True when targets come from Runtime's persisted verified public browse
+     * projection (display-only; never grants install, update, or launch
+     * authority), either because live refresh failed or is still in progress.
+     *
+     * @generated from protobuf field: bool stale = 3
+     */
+    stale: boolean;
+    /**
+     * Timestamp when this catalog projection was last verified online against
+     * the official Registry.
+     *
+     * @generated from protobuf field: google.protobuf.Timestamp updated_at = 4
+     */
+    updatedAt?: Timestamp;
+    /**
+     * True when Runtime returned a persisted display-only browse projection
+     * immediately while a singleflight live Registry refresh is still running.
+     *
+     * @generated from protobuf field: bool refresh_in_progress = 5
+     */
+    refreshInProgress: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListCommittedAppReleasesRequest
@@ -6857,10 +6893,15 @@ export const ApprovedAppCatalogTarget = new ApprovedAppCatalogTarget$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ListApprovedAppCatalogTargetsRequest$Type extends MessageType<ListApprovedAppCatalogTargetsRequest> {
     constructor() {
-        super("nimi.runtime.v1.ListApprovedAppCatalogTargetsRequest", []);
+        super("nimi.runtime.v1.ListApprovedAppCatalogTargetsRequest", [
+            { no: 1, name: "force_refresh", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "await_refresh", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
     }
     create(value?: PartialMessage<ListApprovedAppCatalogTargetsRequest>): ListApprovedAppCatalogTargetsRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.forceRefresh = false;
+        message.awaitRefresh = false;
         if (value !== undefined)
             reflectionMergePartial<ListApprovedAppCatalogTargetsRequest>(this, message, value);
         return message;
@@ -6870,6 +6911,12 @@ class ListApprovedAppCatalogTargetsRequest$Type extends MessageType<ListApproved
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
+                case /* bool force_refresh */ 1:
+                    message.forceRefresh = reader.bool();
+                    break;
+                case /* bool await_refresh */ 2:
+                    message.awaitRefresh = reader.bool();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -6882,6 +6929,12 @@ class ListApprovedAppCatalogTargetsRequest$Type extends MessageType<ListApproved
         return message;
     }
     internalBinaryWrite(message: ListApprovedAppCatalogTargetsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool force_refresh = 1; */
+        if (message.forceRefresh !== false)
+            writer.tag(1, WireType.Varint).bool(message.forceRefresh);
+        /* bool await_refresh = 2; */
+        if (message.awaitRefresh !== false)
+            writer.tag(2, WireType.Varint).bool(message.awaitRefresh);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -6897,13 +6950,18 @@ class ListApprovedAppCatalogTargetsResponse$Type extends MessageType<ListApprove
     constructor() {
         super("nimi.runtime.v1.ListApprovedAppCatalogTargetsResponse", [
             { no: 1, name: "targets", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ApprovedAppCatalogTarget },
-            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 3, name: "stale", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 4, name: "updated_at", kind: "message", T: () => Timestamp },
+            { no: 5, name: "refresh_in_progress", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<ListApprovedAppCatalogTargetsResponse>): ListApprovedAppCatalogTargetsResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.targets = [];
         message.reasonCode = 0;
+        message.stale = false;
+        message.refreshInProgress = false;
         if (value !== undefined)
             reflectionMergePartial<ListApprovedAppCatalogTargetsResponse>(this, message, value);
         return message;
@@ -6918,6 +6976,15 @@ class ListApprovedAppCatalogTargetsResponse$Type extends MessageType<ListApprove
                     break;
                 case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
                     message.reasonCode = reader.int32();
+                    break;
+                case /* bool stale */ 3:
+                    message.stale = reader.bool();
+                    break;
+                case /* google.protobuf.Timestamp updated_at */ 4:
+                    message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
+                    break;
+                case /* bool refresh_in_progress */ 5:
+                    message.refreshInProgress = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -6937,6 +7004,15 @@ class ListApprovedAppCatalogTargetsResponse$Type extends MessageType<ListApprove
         /* nimi.runtime.v1.ReasonCode reason_code = 2; */
         if (message.reasonCode !== 0)
             writer.tag(2, WireType.Varint).int32(message.reasonCode);
+        /* bool stale = 3; */
+        if (message.stale !== false)
+            writer.tag(3, WireType.Varint).bool(message.stale);
+        /* google.protobuf.Timestamp updated_at = 4; */
+        if (message.updatedAt)
+            Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* bool refresh_in_progress = 5; */
+        if (message.refreshInProgress !== false)
+            writer.tag(5, WireType.Varint).bool(message.refreshInProgress);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

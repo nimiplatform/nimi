@@ -154,6 +154,7 @@ type Service struct {
 	localAppAssetPolicy        appstorage.AssetPolicy
 	localAppSessionRebindMu    sync.Mutex
 	localAppRebindVerifier     func(context.Context, *protectedlocal.LocalAppConnection, localAppRuntimeSession) (localappkernel.Registration, error)
+	installedProcessVerifier   func(context.Context, uint32, protectedlocal.InstalledAppProcessPolicy) (protectedlocal.ProcessTuple, protectedlocal.DesktopProcessLiveness, error)
 	localAppSessionMu          sync.RWMutex
 	localAppSessions           map[*protectedlocal.LocalAppConnection]localAppRuntimeSession
 	remoteAppSessions          sync.Map
@@ -165,6 +166,20 @@ type Service struct {
 	installedLaunches          map[protectedlocal.Identifier]*installedAppLaunch
 	formalAppMu                sync.Mutex
 	formalApps                 map[formalAppConnectionKey]*formalAppBinding
+	catalogRefreshMu            sync.Mutex
+	catalogRefreshPersistMu     sync.Mutex
+	catalogRefreshClosed        bool
+	catalogRefreshQuiesced      bool
+	catalogRefreshResumePending bool
+	catalogRefreshDrainDone     chan struct{}
+	catalogRefreshCtx           context.Context
+	catalogRefreshCancel        context.CancelFunc
+	catalogRefreshWG            sync.WaitGroup
+	catalogRefreshFlight        *approvedAppCatalogRefreshFlight
+	catalogRefreshCompleted     bool
+	catalogLastLiveResponse     *runtimev1.ListApprovedAppCatalogTargetsResponse
+	catalogLastRefreshErr       error
+	catalogLastRefreshAt        time.Time
 }
 
 // WithAuditStore binds the Runtime audit plane that records the App owner's
@@ -307,6 +322,7 @@ func WithLocalAppSessionRuntime(entropy io.Reader, ttl time.Duration) Option {
 }
 
 func New(logger *slog.Logger, opts ...Option) *Service {
+	catalogCtx, catalogCancel := context.WithCancel(context.Background())
 	svc := &Service{
 		logger:                 logger,
 		subscribers:            make(map[uint64]subscriber),
@@ -318,6 +334,8 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 		formalApps:             make(map[formalAppConnectionKey]*formalAppBinding),
 		localAppSessionEntropy: rand.Reader,
 		localAppSessionTTL:     10 * time.Minute,
+		catalogRefreshCtx:      catalogCtx,
+		catalogRefreshCancel:   catalogCancel,
 	}
 	for _, opt := range opts {
 		if opt != nil {
@@ -332,10 +350,18 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 // stop does not prove synchronous filesystem work has returned, so the owner
 // rejects further acquisitions and waits for its real holders before release.
 func (s *Service) CloseLocalAppStorage() {
-	if s != nil && s.localAppJSONStore != nil {
+	if s == nil {
+		return
+	}
+	s.closeApprovedAppCatalogRefresh()
+	if s.localAppJSONStore != nil {
 		s.localAppJSONStore.Close()
 	}
+}
 
+// Close stops background catalog refresh work and closes App storage owners.
+func (s *Service) Close() {
+	s.CloseLocalAppStorage()
 }
 
 func WithTrustedInternalCaller(ctx context.Context, appID string) context.Context {

@@ -773,7 +773,11 @@ func (c *Client) RevalidateInstalled(ctx context.Context, selector ApprovedTarge
 		return ResolvedApprovedTarget{}, ErrCatalogAppNotFound
 	}
 	if row.KillSwitch.Active {
-		return ResolvedApprovedTarget{}, &PolicyBlockedError{Reason: *row.KillSwitch.Reason, Revision: row.KillSwitch.Revision}
+		reason := ""
+		if row.KillSwitch.Reason != nil {
+			reason = *row.KillSwitch.Reason
+		}
+		return ResolvedApprovedTarget{}, &PolicyBlockedError{Reason: reason, Revision: row.KillSwitch.Revision}
 	}
 	path := expectedDescriptorPath(appID, selector.descriptorID[len(appID)+1:])
 	descriptor, err := snapshot.readDescriptor(ctx, path)

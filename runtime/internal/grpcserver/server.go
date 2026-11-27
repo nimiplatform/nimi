@@ -1151,7 +1151,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		runtimev1.RegisterRuntimeRemoteAccessServiceServer(protectedGRPCServer, remoteAccessSvc)
 	}
 	rootHandoff := &productControlRuntimeRootHandoff{
-		registry: rpcRegistry, ai: aiSvc, agent: agentSvc, cognition: cognitionSvc, backend: backend, appActivity: activitySvc, integrations: integrationSvc, agentSessions: agentSessionSvc,
+		registry: rpcRegistry, ai: aiSvc, agent: agentSvc, cognition: cognitionSvc, backend: backend, appCatalog: appSvc, appActivity: activitySvc, integrations: integrationSvc, agentSessions: agentSessionSvc,
 	}
 	if appInstallCoordinator != nil {
 		rootHandoff.appPackages = appInstallCoordinator

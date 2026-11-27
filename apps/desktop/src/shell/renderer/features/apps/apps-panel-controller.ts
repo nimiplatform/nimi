@@ -18,6 +18,7 @@ import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
 import { useAppsPresentationCache } from './use-apps-presentation-cache.js';
 import {
   desktopAppsEntryKey,
+  normalizeCatalogTargetsResponse,
   packageInfoKey,
   projectAppsPanel,
   appPresentationKey,
@@ -26,6 +27,7 @@ import {
   summarizeAppAIConfig,
   type DesktopAppAIConfigReadOptions,
   type DesktopAppsCatalogProjection,
+  type DesktopAppsCatalogReadOptions,
   type DesktopAppsEntry,
   type DesktopAppsPanelProjection,
   type DesktopAppsProjectionSource,
@@ -80,7 +82,7 @@ const catalogRefreshMs = 60_000;
 
 export interface AppsPanelProjectionReloader {
   reload(refreshAIConfig?: boolean, supersedeAIConfig?: boolean): Promise<void>;
-  refreshCatalog(): Promise<void>;
+  refreshCatalog(options?: DesktopAppsCatalogReadOptions): Promise<void>;
   dispose(): void;
 }
 
@@ -95,6 +97,8 @@ export function mergeAppsPanelProjection(
     return {
       status: 'loaded',
       catalogStatus: next.catalogStatus,
+      ...(next.catalogUpdatedAtUnixMs ? { catalogUpdatedAtUnixMs: next.catalogUpdatedAtUnixMs } : {}),
+      ...(next.catalogRefreshInProgress ? { catalogRefreshInProgress: next.catalogRefreshInProgress } : {}),
       runtimeError: next.runtimeError,
       entries: next.entries.map((entry) => {
         const currentEntry = currentByKey.get(entry.identity.entryKey);
@@ -109,6 +113,8 @@ export function mergeAppsPanelProjection(
   return {
     status: 'loaded',
     catalogStatus: current.catalogStatus,
+    ...(current.catalogUpdatedAtUnixMs ? { catalogUpdatedAtUnixMs: current.catalogUpdatedAtUnixMs } : {}),
+    ...(current.catalogRefreshInProgress ? { catalogRefreshInProgress: current.catalogRefreshInProgress } : {}),
     runtimeError: current.runtimeError,
     entries: current.entries.map((entry) => {
       const refreshedEntry = refreshedByKey.get(entry.identity.entryKey);
@@ -146,7 +152,10 @@ export function applyAppsPanelAIConfigAcknowledgement(
     return { ...entry, aiConfigSummary };
   });
   return matched ? {
-    status: 'loaded', entries, catalogStatus: current.catalogStatus, runtimeError: current.runtimeError,
+    status: 'loaded', entries, catalogStatus: current.catalogStatus,
+    ...(current.catalogUpdatedAtUnixMs ? { catalogUpdatedAtUnixMs: current.catalogUpdatedAtUnixMs } : {}),
+    ...(current.catalogRefreshInProgress ? { catalogRefreshInProgress: current.catalogRefreshInProgress } : {}),
+    runtimeError: current.runtimeError,
   } : current;
 }
 
@@ -176,6 +185,9 @@ export function createAppsPanelProjectionReloader(input: {
     status: input.source.listApprovedCatalogTargets ? 'loading' : 'not-implemented', targets: [],
   };
   let catalogInFlight: Promise<void> | null = null;
+  let catalogFollowUp: Promise<void> | null = null;
+  let catalogFollowUpRevision = 0;
+  let catalogRevision = 0;
   const inFlight: Record<AppsPanelReloadLane, Promise<void> | null> = {
     lifecycle: null,
     'ai-config': null,
@@ -223,24 +235,65 @@ export function createAppsPanelProjectionReloader(input: {
     return task;
   };
 
+  const startCatalogAwaitFollowUp = (expectedRevision: number): void => {
+    if (!input.source.listApprovedCatalogTargets || disposed) return;
+    if (catalogFollowUp && catalogFollowUpRevision === expectedRevision) return;
+    catalogFollowUpRevision = expectedRevision;
+    const followUp = input.source.listApprovedCatalogTargets({ awaitRefresh: true }).then((response) => {
+      if (disposed || catalogRevision !== expectedRevision) return;
+      catalog = normalizeCatalogTargetsResponse(response);
+    }).catch((error: unknown) => {
+      if (disposed || catalogRevision !== expectedRevision) return;
+      if (catalog.status === 'stale') {
+        catalog = { ...catalog, refreshInProgress: false, error };
+      } else {
+        catalog = { status: 'unavailable', targets: [], updatedAtUnixMs: null, refreshInProgress: false, error };
+      }
+    }).then(async () => {
+      if (disposed || catalogRevision !== expectedRevision) return;
+      await inFlight.lifecycle;
+      if (!disposed && catalogRevision === expectedRevision) await reload(false);
+    }).finally(() => {
+      if (catalogFollowUp === followUp) catalogFollowUp = null;
+    });
+    catalogFollowUp = followUp;
+  };
+
   return Object.freeze({
     reload,
-    refreshCatalog(): Promise<void> {
+    refreshCatalog(options?: DesktopAppsCatalogReadOptions): Promise<void> {
       if (!input.source.listApprovedCatalogTargets || disposed) return Promise.resolve();
-      if (catalogInFlight) return catalogInFlight;
-      const task = input.source.listApprovedCatalogTargets().then((targets) => {
-        catalog = { status: 'loaded', targets };
+      const force = Boolean(options?.forceRefresh);
+      const awaitOnly = Boolean(options?.awaitRefresh);
+      if (!force && !awaitOnly && catalogInFlight) return catalogInFlight;
+      if (awaitOnly && catalogFollowUp && catalogFollowUpRevision === catalogRevision) return catalogFollowUp;
+      const revision = catalogRevision + 1;
+      catalogRevision = revision;
+      const task = input.source.listApprovedCatalogTargets(options).then((response) => {
+        if (disposed || catalogRevision !== revision) return;
+        const next = normalizeCatalogTargetsResponse(response);
+        catalog = next;
+        if (!force && !awaitOnly && next.refreshInProgress) {
+          startCatalogAwaitFollowUp(revision);
+        }
       }).catch((error: unknown) => {
-        catalog = { status: 'unavailable', targets: [], error };
+        if (disposed || catalogRevision !== revision) return;
+        if (awaitOnly && catalog.status === 'stale') {
+          catalog = { ...catalog, refreshInProgress: false, error };
+        } else {
+          catalog = { status: 'unavailable', targets: [], updatedAtUnixMs: null, refreshInProgress: false, error };
+        }
       }).then(async () => {
+        if (disposed || catalogRevision !== revision) return;
         await inFlight.lifecycle;
-        if (!disposed) await reload(false);
+        if (!disposed && catalogRevision === revision) await reload(false);
       }).finally(() => { if (catalogInFlight === task) catalogInFlight = null; });
       catalogInFlight = task;
       return task;
     },
     dispose() {
       disposed = true;
+      catalogRevision += 1;
       requests.lifecycle?.abort('desktop-apps-projection-disposed');
       requests['ai-config']?.abort('desktop-apps-projection-disposed');
     },
@@ -307,15 +360,45 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
     source: {
       ...liveBridge,
       presentationCache,
-      listApprovedCatalogTargets: deps.listApprovedCatalogTargets ? async () => {
-        const targets = await queryClient.fetchQuery({
+      listApprovedCatalogTargets: deps.listApprovedCatalogTargets ? async (options) => {
+        if (options?.awaitRefresh) {
+          try {
+            const projected = normalizeCatalogTargetsResponse(await deps.listApprovedCatalogTargets!(options));
+            queryClient.setQueryData(catalogKey, projected);
+            return {
+              targets: projected.targets,
+              stale: projected.status === 'stale',
+              updatedAtUnixMs: projected.updatedAtUnixMs ?? null,
+              refreshInProgress: projected.refreshInProgress,
+            };
+          } catch (error) {
+            const current = queryClient.getQueryData<DesktopAppsCatalogProjection>(catalogKey);
+            if (current?.status === 'stale') {
+              const settled: DesktopAppsCatalogProjection = { ...current, refreshInProgress: false };
+              queryClient.setQueryData(catalogKey, settled);
+              return {
+                targets: settled.targets,
+                stale: true,
+                updatedAtUnixMs: settled.updatedAtUnixMs ?? null,
+                refreshInProgress: false,
+              };
+            }
+            throw error;
+          }
+        }
+        const projected = await queryClient.fetchQuery({
           queryKey: catalogKey,
-          queryFn: async (): Promise<DesktopAppsCatalogProjection> => ({
-            status: 'loaded', targets: await deps.listApprovedCatalogTargets!(),
-          }),
+          queryFn: async (): Promise<DesktopAppsCatalogProjection> => (
+            normalizeCatalogTargetsResponse(await deps.listApprovedCatalogTargets!(options))
+          ),
           staleTime: 0, gcTime: Infinity, retry: false, networkMode: 'always',
         });
-        return targets.targets;
+        return {
+          targets: projected.targets,
+          stale: projected.status === 'stale',
+          updatedAtUnixMs: projected.updatedAtUnixMs ?? null,
+          refreshInProgress: projected.refreshInProgress,
+        };
       } : undefined,
       listCommittedReleases: deps.listCommittedReleases,
       listPackageJobs: deps.listPackageJobs,
@@ -336,22 +419,28 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
     [reloader],
   );
   const installIntentController = useMemo(() => deps.startInstall
-    ? createAppsInstallIntentController({ startInstall: deps.startInstall, startUpdate: deps.startUpdate, refresh: () => reloader.refreshCatalog() })
+    ? createAppsInstallIntentController({ startInstall: deps.startInstall, startUpdate: deps.startUpdate, refresh: () => reloader.refreshCatalog({ forceRefresh: true }) })
     : undefined, [deps.startInstall, deps.startUpdate, reloader]);
 
   useEffect(() => {
     // Reconcile local membership and run state first; AI summaries must not
     // delay artwork or keep an old cached lifecycle projection on screen.
     void reload(false).then(() => reload(true));
-    const cachedCatalog = queryClient.getQueryState(catalogKey);
-    if (cachedCatalog?.status !== 'success' || cachedCatalog.isInvalidated
-      || Date.now() - cachedCatalog.dataUpdatedAt >= catalogRefreshMs) {
+    const cachedCatalog = queryClient.getQueryState<DesktopAppsCatalogProjection>(catalogKey);
+    if (!cachedCatalog || cachedCatalog.data === undefined) {
       void reloader.refreshCatalog();
+    } else if (cachedCatalog.status !== 'success' || cachedCatalog.isInvalidated
+      || Date.now() - cachedCatalog.dataUpdatedAt >= catalogRefreshMs) {
+      void reloader.refreshCatalog({ forceRefresh: true });
+    } else if (cachedCatalog.data.status === 'stale' && cachedCatalog.data.refreshInProgress) {
+      void reloader.refreshCatalog({ awaitRefresh: true });
+    } else if (cachedCatalog.data.status === 'stale') {
+      void reloader.refreshCatalog({ forceRefresh: true });
     }
   }, [reload, reloader, queryClient]);
 
   useEffect(() => {
-    const interval = window.setInterval(() => void reloader.refreshCatalog(), catalogRefreshMs);
+    const interval = window.setInterval(() => void reloader.refreshCatalog({ forceRefresh: true }), catalogRefreshMs);
     return () => window.clearInterval(interval);
   }, [reloader]);
 
@@ -470,7 +559,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
     setActionFailure(null);
     presentationCache.retryFailures();
     void reload(true, true);
-    void reloader.refreshCatalog();
+    void reloader.refreshCatalog({ forceRefresh: true });
   }, [reload, reloader, presentationCache]);
 
   const acknowledgeAIConfigMutation = useCallback((

@@ -13,11 +13,12 @@ import (
 )
 
 type productControlRuntimeRootHandoff struct {
-	registry     *activeRPCRegistry
-	ai           *aiservice.Service
-	agent        *runtimeagentservice.Service
-	cognition    *cognitionservice.Service
-	backend      *runtimepersistence.Backend
+	registry      *activeRPCRegistry
+	ai            *aiservice.Service
+	agent         *runtimeagentservice.Service
+	cognition     *cognitionservice.Service
+	backend       *runtimepersistence.Backend
+	appCatalog    appPackageRootHandoff
 	appPackages   appPackageRootHandoff
 	appActivity   appPackageRootHandoff
 	integrations  appPackageRootHandoff
@@ -49,6 +50,11 @@ func (h *productControlRuntimeRootHandoff) CloseRootAdmission(ctx context.Contex
 	h.mu.Unlock()
 	if err := h.registry.CloseRootAdmission(ctx); err != nil {
 		return err
+	}
+	if h.appCatalog != nil {
+		if err := h.appCatalog.QuiesceDataRootContext(ctx); err != nil {
+			return fmt.Errorf("quiesce App catalog owner: %w", err)
+		}
 	}
 	if h.appPackages != nil {
 		if err := h.appPackages.QuiesceDataRootContext(ctx); err != nil {
@@ -104,6 +110,9 @@ func (h *productControlRuntimeRootHandoff) AbortRootHandoff() {
 	}
 	h.prepared = false
 	h.mu.Unlock()
+	if h.appCatalog != nil {
+		h.appCatalog.ResumeDataRootAfterAbort()
+	}
 	if h.appPackages != nil {
 		h.appPackages.ResumeDataRootAfterAbort()
 	}

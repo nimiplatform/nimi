@@ -70,7 +70,7 @@ export function AppsUpdateSection({ entry, readPackageInfo, onAction, actionsDis
     }
   };
 
-  const notesEnabled = Boolean(updateAvailable && catalog && readPackageInfo);
+  const notesEnabled = Boolean(updateAvailable && catalog && catalog.approvedTargetSelector.length > 0 && readPackageInfo);
   const [notes, setNotes] = useState<UpdateNotesState>({ status: 'loading' });
   useEffect(() => {
     if (!notesEnabled || !catalog || !readPackageInfo) return undefined;

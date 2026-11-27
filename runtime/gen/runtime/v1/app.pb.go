@@ -5015,7 +5015,13 @@ func (x *ApprovedAppCatalogTarget) GetAdmissionTrustTier() string {
 }
 
 type ListApprovedAppCatalogTargetsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// When true, start or join an immediate live official Registry refresh and
+	// wait for it instead of returning a persisted browse projection immediately.
+	ForceRefresh bool `protobuf:"varint,1,opt,name=force_refresh,json=forceRefresh,proto3" json:"force_refresh,omitempty"`
+	// When true, join an active background refresh (or return the just-completed
+	// refresh result) and wait for it to settle without starting a duplicate fetch.
+	AwaitRefresh  bool `protobuf:"varint,2,opt,name=await_refresh,json=awaitRefresh,proto3" json:"await_refresh,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5050,12 +5056,36 @@ func (*ListApprovedAppCatalogTargetsRequest) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_app_proto_rawDescGZIP(), []int{66}
 }
 
+func (x *ListApprovedAppCatalogTargetsRequest) GetForceRefresh() bool {
+	if x != nil {
+		return x.ForceRefresh
+	}
+	return false
+}
+
+func (x *ListApprovedAppCatalogTargetsRequest) GetAwaitRefresh() bool {
+	if x != nil {
+		return x.AwaitRefresh
+	}
+	return false
+}
+
 type ListApprovedAppCatalogTargetsResponse struct {
-	state         protoimpl.MessageState      `protogen:"open.v1"`
-	Targets       []*ApprovedAppCatalogTarget `protobuf:"bytes,1,rep,name=targets,proto3" json:"targets,omitempty"`
-	ReasonCode    ReasonCode                  `protobuf:"varint,2,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state      protoimpl.MessageState      `protogen:"open.v1"`
+	Targets    []*ApprovedAppCatalogTarget `protobuf:"bytes,1,rep,name=targets,proto3" json:"targets,omitempty"`
+	ReasonCode ReasonCode                  `protobuf:"varint,2,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	// True when targets come from Runtime's persisted verified public browse
+	// projection (display-only; never grants install, update, or launch
+	// authority), either because live refresh failed or is still in progress.
+	Stale bool `protobuf:"varint,3,opt,name=stale,proto3" json:"stale,omitempty"`
+	// Timestamp when this catalog projection was last verified online against
+	// the official Registry.
+	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// True when Runtime returned a persisted display-only browse projection
+	// immediately while a singleflight live Registry refresh is still running.
+	RefreshInProgress bool `protobuf:"varint,5,opt,name=refresh_in_progress,json=refreshInProgress,proto3" json:"refresh_in_progress,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ListApprovedAppCatalogTargetsResponse) Reset() {
@@ -5100,6 +5130,27 @@ func (x *ListApprovedAppCatalogTargetsResponse) GetReasonCode() ReasonCode {
 		return x.ReasonCode
 	}
 	return ReasonCode_REASON_CODE_UNSPECIFIED
+}
+
+func (x *ListApprovedAppCatalogTargetsResponse) GetStale() bool {
+	if x != nil {
+		return x.Stale
+	}
+	return false
+}
+
+func (x *ListApprovedAppCatalogTargetsResponse) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+func (x *ListApprovedAppCatalogTargetsResponse) GetRefreshInProgress() bool {
+	if x != nil {
+		return x.RefreshInProgress
+	}
+	return false
 }
 
 type ListCommittedAppReleasesRequest struct {
@@ -7258,12 +7309,18 @@ const file_runtime_v1_app_proto_rawDesc = "" +
 	"\x14admission_trust_tier\x18\x1f \x01(\tR\x12admissionTrustTierB\x1b\n" +
 	"\x19_observed_signing_subjectB\x10\n" +
 	"\x0e_policy_reasonB\x1d\n" +
-	"\x1b_macos_developer_id_subject\"&\n" +
-	"$ListApprovedAppCatalogTargetsRequest\"\xaa\x01\n" +
+	"\x1b_macos_developer_id_subject\"p\n" +
+	"$ListApprovedAppCatalogTargetsRequest\x12#\n" +
+	"\rforce_refresh\x18\x01 \x01(\bR\fforceRefresh\x12#\n" +
+	"\rawait_refresh\x18\x02 \x01(\bR\fawaitRefresh\"\xab\x02\n" +
 	"%ListApprovedAppCatalogTargetsResponse\x12C\n" +
 	"\atargets\x18\x01 \x03(\v2).nimi.runtime.v1.ApprovedAppCatalogTargetR\atargets\x12<\n" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\"!\n" +
+	"reasonCode\x12\x14\n" +
+	"\x05stale\x18\x03 \x01(\bR\x05stale\x129\n" +
+	"\n" +
+	"updated_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12.\n" +
+	"\x13refresh_in_progress\x18\x05 \x01(\bR\x11refreshInProgress\"!\n" +
 	"\x1fListCommittedAppReleasesRequest\"\xa2\x01\n" +
 	" ListCommittedAppReleasesResponse\x12@\n" +
 	"\breleases\x18\x01 \x03(\v2$.nimi.runtime.v1.CommittedAppReleaseR\breleases\x12<\n" +
@@ -7691,118 +7748,119 @@ var file_runtime_v1_app_proto_depIdxs = []int32{
 	63,  // 73: nimi.runtime.v1.ApprovedAppCatalogTarget.product_upstream:type_name -> nimi.runtime.v1.AppProductUpstream
 	72,  // 74: nimi.runtime.v1.ListApprovedAppCatalogTargetsResponse.targets:type_name -> nimi.runtime.v1.ApprovedAppCatalogTarget
 	107, // 75: nimi.runtime.v1.ListApprovedAppCatalogTargetsResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	58,  // 76: nimi.runtime.v1.ListCommittedAppReleasesResponse.releases:type_name -> nimi.runtime.v1.CommittedAppRelease
-	107, // 77: nimi.runtime.v1.ListCommittedAppReleasesResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	59,  // 78: nimi.runtime.v1.ListAppPackageJobsResponse.jobs:type_name -> nimi.runtime.v1.AppPackageJob
-	107, // 79: nimi.runtime.v1.ListAppPackageJobsResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	59,  // 80: nimi.runtime.v1.GetAppPackageJobResponse.job:type_name -> nimi.runtime.v1.AppPackageJob
-	107, // 81: nimi.runtime.v1.GetAppPackageJobResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	59,  // 82: nimi.runtime.v1.StartAppPackageInstallResponse.job:type_name -> nimi.runtime.v1.AppPackageJob
-	107, // 83: nimi.runtime.v1.StartAppPackageInstallResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	59,  // 84: nimi.runtime.v1.StartAppPackageUpdateResponse.job:type_name -> nimi.runtime.v1.AppPackageJob
-	107, // 85: nimi.runtime.v1.StartAppPackageUpdateResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	108, // 86: nimi.runtime.v1.LocalAppPackagePreview.expires_at:type_name -> google.protobuf.Timestamp
-	86,  // 87: nimi.runtime.v1.LocalAppPackagePreview.info:type_name -> nimi.runtime.v1.AppPackageInfo
-	60,  // 88: nimi.runtime.v1.AppPackageInfo.os_storage_disclosure:type_name -> nimi.runtime.v1.ApprovedAppCatalogStorageDisclosure
-	62,  // 89: nimi.runtime.v1.AppPackageInfo.safety_declaration:type_name -> nimi.runtime.v1.AppSafetyDeclaration
-	71,  // 90: nimi.runtime.v1.AppPackageInfo.storefront:type_name -> nimi.runtime.v1.AppStorefrontInfo
-	86,  // 91: nimi.runtime.v1.GetAppPackageInfoResponse.info:type_name -> nimi.runtime.v1.AppPackageInfo
-	107, // 92: nimi.runtime.v1.GetAppPackageInfoResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	85,  // 93: nimi.runtime.v1.PrepareLocalAppPackageResponse.preview:type_name -> nimi.runtime.v1.LocalAppPackagePreview
-	107, // 94: nimi.runtime.v1.PrepareLocalAppPackageResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	107, // 95: nimi.runtime.v1.DiscardLocalAppPackageResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	59,  // 96: nimi.runtime.v1.StartLocalAppPackageInstallResponse.job:type_name -> nimi.runtime.v1.AppPackageJob
-	107, // 97: nimi.runtime.v1.StartLocalAppPackageInstallResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	59,  // 98: nimi.runtime.v1.StartLocalAppPackageUpdateResponse.job:type_name -> nimi.runtime.v1.AppPackageJob
-	107, // 99: nimi.runtime.v1.StartLocalAppPackageUpdateResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	4,   // 100: nimi.runtime.v1.CancelAppPackageJobRequest.expected_phase:type_name -> nimi.runtime.v1.AppPackageJobPhase
-	59,  // 101: nimi.runtime.v1.CancelAppPackageJobResponse.job:type_name -> nimi.runtime.v1.AppPackageJob
-	107, // 102: nimi.runtime.v1.CancelAppPackageJobResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	59,  // 103: nimi.runtime.v1.PauseAppPackageJobResponse.job:type_name -> nimi.runtime.v1.AppPackageJob
-	107, // 104: nimi.runtime.v1.PauseAppPackageJobResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	59,  // 105: nimi.runtime.v1.ResumeAppPackageJobResponse.job:type_name -> nimi.runtime.v1.AppPackageJob
-	107, // 106: nimi.runtime.v1.ResumeAppPackageJobResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	59,  // 107: nimi.runtime.v1.ReorderAppPackageJobResponse.job:type_name -> nimi.runtime.v1.AppPackageJob
-	107, // 108: nimi.runtime.v1.ReorderAppPackageJobResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	87,  // 109: nimi.runtime.v1.RuntimeAppPackageService.GetAppPackageInfo:input_type -> nimi.runtime.v1.GetAppPackageInfoRequest
-	89,  // 110: nimi.runtime.v1.RuntimeAppPackageService.PrepareLocalAppPackage:input_type -> nimi.runtime.v1.PrepareLocalAppPackageRequest
-	91,  // 111: nimi.runtime.v1.RuntimeAppPackageService.DiscardLocalAppPackage:input_type -> nimi.runtime.v1.DiscardLocalAppPackageRequest
-	93,  // 112: nimi.runtime.v1.RuntimeAppPackageService.StartLocalAppPackageInstall:input_type -> nimi.runtime.v1.StartLocalAppPackageInstallRequest
-	95,  // 113: nimi.runtime.v1.RuntimeAppPackageService.StartLocalAppPackageUpdate:input_type -> nimi.runtime.v1.StartLocalAppPackageUpdateRequest
-	73,  // 114: nimi.runtime.v1.RuntimeAppPackageService.ListApprovedAppCatalogTargets:input_type -> nimi.runtime.v1.ListApprovedAppCatalogTargetsRequest
-	75,  // 115: nimi.runtime.v1.RuntimeAppPackageService.ListCommittedAppReleases:input_type -> nimi.runtime.v1.ListCommittedAppReleasesRequest
-	77,  // 116: nimi.runtime.v1.RuntimeAppPackageService.ListAppPackageJobs:input_type -> nimi.runtime.v1.ListAppPackageJobsRequest
-	79,  // 117: nimi.runtime.v1.RuntimeAppPackageService.GetAppPackageJob:input_type -> nimi.runtime.v1.GetAppPackageJobRequest
-	81,  // 118: nimi.runtime.v1.RuntimeAppPackageService.StartAppPackageInstall:input_type -> nimi.runtime.v1.StartAppPackageInstallRequest
-	83,  // 119: nimi.runtime.v1.RuntimeAppPackageService.StartAppPackageUpdate:input_type -> nimi.runtime.v1.StartAppPackageUpdateRequest
-	48,  // 120: nimi.runtime.v1.RuntimeAppPackageService.StartAppPackageUninstall:input_type -> nimi.runtime.v1.StartAppPackageUninstallRequest
-	97,  // 121: nimi.runtime.v1.RuntimeAppPackageService.CancelAppPackageJob:input_type -> nimi.runtime.v1.CancelAppPackageJobRequest
-	99,  // 122: nimi.runtime.v1.RuntimeAppPackageService.PauseAppPackageJob:input_type -> nimi.runtime.v1.PauseAppPackageJobRequest
-	101, // 123: nimi.runtime.v1.RuntimeAppPackageService.ResumeAppPackageJob:input_type -> nimi.runtime.v1.ResumeAppPackageJobRequest
-	103, // 124: nimi.runtime.v1.RuntimeAppPackageService.ReorderAppPackageJob:input_type -> nimi.runtime.v1.ReorderAppPackageJobRequest
-	7,   // 125: nimi.runtime.v1.RuntimeAppService.SendAppMessage:input_type -> nimi.runtime.v1.SendAppMessageRequest
-	9,   // 126: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:input_type -> nimi.runtime.v1.SubscribeAppMessagesRequest
-	12,  // 127: nimi.runtime.v1.RuntimeAppService.GetAppStorage:input_type -> nimi.runtime.v1.GetAppStorageRequest
-	14,  // 128: nimi.runtime.v1.RuntimeAppService.ReadLocalAppStorageJson:input_type -> nimi.runtime.v1.ReadLocalAppStorageJsonRequest
-	16,  // 129: nimi.runtime.v1.RuntimeAppService.WriteLocalAppStorageJson:input_type -> nimi.runtime.v1.WriteLocalAppStorageJsonRequest
-	18,  // 130: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppStorageJson:input_type -> nimi.runtime.v1.RemoveLocalAppStorageJsonRequest
-	21,  // 131: nimi.runtime.v1.RuntimeAppService.StatLocalAppAsset:input_type -> nimi.runtime.v1.StatLocalAppAssetRequest
-	23,  // 132: nimi.runtime.v1.RuntimeAppService.ListLocalAppAssets:input_type -> nimi.runtime.v1.ListLocalAppAssetsRequest
-	27,  // 133: nimi.runtime.v1.RuntimeAppService.WriteLocalAppAsset:input_type -> nimi.runtime.v1.WriteLocalAppAssetRequest
-	29,  // 134: nimi.runtime.v1.RuntimeAppService.ReadLocalAppAsset:input_type -> nimi.runtime.v1.ReadLocalAppAssetRequest
-	33,  // 135: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppAsset:input_type -> nimi.runtime.v1.RemoveLocalAppAssetRequest
-	35,  // 136: nimi.runtime.v1.RuntimeAppService.MoveLocalAppAsset:input_type -> nimi.runtime.v1.MoveLocalAppAssetRequest
-	37,  // 137: nimi.runtime.v1.RuntimeAppService.RevealLocalAppAsset:input_type -> nimi.runtime.v1.RevealLocalAppAssetRequest
-	39,  // 138: nimi.runtime.v1.RuntimeAppService.AdoptLocalAppArtifact:input_type -> nimi.runtime.v1.AdoptLocalAppArtifactRequest
-	41,  // 139: nimi.runtime.v1.RuntimeAppService.PrepareLocalAppLaunch:input_type -> nimi.runtime.v1.PrepareLocalAppLaunchRequest
-	45,  // 140: nimi.runtime.v1.RuntimeAppService.PrepareInstalledAppLaunch:input_type -> nimi.runtime.v1.PrepareInstalledAppLaunchRequest
-	44,  // 141: nimi.runtime.v1.RuntimeAppService.BindLocalAppProcess:input_type -> nimi.runtime.v1.BindLocalAppProcessRequest
-	47,  // 142: nimi.runtime.v1.RuntimeAppService.EndInstalledAppRun:input_type -> nimi.runtime.v1.EndInstalledAppRunRequest
-	53,  // 143: nimi.runtime.v1.RuntimeAppService.GetInstalledAppRunAccess:input_type -> nimi.runtime.v1.GetInstalledAppRunAccessRequest
-	50,  // 144: nimi.runtime.v1.RuntimeAppService.CompleteAppPackageUninstall:input_type -> nimi.runtime.v1.CompleteAppPackageUninstallRequest
-	56,  // 145: nimi.runtime.v1.RuntimeAppService.RebindLocalAppProcess:input_type -> nimi.runtime.v1.RebindLocalAppProcessRequest
-	88,  // 146: nimi.runtime.v1.RuntimeAppPackageService.GetAppPackageInfo:output_type -> nimi.runtime.v1.GetAppPackageInfoResponse
-	90,  // 147: nimi.runtime.v1.RuntimeAppPackageService.PrepareLocalAppPackage:output_type -> nimi.runtime.v1.PrepareLocalAppPackageResponse
-	92,  // 148: nimi.runtime.v1.RuntimeAppPackageService.DiscardLocalAppPackage:output_type -> nimi.runtime.v1.DiscardLocalAppPackageResponse
-	94,  // 149: nimi.runtime.v1.RuntimeAppPackageService.StartLocalAppPackageInstall:output_type -> nimi.runtime.v1.StartLocalAppPackageInstallResponse
-	96,  // 150: nimi.runtime.v1.RuntimeAppPackageService.StartLocalAppPackageUpdate:output_type -> nimi.runtime.v1.StartLocalAppPackageUpdateResponse
-	74,  // 151: nimi.runtime.v1.RuntimeAppPackageService.ListApprovedAppCatalogTargets:output_type -> nimi.runtime.v1.ListApprovedAppCatalogTargetsResponse
-	76,  // 152: nimi.runtime.v1.RuntimeAppPackageService.ListCommittedAppReleases:output_type -> nimi.runtime.v1.ListCommittedAppReleasesResponse
-	78,  // 153: nimi.runtime.v1.RuntimeAppPackageService.ListAppPackageJobs:output_type -> nimi.runtime.v1.ListAppPackageJobsResponse
-	80,  // 154: nimi.runtime.v1.RuntimeAppPackageService.GetAppPackageJob:output_type -> nimi.runtime.v1.GetAppPackageJobResponse
-	82,  // 155: nimi.runtime.v1.RuntimeAppPackageService.StartAppPackageInstall:output_type -> nimi.runtime.v1.StartAppPackageInstallResponse
-	84,  // 156: nimi.runtime.v1.RuntimeAppPackageService.StartAppPackageUpdate:output_type -> nimi.runtime.v1.StartAppPackageUpdateResponse
-	49,  // 157: nimi.runtime.v1.RuntimeAppPackageService.StartAppPackageUninstall:output_type -> nimi.runtime.v1.StartAppPackageUninstallResponse
-	98,  // 158: nimi.runtime.v1.RuntimeAppPackageService.CancelAppPackageJob:output_type -> nimi.runtime.v1.CancelAppPackageJobResponse
-	100, // 159: nimi.runtime.v1.RuntimeAppPackageService.PauseAppPackageJob:output_type -> nimi.runtime.v1.PauseAppPackageJobResponse
-	102, // 160: nimi.runtime.v1.RuntimeAppPackageService.ResumeAppPackageJob:output_type -> nimi.runtime.v1.ResumeAppPackageJobResponse
-	104, // 161: nimi.runtime.v1.RuntimeAppPackageService.ReorderAppPackageJob:output_type -> nimi.runtime.v1.ReorderAppPackageJobResponse
-	8,   // 162: nimi.runtime.v1.RuntimeAppService.SendAppMessage:output_type -> nimi.runtime.v1.SendAppMessageResponse
-	10,  // 163: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:output_type -> nimi.runtime.v1.AppMessageEvent
-	13,  // 164: nimi.runtime.v1.RuntimeAppService.GetAppStorage:output_type -> nimi.runtime.v1.GetAppStorageResponse
-	15,  // 165: nimi.runtime.v1.RuntimeAppService.ReadLocalAppStorageJson:output_type -> nimi.runtime.v1.ReadLocalAppStorageJsonResponse
-	17,  // 166: nimi.runtime.v1.RuntimeAppService.WriteLocalAppStorageJson:output_type -> nimi.runtime.v1.WriteLocalAppStorageJsonResponse
-	19,  // 167: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppStorageJson:output_type -> nimi.runtime.v1.RemoveLocalAppStorageJsonResponse
-	22,  // 168: nimi.runtime.v1.RuntimeAppService.StatLocalAppAsset:output_type -> nimi.runtime.v1.StatLocalAppAssetResponse
-	24,  // 169: nimi.runtime.v1.RuntimeAppService.ListLocalAppAssets:output_type -> nimi.runtime.v1.ListLocalAppAssetsResponse
-	28,  // 170: nimi.runtime.v1.RuntimeAppService.WriteLocalAppAsset:output_type -> nimi.runtime.v1.WriteLocalAppAssetResponse
-	32,  // 171: nimi.runtime.v1.RuntimeAppService.ReadLocalAppAsset:output_type -> nimi.runtime.v1.ReadLocalAppAssetResponse
-	34,  // 172: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppAsset:output_type -> nimi.runtime.v1.RemoveLocalAppAssetResponse
-	36,  // 173: nimi.runtime.v1.RuntimeAppService.MoveLocalAppAsset:output_type -> nimi.runtime.v1.MoveLocalAppAssetResponse
-	38,  // 174: nimi.runtime.v1.RuntimeAppService.RevealLocalAppAsset:output_type -> nimi.runtime.v1.RevealLocalAppAssetResponse
-	40,  // 175: nimi.runtime.v1.RuntimeAppService.AdoptLocalAppArtifact:output_type -> nimi.runtime.v1.AdoptLocalAppArtifactResponse
-	43,  // 176: nimi.runtime.v1.RuntimeAppService.PrepareLocalAppLaunch:output_type -> nimi.runtime.v1.PrepareLocalAppLaunchResponse
-	46,  // 177: nimi.runtime.v1.RuntimeAppService.PrepareInstalledAppLaunch:output_type -> nimi.runtime.v1.PrepareInstalledAppLaunchResponse
-	55,  // 178: nimi.runtime.v1.RuntimeAppService.BindLocalAppProcess:output_type -> nimi.runtime.v1.BindLocalAppProcessResponse
-	52,  // 179: nimi.runtime.v1.RuntimeAppService.EndInstalledAppRun:output_type -> nimi.runtime.v1.EndInstalledAppRunResponse
-	54,  // 180: nimi.runtime.v1.RuntimeAppService.GetInstalledAppRunAccess:output_type -> nimi.runtime.v1.GetInstalledAppRunAccessResponse
-	51,  // 181: nimi.runtime.v1.RuntimeAppService.CompleteAppPackageUninstall:output_type -> nimi.runtime.v1.CompleteAppPackageUninstallResponse
-	57,  // 182: nimi.runtime.v1.RuntimeAppService.RebindLocalAppProcess:output_type -> nimi.runtime.v1.RebindLocalAppProcessResponse
-	146, // [146:183] is the sub-list for method output_type
-	109, // [109:146] is the sub-list for method input_type
-	109, // [109:109] is the sub-list for extension type_name
-	109, // [109:109] is the sub-list for extension extendee
-	0,   // [0:109] is the sub-list for field type_name
+	108, // 76: nimi.runtime.v1.ListApprovedAppCatalogTargetsResponse.updated_at:type_name -> google.protobuf.Timestamp
+	58,  // 77: nimi.runtime.v1.ListCommittedAppReleasesResponse.releases:type_name -> nimi.runtime.v1.CommittedAppRelease
+	107, // 78: nimi.runtime.v1.ListCommittedAppReleasesResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	59,  // 79: nimi.runtime.v1.ListAppPackageJobsResponse.jobs:type_name -> nimi.runtime.v1.AppPackageJob
+	107, // 80: nimi.runtime.v1.ListAppPackageJobsResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	59,  // 81: nimi.runtime.v1.GetAppPackageJobResponse.job:type_name -> nimi.runtime.v1.AppPackageJob
+	107, // 82: nimi.runtime.v1.GetAppPackageJobResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	59,  // 83: nimi.runtime.v1.StartAppPackageInstallResponse.job:type_name -> nimi.runtime.v1.AppPackageJob
+	107, // 84: nimi.runtime.v1.StartAppPackageInstallResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	59,  // 85: nimi.runtime.v1.StartAppPackageUpdateResponse.job:type_name -> nimi.runtime.v1.AppPackageJob
+	107, // 86: nimi.runtime.v1.StartAppPackageUpdateResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	108, // 87: nimi.runtime.v1.LocalAppPackagePreview.expires_at:type_name -> google.protobuf.Timestamp
+	86,  // 88: nimi.runtime.v1.LocalAppPackagePreview.info:type_name -> nimi.runtime.v1.AppPackageInfo
+	60,  // 89: nimi.runtime.v1.AppPackageInfo.os_storage_disclosure:type_name -> nimi.runtime.v1.ApprovedAppCatalogStorageDisclosure
+	62,  // 90: nimi.runtime.v1.AppPackageInfo.safety_declaration:type_name -> nimi.runtime.v1.AppSafetyDeclaration
+	71,  // 91: nimi.runtime.v1.AppPackageInfo.storefront:type_name -> nimi.runtime.v1.AppStorefrontInfo
+	86,  // 92: nimi.runtime.v1.GetAppPackageInfoResponse.info:type_name -> nimi.runtime.v1.AppPackageInfo
+	107, // 93: nimi.runtime.v1.GetAppPackageInfoResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	85,  // 94: nimi.runtime.v1.PrepareLocalAppPackageResponse.preview:type_name -> nimi.runtime.v1.LocalAppPackagePreview
+	107, // 95: nimi.runtime.v1.PrepareLocalAppPackageResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	107, // 96: nimi.runtime.v1.DiscardLocalAppPackageResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	59,  // 97: nimi.runtime.v1.StartLocalAppPackageInstallResponse.job:type_name -> nimi.runtime.v1.AppPackageJob
+	107, // 98: nimi.runtime.v1.StartLocalAppPackageInstallResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	59,  // 99: nimi.runtime.v1.StartLocalAppPackageUpdateResponse.job:type_name -> nimi.runtime.v1.AppPackageJob
+	107, // 100: nimi.runtime.v1.StartLocalAppPackageUpdateResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	4,   // 101: nimi.runtime.v1.CancelAppPackageJobRequest.expected_phase:type_name -> nimi.runtime.v1.AppPackageJobPhase
+	59,  // 102: nimi.runtime.v1.CancelAppPackageJobResponse.job:type_name -> nimi.runtime.v1.AppPackageJob
+	107, // 103: nimi.runtime.v1.CancelAppPackageJobResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	59,  // 104: nimi.runtime.v1.PauseAppPackageJobResponse.job:type_name -> nimi.runtime.v1.AppPackageJob
+	107, // 105: nimi.runtime.v1.PauseAppPackageJobResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	59,  // 106: nimi.runtime.v1.ResumeAppPackageJobResponse.job:type_name -> nimi.runtime.v1.AppPackageJob
+	107, // 107: nimi.runtime.v1.ResumeAppPackageJobResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	59,  // 108: nimi.runtime.v1.ReorderAppPackageJobResponse.job:type_name -> nimi.runtime.v1.AppPackageJob
+	107, // 109: nimi.runtime.v1.ReorderAppPackageJobResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	87,  // 110: nimi.runtime.v1.RuntimeAppPackageService.GetAppPackageInfo:input_type -> nimi.runtime.v1.GetAppPackageInfoRequest
+	89,  // 111: nimi.runtime.v1.RuntimeAppPackageService.PrepareLocalAppPackage:input_type -> nimi.runtime.v1.PrepareLocalAppPackageRequest
+	91,  // 112: nimi.runtime.v1.RuntimeAppPackageService.DiscardLocalAppPackage:input_type -> nimi.runtime.v1.DiscardLocalAppPackageRequest
+	93,  // 113: nimi.runtime.v1.RuntimeAppPackageService.StartLocalAppPackageInstall:input_type -> nimi.runtime.v1.StartLocalAppPackageInstallRequest
+	95,  // 114: nimi.runtime.v1.RuntimeAppPackageService.StartLocalAppPackageUpdate:input_type -> nimi.runtime.v1.StartLocalAppPackageUpdateRequest
+	73,  // 115: nimi.runtime.v1.RuntimeAppPackageService.ListApprovedAppCatalogTargets:input_type -> nimi.runtime.v1.ListApprovedAppCatalogTargetsRequest
+	75,  // 116: nimi.runtime.v1.RuntimeAppPackageService.ListCommittedAppReleases:input_type -> nimi.runtime.v1.ListCommittedAppReleasesRequest
+	77,  // 117: nimi.runtime.v1.RuntimeAppPackageService.ListAppPackageJobs:input_type -> nimi.runtime.v1.ListAppPackageJobsRequest
+	79,  // 118: nimi.runtime.v1.RuntimeAppPackageService.GetAppPackageJob:input_type -> nimi.runtime.v1.GetAppPackageJobRequest
+	81,  // 119: nimi.runtime.v1.RuntimeAppPackageService.StartAppPackageInstall:input_type -> nimi.runtime.v1.StartAppPackageInstallRequest
+	83,  // 120: nimi.runtime.v1.RuntimeAppPackageService.StartAppPackageUpdate:input_type -> nimi.runtime.v1.StartAppPackageUpdateRequest
+	48,  // 121: nimi.runtime.v1.RuntimeAppPackageService.StartAppPackageUninstall:input_type -> nimi.runtime.v1.StartAppPackageUninstallRequest
+	97,  // 122: nimi.runtime.v1.RuntimeAppPackageService.CancelAppPackageJob:input_type -> nimi.runtime.v1.CancelAppPackageJobRequest
+	99,  // 123: nimi.runtime.v1.RuntimeAppPackageService.PauseAppPackageJob:input_type -> nimi.runtime.v1.PauseAppPackageJobRequest
+	101, // 124: nimi.runtime.v1.RuntimeAppPackageService.ResumeAppPackageJob:input_type -> nimi.runtime.v1.ResumeAppPackageJobRequest
+	103, // 125: nimi.runtime.v1.RuntimeAppPackageService.ReorderAppPackageJob:input_type -> nimi.runtime.v1.ReorderAppPackageJobRequest
+	7,   // 126: nimi.runtime.v1.RuntimeAppService.SendAppMessage:input_type -> nimi.runtime.v1.SendAppMessageRequest
+	9,   // 127: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:input_type -> nimi.runtime.v1.SubscribeAppMessagesRequest
+	12,  // 128: nimi.runtime.v1.RuntimeAppService.GetAppStorage:input_type -> nimi.runtime.v1.GetAppStorageRequest
+	14,  // 129: nimi.runtime.v1.RuntimeAppService.ReadLocalAppStorageJson:input_type -> nimi.runtime.v1.ReadLocalAppStorageJsonRequest
+	16,  // 130: nimi.runtime.v1.RuntimeAppService.WriteLocalAppStorageJson:input_type -> nimi.runtime.v1.WriteLocalAppStorageJsonRequest
+	18,  // 131: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppStorageJson:input_type -> nimi.runtime.v1.RemoveLocalAppStorageJsonRequest
+	21,  // 132: nimi.runtime.v1.RuntimeAppService.StatLocalAppAsset:input_type -> nimi.runtime.v1.StatLocalAppAssetRequest
+	23,  // 133: nimi.runtime.v1.RuntimeAppService.ListLocalAppAssets:input_type -> nimi.runtime.v1.ListLocalAppAssetsRequest
+	27,  // 134: nimi.runtime.v1.RuntimeAppService.WriteLocalAppAsset:input_type -> nimi.runtime.v1.WriteLocalAppAssetRequest
+	29,  // 135: nimi.runtime.v1.RuntimeAppService.ReadLocalAppAsset:input_type -> nimi.runtime.v1.ReadLocalAppAssetRequest
+	33,  // 136: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppAsset:input_type -> nimi.runtime.v1.RemoveLocalAppAssetRequest
+	35,  // 137: nimi.runtime.v1.RuntimeAppService.MoveLocalAppAsset:input_type -> nimi.runtime.v1.MoveLocalAppAssetRequest
+	37,  // 138: nimi.runtime.v1.RuntimeAppService.RevealLocalAppAsset:input_type -> nimi.runtime.v1.RevealLocalAppAssetRequest
+	39,  // 139: nimi.runtime.v1.RuntimeAppService.AdoptLocalAppArtifact:input_type -> nimi.runtime.v1.AdoptLocalAppArtifactRequest
+	41,  // 140: nimi.runtime.v1.RuntimeAppService.PrepareLocalAppLaunch:input_type -> nimi.runtime.v1.PrepareLocalAppLaunchRequest
+	45,  // 141: nimi.runtime.v1.RuntimeAppService.PrepareInstalledAppLaunch:input_type -> nimi.runtime.v1.PrepareInstalledAppLaunchRequest
+	44,  // 142: nimi.runtime.v1.RuntimeAppService.BindLocalAppProcess:input_type -> nimi.runtime.v1.BindLocalAppProcessRequest
+	47,  // 143: nimi.runtime.v1.RuntimeAppService.EndInstalledAppRun:input_type -> nimi.runtime.v1.EndInstalledAppRunRequest
+	53,  // 144: nimi.runtime.v1.RuntimeAppService.GetInstalledAppRunAccess:input_type -> nimi.runtime.v1.GetInstalledAppRunAccessRequest
+	50,  // 145: nimi.runtime.v1.RuntimeAppService.CompleteAppPackageUninstall:input_type -> nimi.runtime.v1.CompleteAppPackageUninstallRequest
+	56,  // 146: nimi.runtime.v1.RuntimeAppService.RebindLocalAppProcess:input_type -> nimi.runtime.v1.RebindLocalAppProcessRequest
+	88,  // 147: nimi.runtime.v1.RuntimeAppPackageService.GetAppPackageInfo:output_type -> nimi.runtime.v1.GetAppPackageInfoResponse
+	90,  // 148: nimi.runtime.v1.RuntimeAppPackageService.PrepareLocalAppPackage:output_type -> nimi.runtime.v1.PrepareLocalAppPackageResponse
+	92,  // 149: nimi.runtime.v1.RuntimeAppPackageService.DiscardLocalAppPackage:output_type -> nimi.runtime.v1.DiscardLocalAppPackageResponse
+	94,  // 150: nimi.runtime.v1.RuntimeAppPackageService.StartLocalAppPackageInstall:output_type -> nimi.runtime.v1.StartLocalAppPackageInstallResponse
+	96,  // 151: nimi.runtime.v1.RuntimeAppPackageService.StartLocalAppPackageUpdate:output_type -> nimi.runtime.v1.StartLocalAppPackageUpdateResponse
+	74,  // 152: nimi.runtime.v1.RuntimeAppPackageService.ListApprovedAppCatalogTargets:output_type -> nimi.runtime.v1.ListApprovedAppCatalogTargetsResponse
+	76,  // 153: nimi.runtime.v1.RuntimeAppPackageService.ListCommittedAppReleases:output_type -> nimi.runtime.v1.ListCommittedAppReleasesResponse
+	78,  // 154: nimi.runtime.v1.RuntimeAppPackageService.ListAppPackageJobs:output_type -> nimi.runtime.v1.ListAppPackageJobsResponse
+	80,  // 155: nimi.runtime.v1.RuntimeAppPackageService.GetAppPackageJob:output_type -> nimi.runtime.v1.GetAppPackageJobResponse
+	82,  // 156: nimi.runtime.v1.RuntimeAppPackageService.StartAppPackageInstall:output_type -> nimi.runtime.v1.StartAppPackageInstallResponse
+	84,  // 157: nimi.runtime.v1.RuntimeAppPackageService.StartAppPackageUpdate:output_type -> nimi.runtime.v1.StartAppPackageUpdateResponse
+	49,  // 158: nimi.runtime.v1.RuntimeAppPackageService.StartAppPackageUninstall:output_type -> nimi.runtime.v1.StartAppPackageUninstallResponse
+	98,  // 159: nimi.runtime.v1.RuntimeAppPackageService.CancelAppPackageJob:output_type -> nimi.runtime.v1.CancelAppPackageJobResponse
+	100, // 160: nimi.runtime.v1.RuntimeAppPackageService.PauseAppPackageJob:output_type -> nimi.runtime.v1.PauseAppPackageJobResponse
+	102, // 161: nimi.runtime.v1.RuntimeAppPackageService.ResumeAppPackageJob:output_type -> nimi.runtime.v1.ResumeAppPackageJobResponse
+	104, // 162: nimi.runtime.v1.RuntimeAppPackageService.ReorderAppPackageJob:output_type -> nimi.runtime.v1.ReorderAppPackageJobResponse
+	8,   // 163: nimi.runtime.v1.RuntimeAppService.SendAppMessage:output_type -> nimi.runtime.v1.SendAppMessageResponse
+	10,  // 164: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:output_type -> nimi.runtime.v1.AppMessageEvent
+	13,  // 165: nimi.runtime.v1.RuntimeAppService.GetAppStorage:output_type -> nimi.runtime.v1.GetAppStorageResponse
+	15,  // 166: nimi.runtime.v1.RuntimeAppService.ReadLocalAppStorageJson:output_type -> nimi.runtime.v1.ReadLocalAppStorageJsonResponse
+	17,  // 167: nimi.runtime.v1.RuntimeAppService.WriteLocalAppStorageJson:output_type -> nimi.runtime.v1.WriteLocalAppStorageJsonResponse
+	19,  // 168: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppStorageJson:output_type -> nimi.runtime.v1.RemoveLocalAppStorageJsonResponse
+	22,  // 169: nimi.runtime.v1.RuntimeAppService.StatLocalAppAsset:output_type -> nimi.runtime.v1.StatLocalAppAssetResponse
+	24,  // 170: nimi.runtime.v1.RuntimeAppService.ListLocalAppAssets:output_type -> nimi.runtime.v1.ListLocalAppAssetsResponse
+	28,  // 171: nimi.runtime.v1.RuntimeAppService.WriteLocalAppAsset:output_type -> nimi.runtime.v1.WriteLocalAppAssetResponse
+	32,  // 172: nimi.runtime.v1.RuntimeAppService.ReadLocalAppAsset:output_type -> nimi.runtime.v1.ReadLocalAppAssetResponse
+	34,  // 173: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppAsset:output_type -> nimi.runtime.v1.RemoveLocalAppAssetResponse
+	36,  // 174: nimi.runtime.v1.RuntimeAppService.MoveLocalAppAsset:output_type -> nimi.runtime.v1.MoveLocalAppAssetResponse
+	38,  // 175: nimi.runtime.v1.RuntimeAppService.RevealLocalAppAsset:output_type -> nimi.runtime.v1.RevealLocalAppAssetResponse
+	40,  // 176: nimi.runtime.v1.RuntimeAppService.AdoptLocalAppArtifact:output_type -> nimi.runtime.v1.AdoptLocalAppArtifactResponse
+	43,  // 177: nimi.runtime.v1.RuntimeAppService.PrepareLocalAppLaunch:output_type -> nimi.runtime.v1.PrepareLocalAppLaunchResponse
+	46,  // 178: nimi.runtime.v1.RuntimeAppService.PrepareInstalledAppLaunch:output_type -> nimi.runtime.v1.PrepareInstalledAppLaunchResponse
+	55,  // 179: nimi.runtime.v1.RuntimeAppService.BindLocalAppProcess:output_type -> nimi.runtime.v1.BindLocalAppProcessResponse
+	52,  // 180: nimi.runtime.v1.RuntimeAppService.EndInstalledAppRun:output_type -> nimi.runtime.v1.EndInstalledAppRunResponse
+	54,  // 181: nimi.runtime.v1.RuntimeAppService.GetInstalledAppRunAccess:output_type -> nimi.runtime.v1.GetInstalledAppRunAccessResponse
+	51,  // 182: nimi.runtime.v1.RuntimeAppService.CompleteAppPackageUninstall:output_type -> nimi.runtime.v1.CompleteAppPackageUninstallResponse
+	57,  // 183: nimi.runtime.v1.RuntimeAppService.RebindLocalAppProcess:output_type -> nimi.runtime.v1.RebindLocalAppProcessResponse
+	147, // [147:184] is the sub-list for method output_type
+	110, // [110:147] is the sub-list for method input_type
+	110, // [110:110] is the sub-list for extension type_name
+	110, // [110:110] is the sub-list for extension extendee
+	0,   // [0:110] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_app_proto_init() }

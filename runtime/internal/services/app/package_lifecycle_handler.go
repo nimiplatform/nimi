@@ -7,6 +7,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/appsafety"
 	"strconv"
 	"strings"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -16,15 +17,269 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/publicappregistry"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+const approvedAppCatalogRefreshCoalesceWindow = 3 * time.Second
+
+type approvedAppCatalogRefreshFlight struct {
+	done     chan struct{}
+	response *runtimev1.ListApprovedAppCatalogTargetsResponse
+	err      error
+}
 
 type ApprovedAppCatalogProvider interface {
 	ListCurrentPlatformTargets(context.Context) ([]publicappregistry.ResolvedApprovedTarget, error)
 }
 
+func cloneApprovedAppCatalogTargetsResponse(
+	resp *runtimev1.ListApprovedAppCatalogTargetsResponse,
+) *runtimev1.ListApprovedAppCatalogTargetsResponse {
+	if resp == nil {
+		return nil
+	}
+	cloned, ok := proto.Clone(resp).(*runtimev1.ListApprovedAppCatalogTargetsResponse)
+	if !ok {
+		return nil
+	}
+	return cloned
+}
+
+func (s *Service) closeApprovedAppCatalogRefresh() {
+	if s == nil {
+		return
+	}
+	s.catalogRefreshMu.Lock()
+	s.catalogRefreshClosed = true
+	s.catalogRefreshResumePending = false
+	cancel := s.catalogRefreshCancel
+	done := s.catalogRefreshDrainDone
+	if done == nil {
+		done = make(chan struct{})
+		s.catalogRefreshDrainDone = done
+		go func() {
+			s.catalogRefreshWG.Wait()
+			s.catalogRefreshPersistMu.Lock()
+			s.catalogRefreshPersistMu.Unlock()
+			s.catalogRefreshMu.Lock()
+			close(done)
+			s.catalogRefreshMu.Unlock()
+		}()
+	}
+	s.catalogRefreshMu.Unlock()
+	if cancel != nil {
+		cancel()
+	}
+	<-done
+}
+
+func (s *Service) reopenCatalogRefreshLocked() {
+	if s.catalogRefreshCancel != nil {
+		s.catalogRefreshCancel()
+	}
+	s.catalogRefreshCtx, s.catalogRefreshCancel = context.WithCancel(context.Background())
+	s.catalogRefreshQuiesced = false
+	s.catalogRefreshResumePending = false
+	s.catalogRefreshDrainDone = nil
+	s.catalogRefreshCompleted = false
+	s.catalogLastLiveResponse = nil
+	s.catalogLastRefreshErr = nil
+	s.catalogLastRefreshAt = time.Time{}
+}
+
+// QuiesceDataRootContext cancels and drains background approved App catalog
+// refresh work so no post-handoff write can reach the old data root's SQLite.
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-mig-007a
+func (s *Service) QuiesceDataRootContext(ctx context.Context) error {
+	if s == nil {
+		return nil
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	s.catalogRefreshMu.Lock()
+	s.catalogRefreshQuiesced = true
+	s.catalogRefreshResumePending = false
+	cancel := s.catalogRefreshCancel
+	if s.catalogRefreshDrainDone == nil {
+		done := make(chan struct{})
+		s.catalogRefreshDrainDone = done
+		go func() {
+			s.catalogRefreshWG.Wait()
+			s.catalogRefreshPersistMu.Lock()
+			s.catalogRefreshPersistMu.Unlock()
+			s.catalogRefreshMu.Lock()
+			close(done)
+			if s.catalogRefreshResumePending && !s.catalogRefreshClosed {
+				s.reopenCatalogRefreshLocked()
+			}
+			s.catalogRefreshMu.Unlock()
+		}()
+	}
+	done := s.catalogRefreshDrainDone
+	s.catalogRefreshMu.Unlock()
+	if cancel != nil {
+		cancel()
+	}
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-done:
+		return nil
+	}
+}
+
+// ResumeDataRootAfterAbort restores background approved App catalog refreshes
+// on the original root if Product Control aborts a pre-commit handoff.
+func (s *Service) ResumeDataRootAfterAbort() {
+	if s == nil {
+		return
+	}
+	s.catalogRefreshMu.Lock()
+	defer s.catalogRefreshMu.Unlock()
+	if s.catalogRefreshClosed || !s.catalogRefreshQuiesced {
+		return
+	}
+	if s.catalogRefreshDrainDone == nil {
+		s.reopenCatalogRefreshLocked()
+		return
+	}
+	select {
+	case <-s.catalogRefreshDrainDone:
+		s.reopenCatalogRefreshLocked()
+	default:
+		s.catalogRefreshResumePending = true
+	}
+}
+
+func (s *Service) checkCatalogRefreshPersistAllowed(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	s.catalogRefreshMu.Lock()
+	stopped := s.catalogRefreshClosed || s.catalogRefreshQuiesced
+	s.catalogRefreshMu.Unlock()
+	if stopped {
+		return context.Canceled
+	}
+	return nil
+}
+
+func (s *Service) startOrJoinApprovedAppCatalogRefreshFlight() (*approvedAppCatalogRefreshFlight, bool) {
+	s.catalogRefreshMu.Lock()
+	if s.catalogRefreshClosed || s.catalogRefreshQuiesced {
+		s.catalogRefreshMu.Unlock()
+		return nil, false
+	}
+	if s.catalogRefreshFlight != nil {
+		flight := s.catalogRefreshFlight
+		s.catalogRefreshMu.Unlock()
+		return flight, true
+	}
+	flight := &approvedAppCatalogRefreshFlight{done: make(chan struct{})}
+	refreshCtx := s.catalogRefreshCtx
+	if refreshCtx == nil {
+		refreshCtx = context.Background()
+	}
+	s.catalogRefreshFlight = flight
+	s.catalogRefreshWG.Add(1)
+	s.catalogRefreshMu.Unlock()
+	go s.runApprovedAppCatalogRefreshFlight(flight, refreshCtx)
+	return flight, true
+}
+
+func (s *Service) runApprovedAppCatalogRefreshFlight(
+	flight *approvedAppCatalogRefreshFlight,
+	refreshCtx context.Context,
+) {
+	defer s.catalogRefreshWG.Done()
+	resp, err := s.fetchLiveApprovedAppCatalogTargets(refreshCtx)
+	completedAt := s.now().UTC()
+	s.catalogRefreshMu.Lock()
+	flight.response = resp
+	flight.err = err
+	if !s.catalogRefreshClosed && !s.catalogRefreshQuiesced && refreshCtx.Err() == nil {
+		if err == nil && resp != nil {
+			s.catalogLastLiveResponse = cloneApprovedAppCatalogTargetsResponse(resp)
+			s.catalogLastRefreshErr = nil
+		} else {
+			s.catalogLastLiveResponse = nil
+			s.catalogLastRefreshErr = err
+		}
+		s.catalogRefreshCompleted = true
+		s.catalogLastRefreshAt = completedAt
+	}
+	if s.catalogRefreshFlight == flight {
+		s.catalogRefreshFlight = nil
+	}
+	close(flight.done)
+	s.catalogRefreshMu.Unlock()
+}
+
+func waitApprovedAppCatalogRefreshFlight(
+	ctx context.Context,
+	flight *approvedAppCatalogRefreshFlight,
+) (*runtimev1.ListApprovedAppCatalogTargetsResponse, error) {
+	if flight == nil {
+		return nil, context.Canceled
+	}
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-flight.done:
+		return cloneApprovedAppCatalogTargetsResponse(flight.response), flight.err
+	}
+}
+
+func (s *Service) fetchLiveApprovedAppCatalogTargets(
+	ctx context.Context,
+) (*runtimev1.ListApprovedAppCatalogTargetsResponse, error) {
+	var observedSeq uint64
+	observedAt := s.now().UTC()
+	if s.appInstallCoordinator != nil {
+		observedSeq, observedAt = s.appInstallCoordinator.BeginPolicyObservation()
+	}
+	targets, err := s.approvedAppCatalog.ListCurrentPlatformTargets(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	projected := make([]*runtimev1.ApprovedAppCatalogTarget, 0, len(targets))
+	for _, target := range targets {
+		value, projectErr := approvedAppCatalogTargetProjection(target)
+		if projectErr != nil {
+			return nil, projectErr
+		}
+		projected = append(projected, value)
+	}
+	updatedAt := s.now().UTC()
+	s.catalogRefreshPersistMu.Lock()
+	if err := s.checkCatalogRefreshPersistAllowed(ctx); err != nil {
+		s.catalogRefreshPersistMu.Unlock()
+		return nil, err
+	}
+	persistCtx := context.WithoutCancel(ctx)
+	s.saveApprovedAppCatalogBrowseProjection(persistCtx, targets, updatedAt)
+	s.recordObservedCatalogKillSwitches(persistCtx, targets, observedSeq, observedAt)
+	s.catalogRefreshPersistMu.Unlock()
+	return &runtimev1.ListApprovedAppCatalogTargetsResponse{
+		Targets:           projected,
+		ReasonCode:        runtimev1.ReasonCode_ACTION_EXECUTED,
+		Stale:             false,
+		UpdatedAt:         timestamppb.New(updatedAt),
+		RefreshInProgress: false,
+	}, nil
+}
+
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-013a
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-018a
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040c
 func (s *Service) ListApprovedAppCatalogTargets(
 	ctx context.Context,
 	req *runtimev1.ListApprovedAppCatalogTargetsRequest,
@@ -35,21 +290,255 @@ func (s *Service) ListApprovedAppCatalogTargets(
 	if s == nil || s.approvedAppCatalog == nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_CATALOG_UNAVAILABLE)
 	}
-	targets, err := s.approvedAppCatalog.ListCurrentPlatformTargets(ctx)
-	if err != nil {
+	if err := ctx.Err(); err != nil {
 		return nil, approvedAppCatalogError(err)
 	}
-	projected := make([]*runtimev1.ApprovedAppCatalogTarget, 0, len(targets))
-	for _, target := range targets {
-		value, projectErr := approvedAppCatalogTargetProjection(target)
-		if projectErr != nil {
-			return nil, approvedAppCatalogError(projectErr)
+	resolveFlightResult := func(
+		resp *runtimev1.ListApprovedAppCatalogTargetsResponse,
+		err error,
+	) (*runtimev1.ListApprovedAppCatalogTargetsResponse, error) {
+		if err == nil && resp != nil {
+			return resp, nil
 		}
-		projected = append(projected, value)
+		if errors.Is(err, publicappregistry.ErrRegistryUnavailable) && ctx.Err() == nil {
+			if staleResp, ok := s.loadStaleApprovedAppCatalogBrowseProjection(ctx); ok {
+				return staleResp, nil
+			}
+		}
+		return nil, approvedAppCatalogError(err)
+	}
+
+	if req.GetForceRefresh() {
+		flight, ok := s.startOrJoinApprovedAppCatalogRefreshFlight()
+		if !ok {
+			return nil, approvedAppCatalogError(context.Canceled)
+		}
+		resp, err := waitApprovedAppCatalogRefreshFlight(ctx, flight)
+		return resolveFlightResult(resp, err)
+	}
+
+	if req.GetAwaitRefresh() {
+		s.catalogRefreshMu.Lock()
+		if s.catalogRefreshClosed || s.catalogRefreshQuiesced {
+			s.catalogRefreshMu.Unlock()
+			return nil, approvedAppCatalogError(context.Canceled)
+		}
+		flight := s.catalogRefreshFlight
+		completed := s.catalogRefreshCompleted
+		lastLive := cloneApprovedAppCatalogTargetsResponse(s.catalogLastLiveResponse)
+		lastErr := s.catalogLastRefreshErr
+		s.catalogRefreshMu.Unlock()
+		if flight != nil {
+			resp, err := waitApprovedAppCatalogRefreshFlight(ctx, flight)
+			return resolveFlightResult(resp, err)
+		}
+		if completed {
+			if lastLive != nil {
+				return lastLive, nil
+			}
+			if lastErr != nil {
+				return resolveFlightResult(nil, lastErr)
+			}
+		}
+		flight, ok := s.startOrJoinApprovedAppCatalogRefreshFlight()
+		if !ok {
+			return nil, approvedAppCatalogError(context.Canceled)
+		}
+		resp, err := waitApprovedAppCatalogRefreshFlight(ctx, flight)
+		return resolveFlightResult(resp, err)
+	}
+
+	// Default cache-first path: when a validated persisted browse projection
+	// exists, return it immediately (display-only empty selectors) and
+	// start/join ONE singleflight background live refresh.
+	if staleResp, ok := s.loadStaleApprovedAppCatalogBrowseProjection(ctx); ok {
+		now := s.now().UTC()
+		s.catalogRefreshMu.Lock()
+		if s.catalogRefreshClosed || s.catalogRefreshQuiesced {
+			s.catalogRefreshMu.Unlock()
+			return staleResp, nil
+		}
+		if s.catalogRefreshFlight != nil {
+			s.catalogRefreshMu.Unlock()
+			staleResp.RefreshInProgress = true
+			return staleResp, nil
+		}
+		if s.catalogRefreshCompleted &&
+			!s.catalogLastRefreshAt.IsZero() &&
+			s.catalogLastLiveResponse != nil {
+			elapsed := now.Sub(s.catalogLastRefreshAt)
+			if elapsed >= 0 && elapsed < approvedAppCatalogRefreshCoalesceWindow {
+				liveResp := cloneApprovedAppCatalogTargetsResponse(s.catalogLastLiveResponse)
+				s.catalogRefreshMu.Unlock()
+				return liveResp, nil
+			}
+		}
+		flight := &approvedAppCatalogRefreshFlight{done: make(chan struct{})}
+		refreshCtx := s.catalogRefreshCtx
+		if refreshCtx == nil {
+			refreshCtx = context.Background()
+		}
+		s.catalogRefreshFlight = flight
+		s.catalogRefreshWG.Add(1)
+		s.catalogRefreshMu.Unlock()
+		go s.runApprovedAppCatalogRefreshFlight(flight, refreshCtx)
+		staleResp.RefreshInProgress = true
+		return staleResp, nil
+	}
+
+	// Empty DB (no persisted browse projection yet): wait on the singleflight live refresh directly.
+	flight, ok := s.startOrJoinApprovedAppCatalogRefreshFlight()
+	if !ok {
+		return nil, approvedAppCatalogError(context.Canceled)
+	}
+	resp, err := waitApprovedAppCatalogRefreshFlight(ctx, flight)
+	return resolveFlightResult(resp, err)
+}
+
+// recordObservedCatalogKillSwitches persists official kill-switch blocks
+// observed during a live catalog fetch so a newer deny immediately overrides
+// any prior offline grace allow. It never records or renews an allow result.
+func (s *Service) recordObservedCatalogKillSwitches(
+	ctx context.Context,
+	targets []publicappregistry.ResolvedApprovedTarget,
+	observedSeq uint64,
+	observedAt time.Time,
+) {
+	if s == nil {
+		return
+	}
+	persistCtx := context.WithoutCancel(ctx)
+	for _, target := range targets {
+		if !target.KillSwitch.Active {
+			continue
+		}
+		reason := ""
+		if target.KillSwitch.Reason != nil {
+			reason = strings.TrimSpace(*target.KillSwitch.Reason)
+		}
+		if s.appInstallCoordinator != nil {
+			s.appInstallCoordinator.RecordObservedCatalogKillSwitch(
+				persistCtx,
+				target.AppID,
+				reason,
+				target.KillSwitch.Revision,
+				target.RegistryRevision,
+				observedSeq,
+				observedAt,
+			)
+			continue
+		}
+		if s.localAppKernel == nil || s.localAppKernel.PackageLifecycle() == nil {
+			continue
+		}
+		store := s.localAppKernel.PackageLifecycle()
+		release, err := store.GetCommittedRelease(persistCtx, target.AppID, localappkernel.SourceClassVerified)
+		if err != nil {
+			continue
+		}
+		installedSelector, err := publicappregistry.ParseApprovedTargetSelector(release.ReleaseRef)
+		if err != nil {
+			continue
+		}
+		if reason == "" {
+			reason = "policy-blocked"
+		}
+		if _, err := store.RecordVerifiedPolicy(persistCtx, localappkernel.VerifiedPolicyVerification{
+			AppID:            release.AppID,
+			ReleaseRef:       release.ReleaseRef,
+			DescriptorID:     installedSelector.DescriptorID(),
+			TargetID:         installedSelector.TargetID(),
+			Status:           localappkernel.VerifiedPolicyBlocked,
+			PolicyReason:     reason,
+			PolicyRevision:   target.KillSwitch.Revision,
+			RegistryRevision: target.RegistryRevision,
+			VerifiedAt:       observedAt,
+			ObservedAt:       observedAt,
+		}); err != nil {
+			if s.logger != nil {
+				s.logger.Warn("failed to persist catalog-observed verified App kill switch",
+					"app_id", release.AppID,
+					"release_ref", release.ReleaseRef,
+					"policy_revision", target.KillSwitch.Revision,
+					"error", err,
+				)
+			}
+			if delErr := store.DeleteVerifiedPolicy(
+				persistCtx,
+				release.AppID,
+				release.ReleaseRef,
+				installedSelector.DescriptorID(),
+				installedSelector.TargetID(),
+			); delErr != nil && s.logger != nil {
+				s.logger.Warn("failed to delete stale verified App policy record after catalog kill-switch persistence failure",
+					"app_id", release.AppID,
+					"release_ref", release.ReleaseRef,
+					"error", delErr,
+				)
+			}
+		}
+	}
+}
+
+func (s *Service) saveApprovedAppCatalogBrowseProjection(
+	ctx context.Context,
+	targets []publicappregistry.ResolvedApprovedTarget,
+	updatedAt time.Time,
+) {
+	if s == nil || s.localAppKernel == nil || s.localAppKernel.PackageLifecycle() == nil {
+		return
+	}
+	platformTargetID, expectedOS, expectedArch, platformErr := publicappregistry.CurrentPlatformTarget()
+	if platformErr != nil {
+		return
+	}
+	raw, revision, err := publicappregistry.EncodeBrowseProjection(targets, expectedOS, expectedArch)
+	if err != nil {
+		if s.logger != nil {
+			s.logger.Warn("failed to encode public App Catalog browse projection", "error", err)
+		}
+		return
+	}
+	if err := s.localAppKernel.PackageLifecycle().SavePublicCatalogBrowseSnapshot(ctx, localappkernel.PublicCatalogBrowseSnapshot{
+		TargetID:         platformTargetID,
+		OS:               expectedOS,
+		Arch:             expectedArch,
+		RegistryRevision: revision,
+		ProjectionJSON:   raw,
+		UpdatedAt:        updatedAt,
+	}); err != nil && s.logger != nil {
+		s.logger.Warn("failed to persist public App Catalog browse projection", "error", err)
+	}
+}
+
+func (s *Service) loadStaleApprovedAppCatalogBrowseProjection(
+	ctx context.Context,
+) (*runtimev1.ListApprovedAppCatalogTargetsResponse, bool) {
+	if s == nil || s.localAppKernel == nil || s.localAppKernel.PackageLifecycle() == nil {
+		return nil, false
+	}
+	platformTargetID, expectedOS, expectedArch, platformErr := publicappregistry.CurrentPlatformTarget()
+	if platformErr != nil {
+		return nil, false
+	}
+	snapshot, err := s.localAppKernel.PackageLifecycle().ReadPublicCatalogBrowseSnapshot(ctx, platformTargetID, expectedOS, expectedArch)
+	if err != nil {
+		return nil, false
+	}
+	decoded, err := publicappregistry.DecodeBrowseProjection(snapshot.ProjectionJSON, expectedOS, expectedArch)
+	if err != nil {
+		return nil, false
+	}
+	projected := make([]*runtimev1.ApprovedAppCatalogTarget, 0, len(decoded.Targets))
+	for _, item := range decoded.Targets {
+		projected = append(projected, approvedAppCatalogBrowseTargetProjection(item))
 	}
 	return &runtimev1.ListApprovedAppCatalogTargetsResponse{
-		Targets: projected, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
-	}, nil
+		Targets:    projected,
+		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		Stale:      true,
+		UpdatedAt:  timestamppb.New(snapshot.UpdatedAt),
+	}, true
 }
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040a
@@ -403,6 +892,53 @@ func appProductUpstreamProjection(upstream *publicappregistry.ProductUpstream) *
 	return &runtimev1.AppProductUpstream{
 		Name: upstream.Name,
 		Url:  upstream.URL,
+	}
+}
+
+// approvedAppCatalogBrowseTargetProjection converts a persisted display-only
+// browse entry to wire format with an explicitly empty approved_target_selector
+// so stale display records never grant install, update, or launch authority.
+func approvedAppCatalogBrowseTargetProjection(target publicappregistry.BrowseTarget) *runtimev1.ApprovedAppCatalogTarget {
+	storage := make([]*runtimev1.ApprovedAppCatalogStorageDisclosure, 0, len(target.StoragePolicy.OSStorageDisclosure))
+	for _, disclosure := range target.StoragePolicy.OSStorageDisclosure {
+		storage = append(storage, &runtimev1.ApprovedAppCatalogStorageDisclosure{
+			PathPattern:      disclosure.PathPattern,
+			Purpose:          disclosure.Purpose,
+			ExpectedSizeBand: disclosure.ExpectedSizeBand,
+		})
+	}
+	return &runtimev1.ApprovedAppCatalogTarget{
+		ApprovedTargetSelector:          nil,
+		ObservedRegistryRevision:        target.ObservedRegistryRevision,
+		DescriptorId:                    target.DescriptorID,
+		AppId:                           target.AppID,
+		DisplayName:                     target.DisplayName,
+		Version:                         target.Version,
+		PublisherGithubNamespace:        target.PublisherGitHubNamespace,
+		SourceRepository:                target.SourceRepository,
+		SourceLicenseSpdxExpression:     target.SourceLicenseSPDXExpression,
+		AppAccess:                       append([]string(nil), target.AppAccess...),
+		CapabilityContractRefs:          append([]string(nil), target.CapabilityContractRefs...),
+		RequiredStandardizedFeatureRefs: append([]string(nil), target.RequiredStandardizedFeatureRefs...),
+		StoragePolicyKind:               target.StoragePolicy.Kind,
+		OsStorageDisclosures:            storage,
+		TargetId:                        target.TargetID,
+		Os:                              target.OS,
+		Arch:                            target.Arch,
+		AssetName:                       target.AssetName,
+		AssetSize:                       target.AssetSize,
+		ExecutionProfileRef:             target.ExecutionProfileRef,
+		WindowsCodeSigning:              target.WindowsCodeSigning,
+		ObservedSigningSubject:          cloneStringPointer(target.ObservedSigningSubject),
+		MacosNotarization:               target.MacOSNotarization,
+		MacosDeveloperIdSubject:         cloneStringPointer(target.MacOSDeveloperIDSubject),
+		PolicyBlocked:                   target.KillSwitch.Active,
+		PolicyReason:                    cloneStringPointer(target.KillSwitch.Reason),
+		PolicyRevision:                  target.KillSwitch.Revision,
+		SafetyDeclaration:               appSafetyDeclarationProjection(target.SafetyProfile),
+		ProductOrigin:                   target.Origin,
+		ProductUpstream:                 appProductUpstreamProjection(target.Upstream),
+		AdmissionTrustTier:              target.AdmissionTrustTier,
 	}
 }
 

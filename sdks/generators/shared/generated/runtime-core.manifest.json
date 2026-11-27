@@ -27342,7 +27342,22 @@
       },
       {
         "name": "ListApprovedAppCatalogTargetsRequest",
-        "fields": [],
+        "fields": [
+          {
+            "name": "force_refresh",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "await_refresh",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
         "source_file": "proto/runtime/v1/app.proto"
       },
       {
@@ -27361,6 +27376,27 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "stale",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "updated_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "refresh_in_progress",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"

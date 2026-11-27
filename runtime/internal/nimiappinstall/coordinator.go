@@ -84,6 +84,37 @@ type Coordinator struct {
 	lifecycle       *localappkernel.PackageLifecycleStore
 	packagesRoot    *os.Root
 	packagesPath    string
+	clockMu         sync.RWMutex
+	clock           func() time.Time
+	policyPersistMu sync.Mutex
+	policyMu        sync.Mutex
+	policyObservedSeq       uint64
+	policyDenyBarriers      map[verifiedPolicyKey]verifiedPolicyDenyBarrier
+	policyAllowedWatermarks map[verifiedPolicyKey]verifiedPolicyAllowedWatermark
+}
+
+func (coordinator *Coordinator) SetClock(now func() time.Time) {
+	if coordinator == nil {
+		return
+	}
+	coordinator.clockMu.Lock()
+	coordinator.clock = now
+	coordinator.clockMu.Unlock()
+}
+
+func (coordinator *Coordinator) now() time.Time {
+	if coordinator != nil {
+		coordinator.clockMu.RLock()
+		clock := coordinator.clock
+		coordinator.clockMu.RUnlock()
+		if clock != nil {
+			return clock().UTC()
+		}
+		if coordinator.kernel != nil {
+			return coordinator.kernel.Now()
+		}
+	}
+	return time.Now().UTC()
 }
 
 func (coordinator *Coordinator) SetManagedWebCarrierResolver(resolver protectedlocal.ManagedWebCarrierResolver) {
@@ -182,6 +213,7 @@ func openPackageOwner(kernel *localappkernel.Kernel) (*Coordinator, error) {
 	return &Coordinator{
 		kernel: kernel, lifecycle: kernel.PackageLifecycle(),
 		packagesRoot: packagesRoot, packagesPath: packagesPath, workers: make(map[string]*installWorker), localCandidates: make(map[string]*localPackageCandidate), uninstalls: make(map[string]uninstallReservation),
+		policyDenyBarriers: make(map[verifiedPolicyKey]verifiedPolicyDenyBarrier), policyAllowedWatermarks: make(map[verifiedPolicyKey]verifiedPolicyAllowedWatermark),
 	}, nil
 }
 
@@ -323,8 +355,10 @@ func (coordinator *Coordinator) beginInstallLocked(
 		coordinator.kernel == nil || coordinator.lifecycle == nil || coordinator.packagesRoot == nil {
 		return publicappregistry.ResolvedApprovedTarget{}, localappkernel.PackageJob{}, ErrInvalidCoordinator
 	}
+	observedSeq, observedAt := coordinator.BeginPolicyObservation()
 	resolved, err := coordinator.registry.Revalidate(ctx, selector)
 	if err != nil {
+		coordinator.recordObservedPolicyBlock(ctx, selector, err, observedSeq, observedAt)
 		return publicappregistry.ResolvedApprovedTarget{}, localappkernel.PackageJob{}, err
 	}
 	selectorText, err := validateResolvedInstallTarget(resolved)
@@ -442,20 +476,32 @@ func (coordinator *Coordinator) runInstallLocked(
 	return coordinator.finishPackageInstall(ctx, job, downloaded.Path, jobRoot, packageExpectation(resolved),
 		func(materialized nimiapppackage.Materialized) localappkernel.RegisterInstalledInput {
 			return coordinator.registrationInput(resolved, job.TargetRef, job.JobID, materialized)
-		}, func() error {
+		}, func() (*localappkernel.VerifiedPolicyVerification, error) {
+			observedSeq, observedAt := coordinator.BeginPolicyObservation()
 			current, err := coordinator.registry.Revalidate(ctx, selector)
 			if err != nil {
-				return err
+				coordinator.recordObservedPolicyBlock(ctx, selector, err, observedSeq, observedAt)
+				return nil, err
 			}
 			if !sameResolvedInstallTarget(resolved, current) {
-				return ErrInstallTarget
+				return nil, ErrInstallTarget
 			}
-			return nil
+			return &localappkernel.VerifiedPolicyVerification{
+				AppID:            resolved.AppID,
+				ReleaseRef:       job.TargetRef,
+				DescriptorID:     selector.DescriptorID(),
+				TargetID:         selector.TargetID(),
+				Status:           localappkernel.VerifiedPolicyAllowed,
+				PolicyRevision:   current.KillSwitch.Revision,
+				RegistryRevision: current.RegistryRevision,
+				VerifiedAt:       observedAt,
+				ObservedAt:       observedAt,
+			}, nil
 		})
 }
 
 // Both immutable sources share materialization and one atomic release commit.
-func (coordinator *Coordinator) finishPackageInstall(ctx context.Context, job localappkernel.PackageJob, archivePath string, jobRoot *os.Root, packageExpected nimiapppackage.Expected, registrationFor func(nimiapppackage.Materialized) localappkernel.RegisterInstalledInput, revalidateCatalog func() error) (InstallResult, error) {
+func (coordinator *Coordinator) finishPackageInstall(ctx context.Context, job localappkernel.PackageJob, archivePath string, jobRoot *os.Root, packageExpected nimiapppackage.Expected, registrationFor func(nimiapppackage.Materialized) localappkernel.RegisterInstalledInput, revalidateCatalog func() (*localappkernel.VerifiedPolicyVerification, error)) (InstallResult, error) {
 	var previous *localappkernel.Registration
 	if job.Kind == localappkernel.PackageJobUpdate {
 		release, err := coordinator.lifecycle.GetCommittedRelease(ctx, job.AppID, job.SourceClass)
@@ -515,10 +561,13 @@ func (coordinator *Coordinator) finishPackageInstall(ctx context.Context, job lo
 		return InstallResult{}, coordinator.failInstall(ctx, job,
 			fmt.Errorf("match observed and staged Runtime entry: %w", nimiapppackage.ErrPackageIntegrity), false)
 	}
+	var initialPolicy *localappkernel.VerifiedPolicyVerification
 	if revalidateCatalog != nil {
-		if err := revalidateCatalog(); err != nil {
+		var revalidateErr error
+		initialPolicy, revalidateErr = revalidateCatalog()
+		if revalidateErr != nil {
 			_ = releasesRoot.Close()
-			return InstallResult{}, coordinator.failInstall(ctx, job, err, false)
+			return InstallResult{}, coordinator.failInstall(ctx, job, revalidateErr, false)
 		}
 	}
 	if job.Kind == localappkernel.PackageJobUpdate {
@@ -557,6 +606,7 @@ func (coordinator *Coordinator) finishPackageInstall(ctx context.Context, job lo
 		var commitErr error
 		commit, commitErr = coordinator.lifecycle.CommitPackageRelease(commitContext, localappkernel.CommitPackageReleaseInput{
 			JobID: job.JobID, Version: packageExpected.Version, Registration: registration, AppInfoJSON: materialized.AppInfoJSON, LaunchConfigJSON: launchConfig,
+			InitialPolicyVerification: initialPolicy,
 		})
 		return commitErr
 	})
@@ -569,6 +619,9 @@ func (coordinator *Coordinator) finishPackageInstall(ctx context.Context, job lo
 		return result, resolveErr
 	}
 	commit.Job = coordinator.reportUnrecordedPackage(commit.Job, err)
+	if commit.Release.SourceClass == localappkernel.SourceClassVerified && initialPolicy != nil && initialPolicy.Status == localappkernel.VerifiedPolicyAllowed {
+		coordinator.recordCommittedInitialAllowedPolicy(*initialPolicy)
+	}
 	_ = coordinator.packagesRoot.RemoveAll(filepath.Join(packageWorkDirectory, job.JobID))
 	if previous != nil {
 		oldRoot, err := filepath.Rel(filepath.Join(coordinator.packagesPath, packageReleaseDirectory), previous.ProjectRoot)

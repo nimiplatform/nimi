@@ -77,6 +77,23 @@ export class AppsPresentationCache {
 
   retryFailures(): void { this.failures.clear(); }
 
+  async readCached<T>(key: string): Promise<T | undefined> {
+    const scopedKey = JSON.stringify([this.options.scope ?? '', key]);
+    let cached = this.values.get(scopedKey);
+    if (!cached && this.options.storage) {
+      let read = this.diskReads.get(scopedKey);
+      if (!read) {
+        read = bounded(this.options.storage.read(scopedKey), 200).catch(() => undefined);
+        this.diskReads.set(scopedKey, read);
+        while (this.diskReads.size > 128) this.diskReads.delete(this.diskReads.keys().next().value!);
+      }
+      cached = await read;
+      if (cached?.key === scopedKey && Number.isFinite(cached.savedAt)) this.values.set(scopedKey, cached);
+      else cached = undefined;
+    }
+    return cached ? (cached.value as T) : undefined;
+  }
+
   async get<T>(key: string, load: () => Promise<T>, options: {
     readonly maxAgeMs: number;
     readonly onCached?: (value: T) => void;

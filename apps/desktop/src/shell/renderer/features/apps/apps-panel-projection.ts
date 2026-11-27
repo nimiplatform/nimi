@@ -57,16 +57,54 @@ export interface DesktopAppAIConfigReadOptions {
   readonly signal: AbortSignal;
 }
 
+export interface DesktopAppsCatalogReadOptions {
+  readonly forceRefresh?: boolean;
+  readonly awaitRefresh?: boolean;
+}
+
 export interface DesktopAppsCatalogProjection {
-  readonly status: 'loading' | 'not-implemented' | 'loaded' | 'unavailable';
+  readonly status: 'loading' | 'not-implemented' | 'loaded' | 'stale' | 'unavailable';
   readonly targets: readonly ApprovedAppCatalogTarget[];
+  readonly updatedAtUnixMs?: number | null;
+  readonly refreshInProgress?: boolean;
   readonly error?: unknown;
+}
+
+export type DesktopAppsCatalogTargetsResponse =
+  | readonly ApprovedAppCatalogTarget[]
+  | {
+      readonly targets: readonly ApprovedAppCatalogTarget[];
+      readonly stale?: boolean;
+      readonly updatedAtUnixMs?: number | null;
+      readonly refreshInProgress?: boolean;
+    };
+
+export function normalizeCatalogTargetsResponse(
+  response: DesktopAppsCatalogTargetsResponse,
+): DesktopAppsCatalogProjection {
+  if (Array.isArray(response)) {
+    return { status: 'loaded', targets: response, updatedAtUnixMs: null, refreshInProgress: false };
+  }
+  const result = response as {
+    readonly targets: readonly ApprovedAppCatalogTarget[];
+    readonly stale?: boolean;
+    readonly updatedAtUnixMs?: number | null;
+    readonly refreshInProgress?: boolean;
+  };
+  return {
+    status: result.stale ? 'stale' : 'loaded',
+    targets: result.targets,
+    updatedAtUnixMs: typeof result.updatedAtUnixMs === 'number' && Number.isFinite(result.updatedAtUnixMs) && result.updatedAtUnixMs > 0
+      ? result.updatedAtUnixMs
+      : null,
+    refreshInProgress: Boolean(result.refreshInProgress),
+  };
 }
 
 export interface DesktopAppsProjectionSource {
   readonly presentationCache?: AppsPresentationCache;
   readPackageInfo?(request: GetAppPackageInfoRequest): Promise<AppPackageInfo>;
-  listApprovedCatalogTargets?(): Promise<readonly ApprovedAppCatalogTarget[]>;
+  listApprovedCatalogTargets?(options?: DesktopAppsCatalogReadOptions): Promise<DesktopAppsCatalogTargetsResponse>;
   listCommittedReleases(): Promise<readonly CommittedAppRelease[]>;
   listPackageJobs(): Promise<readonly AppPackageJob[]>;
   listRegistrations(): Promise<readonly LocalDevelopmentRegistration[]>;
@@ -99,6 +137,7 @@ export interface DesktopAppsEntry {
   readonly appInfoError?: string | null;
   readonly identity: DesktopAppsCommonIdentity;
   readonly catalogTarget: ApprovedAppCatalogTarget | null;
+  readonly catalogStale?: boolean;
   readonly localDevelopment: LocalDevelopmentRegistration | null;
   readonly committedRelease: CommittedAppRelease | null;
   readonly packageJob: AppPackageJob | null;
@@ -115,6 +154,8 @@ export type DesktopAppsPanelProjection =
       readonly status: 'loaded';
       readonly entries: readonly DesktopAppsEntry[];
       readonly catalogStatus: DesktopAppsCatalogProjection['status'];
+      readonly catalogUpdatedAtUnixMs?: number | null;
+      readonly catalogRefreshInProgress?: boolean;
       readonly runtimeError: string | null;
     }
   | { readonly status: 'error'; readonly detail: string };
@@ -239,6 +280,7 @@ export async function projectAppsPanel(
     if (catalogRows.conflict) {
       return { status: 'error', detail: catalogRows.conflict };
     }
+    const catalogStale = catalogResult.status === 'stale';
     for (const [entryKey, catalogTarget] of catalogRows.targetsByKey) {
       entriesByKey.set(entryKey, {
         identity: {
@@ -249,6 +291,7 @@ export async function projectAppsPanel(
           updatedAtUnixMs: 0,
         },
         catalogTarget,
+        catalogStale,
         localDevelopment: null,
         committedRelease: null,
         packageJob: null,
@@ -329,6 +372,8 @@ export async function projectAppsPanel(
       status: 'loaded',
       entries: reconcileAppsEntries(previousEntries, mergedEntries),
       catalogStatus: catalogResult.status,
+      ...(catalogResult.updatedAtUnixMs ? { catalogUpdatedAtUnixMs: catalogResult.updatedAtUnixMs } : {}),
+      ...(catalogResult.refreshInProgress ? { catalogRefreshInProgress: true } : {}),
       runtimeError,
     };
     options.onInventory?.(inventory);
@@ -358,16 +403,26 @@ export async function projectAppsPanel(
           ]);
         }
         if (!source.readPackageInfo || (!entry.committedRelease && !entry.catalogTarget)) return Promise.resolve();
-        const key = JSON.stringify([entry.identity.sourceClass, entry.identity.appId, entry.committedRelease?.releaseRef ?? packageInfoKey(entry)]);
+        const catalogDisplayKey = entry.catalogTarget
+          ? `${entry.catalogTarget.descriptorId}:${entry.catalogTarget.targetId}`
+          : packageInfoKey(entry);
+        const key = JSON.stringify([entry.identity.sourceClass, entry.identity.appId, entry.committedRelease?.releaseRef ?? catalogDisplayKey]);
         const publishInfo = (appInfo: AppPackageInfo) => publish({
           appInfo, appInfoKey: packageInfoKey(entry), appInfoError: null,
           iconUrl: `data:image/png;base64,${appInfo.iconPngBase64}`, summary: appInfo.summary,
         });
+        // Stale catalog browse rows carry no live selector and never perform
+        // remote package-info fetches; reuse previously persisted display info only.
+        if (!entry.committedRelease && entry.catalogTarget && (entry.catalogStale || entry.catalogTarget.approvedTargetSelector.length === 0)) {
+          return cache.readCached<AppPackageInfo>(`package:${key}`)
+            .then((cached) => { if (cached) publishInfo(cached); })
+            .catch(() => {});
+        }
         return cache.get(`package:${key}`, async () => {
           const result = await projectPackageInfo(entry, previousEntries.get(entry.identity.entryKey), source);
           if (!result.appInfo) throw new Error(result.appInfoError ?? 'App information is unavailable');
           return result.appInfo;
-        }, { maxAgeMs: entry.committedRelease ? Infinity : 60_000, persist: Boolean(entry.committedRelease), onCached: publishInfo })
+        }, { maxAgeMs: entry.committedRelease ? Infinity : 60_000, persist: true, onCached: publishInfo })
           .then(publishInfo).catch(error => publish({ appInfoError: errorMessage(error) }));
       });
       // Configuration has its own bounded lane; slow AI reads cannot consume
@@ -525,7 +580,7 @@ function bytesKey(value: Uint8Array): string {
   return Array.from(value, (item) => item.toString(16).padStart(2, '0')).join('');
 }
 
-function timestampUnixMs(timestamp: { readonly seconds: string; readonly nanos: number } | undefined): number {
+export function timestampUnixMs(timestamp: { readonly seconds: string; readonly nanos: number } | undefined): number {
   if (!timestamp) return 0;
   const seconds = Number(timestamp.seconds);
   if (!Number.isSafeInteger(seconds) || !Number.isInteger(timestamp.nanos)) return 0;
@@ -538,8 +593,15 @@ function appAccessForAIConfig(entry: DesktopAppsEntry): readonly string[] {
 }
 
 export function packageInfoKey(entry: DesktopAppsEntry): string {
-  return entry.committedRelease ? `installed:${bytesKey(entry.committedRelease.launchSelector)}:${entry.committedRelease.releaseRef}`
-    : entry.catalogTarget ? `catalog:${bytesKey(entry.catalogTarget.approvedTargetSelector)}` : '';
+  if (entry.committedRelease) {
+    return `installed:${bytesKey(entry.committedRelease.launchSelector)}:${entry.committedRelease.releaseRef}`;
+  }
+  if (entry.catalogTarget) {
+    return entry.catalogTarget.approvedTargetSelector.length > 0
+      ? `catalog:${bytesKey(entry.catalogTarget.approvedTargetSelector)}`
+      : `catalog-stale:${entry.catalogTarget.descriptorId}:${entry.catalogTarget.targetId}`;
+  }
+  return '';
 }
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-042c
@@ -778,6 +840,7 @@ function appsEntryEqual(left: DesktopAppsEntry, right: DesktopAppsEntry): boolea
     && left.identity.updatedAtUnixMs === right.identity.updatedAtUnixMs
     && left.iconUrl === right.iconUrl
     && left.summary === right.summary
+    && Boolean(left.catalogStale) === Boolean(right.catalogStale)
     && stableJson(left.catalogTarget) === stableJson(right.catalogTarget)
     && stableJson(left.localDevelopment) === stableJson(right.localDevelopment)
     && stableJson(left.committedRelease) === stableJson(right.committedRelease)

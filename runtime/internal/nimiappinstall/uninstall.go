@@ -164,6 +164,7 @@ func (coordinator *Coordinator) CompleteUninstall(ctx context.Context, jobID, ha
 	}
 	completed = coordinator.reportUnrecordedPackage(completed, commitErr)
 	delete(coordinator.uninstalls, jobID)
+	coordinator.clearVerifiedPolicyStateForRelease(expected.release.AppID, expected.release.ReleaseRef)
 	if err := root.RemoveAll(quarantine); err != nil {
 		return localappkernel.PackageJob{}, errors.Join(ErrUninstall, err)
 	}
