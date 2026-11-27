@@ -89,16 +89,7 @@ for (const item of sidebars) {
   });
 }
 
-const sharedFiles = [
-  'apps/desktop/src/shell/renderer/components/design-tokens.ts',
-  'apps/desktop/src/shell/renderer/components/surface.tsx',
-  'apps/desktop/src/shell/renderer/components/action.tsx',
-  'apps/desktop/src/shell/renderer/components/sidebar.tsx',
-  'apps/desktop/src/shell/renderer/components/overlay.tsx',
-  'apps/desktop/src/shell/renderer/components/tooltip.tsx',
-].map((rel) => path.join(repoRoot, rel)).filter((filePath) => fs.existsSync(filePath));
-
-const filesToCheck = [...new Set([...baselineFiles, ...sharedFiles])];
+const filesToCheck = [...baselineFiles];
 const advisoryFiles = [...new Set([...baselineFiles, ...secondaryFiles])];
 
 const advisory = {

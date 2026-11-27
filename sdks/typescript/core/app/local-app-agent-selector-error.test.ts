@@ -26,7 +26,7 @@ test('Local App selector mismatch accepts the canonical access-denied reason', (
   )), true);
 });
 
-test('Local App selector mismatch accepts the exact normalized Tauri Conversation miss', () => {
+test('Local App selector mismatch accepts the exact normalized RUNTIME_GRPC_NOT_FOUND Conversation miss', () => {
   assert.equal(isNimiLocalAppAgentSelectorMismatchError(Object.assign(
     new Error(JSON.stringify({
       reasonCode: 'RUNTIME_GRPC_NOT_FOUND',

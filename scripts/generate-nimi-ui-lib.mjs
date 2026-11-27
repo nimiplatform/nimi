@@ -11,47 +11,9 @@ const tablesDir = path.join(repoRoot, 'config');
 const outDir = path.join(repoRoot, 'kit', 'ui', 'src', 'generated');
 const themesDir = path.join(outDir, 'themes');
 
-const LEGACY_GENERATED_FILES = [
-  path.join(themesDir, 'desktop-accent.css'),
-  path.join(themesDir, 'relay-accent.css'),
-  path.join(themesDir, 'relay-dark.css'),
-  path.join(themesDir, 'overtone-studio.css'),
-  path.join(themesDir, 'overtone-accent.css'),
-  path.join(themesDir, 'video-food-map-accent.css'),
-  path.join(outDir, 'primitive-contract.ts'),
-  path.join(outDir, 'primitives.css'),
-  path.join(outDir, 'typography.css'),
-  path.join(repoRoot, 'kit', 'ui', 'src', 'themes', 'relay-accent.css'),
-  path.join(repoRoot, 'kit', 'ui', 'src', 'themes', 'overtone-accent.css'),
-  path.join(repoRoot, 'kit', 'ui', 'src', 'themes', 'video-food-map-accent.css'),
-];
-
 async function readYaml(fileName) {
   const raw = await fs.readFile(path.join(tablesDir, `platform-${fileName}`), 'utf8');
   return YAML.parse(raw);
-}
-
-async function discoverAppKitThemeDocs() {
-  const appsRoot = path.join(repoRoot, 'apps');
-  let entries = [];
-  try {
-    entries = await fs.readdir(appsRoot, { withFileTypes: true });
-  } catch {
-    return [];
-  }
-  const docs = [];
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-    const rel = path.join('apps', entry.name, 'spec', 'kernel', 'tables', 'nimi-kit-themes.yaml');
-    const abs = path.join(repoRoot, rel);
-    try {
-      const raw = await fs.readFile(abs, 'utf8');
-      docs.push(YAML.parse(raw));
-    } catch {
-      // Apps without a kit theme manifest do not contribute theme packs.
-    }
-  }
-  return docs;
 }
 
 function cssHeader(source) {
@@ -274,33 +236,25 @@ async function main() {
   const checkMode = process.argv.includes('--check');
   const tokensDoc = await readYaml('nimi-ui-tokens.yaml');
   const themesDoc = await readYaml('nimi-ui-themes.yaml');
-  const appThemeDocs = await discoverAppKitThemeDocs();
-  const mergedThemesDoc = {
-    ...themesDoc,
-    packs: [
-      ...(Array.isArray(themesDoc?.packs) ? themesDoc.packs : []),
-      ...appThemeDocs.flatMap((doc) => (Array.isArray(doc?.packs) ? doc.packs : [])),
-    ],
-  };
-  const mergedAccentPackIds = normalizePacks(mergedThemesDoc)
+  const accentPackIds = normalizePacks(themesDoc)
     .filter((pack) => String(pack?.pack_kind) === 'accent')
     .map((pack) => String(pack.theme_id));
-  const mergedDensityPackIds = normalizePacks(mergedThemesDoc)
+  const densityPackIds = normalizePacks(themesDoc)
     .filter((pack) => String(pack?.pack_kind) === 'density')
     .map((pack) => String(pack.theme_id));
 
   const renderedEntries = [
-    [path.join(outDir, 'tokens.ts'), renderTokensFile(tokensDoc, mergedThemesDoc)],
+    [path.join(outDir, 'tokens.ts'), renderTokensFile(tokensDoc, themesDoc)],
     [path.join(outDir, 'theme-base.css'), renderThemeBase(tokensDoc)],
-    [path.join(themesDir, 'light.css'), renderFoundationTheme(tokensDoc, mergedThemesDoc, 'nimi-light', ':root:not([data-nimi-scheme]), :root[data-nimi-scheme="light"], [data-nimi-scheme="light"]')],
-    [path.join(themesDir, 'dark.css'), renderFoundationTheme(tokensDoc, mergedThemesDoc, 'nimi-dark', '.dark, :root[data-nimi-scheme="dark"], [data-nimi-scheme="dark"]')],
-    ...mergedAccentPackIds.map((themeId) => [
+    [path.join(themesDir, 'light.css'), renderFoundationTheme(tokensDoc, themesDoc, 'nimi-light', ':root:not([data-nimi-scheme]), :root[data-nimi-scheme="light"], [data-nimi-scheme="light"]')],
+    [path.join(themesDir, 'dark.css'), renderFoundationTheme(tokensDoc, themesDoc, 'nimi-dark', '.dark, :root[data-nimi-scheme="dark"], [data-nimi-scheme="dark"]')],
+    ...accentPackIds.map((themeId) => [
       path.join(themesDir, `${themeId}.css`),
-      renderAccentTheme(tokensDoc, mergedThemesDoc, themeId),
+      renderAccentTheme(tokensDoc, themesDoc, themeId),
     ]),
-    ...mergedDensityPackIds.map((themeId) => [
+    ...densityPackIds.map((themeId) => [
       path.join(themesDir, `${themeId}.css`),
-      renderDensityTheme(tokensDoc, mergedThemesDoc, themeId),
+      renderDensityTheme(tokensDoc, themesDoc, themeId),
     ]),
   ];
   const rendered = new Map(renderedEntries);
@@ -328,32 +282,11 @@ async function main() {
       process.exitCode = 1;
       return;
     }
-    const staleResolved = [];
-    for (const filePath of LEGACY_GENERATED_FILES) {
-      try {
-        await fs.access(filePath);
-        staleResolved.push(filePath);
-      } catch {
-        // already absent
-      }
-    }
-    if (staleResolved.length > 0) {
-      process.stderr.write('nimi ui lib contains legacy generated files:\n');
-      for (const item of staleResolved) {
-        process.stderr.write(`  - ${path.relative(repoRoot, item)}\n`);
-      }
-      process.stderr.write('run `pnpm generate:nimi-ui-lib` to clean legacy outputs.\n');
-      process.exitCode = 1;
-      return;
-    }
     process.stdout.write(`nimi ui lib is up-to-date (${rendered.size} files)\n`);
     return;
   }
 
   await fs.mkdir(themesDir, { recursive: true });
-  for (const legacyFile of LEGACY_GENERATED_FILES) {
-    await fs.rm(legacyFile, { force: true });
-  }
   for (const [filePath, contents] of rendered) {
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, contents, 'utf8');

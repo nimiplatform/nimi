@@ -370,7 +370,7 @@ describe('Electron local-app standard-shell operations', () => {
     }
   });
 
-  it('gives each carrier reason the next step shared with the Tauri carrier', async () => {
+  it('gives each carrier reason the shared local-app action hint next step', async () => {
     const rows = JSON.parse(readFileSync(path.resolve(
       process.cwd(),
       'shell/capabilities/test/local-app-action-hint-fixtures.json',

@@ -19,7 +19,6 @@ const repoRoot = path.resolve(scriptDir, '..');
 const TARGET_GLOBS = [
   'apps/desktop/src/shell/renderer/features/nimi-home',
   'apps/desktop/src/shell/renderer/first-run',
-  'apps/avatar/src/ai-profile',
 ];
 
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs', '.mts', '.cts', '.go', '.rs']);

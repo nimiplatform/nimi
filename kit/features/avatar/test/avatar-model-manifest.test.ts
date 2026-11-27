@@ -27,7 +27,7 @@ describe('avatar model manifest projection', () => {
     });
   });
 
-  it('normalizes shell-tauri live2d manifests', () => {
+  it('normalizes host live2d manifests', () => {
     expect(fromHostAvatarModelManifest({
       kind: 'live2d',
       runtime_dir: '/runtime',
@@ -49,7 +49,7 @@ describe('avatar model manifest projection', () => {
     });
   });
 
-  it('normalizes shell-tauri Live2D calibration refs as opaque resolver evidence', () => {
+  it('normalizes host Live2D calibration refs as opaque resolver evidence', () => {
     expect(fromHostAvatarModelManifest({
       kind: 'live2d',
       runtime_dir: '/runtime',
@@ -72,7 +72,7 @@ describe('avatar model manifest projection', () => {
     });
   });
 
-  it('normalizes shell-tauri vrm manifests', () => {
+  it('normalizes host vrm manifests', () => {
     expect(fromHostAvatarModelManifest({
       kind: 'vrm',
       runtime_dir: '/runtime',

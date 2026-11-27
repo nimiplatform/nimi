@@ -39,7 +39,7 @@ describe('social OAuth config', () => {
     }
   });
 
-  it('is enabled when Tauri invoke and env config are present', () => {
+  it('is enabled when shell host invoke and env config are present', () => {
     const previousClientId = process.env.VITE_NIMI_TIKTOK_CLIENT_ID;
     const previousScope = process.env.VITE_NIMI_TIKTOK_SCOPE;
     process.env.VITE_NIMI_TIKTOK_CLIENT_ID = 'tiktok-client-id';

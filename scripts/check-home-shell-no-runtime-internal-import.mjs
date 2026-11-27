@@ -16,7 +16,6 @@ const repoRoot = path.resolve(scriptDir, '..');
 // imports from runtime/internal-* TS packages if any exist).
 const TARGET_GLOBS = [
   'apps/desktop/src/shell/renderer',
-  'apps/desktop/src/runtime',
 ];
 
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);

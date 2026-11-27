@@ -24,7 +24,6 @@ const compositionsTable = readYaml('config/platform-nimi-ui-compositions.yaml');
 const primitivesTable = readYaml('config/platform-nimi-ui-primitives.yaml');
 
 function discoverAppKitTables(fileName) {
-  const appsRoot = path.join(repoRoot, 'apps');
   const rels = [];
   const migratedConfigsByFileName = {
     'nimi-kit-compositions.yaml': [
@@ -34,12 +33,6 @@ function discoverAppKitTables(fileName) {
     'nimi-kit-adoption.yaml': ['config/avatar-nimi-kit-adoption.yaml'],
   };
   rels.push(...(migratedConfigsByFileName[fileName] ?? []));
-  if (fs.existsSync(appsRoot)) {
-    rels.push(...fs
-      .readdirSync(appsRoot, { withFileTypes: true })
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => path.join('apps', entry.name, 'spec', 'kernel', 'tables', fileName)));
-  }
   const nimiSpecRoot = path.join(repoRoot, '.nimi', 'spec');
   if (fs.existsSync(nimiSpecRoot)) {
     rels.push(...fs
@@ -123,12 +116,6 @@ for (const [themeId, coverage] of themeCoverage) {
   }
 }
 
-const generatedThemesDir = path.join(repoRoot, 'kit', 'ui', 'src', 'generated', 'themes');
-for (const legacyTheme of ['relay-dark.css', 'overtone-studio.css']) {
-  if (fs.existsSync(path.join(generatedThemesDir, legacyTheme))) {
-    hardFailures.push(`kit/ui/src/generated/themes/${legacyTheme}: legacy generated theme output must not exist`);
-  }
-}
 const accentCssVars = new Set(
   tokenRows
     .filter((row) => String(row?.theme_layer || 'foundation').trim() === 'accent')
@@ -280,9 +267,6 @@ for (const [relModule, rows] of compositionsByModule) {
       }
       if (!sharedTargets.some((target) => block.includes(`<${target}`))) {
         hardFailures.push(`${relModule}: thin wrapper ${componentName} must delegate directly to one of ${sharedTargets.join(', ')}`);
-      }
-      if (/\bot-[a-z0-9_-]+\b/u.test(block) || /\b(?:text|bg|border|shadow)-ot-/u.test(block)) {
-        hardFailures.push(`${relModule}: thin wrapper ${componentName} must not define app-owned visual contract classes`);
       }
       if (/style=\{\{/u.test(block)) {
         hardFailures.push(`${relModule}: thin wrapper ${componentName} must not use inline visual style authority`);

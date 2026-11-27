@@ -10,9 +10,7 @@ const rendererRoot = path.join(repoRoot, 'apps/desktop/src/shell/renderer');
 
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx']);
 const SKIP_DIRS = new Set(['node_modules', 'dist', '.git']);
-const ALLOWLIST_FILES = new Set([
-  'apps/desktop/src/shell/renderer/components/scroll-shell.tsx',
-]);
+const ALLOWLIST_FILES = new Set();
 
 const BANNED_PATTERNS = [
   {

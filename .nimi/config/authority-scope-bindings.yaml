@@ -108,12 +108,6 @@ scopes:
     bindings:
       - kind: path_glob
         value: "apps/zhiyu/**"
-      - kind: path_glob
-        value: "apps/zhiyu/src/mobile/**/*"
-      - kind: path_glob
-        value: "apps/zhiyu/src/production/**/*"
-      - kind: path_glob
-        value: "apps/zhiyu/android/**/*"
   - scope: cognition.memory
     bindings:
       - kind: path_glob
@@ -406,8 +400,6 @@ scopes:
         value: "runtime/internal/protectedlocal/**/*.go"
       - kind: path_glob
         value: "apps/desktop/src-electron/**/*"
-      - kind: path_glob
-        value: "apps/desktop/src-electron/**/*.ts"
       - kind: path_glob
         value: "apps/desktop/src/shell/renderer/features/chat/**/*"
       - kind: path_glob
