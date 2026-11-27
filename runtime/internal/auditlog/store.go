@@ -80,6 +80,7 @@ type Store struct {
 	maxBytes  int64
 
 	refusals refusalLimiter
+	readDiag readDiagnosticTracker
 
 	usageMu   sync.RWMutex
 	maxUsage  int
@@ -132,6 +133,7 @@ func newStore(backend Backend, logger *slog.Logger, maxEvents int, maxUsage int)
 		maxEvents: maxEvents,
 		maxBytes:  MaxRetainedBytes,
 		refusals:  refusalLimiter{now: time.Now, kinds: make(map[string]*refusalKind)},
+		readDiag:  newReadDiagnosticTracker(defaultMaxReadDiagnosticKeys),
 		maxUsage:  maxUsage,
 		usage:     make([]UsageInput, 0, maxUsage),
 	}

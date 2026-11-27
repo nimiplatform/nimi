@@ -32,7 +32,11 @@ func newUnaryAuditInterceptor(store *auditlog.Store) grpc.UnaryServerInterceptor
 			resp, err = handler(handlerCtx, req)
 		}
 
-		domain, operation, capability := methodDescriptor(info.FullMethod)
+		fullMethod := ""
+		if info != nil {
+			fullMethod = info.FullMethod
+		}
+		domain, operation, capability := methodDescriptor(fullMethod)
 		appID, subjectUserID, modelID := inferRequestIdentity(req)
 		if appID == "" {
 			appID = appIDFromMetadata(handlerCtx)
@@ -50,41 +54,54 @@ func newUnaryAuditInterceptor(store *auditlog.Store) grpc.UnaryServerInterceptor
 				reasonCode = rc
 			}
 		}
-		success := reasonCode == runtimev1.ReasonCode_ACTION_EXECUTED
+		success := err == nil && reasonCode == runtimev1.ReasonCode_ACTION_EXECUTED
 
 		if modelFromResp, ok := inferModelResolved(resp); ok && modelFromResp != "" {
 			modelID = modelFromResp
 		}
 		usage, _ := inferUsage(resp)
 
-		payload := map[string]any{
-			"grpc_method": info.FullMethod, "model_id": modelID, "success": success, "kind": "unary",
+		if classifyUnaryAuditMode(fullMethod, success) == auditRecordLightweightOnSuccess {
+			store.RecordLightweightRead(auditlog.ReadDiagnosticInput{
+				Timestamp:  startedAt,
+				FullMethod: fullMethod,
+				AppID:      appID,
+				Domain:     domain,
+				Operation:  operation,
+				Capability: capability,
+				CallerKind: callerKind,
+				TraceID:    traceID,
+			})
+		} else {
+			payload := map[string]any{
+				"grpc_method": fullMethod, "model_id": modelID, "success": success, "kind": "unary",
+			}
+			// request_id is set on the top-level AuditEventRecord.request_id field
+			// (K-AUDIT-003 baseline request_id == trace_id) and mirrored into the AI
+			// execution payload (K-AUDIT-018) for fan-out separation.
+			requestID := addAIExecutionAuditPayload(payload, req, traceID, aiExecutionAuditContext{
+				RequestSource: requestSourceFromCallerKind(callerKind),
+				ClientID:      appInstanceIDFromMetadata(handlerCtx),
+				GRPCCode:      grpcCodeOnFailure(err, success),
+			})
+			appendAuditEvent(store, auditEventInput{
+				AppID:         appID,
+				SubjectUserID: subjectUserID,
+				Domain:        domain,
+				Operation:     operation,
+				Capability:    capability,
+				ReasonCode:    reasonCode,
+				TraceID:       traceID,
+				RequestID:     requestID,
+				CallerKind:    callerKind,
+				CallerID:      callerID,
+				SurfaceID:     surfaceID,
+				TokenID:       tokenID,
+				PrincipalID:   principalID(callerID, tokenID),
+				PrincipalType: principalType(callerKind, tokenID),
+				Payload:       payload,
+			})
 		}
-		// request_id is set on the top-level AuditEventRecord.request_id field
-		// (K-AUDIT-003 baseline request_id == trace_id) and mirrored into the AI
-		// execution payload (K-AUDIT-018) for fan-out separation.
-		requestID := addAIExecutionAuditPayload(payload, req, traceID, aiExecutionAuditContext{
-			RequestSource: requestSourceFromCallerKind(callerKind),
-			ClientID:      appInstanceIDFromMetadata(handlerCtx),
-			GRPCCode:      grpcCodeOnFailure(err, success),
-		})
-		appendAuditEvent(store, auditEventInput{
-			AppID:         appID,
-			SubjectUserID: subjectUserID,
-			Domain:        domain,
-			Operation:     operation,
-			Capability:    capability,
-			ReasonCode:    reasonCode,
-			TraceID:       traceID,
-			RequestID:     requestID,
-			CallerKind:    callerKind,
-			CallerID:      callerID,
-			SurfaceID:     surfaceID,
-			TokenID:       tokenID,
-			PrincipalID:   principalID(callerID, tokenID),
-			PrincipalType: principalType(callerKind, tokenID),
-			Payload:       payload,
-		})
 		store.RecordUsage(auditlog.UsageInput{
 			Timestamp:     startedAt,
 			AppID:         appID,
@@ -116,7 +133,11 @@ func newStreamAuditInterceptor(store *auditlog.Store) grpc.StreamServerIntercept
 		streamCtx := wrapped.Context()
 		request, usage, modelResolved, traceID := wrapped.snapshot()
 
-		domain, operation, capability := methodDescriptor(info.FullMethod)
+		fullMethod := ""
+		if info != nil {
+			fullMethod = info.FullMethod
+		}
+		domain, operation, capability := methodDescriptor(fullMethod)
 		appID, subjectUserID, modelID := inferRequestIdentity(request)
 		if appID == "" {
 			appID = appIDFromMetadata(streamCtx)
@@ -135,36 +156,49 @@ func newStreamAuditInterceptor(store *auditlog.Store) grpc.StreamServerIntercept
 		}
 
 		reasonCode := reasonCodeFromError(err)
-		success := reasonCode == runtimev1.ReasonCode_ACTION_EXECUTED
+		success := err == nil && reasonCode == runtimev1.ReasonCode_ACTION_EXECUTED
 
-		payload := map[string]any{
-			"grpc_method": info.FullMethod, "model_id": modelID, "success": success, "kind": "stream",
+		if classifyStreamAuditMode(fullMethod, success) == auditRecordLightweightOnSuccess {
+			store.RecordLightweightRead(auditlog.ReadDiagnosticInput{
+				Timestamp:  startedAt,
+				FullMethod: fullMethod,
+				AppID:      appID,
+				Domain:     domain,
+				Operation:  operation,
+				Capability: capability,
+				CallerKind: callerKind,
+				TraceID:    traceID,
+			})
+		} else {
+			payload := map[string]any{
+				"grpc_method": fullMethod, "model_id": modelID, "success": success, "kind": "stream",
+			}
+			// request_id is set on the top-level AuditEventRecord.request_id field
+			// (K-AUDIT-003 baseline request_id == trace_id) and mirrored into the AI
+			// execution payload (K-AUDIT-018) for fan-out separation.
+			requestID := addAIExecutionAuditPayload(payload, request, traceID, aiExecutionAuditContext{
+				RequestSource: requestSourceFromCallerKind(callerKind),
+				ClientID:      appInstanceIDFromMetadata(ss.Context()),
+				GRPCCode:      grpcCodeOnFailure(err, success),
+			})
+			appendAuditEvent(store, auditEventInput{
+				AppID:         appID,
+				SubjectUserID: subjectUserID,
+				Domain:        domain,
+				Operation:     operation,
+				Capability:    capability,
+				ReasonCode:    reasonCode,
+				TraceID:       traceID,
+				RequestID:     requestID,
+				CallerKind:    callerKind,
+				CallerID:      callerID,
+				SurfaceID:     surfaceID,
+				TokenID:       tokenID,
+				PrincipalID:   principalID(callerID, tokenID),
+				PrincipalType: principalType(callerKind, tokenID),
+				Payload:       payload,
+			})
 		}
-		// request_id is set on the top-level AuditEventRecord.request_id field
-		// (K-AUDIT-003 baseline request_id == trace_id) and mirrored into the AI
-		// execution payload (K-AUDIT-018) for fan-out separation.
-		requestID := addAIExecutionAuditPayload(payload, request, traceID, aiExecutionAuditContext{
-			RequestSource: requestSourceFromCallerKind(callerKind),
-			ClientID:      appInstanceIDFromMetadata(ss.Context()),
-			GRPCCode:      grpcCodeOnFailure(err, success),
-		})
-		appendAuditEvent(store, auditEventInput{
-			AppID:         appID,
-			SubjectUserID: subjectUserID,
-			Domain:        domain,
-			Operation:     operation,
-			Capability:    capability,
-			ReasonCode:    reasonCode,
-			TraceID:       traceID,
-			RequestID:     requestID,
-			CallerKind:    callerKind,
-			CallerID:      callerID,
-			SurfaceID:     surfaceID,
-			TokenID:       tokenID,
-			PrincipalID:   principalID(callerID, tokenID),
-			PrincipalType: principalType(callerKind, tokenID),
-			Payload:       payload,
-		})
 		store.RecordUsage(auditlog.UsageInput{
 			Timestamp:     startedAt,
 			AppID:         appID,
