@@ -133,6 +133,21 @@ func (s *Service) ProjectSelectedLocalLoadout(ctx context.Context, capabilityCon
 	return option, true, nil
 }
 
+func (s *Service) collectAdmissionDeviceProfile(ctx context.Context) *runtimev1.LocalDeviceProfile {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if s != nil {
+		s.mu.RLock()
+		collector := s.admissionDeviceProfile
+		s.mu.RUnlock()
+		if collector != nil {
+			return collector(ctx)
+		}
+	}
+	return collectDeviceProfile(ctx)
+}
+
 // ResolveSelectedLocalExecution atomically captures the current machine
 // selection and resolves every ModelAsset axis to immutable absolute paths and
 // content identities. Callers retain this ResolvedAssembly and never reread
@@ -142,6 +157,7 @@ func (s *Service) ResolveSelectedLocalExecution(capabilityContract string) (*loc
 	if s == nil || capabilityContract == "" {
 		return nil, loadoutError(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID, "capability contract is required", nil)
 	}
+	profile := s.collectAdmissionDeviceProfile(context.Background())
 	s.loadoutMutationMu.Lock()
 	defer s.loadoutMutationMu.Unlock()
 	s.modelAssetMutationMu.Lock()
@@ -152,7 +168,7 @@ func (s *Service) ResolveSelectedLocalExecution(capabilityContract string) (*loc
 	if selection == nil || strings.TrimSpace(selection.GetLoadoutId()) == "" {
 		return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND, "no Loadout is selected for the capability contract", map[string]string{"capability_contract": capabilityContract})
 	}
-	return s.resolveLocalExecutionLocked(context.Background(), admissionPass{}, capabilityContract, selection.GetLoadoutId())
+	return s.resolveLocalExecutionLockedWithProfile(context.Background(), admissionPass{}, capabilityContract, selection.GetLoadoutId(), profile)
 }
 
 // ResolveLocalExecution resolves an exact Loadout identity already captured by
@@ -163,14 +179,19 @@ func (s *Service) ResolveLocalExecution(capabilityContract string, loadoutRef st
 	if s == nil || capabilityContract == "" || loadoutRef == "" {
 		return nil, loadoutError(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID, "capability contract and loadout_ref are required", nil)
 	}
+	profile := s.collectAdmissionDeviceProfile(context.Background())
 	s.loadoutMutationMu.Lock()
 	defer s.loadoutMutationMu.Unlock()
 	s.modelAssetMutationMu.Lock()
 	defer s.modelAssetMutationMu.Unlock()
-	return s.resolveLocalExecutionLocked(context.Background(), admissionPass{}, capabilityContract, loadoutRef)
+	return s.resolveLocalExecutionLockedWithProfile(context.Background(), admissionPass{}, capabilityContract, loadoutRef, profile)
 }
 
 func (s *Service) resolveLocalExecutionLocked(ctx context.Context, pass admissionPass, capabilityContract string, loadoutRef string) (*localexecution.SelectedLocalExecution, error) {
+	return s.resolveLocalExecutionLockedWithProfile(ctx, pass, capabilityContract, loadoutRef, nil)
+}
+
+func (s *Service) resolveLocalExecutionLockedWithProfile(ctx context.Context, pass admissionPass, capabilityContract string, loadoutRef string, profile *runtimev1.LocalDeviceProfile) (*localexecution.SelectedLocalExecution, error) {
 	s.mu.RLock()
 	loadout := cloneLoadout(s.loadouts[loadoutRef])
 	s.mu.RUnlock()
@@ -246,7 +267,7 @@ func (s *Service) resolveLocalExecutionLocked(ctx context.Context, pass admissio
 			custody = append(custody, proto.Clone(item).(*runtimev1.LoadoutRecipeCustodyReference))
 		}
 	}
-	dependencySources, dependencyErr := s.resolveSelectedLocalExecutionDependencySources(capabilityContract, driver, identity)
+	dependencySources, dependencyErr := s.resolveSelectedLocalExecutionDependencySourcesWithProfile(capabilityContract, driver, identity, profile)
 	if dependencyErr != nil {
 		return nil, dependencyErr
 	}
@@ -284,6 +305,10 @@ func (s *Service) CaptureLocalExecution(ctx context.Context, capabilityContract,
 		return nil, admissionContextError(err)
 	}
 	defer pass.close()
+	profile := s.collectAdmissionDeviceProfile(ctx)
+	if err := ctx.Err(); err != nil {
+		return nil, admissionContextError(err)
+	}
 	if err := s.loadoutMutationMu.LockContext(ctx); err != nil {
 		return nil, admissionContextError(err)
 	}
@@ -300,7 +325,7 @@ func (s *Service) CaptureLocalExecution(ctx context.Context, capabilityContract,
 			return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND, "no Loadout is selected for the capability contract", nil)
 		}
 	}
-	selected, err := s.resolveLocalExecutionLocked(ctx, pass, capabilityContract, loadoutRef)
+	selected, err := s.resolveLocalExecutionLockedWithProfile(ctx, pass, capabilityContract, loadoutRef, profile)
 	if err != nil {
 		return nil, err
 	}
@@ -434,13 +459,21 @@ func (s *Service) captureLlamaMediaCodecSource(ctx context.Context) (localexecut
 }
 
 func (s *Service) resolveSelectedLocalExecutionDependencySources(capabilityContract string, driver capabilitydriver.Driver, identity *runtimev1.CapabilityImplementationIdentity) ([]localexecution.ExactDependencySource, error) {
+	return s.resolveSelectedLocalExecutionDependencySourcesWithProfile(capabilityContract, driver, identity, nil)
+}
+
+func (s *Service) resolveSelectedLocalExecutionDependencySourcesWithProfile(capabilityContract string, driver capabilitydriver.Driver, identity *runtimev1.CapabilityImplementationIdentity, profile *runtimev1.LocalDeviceProfile) ([]localexecution.ExactDependencySource, error) {
 	consumer := ""
 	type requiredDependency struct {
 		family, dependencyID, version string
 	}
 	var required []requiredDependency
 	// One live device profile serves every dependency lookup of this admission.
-	profile := collectDeviceProfile(context.Background())
+	// Callers on the dual-lock admission path collect it outside the mutation
+	// locks so slow host probing never stalls Loadout or ModelAsset writers.
+	if profile == nil {
+		profile = s.collectAdmissionDeviceProfile(context.Background())
+	}
 	host := localEnvironmentHostProfileFromDeviceProfile(profile)
 	switch typed := driver.(type) {
 	case capabilitydriver.Qwen3ASRDriver, capabilitydriver.Qwen3ASRTransformersDriver, capabilitydriver.Qwen3ASRAlignedDriver:

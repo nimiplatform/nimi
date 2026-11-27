@@ -170,6 +170,7 @@ type Service struct {
 	transferSubscriberSeq         uint64
 	entryHashCache                map[string]entryHashCacheState
 	entryFileSHA256               func(string) (string, error)
+	admissionDeviceProfile        func(context.Context) *runtimev1.LocalDeviceProfile
 	admissionHolds                map[string]*admissionPayloadHold
 	adoptResolvedModelImports     bool
 	managedPortAvailable          func(int) bool

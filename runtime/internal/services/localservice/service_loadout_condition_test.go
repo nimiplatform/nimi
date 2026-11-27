@@ -2,6 +2,7 @@ package localservice
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
@@ -314,5 +315,216 @@ func TestSelectLoadoutExpectNoPriorSelectionConflictsAfterClear(t *testing.T) {
 	if conflict.GetApplied() || conflict.GetReasonCode() != runtimev1.ReasonCode_AI_LOADOUT_CONDITION_CONFLICT ||
 		conflict.GetSelection() != nil || conflict.GetSelectionRevision() != cleared.GetSelectionRevision() {
 		t.Fatalf("post-clear first-selection conflict = %+v", conflict)
+	}
+}
+
+func TestDeleteLoadoutPersistenceAndAtomicFailureAcrossServiceReopen(t *testing.T) {
+	svc, asset := loadoutEmbeddingFixture(t)
+	ctx := context.Background()
+	embedContract := capabilitydriver.TextEmbedCapabilityContract
+	speechContract := capabilitydriver.AudioSynthesizeContract
+
+	loadoutA := commitLoadoutForTest(t, svc, ctx, prepareEmbeddingLoadoutForTest(t, svc, ctx, "", "Embed A", asset).GetPrepareId(), false)
+	loadoutB := commitLoadoutForTest(t, svc, ctx, prepareEmbeddingLoadoutForTest(t, svc, ctx, "", "Embed B", asset).GetPrepareId(), false)
+	loadoutC := commitLoadoutForTest(t, svc, ctx, prepareEmbeddingLoadoutForTest(t, svc, ctx, "", "Embed C", asset).GetPrepareId(), false)
+
+	// Set up a second independent capability contract to confirm deleting the
+	// embedding selection does not disturb other capabilities.
+	speechAsset := importVoxCPMModelAssetForLoadoutTest(
+		t, svc, "voxcpm2", safetensorsLoadoutTestBytes(map[string][]int64{"model.embed_tokens.weight": {32000, 2048}}),
+		"audiovae.pth", "tokenization_voxcpm2.py",
+	)
+	speechLoadout := commitLoadoutForTest(t, svc, ctx, prepareVoxCPMLoadoutForTest(t, svc, "VoxCPM Independent", speechAsset).GetPrepareId(), false)
+	speechSelected, err := svc.SelectLoadout(ctx, &runtimev1.SelectLoadoutRequest{
+		CapabilityContract:     speechContract,
+		LoadoutId:              speechLoadout.GetLoadoutId(),
+		ConfirmedMachineImpact: true,
+	})
+	if err != nil {
+		t.Fatalf("select speech Loadout: %v", err)
+	}
+
+	// Row 1: Clearing current selection clears only the selection while keeping
+	// the Loadout, ModelAsset, and persisted revision across service reopen.
+	selectedA, err := svc.SelectLoadout(ctx, &runtimev1.SelectLoadoutRequest{
+		CapabilityContract:     embedContract,
+		LoadoutId:              loadoutA.GetLoadoutId(),
+		ConfirmedMachineImpact: true,
+	})
+	if err != nil {
+		t.Fatalf("select loadoutA: %v", err)
+	}
+	cleared, err := svc.SelectLoadout(ctx, &runtimev1.SelectLoadoutRequest{
+		CapabilityContract:     embedContract,
+		ConfirmedMachineImpact: true,
+	})
+	if err != nil || !cleared.GetApplied() || cleared.GetSelection() != nil || cleared.GetSelectionRevision() == selectedA.GetSelectionRevision() {
+		t.Fatalf("clear selection = %+v err=%v", cleared, err)
+	}
+	reopenedAfterClear := restartModelAssetServiceForTest(t, svc.stateStorePath, svc.localModelsPath)
+	projAfterClear, err := reopenedAfterClear.GetMachineLoadouts(ctx, &runtimev1.GetMachineLoadoutsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if findLoadout(projAfterClear.GetAggregate().GetLoadouts(), loadoutA.GetLoadoutId()) == nil {
+		t.Fatal("clearing selection unexpectedly removed loadoutA")
+	}
+	for _, sel := range projAfterClear.GetAggregate().GetSelections() {
+		if sel.GetCapabilityContract() == embedContract {
+			t.Fatalf("cleared embedding selection persisted after reopen: %+v", sel)
+		}
+	}
+	if projAfterClear.GetAggregate().GetSelectionRevisions()[embedContract] != cleared.GetSelectionRevision() {
+		t.Fatalf("reopened clear revision = %q, want %q", projAfterClear.GetAggregate().GetSelectionRevisions()[embedContract], cleared.GetSelectionRevision())
+	}
+	if reopenedAfterClear.modelAssets[asset.GetModelAssetId()] == nil {
+		t.Fatal("clearing selection unexpectedly removed ModelAsset")
+	}
+
+	// Re-select loadoutA on the live reopened service for rows 2-4.
+	reselectedA, err := reopenedAfterClear.SelectLoadout(ctx, &runtimev1.SelectLoadoutRequest{
+		CapabilityContract:     embedContract,
+		LoadoutId:              loadoutA.GetLoadoutId(),
+		ConfirmedMachineImpact: true,
+	})
+	if err != nil {
+		t.Fatalf("reselect loadoutA: %v", err)
+	}
+	revBeforeDelete := reselectedA.GetSelectionRevision()
+
+	// Row 3: Deleting an unselected Loadout (loadoutB) removes only loadoutB
+	// and preserves both the active selection and its revision across reopen.
+	if _, err := reopenedAfterClear.DeleteLoadout(ctx, &runtimev1.DeleteLoadoutRequest{
+		LoadoutId:              loadoutB.GetLoadoutId(),
+		ConfirmedMachineImpact: false,
+	}); err != nil {
+		t.Fatalf("delete unselected loadoutB: %v", err)
+	}
+	reopenedAfterUnselected := restartModelAssetServiceForTest(t, svc.stateStorePath, svc.localModelsPath)
+	projAfterUnselected, err := reopenedAfterUnselected.GetMachineLoadouts(ctx, &runtimev1.GetMachineLoadoutsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if findLoadout(projAfterUnselected.GetAggregate().GetLoadouts(), loadoutB.GetLoadoutId()) != nil {
+		t.Fatal("unselected loadoutB reappeared after reopen")
+	}
+	if findLoadout(projAfterUnselected.GetAggregate().GetLoadouts(), loadoutA.GetLoadoutId()) == nil {
+		t.Fatal("selected loadoutA missing after deleting unselected loadoutB")
+	}
+	if gotRev := projAfterUnselected.GetAggregate().GetSelectionRevisions()[embedContract]; gotRev != revBeforeDelete {
+		t.Fatalf("deleting unselected Loadout rotated selection revision: got=%q want=%q", gotRev, revBeforeDelete)
+	}
+	var foundSelectedA bool
+	for _, sel := range projAfterUnselected.GetAggregate().GetSelections() {
+		if sel.GetCapabilityContract() == embedContract && sel.GetLoadoutId() == loadoutA.GetLoadoutId() {
+			foundSelectedA = true
+		}
+	}
+	if !foundSelectedA {
+		t.Fatalf("selected loadoutA was lost after deleting unselected loadoutB: %+v", projAfterUnselected.GetAggregate().GetSelections())
+	}
+
+	// Unconfirmed deletion of the selected Loadout is rejected without mutating state.
+	if _, err := reopenedAfterUnselected.DeleteLoadout(ctx, &runtimev1.DeleteLoadoutRequest{
+		LoadoutId:              loadoutA.GetLoadoutId(),
+		ConfirmedMachineImpact: false,
+	}); status.Code(err) != codes.FailedPrecondition || grpcReasonForTest(err) != runtimev1.ReasonCode_AI_LOADOUT_CONFIRMATION_REQUIRED {
+		t.Fatalf("unconfirmed selected delete = code:%s reason:%s, want FailedPrecondition/AI_LOADOUT_CONFIRMATION_REQUIRED", status.Code(err), grpcReasonForTest(err))
+	}
+
+	// Row 4: Persistence failure during confirmed delete of selected loadoutA
+	// leaves target, selection, and revision unchanged both in memory and after
+	// reopening the service from the isolated disk data root.
+	realStore := reopenedAfterUnselected.loadoutStore
+	reopenedAfterUnselected.loadoutStore = failingLoadoutStore{err: errors.New("simulated atomic save failure")}
+	if _, err := reopenedAfterUnselected.DeleteLoadout(ctx, &runtimev1.DeleteLoadoutRequest{
+		LoadoutId:              loadoutA.GetLoadoutId(),
+		ConfirmedMachineImpact: true,
+	}); err == nil {
+		t.Fatal("expected DeleteLoadout to fail when atomic store Save fails")
+	}
+	reopenedAfterUnselected.loadoutStore = realStore
+
+	projAfterFailedSave, err := reopenedAfterUnselected.GetMachineLoadouts(ctx, &runtimev1.GetMachineLoadoutsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if findLoadout(projAfterFailedSave.GetAggregate().GetLoadouts(), loadoutA.GetLoadoutId()) == nil {
+		t.Fatal("failed Save mutated in-memory Loadout inventory")
+	}
+	if projAfterFailedSave.GetAggregate().GetSelectionRevisions()[embedContract] != revBeforeDelete {
+		t.Fatalf("failed Save rotated in-memory selection revision: got=%q want=%q", projAfterFailedSave.GetAggregate().GetSelectionRevisions()[embedContract], revBeforeDelete)
+	}
+	reopenedAfterFailedSave := restartModelAssetServiceForTest(t, svc.stateStorePath, svc.localModelsPath)
+	projReopenedAfterFail, err := reopenedAfterFailedSave.GetMachineLoadouts(ctx, &runtimev1.GetMachineLoadoutsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if findLoadout(projReopenedAfterFail.GetAggregate().GetLoadouts(), loadoutA.GetLoadoutId()) == nil {
+		t.Fatal("failed Save deleted loadoutA on disk")
+	}
+	if projReopenedAfterFail.GetAggregate().GetSelectionRevisions()[embedContract] != revBeforeDelete {
+		t.Fatalf("failed Save mutated on-disk selection revision: got=%q want=%q", projReopenedAfterFail.GetAggregate().GetSelectionRevisions()[embedContract], revBeforeDelete)
+	}
+	var diskSelectedA bool
+	for _, sel := range projReopenedAfterFail.GetAggregate().GetSelections() {
+		if sel.GetCapabilityContract() == embedContract && sel.GetLoadoutId() == loadoutA.GetLoadoutId() {
+			diskSelectedA = true
+		}
+	}
+	if !diskSelectedA {
+		t.Fatalf("failed Save cleared on-disk selection: %+v", projReopenedAfterFail.GetAggregate().GetSelections())
+	}
+
+	// Row 2: Confirmed delete of selected loadoutA atomically removes loadoutA,
+	// clears embedding selection without auto-fallback to loadoutC, rotates only
+	// the embedding selection revision, keeps other capabilities and shared
+	// ModelAsset intact, and survives service reopen.
+	if _, err := reopenedAfterFailedSave.DeleteLoadout(ctx, &runtimev1.DeleteLoadoutRequest{
+		LoadoutId:              loadoutA.GetLoadoutId(),
+		ConfirmedMachineImpact: true,
+	}); err != nil {
+		t.Fatalf("confirmed delete of selected loadoutA: %v", err)
+	}
+	projAfterDelete, err := reopenedAfterFailedSave.GetMachineLoadouts(ctx, &runtimev1.GetMachineLoadoutsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rotatedRev := projAfterDelete.GetAggregate().GetSelectionRevisions()[embedContract]
+	if rotatedRev == "" || rotatedRev == revBeforeDelete {
+		t.Fatalf("confirmed delete did not rotate embedding selection revision: before=%q after=%q", revBeforeDelete, rotatedRev)
+	}
+
+	reopenedAfterDelete := restartModelAssetServiceForTest(t, svc.stateStorePath, svc.localModelsPath)
+	projReopenedDelete, err := reopenedAfterDelete.GetMachineLoadouts(ctx, &runtimev1.GetMachineLoadoutsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if findLoadout(projReopenedDelete.GetAggregate().GetLoadouts(), loadoutA.GetLoadoutId()) != nil {
+		t.Fatal("deleted selected loadoutA reappeared after reopen")
+	}
+	if findLoadout(projReopenedDelete.GetAggregate().GetLoadouts(), loadoutC.GetLoadoutId()) == nil {
+		t.Fatal("unrelated remaining loadoutC was lost after deleting loadoutA")
+	}
+	if projReopenedDelete.GetAggregate().GetSelectionRevisions()[embedContract] != rotatedRev {
+		t.Fatalf("rotated selection revision did not persist across reopen: got=%q want=%q", projReopenedDelete.GetAggregate().GetSelectionRevisions()[embedContract], rotatedRev)
+	}
+	var speechSelectionPreserved bool
+	for _, sel := range projReopenedDelete.GetAggregate().GetSelections() {
+		if sel.GetCapabilityContract() == embedContract {
+			t.Fatalf("deleting selected loadoutA auto-fell back or left stale selection after reopen: %+v", sel)
+		}
+		if sel.GetCapabilityContract() == speechContract && sel.GetLoadoutId() == speechLoadout.GetLoadoutId() {
+			speechSelectionPreserved = true
+		}
+	}
+	if !speechSelectionPreserved {
+		t.Fatalf("unrelated speech capability selection was disturbed: %+v", projReopenedDelete.GetAggregate().GetSelections())
+	}
+	if projReopenedDelete.GetAggregate().GetSelectionRevisions()[speechContract] != speechSelected.GetSelectionRevision() {
+		t.Fatalf("unrelated speech capability revision rotated: got=%q want=%q", projReopenedDelete.GetAggregate().GetSelectionRevisions()[speechContract], speechSelected.GetSelectionRevision())
+	}
+	if reopenedAfterDelete.modelAssets[asset.GetModelAssetId()] == nil {
+		t.Fatal("shared ModelAsset was removed when deleting selected loadoutA")
 	}
 }

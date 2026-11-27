@@ -191,7 +191,6 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedIntegrationCatalogListMethod:           localAppSessionMethodPolicy(),
 	protectedIntegrationConnectionListMethod:        localAppSessionMethodPolicy(),
 	protectedIntegrationCallInvokeMethod:            localAppSessionMethodPolicy(),
-	protectedIntegrationSnapshotsMethod:             localAppSessionMethodPolicy(),
 	protectedIntegrationCallGetMethod:               localAppSessionMethodPolicy(),
 	protectedIntegrationCallListMethod:              localAppSessionMethodPolicy(),
 	protectedIntegrationCallCancelMethod:            localAppSessionMethodPolicy(),
@@ -316,6 +315,7 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 
 var protectedLocalAppStreamMethodPolicies = map[string]protectedLocalAppMethodPolicy{
 	protectedAgentWorkEventsSubscribeMethod:     localAppSessionMethodPolicy(),
+	protectedIntegrationSnapshotsMethod:         localAppSessionMethodPolicy(),
 	protectedSubscribeConversationMethod:        localAppSessionMethodPolicy(),
 	protectedSubscribeEmbodimentEventsMethod:    localAppSessionMethodPolicy(),
 	protectedStreamTextTurnMethod:               localAppSessionMethodPolicy(),
