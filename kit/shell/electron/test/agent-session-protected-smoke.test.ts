@@ -22,9 +22,7 @@ import {
 function loadCompiledNativeAddon(): Record<string, unknown> {
   const artifact = process.platform === 'win32'
     ? 'nimi_shell_protected_local_node.dll'
-    : process.platform === 'darwin'
-      ? 'libnimi_shell_protected_local_node.dylib'
-      : 'libnimi_shell_protected_local_node.so';
+    : 'libnimi_shell_protected_local_node.dylib';
   const addonPath = path.resolve(
     import.meta.dirname,
     '../../protected-local-node/target/debug',
@@ -145,7 +143,8 @@ describe('Stage 1 Electron protected AgentSession + Rust HarnessSecurity smoke',
     }
   });
 
-  it('executes real Rust Win32 Job Object and NTFS handle guards via compiled N-API addon', async () => {
+  // The addon includes the protected Desktop carrier, which builds only on macOS and Windows.
+  it.runIf(process.platform === 'win32' || process.platform === 'darwin')('exercises native workspace guards and Windows Job Objects through the compiled N-API addon', async () => {
     const addon = loadCompiledNativeAddon() as unknown as NimiElectronHarnessSecurityBinding;
     const security = createNimiElectronHarnessSecurityHost(addon);
     const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-electron-harness-sec-'));
