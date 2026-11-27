@@ -1,48 +1,110 @@
-import { generatedBy, languages, readYaml, writeJson } from './context.mjs';
+import path from 'node:path';
+import YAML from 'yaml';
+import { generatedBy, languages, readText, readYaml, relPath, repoRoot, writeJson } from './context.mjs';
 
 const ERROR_CODE_PATTERN = /^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*$/u;
+const DEFAULT_ERROR_CODES_SOURCE_PATH = 'config/sdks-error-codes.yaml';
 
-export function extractErrorCodes() {
-  const table = readYaml('config/sdks-error-codes.yaml');
-  const values = Array.isArray(table?.values) ? table.values.map(String) : [];
-  const codes = Array.isArray(table?.codes) ? table.codes : [];
-  const codeNames = codes.map((entry) => String(entry?.name ?? ''));
-  assertClosedErrorCodeTable(values, codeNames);
+function isRecord(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function assertNoHandMaintainedValues(sourcePath, visiting = new Set()) {
+  const normalized = sourcePath.replaceAll('\\', '/');
+  if (visiting.has(normalized)) {
+    throw new Error(`${normalized} contains a circular fragment reference`);
+  }
+  visiting.add(normalized);
+  try {
+    const raw = YAML.parse(readText(normalized));
+    if (!isRecord(raw)) {
+      throw new Error(`${normalized} must be a YAML mapping`);
+    }
+    if (Object.prototype.hasOwnProperty.call(raw, 'values')) {
+      throw new Error(`${normalized} must not declare hand-maintained values; values are derived from codes`);
+    }
+    if (!isRecord(raw.fragments)) {
+      return;
+    }
+    if (Object.prototype.hasOwnProperty.call(raw.fragments, 'values')) {
+      throw new Error(`${normalized} must not declare hand-maintained values fragments; values are derived from codes`);
+    }
+    if (!Object.prototype.hasOwnProperty.call(raw.fragments, 'codes')) {
+      return;
+    }
+    const refs = Array.isArray(raw.fragments.codes) ? raw.fragments.codes : [raw.fragments.codes];
+    const baseDir = path.dirname(path.join(repoRoot, normalized));
+    for (const ref of refs) {
+      const relativeRef = String(ref || '').trim();
+      if (!relativeRef) {
+        throw new Error(`empty fragment reference for codes in ${normalized}`);
+      }
+      const fragmentRel = relPath(path.resolve(baseDir, relativeRef));
+      assertNoHandMaintainedValues(fragmentRel, visiting);
+    }
+  } finally {
+    visiting.delete(normalized);
+  }
+}
+
+export function buildErrorCodesManifest(table, sourcePath = DEFAULT_ERROR_CODES_SOURCE_PATH) {
+  const normalized = sourcePath.replaceAll('\\', '/');
+  if (!isRecord(table)) {
+    throw new Error(`${normalized} must resolve to a YAML mapping`);
+  }
+  if (Object.prototype.hasOwnProperty.call(table, 'values')) {
+    throw new Error(`${normalized} must not declare hand-maintained values; values are derived from codes`);
+  }
+  const codes = Array.isArray(table.codes) ? table.codes : [];
+  const values = assertClosedErrorCodeRows(codes, normalized);
   return {
     contract: 'nimi.sdks.error-codes-manifest.v1',
     generated_by: generatedBy,
     source_kind: 'sdks_spec_table',
-    source_paths: ['config/sdks-error-codes.yaml'],
+    source_paths: [normalized],
     values,
     codes,
   };
 }
 
-function assertClosedErrorCodeTable(values, codeNames) {
-  if (values.length === 0 || codeNames.length === 0) {
-    throw new Error('config/sdks-error-codes.yaml must declare non-empty values and codes');
+export function extractErrorCodes(sourcePath = DEFAULT_ERROR_CODES_SOURCE_PATH) {
+  assertNoHandMaintainedValues(sourcePath);
+  const table = readYaml(sourcePath);
+  return buildErrorCodesManifest(table, sourcePath);
+}
+
+function assertClosedErrorCodeRows(codes, sourcePath) {
+  if (codes.length === 0) {
+    throw new Error(`${sourcePath} must declare non-empty codes`);
   }
-  for (const [label, entries] of [['values', values], ['codes', codeNames]]) {
-    const seen = new Set();
-    for (const entry of entries) {
-      if (!ERROR_CODE_PATTERN.test(entry)) {
-        throw new Error(`config/sdks-error-codes.yaml ${label} entry is not UPPER_SNAKE_CASE: ${entry || '<empty>'}`);
-      }
-      if (seen.has(entry)) {
-        throw new Error(`config/sdks-error-codes.yaml duplicate ${label} entry: ${entry}`);
-      }
-      seen.add(entry);
+  const values = [];
+  const seen = new Set();
+  for (const [index, entry] of codes.entries()) {
+    if (!isRecord(entry)) {
+      throw new Error(`${sourcePath} codes[${index}] must be a mapping`);
     }
+    const name = typeof entry.name === 'string' ? entry.name : '';
+    if (!ERROR_CODE_PATTERN.test(name)) {
+      throw new Error(`${sourcePath} codes entry is not UPPER_SNAKE_CASE: ${name || '<empty>'}`);
+    }
+    if (seen.has(name)) {
+      throw new Error(`${sourcePath} duplicate codes entry: ${name}`);
+    }
+    const family = typeof entry.family === 'string' ? entry.family : '';
+    if (!ERROR_CODE_PATTERN.test(family)) {
+      throw new Error(`${sourcePath} codes entry ${name} has invalid family: ${family || '<empty>'}`);
+    }
+    const sourceRule = typeof entry.source_rule === 'string' ? entry.source_rule.trim() : '';
+    if (!sourceRule) {
+      throw new Error(`${sourcePath} codes entry ${name} is missing source_rule`);
+    }
+    if (entry.note !== undefined && (typeof entry.note !== 'string' || entry.note.trim().length === 0)) {
+      throw new Error(`${sourcePath} codes entry ${name} has invalid note`);
+    }
+    seen.add(name);
+    values.push(name);
   }
-  const valueSet = new Set(values);
-  const codeNameSet = new Set(codeNames);
-  const missingRows = values.filter((value) => !codeNameSet.has(value));
-  const missingValues = codeNames.filter((name) => !valueSet.has(name));
-  if (missingRows.length > 0 || missingValues.length > 0) {
-    throw new Error(
-      `config/sdks-error-codes.yaml values/codes mismatch: missing rows=${missingRows.join(',') || '<none>'}; missing values=${missingValues.join(',') || '<none>'}`,
-    );
-  }
+  return values;
 }
 
 export function buildExportManifest(runtime, realm, errorCodes) {

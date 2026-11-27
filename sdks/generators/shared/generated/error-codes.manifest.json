@@ -292,11 +292,6 @@
       "source_rule": "S-ERROR-003"
     },
     {
-      "name": "SDK_ADAPTER_FEATURE_UNSUPPORTED",
-      "family": "SDK_ADAPTER",
-      "source_rule": "S-ERROR-003"
-    },
-    {
       "name": "SDK_TRANSPORT_INVALID",
       "family": "SDK_CONFIG",
       "source_rule": "S-ERROR-003"
@@ -429,6 +424,11 @@
     {
       "name": "SDK_MOD_HOST_MISSING",
       "family": "SDK_MOD",
+      "source_rule": "S-ERROR-003"
+    },
+    {
+      "name": "SDK_ADAPTER_FEATURE_UNSUPPORTED",
+      "family": "SDK_ADAPTER",
       "source_rule": "S-ERROR-003"
     },
     {

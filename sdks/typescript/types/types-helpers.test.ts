@@ -1,8 +1,14 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { CoreClient } from '../core-client';
+import { RealmGeneratedClient } from '../core-generated/realm-client';
+import { RuntimeGeneratedClient } from '../core-generated/runtime-client';
+import { getRuntimeWireCodec } from '../runtime/generated';
 import {
   ReasonCode,
   asJsonObject,
+  asNimiError,
   createNimiClientId,
   createNimiUlid,
   createOfflineNimiError,
@@ -132,5 +138,96 @@ test('SDK types create cryptographic Nimi client ids', () => {
       configurable: true,
       value: originalCrypto,
     });
+  }
+});
+
+test('derived SDK error-code manifests stay synchronized with category rows and thrown public errors', () => {
+  type ErrorCodeRow = {
+    readonly name: string;
+    readonly family: string;
+    readonly source_rule: string;
+    readonly note?: string;
+  };
+  type ErrorCodesManifest = {
+    readonly values: readonly string[];
+    readonly codes: readonly ErrorCodeRow[];
+  };
+
+  const tsManifest = JSON.parse(
+    readFileSync(new URL('../core-generated/error-codes.manifest.json', import.meta.url), 'utf8'),
+  ) as ErrorCodesManifest;
+  const sharedManifest = JSON.parse(
+    readFileSync(new URL('../../generators/shared/generated/error-codes.manifest.json', import.meta.url), 'utf8'),
+  ) as ErrorCodesManifest;
+
+  assert.deepEqual(tsManifest.values, sharedManifest.values);
+  assert.deepEqual(tsManifest.codes, sharedManifest.codes);
+  assert.deepEqual(
+    tsManifest.values,
+    tsManifest.codes.map((entry) => entry.name),
+  );
+  assert.equal(tsManifest.codes.length, 243);
+
+  const byName = new Map(tsManifest.codes.map((entry) => [entry.name, entry]));
+  assert.deepEqual(byName.get('SDK_ADAPTER_FEATURE_UNSUPPORTED'), {
+    name: 'SDK_ADAPTER_FEATURE_UNSUPPORTED',
+    family: 'SDK_ADAPTER',
+    source_rule: 'S-ERROR-003',
+  });
+  assert.equal(tsManifest.values[8], 'SDK_TRANSPORT_INVALID');
+  assert.equal(tsManifest.values[34], 'SDK_MOD_HOST_MISSING');
+  assert.equal(tsManifest.values[35], 'SDK_ADAPTER_FEATURE_UNSUPPORTED');
+  assert.equal(tsManifest.values[36], 'SDK_AI_PROVIDER_BASE64_UNAVAILABLE');
+  assert.equal(byName.get(ReasonCode.OPERATION_ABORTED)?.family, 'SDK_SYNTHETIC_REASON');
+  assert.equal(byName.get(ReasonCode.RUNTIME_UNAVAILABLE)?.family, 'SDK_SYNTHETIC_REASON');
+  assert.equal(byName.get(ReasonCode.RUNTIME_BRIDGE_DAEMON_UNAVAILABLE)?.family, 'SDK_SYNTHETIC_REASON');
+
+  const stubCore = new CoreClient({
+    transport: {
+      async unary() {
+        throw new Error('unused');
+      },
+      async *serverStream() {
+        throw new Error('unused');
+      },
+    },
+  });
+  const runtimeClient = new RuntimeGeneratedClient(stubCore);
+  const realmClient = new RealmGeneratedClient(stubCore);
+
+  const thrownCases: ReadonlyArray<{
+    readonly invoke: () => unknown;
+    readonly expectedCode: string;
+    readonly expectedFamily: string;
+  }> = [
+    {
+      invoke: () => getRuntimeWireCodec('/nimi.runtime.v1.NonExistent/Missing'),
+      expectedCode: 'SDK_RUNTIME_CODEC_MISSING',
+      expectedFamily: 'SDK_RUNTIME',
+    },
+    {
+      invoke: () => runtimeClient.describe('/nimi.runtime.v1.NonExistent/Missing'),
+      expectedCode: 'SDK_RUNTIME_METHOD_UNAVAILABLE',
+      expectedFamily: 'SDK_CONFIG',
+    },
+    {
+      invoke: () => realmClient.describe('non_existent_operation'),
+      expectedCode: 'SDK_REALM_CONFIG_INVALID',
+      expectedFamily: 'SDK_REALM',
+    },
+  ];
+
+  for (const testCase of thrownCases) {
+    let caught: unknown;
+    try {
+      testCase.invoke();
+    } catch (error) {
+      caught = error;
+    }
+    const normalized = asNimiError(caught, { source: 'sdk' });
+    assert.equal(normalized.code, testCase.expectedCode);
+    assert.equal(extractNimiErrorFields(caught).code, testCase.expectedCode);
+    assert.ok(tsManifest.values.includes(testCase.expectedCode));
+    assert.equal(byName.get(testCase.expectedCode)?.family, testCase.expectedFamily);
   }
 });

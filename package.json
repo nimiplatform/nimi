@@ -122,7 +122,7 @@
     "check:license-file-map": "node scripts/check-license-headers.mjs",
     "check:package-license-matrix": "node scripts/check-package-license-matrix.mjs",
     "check:sdk-version-matrix": "node scripts/check-sdk-version-matrix.mjs",
-    "check:sdks-generators": "node --test sdks/generators/lib/context.test.mjs sdks/generators/lib/runtime-proto.test.mjs sdks/generators/lib/types.test.mjs && node sdks/generators/generate.mjs --check",
+    "check:sdks-generators": "node --test sdks/generators/lib/context.test.mjs sdks/generators/lib/manifests.test.mjs sdks/generators/lib/runtime-proto.test.mjs sdks/generators/lib/types.test.mjs && node sdks/generators/generate.mjs --check",
     "check:sdks-conformance-typed-core": "node sdks/conformance/run.mjs --language typescript --profile typed-core",
     "check:sdk-vnext-runtime-consumer-smoke": "node scripts/check-sdk-vnext-runtime-consumer-smoke.mjs",
     "check:sdk-vnext-public-surface-smoke": "node scripts/check-sdk-vnext-public-surface-smoke.mjs",
