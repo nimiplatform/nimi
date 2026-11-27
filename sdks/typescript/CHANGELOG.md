@@ -2,6 +2,10 @@
 
 # SDK migration notes
 
+## 0.24.0-rc.12 — Local candidate
+
+The public Runtime client exposes Agent sessions and limits ordinary Apps to their admitted methods. Home reads machine inventory and health through its machine product client. Native Apps using the retired Tauri IPC transport must migrate to the Electron integration. See the [component migration notes](../../RELEASE.md#migration-for-the-next-component-releases).
+
 ## 0.24.0-rc.11 — Remote Agent work
 
 An ordinary App with an admitted `agent.work` declaration can use `scope.client.agentWork` to select an Agent, start bounded work, observe its execution, return App tool results and cancel. This requires a primary PC Runtime build that admits all eight Agent Work RPCs on its direct carrier. Earlier direct hosts return `LOCAL_APP_OPERATION_UNSUPPORTED`. After connection loss, read the App's saved results using the new scope and require an explicit new request before starting more work.

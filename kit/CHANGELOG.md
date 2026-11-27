@@ -2,6 +2,10 @@
 
 # Changelog
 
+## 0.24.0-rc.19 — Local candidate
+
+The Kit package targets SDK `^0.24.0-rc.12` and matching `0.24.0-rc.19` native carriers. Native Apps importing `./shell/renderer/tauri` must move to the Electron renderer integration. See the [component migration notes](../RELEASE.md#migration-for-the-next-component-releases).
+
 ## Unreleased — Account changes in idle desktop Apps
 
 The protected Electron App Host now observes the end of its existing Runtime session while the App is idle. `onSessionInvalidated` lets the App retire old windows, file previews, and work before admitting the next account. Ship the matching native carrier and Runtime implementing the Host-private `WaitLocalAppSessionEnd` operation with this Kit. The renderer continues to use its existing App session API.

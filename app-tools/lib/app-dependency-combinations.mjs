@@ -10,6 +10,7 @@ const SDK = '@nimiplatform/sdk';
 const KIT = '@nimiplatform/kit';
 
 export const ADDITIONAL_DEPENDENCY_COMBINATIONS = Object.freeze([
+  Object.freeze({ sdkVersion: '^0.24.0-rc.11', kitVersion: '^0.24.0-rc.18', source: 'existing' }),
   Object.freeze({ sdkVersion: '^0.24.0-rc.10', kitVersion: '^0.24.0-rc.16', source: 'existing' }),
   Object.freeze({ sdkVersion: '^0.24.0-rc.7', kitVersion: '^0.24.0-rc.11', source: 'existing' }),
   Object.freeze({ sdkVersion: '^0.24.0-rc.2', kitVersion: '^0.24.0-rc.1', source: 'existing' }),

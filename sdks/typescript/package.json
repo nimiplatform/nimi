@@ -1,6 +1,6 @@
 {
   "name": "@nimiplatform/sdk",
-  "version": "0.24.0-rc.11",
+  "version": "0.24.0-rc.12",
   "description": "TypeScript SDK for Nimi apps and integrations.",
   "private": false,
   "license": "Apache-2.0",
