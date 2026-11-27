@@ -46,3 +46,27 @@ test('unproven or changed Account identity retires partner management navigation
   assert.equal(app.navigation.getSnapshot().canGoBack, false);
   app.navigation.dispose();
 });
+
+test('Runtime bootstrap clears the previous account view before admitting a different account', () => {
+  const app = store();
+  const a = { ...projection('authenticated', 'account-a'), user: { id: 'account-a', realmEnvironmentId: 'realm-a' } };
+  app.getState().applyRuntimeAccountProjection(a);
+  app.getState().setHomePartnerDraft('account-a', 'partner-a', 'Draft for A');
+  app.getState().setProfileDetailOverlayOpen(true);
+
+  app.getState().applyRuntimeAccountProjection(projection('unavailable'));
+  app.getState().setAuthBootstrapping();
+  app.getState().applyRuntimeAccountProjection(a);
+  assert.equal(Object.values(app.getState().homePartnerDrafts)[0], 'Draft for A');
+
+  app.getState().applyRuntimeAccountProjection(projection('unavailable'));
+  app.getState().setAuthBootstrapping();
+  app.getState().applyRuntimeAccountProjection({
+    ...projection('authenticated', 'account-b'),
+    user: { id: 'account-b', realmEnvironmentId: 'realm-a' },
+    authorizationRevision: 'authorization-b',
+  });
+  assert.deepEqual(app.getState().homePartnerDrafts, {});
+  assert.equal(app.getState().profileDetailOverlayOpen, false);
+  app.navigation.dispose();
+});

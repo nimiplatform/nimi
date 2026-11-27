@@ -174,15 +174,21 @@ describe('Desktop Electron local-development registration host', () => {
       const stop = internal.stopRun.bind(internal);
       const stopping = stop(run, 'stopped');
       const stopResult = stopping.catch(error => error as Error);
-      await cleanupStarted.promise;
+      await Promise.race([
+        cleanupStarted.promise,
+        stopping.then(() => assert.fail('Stop completed before terminating the old Host')),
+      ]);
       internal.stopRun = (old, state) => {
         restartWaiting.resolve();
         return stop(old, state);
       };
-      const starting = internal.startIntent('nimi.day', appRoot, 'electron', undefined, true, HANDLE);
+      const starting = internal.startIntent(resolved.appId, resolved.projectRoot, 'electron', undefined, true, HANDLE);
       const startResult = starting.catch(error => error as Error);
       try {
-        await restartWaiting.promise;
+        await Promise.race([
+          restartWaiting.promise,
+          starting.then(() => assert.fail('the new launch completed before waiting for Stop')),
+        ]);
         assert.deepEqual(order, [], 'the old Host still owns its process and lease');
       } finally {
         releaseCleanup.resolve();

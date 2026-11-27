@@ -106,11 +106,6 @@ func (s *Service) refreshAccountSessionLocked(ctx context.Context, force bool, r
 	if !force && s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED &&
 		strings.TrimSpace(current.AccessToken) != "" &&
 		(current.AccessTokenExpires.IsZero() || current.AccessTokenExpires.After(s.now().UTC().Add(30*time.Second))) {
-		if s.stateReason == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED {
-			s.stateReason = runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED
-			s.refreshRetryAttempt = 0
-			s.rebuildRefreshTimerLocked()
-		}
 		projection := cloneProjection(s.projection)
 		s.mu.Unlock()
 		return &refreshAccountSessionResult{
@@ -338,12 +333,7 @@ func (s *Service) failRefreshAndClearCustody(
 	markedCurrent AccountMaterial,
 	reason runtimev1.AccountReasonCode,
 ) *refreshAccountSessionResult {
-	cleanupCtx := custodyCleanupContext(ctx)
-	if err := s.custody.Clear(cleanupCtx, s.partition); err != nil {
-		// Best-effort durable revocation fence when delete fails so restart
-		// recovery never mistakes a confirmed revocation for an unrevoked
-		// in-flight refresh crash fence.
-		_ = s.custody.Store(cleanupCtx, s.partition, pendingRevocationMaterial(markedCurrent))
+	if s.clearCustody(ctx, markedCurrent) != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED {
 		s.markCustodyUnavailable()
 		return &refreshAccountSessionResult{
 			accepted:          false,

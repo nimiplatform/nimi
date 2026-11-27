@@ -110,16 +110,16 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
       accountReasonCode: 0,
       authorizationRevision: '',
     },
-    setAuthBootstrapping: () => {
-      lastEstablishedIdentity = null;
-      set((state) => ({
+    setAuthBootstrapping: () => set((state) => {
+      lastEstablishedIdentity = establishedIdentityOf(state.auth) ?? lastEstablishedIdentity;
+      return {
         auth: {
           ...state.auth,
           status: 'bootstrapping',
           authorizationRevision: '',
         },
-      }));
-    },
+      };
+    }),
     applyRuntimeAccountProjection: (projection) =>
       set((state) => {
         // @nimi-authority: rule.nimi.desktop.shell-runtime.r011
@@ -158,8 +158,7 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
           const previousContinuous = isContinuousAuthStatus(state.auth.status);
           const identityChanged = previousContinuous
             ? !continuous
-            : state.auth.status === 'unavailable' && lastEstablishedIdentity !== null
-              && !sameEstablishedIdentity(lastEstablishedIdentity, nextIdentity);
+            : lastEstablishedIdentity !== null && !sameEstablishedIdentity(lastEstablishedIdentity, nextIdentity);
           lastEstablishedIdentity = nextIdentity;
           if (identityChanged) {
             return { auth, ...createAccountScopedViewStateReset() };

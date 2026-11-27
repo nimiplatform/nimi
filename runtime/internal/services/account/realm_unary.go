@@ -436,12 +436,13 @@ func (s *Service) invalidateAccountAfterRealmUnauthorized(ctx context.Context, g
 	s.identityMutationMu.Lock()
 	defer s.identityMutationMu.Unlock()
 	s.mu.RLock()
-	current := s.accountGeneration == generation && s.material.AccessToken == rejectedToken
+	material := s.material
+	current := s.accountGeneration == generation && material.AccessToken == rejectedToken
 	s.mu.RUnlock()
 	if !current {
 		return
 	}
-	if err := s.custody.Clear(ctx, s.partition); err != nil {
+	if s.clearCustody(ctx, material) != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED {
 		s.markCustodyUnavailable()
 		return
 	}

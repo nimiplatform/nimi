@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptrace"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -25,13 +26,13 @@ func stopAccountRefreshTimer(t *testing.T, service *Service) {
 
 func TestRefreshFailureDispositionControlsCustodyAndAccountState(t *testing.T) {
 	tests := []struct {
-		name              string
-		disposition       refreshFailureDisposition
-		state             runtimev1.AccountSessionState
-		reason            runtimev1.ReasonCode
-		accountReason     runtimev1.AccountReasonCode
-		retainsToken      bool
-		clearsOnlineOnly  bool
+		name             string
+		disposition      refreshFailureDisposition
+		state            runtimev1.AccountSessionState
+		reason           runtimev1.ReasonCode
+		accountReason    runtimev1.AccountReasonCode
+		retainsToken     bool
+		clearsOnlineOnly bool
 	}{
 		{name: "not dispatched", disposition: refreshFailurePreDispatch, state: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED, reason: runtimev1.ReasonCode_REALM_UNAVAILABLE, accountReason: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED, retainsToken: true},
 		{name: "token invalid", disposition: refreshFailureTokenInvalid, state: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED, reason: runtimev1.ReasonCode_AUTH_TOKEN_INVALID, accountReason: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_TOKEN_INVALID},
@@ -128,6 +129,54 @@ func TestDeferredRefreshPreservesLocalIdentityWhenAccessTokenPassesExpiry(t *tes
 		service.events[len(service.events)-1].GetEventType() != runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS {
 		t.Fatalf("offline deferred refresh events = %+v", service.events)
 	}
+}
+
+func TestScheduledRetryRefreshesRejectedAccessTokenBeforeExpiry(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		current := testMaterial("acct-refresh", "access-rejected", "refresh-old")
+		current.AccessTokenExpires = time.Now().Add(time.Hour)
+		custody := &refreshRestartProofCustody{material: current, has: true}
+		calls := 0
+		service := New(nil,
+			WithProductionActivation(),
+			WithCustody(custody),
+			WithCustodyPartition("refresh-rejected-before-expiry"),
+			WithRefresher(funcAccountRefresher{fn: func(_ context.Context, material AccountMaterial) (AccountMaterial, error) {
+				calls++
+				if calls == 1 {
+					return AccountMaterial{}, newRefreshFailure(refreshFailurePreDispatch, errors.New("offline"))
+				}
+				material.AccessToken = "access-rotated"
+				material.RefreshToken = "refresh-rotated"
+				return material, nil
+			}}),
+		)
+		stopAccountRefreshTimer(t, service)
+		_, generation, _, ok := service.BindAuthenticatedRuntimeGeneration(context.Background())
+		if !ok {
+			t.Fatal("expected a current Runtime identity")
+		}
+		result, err := service.refreshAccountSessionAfterUnauthorized(context.Background(), current.AccessToken, generation)
+		if err != nil || result.accountReasonCode != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED {
+			t.Fatalf("refresh after unauthorized = (%+v, %v), want deferred refresh", result, err)
+		}
+		service.mu.RLock()
+		deferredSequence := service.nextSequence
+		service.mu.RUnlock()
+		time.Sleep(2 * time.Second)
+		synctest.Wait()
+		service.mu.RLock()
+		defer service.mu.RUnlock()
+		if calls != 2 || service.material.AccessToken != "access-rotated" {
+			t.Fatalf("scheduled retry did not rotate the rejected token, calls=%d", calls)
+		}
+		for _, event := range service.events {
+			if event.GetSequence() > deferredSequence && event.GetEventType() == runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_COMPLETED {
+				return
+			}
+		}
+		t.Fatal("scheduled retry did not publish refresh completion")
+	})
 }
 
 func TestRealmTokenRefresherDistinguishesNotSentFromUncertainDispatch(t *testing.T) {

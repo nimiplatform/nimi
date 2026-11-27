@@ -482,6 +482,50 @@ func TestOfflineExplicitLogoutAndSwitchAccountClearLocalIdentityImmediately(t *t
 	}
 }
 
+func TestFailedExplicitCustodyClearDoesNotRestoreTheOldAccountOnRestart(t *testing.T) {
+	for _, action := range []string{"logout", "switch"} {
+		t.Run(action, func(t *testing.T) {
+			custody := &refreshRestartProofCustody{
+				material: testMaterial("acct-offline", "access-old", "refresh-old"),
+				has:      true,
+				clearErr: ErrCustodyUnavailable,
+			}
+			options := []Option{WithCustody(custody), WithCustodyPartition("failed-clear-" + action)}
+			svc := newHarnessService(t, nil, options...)
+			stopAccountRefreshTimer(t, svc)
+			_, _, fence, ok := svc.BindAuthenticatedRuntimeGeneration(context.Background())
+			if !ok {
+				t.Fatal("expected a trusted account before revocation")
+			}
+			if action == "logout" {
+				result, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: desktopAccountControlCaller()})
+				if err != nil || result.GetAccepted() || result.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE {
+					t.Fatalf("Logout = (%+v, %v), want custody unavailable", result, err)
+				}
+			} else {
+				result, err := svc.SwitchAccount(context.Background(), &runtimev1.SwitchAccountRequest{Caller: desktopAccountControlCaller()})
+				if err != nil || result.GetAccepted() || result.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE {
+					t.Fatalf("SwitchAccount = (%+v, %v), want custody unavailable", result, err)
+				}
+			}
+			if !custody.material.PendingRevocation || custody.material.AccessToken != "" || custody.material.RefreshToken != "" {
+				t.Fatal("failed deletion did not replace the credential with a revocation fence")
+			}
+			select {
+			case <-fence:
+			default:
+				t.Fatal("old local authorization stayed active")
+			}
+			custody.clearErr = nil
+			restarted := newHarnessService(t, nil, options...)
+			stopAccountRefreshTimer(t, restarted)
+			if _, _, _, live := restarted.BindAuthenticatedRuntimeGeneration(context.Background()); live || custody.has {
+				t.Fatal("restart restored revoked credentials")
+			}
+		})
+	}
+}
+
 type contextCheckingCustody struct {
 	refreshRestartProofCustody
 }

@@ -475,7 +475,8 @@ func (s *Service) SwitchAccount(ctx context.Context, req *runtimev1.SwitchAccoun
 		s.mu.Unlock()
 		return &runtimev1.SwitchAccountResponse{Accepted: false, State: state, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE}, nil
 	}
-	accountID := strings.TrimSpace(s.material.AccountID)
+	currentMaterial := s.material
+	accountID := strings.TrimSpace(currentMaterial.AccountID)
 	s.mu.Unlock()
 	var failureReason runtimev1.AccountReasonCode
 	committed, auditErr := s.commitRecorded(ctx, "account.switch", accountID, nil, func() error {
@@ -484,7 +485,7 @@ func (s *Service) SwitchAccount(ctx context.Context, req *runtimev1.SwitchAccoun
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_SWITCHING
 		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_STARTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 		s.mu.Unlock()
-		failureReason = s.clearCustody(ctx)
+		failureReason = s.clearCustody(ctx, currentMaterial)
 		s.mu.Lock()
 		s.clearAuthenticatedRuntimeIdentityLocked()
 		if failureReason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED {
@@ -731,7 +732,8 @@ func (s *Service) logout(ctx context.Context, reason runtimev1.AccountReasonCode
 		s.mu.Unlock()
 		return &runtimev1.LogoutResponse{Accepted: true, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED}, nil
 	}
-	accountID := strings.TrimSpace(s.material.AccountID)
+	currentMaterial := s.material
+	accountID := strings.TrimSpace(currentMaterial.AccountID)
 	s.mu.Unlock()
 	var failureReason runtimev1.AccountReasonCode
 	committed, auditErr := s.commitRecorded(ctx, "account.logout", accountID, nil, func() error {
@@ -740,7 +742,7 @@ func (s *Service) logout(ctx context.Context, reason runtimev1.AccountReasonCode
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGGING_OUT
 		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_STARTED, reason)
 		s.mu.Unlock()
-		failureReason = s.clearCustody(ctx)
+		failureReason = s.clearCustody(ctx, currentMaterial)
 		s.mu.Lock()
 		s.clearAuthenticatedRuntimeIdentityLocked()
 		if failureReason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED {
@@ -776,9 +778,7 @@ func (s *Service) invalidateAuthenticatedIdentityAfterFailedLogin(
 	reason runtimev1.AccountReasonCode,
 ) bool {
 	if hadAuthenticatedIdentity {
-		cleanupCtx := custodyCleanupContext(ctx)
-		if err := s.custody.Clear(cleanupCtx, s.partition); err != nil {
-			_ = s.custody.Store(cleanupCtx, s.partition, pendingRevocationMaterial(currentMaterial))
+		if s.clearCustody(ctx, currentMaterial) != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED {
 			s.markCustodyUnavailable()
 			return true
 		}
@@ -787,8 +787,14 @@ func (s *Service) invalidateAuthenticatedIdentityAfterFailedLogin(
 	return false
 }
 
-func (s *Service) clearCustody(ctx context.Context) runtimev1.AccountReasonCode {
-	if err := s.custody.Clear(ctx, s.partition); err != nil {
+func (s *Service) clearCustody(ctx context.Context, current AccountMaterial) runtimev1.AccountReasonCode {
+	cleanupCtx := custodyCleanupContext(ctx)
+	if err := s.custody.Clear(cleanupCtx, s.partition); err != nil {
+		// The caller still reports unavailable. When a write remains possible,
+		// replace the old credentials with a restart-safe revocation fence.
+		if current.AccountID != "" {
+			_ = s.custody.Store(cleanupCtx, s.partition, pendingRevocationMaterial(current))
+		}
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE
 	}
 	return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED

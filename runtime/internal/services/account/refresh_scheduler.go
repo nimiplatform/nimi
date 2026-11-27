@@ -84,14 +84,26 @@ func (s *Service) rebuildRefreshTimerLocked() {
 	if !replayRealmDeletion && s.logger != nil {
 		s.logger.Info("runtime account refresh scheduled", "cause", string(cause), "state", s.state.String(), "delay_ms", delay.Milliseconds())
 	}
-	s.refreshTimer = time.AfterFunc(delay, func() {
+	var timer *time.Timer
+	timer = time.AfterFunc(delay, func() {
 		if replayRealmDeletion {
 			if err := s.replayPendingRealmAccountDeletedResult(context.Background()); err != nil && s.logger != nil {
 				s.logger.Warn("runtime account terminal deletion replay deferred", "error", err)
 			}
 			return
 		}
-		result, err := s.refreshAccountSessionForRejectedToken(context.Background(), false, "", cause, nil)
+		s.identityMutationMu.Lock()
+		s.mu.RLock()
+		current := s.refreshTimer == timer
+		s.mu.RUnlock()
+		if !current {
+			s.identityMutationMu.Unlock()
+			return
+		}
+		// A deferred retry continues a refresh already required by the owner,
+		// even if Realm rejected an access token with a future expiry.
+		result, err := s.refreshAccountSessionLocked(context.Background(), cause == accountRefreshScheduledRetry, "", cause, nil)
+		s.identityMutationMu.Unlock()
 		if err != nil && s.logger != nil {
 			s.logger.Warn("runtime account scheduled refresh failed", "error", err)
 			return
@@ -100,4 +112,5 @@ func (s *Service) rebuildRefreshTimerLocked() {
 			s.logger.Debug("runtime account scheduled refresh deferred or rejected", "state", result.state.String(), "reason", result.accountReasonCode.String())
 		}
 	})
+	s.refreshTimer = timer
 }
