@@ -41,13 +41,123 @@ const SHELL_CRATES = [
   { name: 'nimi-shell-protected-local', path: 'kit/shell/protected-local/Cargo.toml' },
   { name: 'nimi-shell-protected-local-node', path: 'kit/shell/protected-local-node/Cargo.toml' },
 ];
-const PUBLIC_RUNTIME_SURFACE_PATHS = [
-  'sdks/typescript/runtime/index.ts',
-  'sdks/typescript/runtime/runtime-types.ts',
-  'sdks/typescript/runtime/runtime-facade-types.ts',
-  'sdks/typescript/types/index.ts',
-];
 const PUBLIC_REPOSITORY_URL = 'https://github.com/nimiplatform/nimi';
+
+export function resolvePublicRuntimeSurfacePaths(sdkExports, sdkPackagePath = SDK_PACKAGE_PATH) {
+  if (!sdkExports || typeof sdkExports !== 'object') {
+    return [];
+  }
+  const paths = new Set();
+  for (const [subpath, target] of Object.entries(sdkExports)) {
+    if (
+      subpath !== './runtime'
+      && !subpath.startsWith('./runtime/')
+      && subpath !== './types'
+      && !subpath.startsWith('./types/')
+    ) {
+      continue;
+    }
+    const rawTarget = typeof target === 'string'
+      ? target
+      : (target?.types || target?.import || target?.default || '');
+    const normalized = String(rawTarget || '').trim().replaceAll('\\', '/');
+    const distMatch = normalized.match(/^\.\/dist\/(.+?)(?:\.d\.ts|\.js)$/u);
+    if (!distMatch) {
+      continue;
+    }
+    paths.add(path.posix.join(sdkPackagePath, `${distMatch[1]}.ts`));
+  }
+  return [...paths].sort((left, right) => left.localeCompare(right));
+}
+
+export function parseSemver(version) {
+  const match = String(version || '').trim().match(
+    /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/u,
+  );
+  if (!match) {
+    return null;
+  }
+  return {
+    major: Number(match[1]),
+    minor: Number(match[2]),
+    patch: Number(match[3]),
+    prerelease: match[4] ? match[4].split('.') : [],
+  };
+}
+
+export function compareSemver(leftVersion, rightVersion) {
+  const left = parseSemver(leftVersion);
+  const right = parseSemver(rightVersion);
+  if (!left || !right) {
+    return String(leftVersion || '').localeCompare(String(rightVersion || ''));
+  }
+  for (const field of ['major', 'minor', 'patch']) {
+    if (left[field] !== right[field]) {
+      return left[field] - right[field];
+    }
+  }
+  const leftPre = left.prerelease;
+  const rightPre = right.prerelease;
+  if (leftPre.length === 0 && rightPre.length === 0) return 0;
+  if (leftPre.length === 0) return 1;
+  if (rightPre.length === 0) return -1;
+  const maxLen = Math.max(leftPre.length, rightPre.length);
+  for (let index = 0; index < maxLen; index += 1) {
+    if (index >= leftPre.length) return -1;
+    if (index >= rightPre.length) return 1;
+    const a = leftPre[index];
+    const b = rightPre[index];
+    if (a === b) continue;
+    const aNum = /^\d+$/u.test(a);
+    const bNum = /^\d+$/u.test(b);
+    if (aNum && bNum) return Number(a) - Number(b);
+    if (aNum) return -1;
+    if (bNum) return 1;
+    return a.localeCompare(b);
+  }
+  return 0;
+}
+
+export function selectLatestPublishedSdkRef(
+  tagEntries,
+  { override = '', headCommit = '', hasWorktreeSurfaceChanges = false } = {},
+) {
+  const normalizedOverride = String(override || '').trim();
+  if (normalizedOverride) {
+    return normalizedOverride;
+  }
+  const normalizedHead = String(headCommit || '').trim();
+  const candidates = [];
+  for (const entry of tagEntries || []) {
+    const ref = typeof entry === 'string' ? entry.trim() : String(entry?.ref || '').trim();
+    const commit = typeof entry === 'string' ? '' : String(entry?.commit || '').trim();
+    const match = ref.match(/^sdk\/v(.+)$/u);
+    if (!match || !parseSemver(match[1])) {
+      continue;
+    }
+    if (!hasWorktreeSurfaceChanges && normalizedHead && commit === normalizedHead) {
+      continue;
+    }
+    candidates.push({ ref, version: match[1] });
+  }
+  candidates.sort((left, right) => compareSemver(right.version, left.version));
+  return candidates[0]?.ref || '';
+}
+
+export function isRuntimeSurfaceVersionAdvanced(baseVersion, currentVersion) {
+  const base = parseSemver(baseVersion);
+  const current = parseSemver(currentVersion);
+  if (!base || !current) {
+    return false;
+  }
+  if (compareSemver(currentVersion, baseVersion) <= 0) {
+    return false;
+  }
+  if (base.prerelease.length > 0) {
+    return true;
+  }
+  return parseMajorMinor(baseVersion) !== parseMajorMinor(currentVersion);
+}
 
 function runGit(args) {
   const result = spawnSync(
@@ -66,8 +176,8 @@ function runGit(args) {
   };
 }
 
-function listGitPaths(args) {
-  const result = runGit(args);
+function listGitPaths(args, gitRunner = runGit) {
+  const result = gitRunner(args);
   if (result.status !== 0) {
     return [];
   }
@@ -116,12 +226,12 @@ function checkPublicPackageMetadata(violations, manifest, label, repositoryDirec
   }
 }
 
-function readPackageVersionFromGit(ref) {
+function readPackageVersionFromGit(ref, gitRunner = runGit) {
   const normalizedRef = String(ref || '').trim();
   if (!normalizedRef) {
     return '';
   }
-  const result = runGit(['show', `${normalizedRef}:${SDK_PACKAGE_PATH}/package.json`]);
+  const result = gitRunner(['show', `${normalizedRef}:${SDK_PACKAGE_PATH}/package.json`]);
   if (result.status !== 0) {
     return '';
   }
@@ -132,26 +242,63 @@ function readPackageVersionFromGit(ref) {
   }
 }
 
-function latestPublishedSdkRef() {
-  const override = String(process.env.NIMI_PUBLISHED_SDK_REF || '').trim();
-  if (override) return override;
-  return listGitPaths(['tag', '--merged', 'HEAD', '--list', 'sdk/v*', '--sort=-version:refname'])[0] || '';
+function listMergedSdkTagEntries(gitRunner = runGit) {
+  const result = gitRunner([
+    'for-each-ref',
+    '--merged',
+    'HEAD',
+    '--format=%(refname:short)\t%(*objectname)\t%(objectname)',
+    'refs/tags/sdk/v*',
+  ]);
+  if (result.status !== 0) {
+    return [];
+  }
+  return result.stdout
+    .split(/\r?\n/u)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [ref = '', peeled = '', objectName = ''] = line.split('\t');
+      return { ref: ref.trim(), commit: (peeled || objectName).trim() };
+    });
 }
 
-function isPrereleaseVersion(version) {
-  return String(version || '').includes('-');
+function latestPublishedSdkRef({
+  hasWorktreeSurfaceChanges = false,
+  override = process.env.NIMI_PUBLISHED_SDK_REF,
+  gitRunner = runGit,
+} = {}) {
+  const normalizedOverride = String(override || '').trim();
+  if (normalizedOverride) return normalizedOverride;
+  const headResult = gitRunner(['rev-parse', 'HEAD']);
+  const headCommit = headResult.status === 0 ? headResult.stdout.trim() : '';
+  return selectLatestPublishedSdkRef(listMergedSdkTagEntries(gitRunner), {
+    override: normalizedOverride,
+    headCommit,
+    hasWorktreeSurfaceChanges,
+  });
 }
 
-function detectRuntimeSurfaceVersionContext(currentVersion) {
-  const baseRef = latestPublishedSdkRef();
+export function detectRuntimeSurfaceVersionContext(
+  currentVersion,
+  surfacePaths,
+  { gitRunner = runGit, overrideRef = process.env.NIMI_PUBLISHED_SDK_REF } = {},
+) {
+  if (!Array.isArray(surfacePaths) || surfacePaths.length === 0) return null;
+  const worktreePaths = listGitPaths(['diff', '--name-only', 'HEAD', '--', ...surfacePaths], gitRunner);
+  const baseRef = latestPublishedSdkRef({
+    hasWorktreeSurfaceChanges: worktreePaths.length > 0,
+    override: overrideRef,
+    gitRunner,
+  });
   if (!baseRef) return null;
-  const committedPaths = listGitPaths(['diff', '--name-only', `${baseRef}...HEAD`, '--', ...PUBLIC_RUNTIME_SURFACE_PATHS]);
-  const worktreePaths = listGitPaths(['diff', '--name-only', 'HEAD', '--', ...PUBLIC_RUNTIME_SURFACE_PATHS]);
+  const committedPaths = listGitPaths(['diff', '--name-only', `${baseRef}...HEAD`, '--', ...surfacePaths], gitRunner);
   const changedSurfacePaths = [...new Set([...committedPaths, ...worktreePaths])];
   if (changedSurfacePaths.length === 0) return null;
-  const baseVersion = readPackageVersionFromGit(baseRef);
+  const baseVersion = readPackageVersionFromGit(baseRef, gitRunner);
   if (!baseVersion) return null;
   return {
+    baseRef,
     changedSurfacePaths,
     baseVersion,
     currentVersion,
@@ -357,12 +504,26 @@ async function main() {
     violations.push(`app-tools/package.json nimiScaffoldVersions.appToolsVersion must be "${expectedAppToolsRange}"`);
   }
   if (sdkPackage?.version) {
-    const runtimeSurfaceContext = detectRuntimeSurfaceVersionContext(sdkPackage.version);
-    const versionNotAdvanced = runtimeSurfaceContext && (
-      isPrereleaseVersion(runtimeSurfaceContext.baseVersion)
-        ? runtimeSurfaceContext.baseVersion === runtimeSurfaceContext.currentVersion
-        : parseMajorMinor(runtimeSurfaceContext.baseVersion) === parseMajorMinor(runtimeSurfaceContext.currentVersion)
+    const publicRuntimeSurfacePaths = resolvePublicRuntimeSurfacePaths(sdkPackage.pkg?.exports);
+    if (publicRuntimeSurfacePaths.length === 0) {
+      violations.push('@nimiplatform/sdk exports must declare public runtime/type surface paths');
+    }
+    for (const surfacePath of publicRuntimeSurfacePaths) {
+      try {
+        await fs.access(path.join(repoRoot, surfacePath));
+      } catch {
+        violations.push(`@nimiplatform/sdk exported runtime/type surface file missing: ${surfacePath}`);
+      }
+    }
+    const runtimeSurfaceContext = detectRuntimeSurfaceVersionContext(
+      sdkPackage.version,
+      publicRuntimeSurfacePaths,
     );
+    const versionNotAdvanced = runtimeSurfaceContext
+      && !isRuntimeSurfaceVersionAdvanced(
+        runtimeSurfaceContext.baseVersion,
+        runtimeSurfaceContext.currentVersion,
+      );
     if (runtimeSurfaceContext && versionNotAdvanced) {
       violations.push(
         `@nimiplatform/sdk public runtime surface changed in ${runtimeSurfaceContext.comparisonLabel} `
@@ -389,7 +550,9 @@ async function main() {
   );
 }
 
-main().catch((error) => {
-  process.stderr.write(`check-sdk-version-matrix failed: ${String(error)}\n`);
-  process.exitCode = 1;
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    process.stderr.write(`check-sdk-version-matrix failed: ${String(error)}\n`);
+    process.exitCode = 1;
+  });
+}

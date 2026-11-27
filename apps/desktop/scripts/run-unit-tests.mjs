@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
-import { readdirSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import process from 'node:process';
@@ -9,6 +9,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(scriptDir, '..');
 const testRoot = path.join(workspaceRoot, 'test');
+const scriptTestRoot = path.join(scriptDir, 'test');
 const i18nTestRelativePath = path.posix.join('test', 'i18n.test.ts');
 const desktopRequire = createRequire(path.join(workspaceRoot, 'package.json'));
 const tsxLoaderUrl = pathToFileURL(desktopRequire.resolve('tsx')).href;
@@ -20,7 +21,7 @@ function normalizeFilterPath(input) {
     return '';
   }
   normalized = normalized.replace(/^\.?\//, '');
-  if (!normalized.startsWith('test/')) {
+  if (!normalized.startsWith('test/') && !normalized.startsWith('scripts/test/')) {
     normalized = `test/${normalized}`;
   }
   return normalized;
@@ -81,7 +82,10 @@ function collectTestFiles(dirPath) {
 
 const mode = process.argv[2];
 const requestedTestFiles = process.argv.slice(3).filter((arg) => arg !== '--');
-const allTestFiles = resolveRequestedTestFiles(collectTestFiles(testRoot), requestedTestFiles);
+const discoveredTestFiles = [testRoot, scriptTestRoot]
+  .filter((dirPath) => existsSync(dirPath))
+  .flatMap((dirPath) => collectTestFiles(dirPath));
+const allTestFiles = resolveRequestedTestFiles(discoveredTestFiles, requestedTestFiles);
 const selectedTestFiles = allTestFiles.filter((filePath) => {
   if (mode === '--i18n') {
     return filePath === i18nTestRelativePath;

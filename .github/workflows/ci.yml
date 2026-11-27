@@ -110,8 +110,8 @@ jobs:
       - name: Test documentation source checks
         run: node --test scripts/docs-source.test.mjs scripts/ci-scope.test.mjs
 
-      - name: Compile examples
-        run: pnpm check:examples
+      - name: Compile and test examples
+        run: pnpm --filter @nimiplatform/examples run test
 
       - name: Check remote website reference
         if: needs.changes.outputs.remote_clients_changed == 'true'
@@ -316,7 +316,9 @@ jobs:
         if: needs.changes.outputs.windows_runtime_changed == 'true'
         working-directory: runtime
         run: |
-          go test -count=1 -timeout=15m ./cmd/nimi ./cmd/nimi-source-supervisor ./internal/appstorage ./internal/daemon ./internal/daemonctl ./internal/engine ./internal/entrypoint ./internal/nimiappinstall ./internal/nimiappnative ./internal/nimiapppackage ./internal/protectedlocal ./internal/services/localservice ./tools/local-model-recovery ./tools/repair-local-agent-chat
+          go test -count=1 -timeout=15m ./cmd/nimi ./cmd/nimi-source-supervisor ./internal/appstorage ./internal/daemon ./internal/daemonctl ./internal/engine ./internal/entrypoint ./internal/nimiappinstall ./internal/nimiappnative ./internal/nimiapppackage ./internal/productrelease ./internal/protectedlocal ./internal/services/app ./internal/services/localservice ./internal/videomedia ./tools/local-model-recovery ./tools/repair-local-agent-chat ./tools/windows-product-updater
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go test -count=1 -timeout=10m -tags=nimi_windows_source_local_development ./internal/protectedlocal
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           go test -count=1 -timeout=10m ./internal/grpcserver -run 'Test(ResolveWindowsProfileImagePath|ProtectedProductControlRootReadsCurrentWindowsProfileMapping)'
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -398,8 +400,10 @@ jobs:
       - name: Check Darwin Runtime and model storage
         if: needs.changes.outputs.native_runtime_changed == 'true'
         run: |
-          go -C runtime test -count=1 -timeout=5m ./cmd/nimi-source-supervisor ./internal/protectedlocal ./internal/services/localservice
-          go -C runtime test -count=1 -timeout=5m -tags=nimi_macos_source_local_development ./internal/protectedlocal
+          go -C runtime test -count=1 -timeout=10m ./cmd/nimi-source-supervisor ./internal/appstorage ./internal/daemon ./internal/entrypoint ./internal/localappkernel ./internal/managedimagebackend ./internal/nimiappinstall ./internal/nimiappnative ./internal/nimiapppackage ./internal/protectedlocal ./internal/services/app ./internal/services/localservice
+          go -C runtime test -count=1 -timeout=10m -tags=nimi_macos_source_local_development ./internal/entrypoint ./internal/protectedlocal ./internal/services/app
+          go -C runtime test -count=1 -timeout=5m -tags=nimi_macos_local_development ./internal/protectedlocal
+          go -C runtime test -count=1 -timeout=5m -tags=nimi_macos_local_development ./internal/grpcserver -run 'TestFixedDevelopmentControlLocatorUsesVerifiedUsersSeparateDirectory'
 
       - name: Check default and source native carriers
         if: needs.changes.outputs.macos_carrier_changed == 'true'
@@ -470,6 +474,9 @@ jobs:
       - name: SDK generator drift check
         run: PATH="${PWD}/node_modules/.bin:${PATH}" pnpm check:sdks-generators
 
+      - name: gate.sdk.platform-catalog-drift
+        run: pnpm check:platform-catalog-drift
+
       - name: SDK typed-core conformance check
         if: needs.changes.outputs.sdk_conformance_changed == 'true'
         run: pnpm check:sdks-conformance-typed-core
@@ -523,9 +530,16 @@ jobs:
       - name: gate.runtime.catalog-drift
         run: pnpm check:runtime-catalog-drift
 
+      - name: gate.runtime.managed-image-backend-package-drift
+        run: pnpm check:managed-image-backend-package-drift
+
       - name: Runtime tests
         # Match the documented development test environment; no model weights.
         run: python -m pip install --requirement runtime/test-requirements.txt && pnpm test:runtime:go && pnpm test:runtime:python
+
+      - name: Runtime race detector tests
+        working-directory: runtime
+        run: go test -race -count=1 -timeout=10m ./internal/services/account ./internal/services/app ./internal/auditlog ./internal/nimillm ./internal/services/localservice ./internal/engine ./internal/remoteaccess
 
       - name: Runtime vet and build
         working-directory: runtime
@@ -539,7 +553,7 @@ jobs:
 
       - name: Cognition tests and lint
         if: needs.changes.outputs.cognition_changed == 'true'
-        run: pnpm --filter @nimiplatform/cognition test && pnpm check:cognition-golangci-lint
+        run: pnpm --filter @nimiplatform/cognition test && go -C nimi-cognition test -race -count=1 ./... && pnpm check:cognition-golangci-lint
 
   proto-quality:
     needs: changes

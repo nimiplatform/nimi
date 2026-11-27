@@ -8,7 +8,7 @@ export const secretScanExcludes = [
   {
     label: 'Realm source-materialization OpenAPI projection',
     pattern: /^runtime\/gen\/realm\/v1\/source_materialization_openapi\.go$/u,
-    source: 'config/realm-openapi/api-nimi.yaml and config/realm-private-operation-carriers.yaml',
+    source: 'config/realm-openapi/api-nimi.yaml and config/sdks-realm-private-operation-carriers.yaml',
     driftGate: 'pnpm check:sdks-generators',
   },
   {
