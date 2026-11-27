@@ -11,6 +11,7 @@ import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 import { writeNimiAppArchive } from '../../../app-tools/lib/app-pack.mjs';
 import { deflateSync } from 'node:zlib';
 import { compareSemverDesc, migrateStorefrontSchema, reconcilePolicies, publishProduct, syncStorefronts } from '../publish.mjs';
+import { serveHostedWeb } from '../worker.mjs';
 
 const here = fileURLToPath(new URL('../', import.meta.url));
 test('one gateway stages immutable assets, switches and rolls back versions, and preserves suspension and tenant isolation', async (t) => {
@@ -840,4 +841,353 @@ test('reconcilePolicies requires migrateStorefrontSchema on pre-migration D1 tab
 test('compareSemverDesc orders release and numeric prerelease identifiers per SemVer 2.0', () => {
   const ordered = ['0.2.0-rc.2', '0.2.0-rc.10', '0.2.0', '0.2.0-alpha.1', '0.1.9'].sort(compareSemverDesc);
   assert.deepEqual(ordered, ['0.2.0', '0.2.0-rc.10', '0.2.0-rc.2', '0.2.0-alpha.1', '0.1.9']);
+});
+
+test('explicit publish/suspend delivery continues past 24h checked_at, rejects suspended or disabled apps before cache hit, and preserves catalog-only hiding', async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), 'nimi-hosted-explicit-policy-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const bundle = await build({
+    entryPoints: [path.join(here, 'worker.mjs')],
+    bundle: true,
+    format: 'esm',
+    write: false,
+  });
+  const mf = new Miniflare(
+    convertV4MiniflareOptions({
+      workers: [
+        {
+          name: 'hosted-web',
+          modules: true,
+          script: bundle.outputFiles[0].text,
+          compatibilityDate: '2026-08-01',
+          d1Databases: ['DB'],
+          r2Buckets: ['ASSETS_BUCKET'],
+          bindings: { NIMI_REALM_URL: 'https://realm.example' },
+          outboundService(request) {
+            assert.equal(request.headers.get('cookie'), null);
+            return Response.json({ test: 'realm' });
+          },
+        },
+        {
+          name: 'portal',
+          modules: true,
+          script: await readFile(path.join(here, '../web/public/_worker.js'), 'utf8'),
+          compatibilityDate: '2026-08-01',
+          serviceBindings: { APP_HOST: 'hosted-web' },
+        },
+      ],
+    }),
+  );
+  t.after(() => mf.dispose());
+  const db = await mf.getD1Database('DB');
+  const bucket = await mf.getR2Bucket('ASSETS_BUCKET');
+  for (const stmt of (await readFile(path.join(here, 'schema.sql'), 'utf8')).split(/\n(?=CREATE )/u)) {
+    await db.prepare(stmt).run();
+  }
+  const store = {
+    query: (sql, ...params) => db.prepare(sql).bind(...params).all(),
+    put: (key, bytes) => bucket.put(key, bytes),
+  };
+  const git = (...args) =>
+    execFileSync('git', ['-C', root, ...args], { encoding: 'utf8', windowsHide: true }).trim();
+  const write = async (name, data) => {
+    const file = path.join(root, name);
+    await mkdir(path.dirname(file), { recursive: true });
+    await writeFile(file, JSON.stringify(data));
+  };
+  const bodies = new Map();
+  const digests = new Map();
+  async function writeProduct(slug, version, { paused = false, blocked = false, visibility = 'public' } = {}) {
+    const id = 'test.' + slug;
+    const stem = 'products/' + id;
+    const info = { app_id: id, client_id: id + '.web', version };
+    const zip = writeNimiAppArchive([
+      { name: 'index.html', bytes: 'entry-' + slug + '-' + version },
+      { name: 'nimi-web-bundle.json', bytes: JSON.stringify(info) },
+      { name: '_releases/' + version + '/assets/lazy.js', bytes: slug + '-' + version },
+    ]);
+    const digest = createHash('sha256').update(zip).digest('hex');
+    bodies.set(slug + '/' + version, zip);
+    digests.set(slug + '/' + version, digest);
+    await write(stem + '/product.json', {
+      app_id: id,
+      slug,
+      display_name: slug,
+      publisher: 'test',
+      repository: 'https://github.com/test/' + slug,
+      license: 'MIT',
+      summary: { en: slug, zh: slug },
+      visibility,
+      kill_switch: { active: blocked },
+    });
+    await write(stem + '/sources/' + id + '.web.json', {
+      client_id: id + '.web',
+      kind: 'hosted-web',
+      source_revision: 1,
+      status: paused ? 'paused' : 'active',
+      stable_version: version,
+    });
+    await write(stem + '/web/releases/' + version + '.json', {
+      ...info,
+      source_revision: 1,
+      sha256: digest,
+      size: zip.length,
+    });
+  }
+
+  git('init', '-qb', 'main');
+  git('config', 'user.name', 'Fixture');
+  git('config', 'user.email', 'fixture@example.invalid');
+  await write('index.json', { apps: {} });
+  await writeProduct('alpha', '1.0.0');
+  await writeProduct('beta', '1.0.0');
+  await writeProduct('gamma', '1.0.0');
+  let head;
+  const apply = async () => {
+    git('add', '.');
+    git('commit', '-qm', 'policy update');
+    head = git('rev-parse', 'HEAD');
+    await reconcilePolicies(root, head, store, async () => head);
+  };
+  const get = (url, opts) => mf.dispatchFetch(url, opts);
+  const row = async (slug) => (await store.query('SELECT * FROM products WHERE slug=?', slug)).results[0];
+  const io = {
+    head: async () => head,
+    download: async (url) => {
+      const parts = new URL(url).pathname.split('/');
+      return bodies.get(parts[2] + '/' + parts[5].slice(5));
+    },
+    probe: async (url, opts) => {
+      if (url.startsWith('https://realm.nimi.ai/')) {
+        const clientId = url.split('/').at(-1);
+        const appId = clientId.slice(0, -4);
+        const origin = 'https://' + appId.slice(5) + '.nimi.xyz';
+        return Response.json({
+          appId,
+          clientId,
+          role: 'app',
+          sourceRevision: 1,
+          origin,
+          redirectUri: origin + '/',
+        });
+      }
+      return get(url, opts);
+    },
+  };
+
+  await apply();
+  for (const slug of ['alpha', 'beta', 'gamma']) {
+    await publishProduct(root, head, store, await row(slug), io);
+  }
+
+  const portal = await mf.getWorker('portal');
+  const lazy = '/_releases/1.0.0/assets/lazy.js';
+
+  // 1. Stale checked_at > 24h (48h and 7d) + failed sync keeps serving catalog & direct delivery.
+  for (const ageMs of [48 * 60 * 60 * 1000, 7 * 24 * 60 * 60 * 1000]) {
+    const staleCheckedAt = Date.now() - ageMs;
+    await db.prepare('UPDATE registry_state SET checked_at = ? WHERE singleton = 1').bind(staleCheckedAt).run();
+    await assert.rejects(
+      reconcilePolicies(root, head, store, async () => {
+        throw new Error('simulated sync outage');
+      }),
+      /simulated sync outage/,
+    );
+    const state = await db.prepare('SELECT checked_at FROM registry_state WHERE singleton = 1').first();
+    assert.equal(state.checked_at, staleCheckedAt);
+
+    const listRes = await portal.fetch('https://nimi.ai/.well-known/nimi-apps');
+    assert.equal(listRes.status, 200);
+    const listJson = await listRes.json();
+    const alphaCard = listJson.products.find((p) => p.slug === 'alpha');
+    assert.deepEqual(alphaCard?.web, { url: 'https://alpha.nimi.xyz/', version: '1.0.0' });
+
+    const detailRes = await portal.fetch('https://nimi.ai/.well-known/nimi-apps/alpha');
+    assert.equal(detailRes.status, 200);
+    assert.deepEqual((await detailRes.json()).web, { url: 'https://alpha.nimi.xyz/', version: '1.0.0' });
+
+    const pageRes = await get('https://alpha.nimi.xyz/deep/link', { headers: { Accept: 'text/html' } });
+    assert.equal(pageRes.status, 200);
+    assert.equal(await pageRes.text(), 'entry-alpha-1.0.0');
+
+    const scriptRes = await get('https://alpha.nimi.xyz' + lazy);
+    assert.equal(scriptRes.status, 200);
+    assert.equal(await scriptRes.text(), 'alpha-1.0.0');
+
+    const ctxRes = await get('https://alpha.nimi.xyz/api/runtime-access/context');
+    assert.equal(ctxRes.status, 200);
+    assert.deepEqual(await ctxRes.json(), { test: 'realm' });
+
+    const tokenRes = await get('https://alpha.nimi.xyz/api/runtime-access/token', { method: 'POST' });
+    assert.equal(tokenRes.status, 200);
+  }
+
+  // 2. Warm workerd caches.default for immutable versioned scripts and confirm live cache hits before suspension.
+  assert.equal(await (await get('https://alpha.nimi.xyz' + lazy)).text(), 'alpha-1.0.0');
+  assert.equal(await (await get('https://beta.nimi.xyz' + lazy)).text(), 'beta-1.0.0');
+  await bucket.delete(`test.alpha/${digests.get('alpha/1.0.0')}${lazy}`);
+  await bucket.delete(`test.beta/${digests.get('beta/1.0.0')}${lazy}`);
+  // Serving from caches.default while still active proves cached responses actually exist in workerd cache.
+  assert.equal(await (await get('https://alpha.nimi.xyz' + lazy)).text(), 'alpha-1.0.0');
+  assert.equal(await (await get('https://beta.nimi.xyz' + lazy)).text(), 'beta-1.0.0');
+
+  // Explicitly suspend alpha (kill_switch) and disable beta's Web source (paused).
+  await writeProduct('alpha', '1.0.0', { blocked: true });
+  await writeProduct('beta', '1.0.0', { paused: true });
+  await apply();
+
+  // Suspended product: page and cached script rejected BEFORE cache hit; cleanup paths remain available.
+  const suspendedPage = await get('https://alpha.nimi.xyz/');
+  assert.equal(suspendedPage.status, 403);
+  assert.equal(suspendedPage.headers.get('Cache-Control'), 'no-store');
+  assert.deepEqual(await suspendedPage.json(), { error: 'hosted_source_unavailable' });
+
+  const suspendedCachedScript = await get('https://alpha.nimi.xyz' + lazy);
+  assert.equal(suspendedCachedScript.status, 403);
+  assert.equal(suspendedCachedScript.headers.get('Cache-Control'), 'no-store');
+  assert.deepEqual(await suspendedCachedScript.json(), { error: 'hosted_source_unavailable' });
+
+  const suspendedHead = await get('https://alpha.nimi.xyz' + lazy, { method: 'HEAD' });
+  assert.equal(suspendedHead.status, 403);
+  assert.equal(await suspendedHead.text(), '');
+
+  const suspendedCtx = await get('https://alpha.nimi.xyz/api/runtime-access/context');
+  assert.equal(suspendedCtx.status, 403);
+  assert.deepEqual(await suspendedCtx.json(), { reasonCode: 'RUNTIME_CLIENT_SOURCE_PAUSED' });
+  assert.equal((await get('https://alpha.nimi.xyz/api/runtime-access/context/end', { method: 'POST' })).status, 200);
+  assert.equal((await get('https://alpha.nimi.xyz/api/runtime-access/token', { method: 'POST' })).status, 403);
+
+  const suspendedCatalog = await (await portal.fetch('https://nimi.ai/.well-known/nimi-apps/alpha')).json();
+  assert.equal(suspendedCatalog.blocked, true);
+  assert.equal(suspendedCatalog.detail_status, 'blocked');
+  assert.equal(suspendedCatalog.web, null);
+
+  // Disabled Web source: page and cached script rejected BEFORE cache hit; cleanup paths remain available.
+  const disabledPage = await get('https://beta.nimi.xyz/');
+  assert.equal(disabledPage.status, 403);
+  assert.deepEqual(await disabledPage.json(), { error: 'hosted_source_unavailable' });
+
+  const disabledCachedScript = await get('https://beta.nimi.xyz' + lazy);
+  assert.equal(disabledCachedScript.status, 403);
+  assert.equal(disabledCachedScript.headers.get('Cache-Control'), 'no-store');
+  assert.deepEqual(await disabledCachedScript.json(), { error: 'hosted_source_unavailable' });
+
+  const disabledCtx = await get('https://beta.nimi.xyz/api/runtime-access/context');
+  assert.equal(disabledCtx.status, 403);
+  assert.deepEqual(await disabledCtx.json(), { reasonCode: 'RUNTIME_CLIENT_SOURCE_PAUSED' });
+  assert.equal((await get('https://beta.nimi.xyz/api/runtime-access/context/end', { method: 'POST' })).status, 200);
+  assert.equal((await get('https://beta.nimi.xyz/api/runtime-access/token', { method: 'POST' })).status, 403);
+
+  const disabledCatalog = await (await portal.fetch('https://nimi.ai/.well-known/nimi-apps/beta')).json();
+  assert.equal(disabledCatalog.blocked, false);
+  assert.equal(disabledCatalog.web, null);
+
+  // 3. Pure public-catalog hiding keeps existing discovery-only semantics (hidden from catalog, direct access still works).
+  await writeProduct('gamma', '1.0.0', { visibility: 'unlisted' });
+  await apply();
+  await db
+    .prepare('UPDATE registry_state SET checked_at = ? WHERE singleton = 1')
+    .bind(Date.now() - 48 * 60 * 60 * 1000)
+    .run();
+
+  const listAfterHide = await (await portal.fetch('https://nimi.ai/.well-known/nimi-apps')).json();
+  assert.equal(listAfterHide.products.some((p) => p.slug === 'gamma'), false);
+  assert.equal((await portal.fetch('https://nimi.ai/.well-known/nimi-apps/gamma')).status, 404);
+
+  assert.equal(await (await get('https://gamma.nimi.xyz/')).text(), 'entry-gamma-1.0.0');
+  assert.equal(await (await get('https://gamma.nimi.xyz' + lazy)).text(), 'gamma-1.0.0');
+  assert.equal((await get('https://gamma.nimi.xyz/api/runtime-access/token', { method: 'POST' })).status, 200);
+});
+
+test('serveHostedWeb never consults caches.default when product is suspended or Web source is disabled', async (t) => {
+  const originalCaches = globalThis.caches;
+  t.after(() => {
+    if (originalCaches === undefined) delete globalThis.caches;
+    else globalThis.caches = originalCaches;
+  });
+
+  let cacheMatchCalls = 0;
+  let bucketCalls = 0;
+  globalThis.caches = {
+    default: {
+      async match() {
+        cacheMatchCalls += 1;
+        return new Response('cached-script', { status: 200 });
+      },
+      async put() {},
+    },
+  };
+
+  let currentRow;
+  const env = {
+    NIMI_REALM_URL: 'https://realm.example',
+    DB: {
+      prepare(sql) {
+        return {
+          bind() {
+            return {
+              async first() {
+                if (sql.includes('FROM releases')) return { digest: 'deadbeef' };
+                return currentRow;
+              },
+            };
+          },
+        };
+      },
+    },
+    ASSETS_BUCKET: {
+      async get() {
+        bucketCalls += 1;
+        throw new Error('R2 must not be queried on cache hit or pre-cache rejection');
+      },
+      async head() {
+        bucketCalls += 1;
+        throw new Error('R2 must not be queried on cache hit or pre-cache rejection');
+      },
+    },
+  };
+  const ctx = { waitUntil() {} };
+
+  // Active row hits cache.match (confirms test harness exercises the real cache lookup).
+  currentRow = {
+    slug: 'alpha',
+    app_id: 'test.alpha',
+    client_id: 'test.alpha.web',
+    source_revision: 1,
+    active_version: '1.0.0',
+    ready: 1,
+    visible: 1,
+    blocked: 0,
+    source_active: 1,
+  };
+  const activeRes = await serveHostedWeb(
+    new Request('https://alpha.nimi.xyz/_releases/1.0.0/assets/lazy.js'),
+    env,
+    ctx,
+  );
+  assert.equal(activeRes.status, 200);
+  assert.equal(await activeRes.text(), 'cached-script');
+  assert.equal(cacheMatchCalls, 1);
+  assert.equal(bucketCalls, 0);
+
+  // Suspended product rejects page & script BEFORE cache.match.
+  cacheMatchCalls = 0;
+  currentRow = { ...currentRow, blocked: 1, source_active: 1 };
+  for (const targetUrl of ['https://alpha.nimi.xyz/', 'https://alpha.nimi.xyz/_releases/1.0.0/assets/lazy.js']) {
+    const res = await serveHostedWeb(new Request(targetUrl), env, ctx);
+    assert.equal(res.status, 403);
+    assert.deepEqual(await res.json(), { error: 'hosted_source_unavailable' });
+  }
+  assert.equal(cacheMatchCalls, 0);
+  assert.equal(bucketCalls, 0);
+
+  // Disabled Web source rejects page & script BEFORE cache.match.
+  currentRow = { ...currentRow, blocked: 0, source_active: 0 };
+  for (const targetUrl of ['https://alpha.nimi.xyz/', 'https://alpha.nimi.xyz/_releases/1.0.0/assets/lazy.js']) {
+    const res = await serveHostedWeb(new Request(targetUrl), env, ctx);
+    assert.equal(res.status, 403);
+    assert.deepEqual(await res.json(), { error: 'hosted_source_unavailable' });
+  }
+  assert.equal(cacheMatchCalls, 0);
+  assert.equal(bucketCalls, 0);
 });

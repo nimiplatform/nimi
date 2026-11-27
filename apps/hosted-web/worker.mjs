@@ -1,7 +1,6 @@
 import { handleNimiWebCoordination, isWebCoordinationPath } from '../../app-tools/lib/web-coordination.mjs';
 import { compareSemverDesc } from './semver.mjs';
 
-const policyGrace = 24 * 60 * 60 * 1000;
 const json = (data, status = 200, method = 'GET') =>
   new Response(method === 'HEAD' ? null : JSON.stringify(data), {
     status,
@@ -35,23 +34,21 @@ const types = {
   webmanifest: 'application/manifest+json',
 };
 const readProduct =
-  'SELECT p.*, s.checked_at FROM products p CROSS JOIN registry_state s WHERE s.singleton = 1 AND p.slug = ?';
+  'SELECT p.* FROM products p CROSS JOIN registry_state s WHERE s.singleton = 1 AND p.slug = ?';
 const readCatalogRow =
-  'SELECT p.*, s.checked_at, sf.primary_version, sf.target_releases_json, sf.capabilities_json AS sf_capabilities_json, sf.has_storefront, sf.category, sf.default_locale, sf.summary_en AS sf_summary_en, sf.summary_zh AS sf_summary_zh, sf.tags_json, sf.icon_asset, sf.cover_assets_json FROM products p CROSS JOIN registry_state s LEFT JOIN storefront_catalog sf ON sf.app_id = p.app_id WHERE s.singleton = 1 AND p.slug = ?';
+  'SELECT p.*, sf.primary_version, sf.target_releases_json, sf.capabilities_json AS sf_capabilities_json, sf.has_storefront, sf.category, sf.default_locale, sf.summary_en AS sf_summary_en, sf.summary_zh AS sf_summary_zh, sf.tags_json, sf.icon_asset, sf.cover_assets_json FROM products p CROSS JOIN registry_state s LEFT JOIN storefront_catalog sf ON sf.app_id = p.app_id WHERE s.singleton = 1 AND p.slug = ?';
 const listCatalogRows =
-  'SELECT p.*, s.checked_at, sf.primary_version, sf.target_releases_json, sf.capabilities_json AS sf_capabilities_json, sf.has_storefront, sf.category, sf.default_locale, sf.summary_en AS sf_summary_en, sf.summary_zh AS sf_summary_zh, sf.tags_json, sf.icon_asset, sf.cover_assets_json FROM products p CROSS JOIN registry_state s LEFT JOIN storefront_catalog sf ON sf.app_id = p.app_id WHERE s.singleton = 1 AND p.visible = 1 AND p.slug > ? ORDER BY p.slug LIMIT 51';
+  'SELECT p.*, sf.primary_version, sf.target_releases_json, sf.capabilities_json AS sf_capabilities_json, sf.has_storefront, sf.category, sf.default_locale, sf.summary_en AS sf_summary_en, sf.summary_zh AS sf_summary_zh, sf.tags_json, sf.icon_asset, sf.cover_assets_json FROM products p CROSS JOIN registry_state s LEFT JOIN storefront_catalog sf ON sf.app_id = p.app_id WHERE s.singleton = 1 AND p.visible = 1 AND p.slug > ? ORDER BY p.slug LIMIT 51';
 
 const appIdPattern = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/u;
 const mediaFilenamePattern = /^[0-9a-f]{64}\.(?:png|webp)$/u;
 
-function published(row, now) {
-  return (
-    !row.blocked &&
-    row.source_active &&
-    row.active_version &&
-    row.ready &&
-    row.checked_at >= now - policyGrace
-  );
+function webSourceAvailable(row) {
+  return Boolean(!row.blocked && row.source_active);
+}
+
+function published(row) {
+  return Boolean(webSourceAvailable(row) && row.active_version && row.ready);
 }
 
 function parseJsonSafe(raw, fallback) {
@@ -144,7 +141,7 @@ function resolveExpectedPrimaryVersion(policyVersions) {
   return versions[0] ?? null;
 }
 
-function publicProduct(row, now) {
+function publicProduct(row) {
   const blocked = Boolean(row.blocked);
   const pcTargets = blocked ? [] : parseJsonSafe(row.pc_targets, []);
   const policyTargetVersions = resolvePolicyTargetVersions(row, blocked);
@@ -176,7 +173,7 @@ function publicProduct(row, now) {
     displayed_version: blocked ? null : expectedPrimaryVersion,
     capabilities: mergedCapabilities,
     blocked,
-    web: published(row, now)
+    web: published(row)
       ? { url: 'https://' + row.slug + '.nimi.xyz/', version: row.active_version }
       : null,
     has_storefront: hasStorefront,
@@ -280,7 +277,7 @@ function versionDisplayFields(appId, doc, mappedMedia, row) {
   };
 }
 
-async function catalog(url, method, ifNoneMatch, db, bucket, now) {
+async function catalog(url, method, ifNoneMatch, db, bucket) {
   if (url.pathname.startsWith(catalogPath + '/media/')) {
     return serveCatalogMedia(url, method, ifNoneMatch, db, bucket);
   }
@@ -289,7 +286,7 @@ async function catalog(url, method, ifNoneMatch, db, bucket, now) {
     const { results } = await db.prepare(listCatalogRows).bind(cursor).all();
     return json(
       {
-        products: results.slice(0, 50).map((row) => publicProduct(row, now)),
+        products: results.slice(0, 50).map((row) => publicProduct(row)),
         next: results.length > 50 ? results[49].slug : null,
       },
       200,
@@ -302,7 +299,7 @@ async function catalog(url, method, ifNoneMatch, db, bucket, now) {
   }
   const row = await db.prepare(readCatalogRow).bind(slug).first();
   if (!row || !row.visible) return error(404, 'not_found', method);
-  const base = publicProduct(row, now);
+  const base = publicProduct(row);
   if (base.blocked) {
     return json({ ...base, detail_status: 'blocked', detail: null }, 200, method);
   }
@@ -390,9 +387,8 @@ function resourcePath(pathname) {
 // @nimi-authority: rule.nimi.platform.app-ecosystem.hosted-web-publication
 export async function serveHostedWeb(request, env, context) {
   const url = new URL(request.url);
-  const now = Date.now();
   if (url.hostname === 'catalog.internal' && (request.method === 'GET' || request.method === 'HEAD')) {
-    return catalog(url, request.method, request.headers.get('If-None-Match'), env.DB, env.ASSETS_BUCKET, now);
+    return catalog(url, request.method, request.headers.get('If-None-Match'), env.DB, env.ASSETS_BUCKET);
   }
   const match = /^([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)\.nimi\.xyz$/u.exec(url.hostname);
   if (!match || url.protocol !== 'https:' || url.port) return error(404, 'unknown_host');
@@ -401,8 +397,8 @@ export async function serveHostedWeb(request, env, context) {
   const cleanup =
     (request.method === 'GET' && url.pathname === '/api/runtime-access/context') ||
     (request.method === 'POST' && url.pathname === '/api/runtime-access/context/end');
-  const available = !row.blocked && row.source_active && row.checked_at >= now - policyGrace;
-  if (!available && !cleanup) return error(403, 'hosted_source_unavailable');
+  const available = webSourceAvailable(row);
+  if (!available && !cleanup) return error(403, 'hosted_source_unavailable', request.method);
   if (isWebCoordinationPath(request.method, url.pathname)) {
     const response = await handleNimiWebCoordination({
       request,
@@ -410,15 +406,7 @@ export async function serveHostedWeb(request, env, context) {
     });
     if (!available && request.method === 'GET' && response.ok) {
       await response.body?.cancel();
-      return json(
-        {
-          reasonCode:
-            row.blocked || !row.source_active
-              ? 'RUNTIME_CLIENT_SOURCE_PAUSED'
-              : 'RUNTIME_CLIENT_REGISTRY_UNAVAILABLE',
-        },
-        row.blocked || !row.source_active ? 403 : 503,
-      );
+      return json({ reasonCode: 'RUNTIME_CLIENT_SOURCE_PAUSED' }, 403);
     }
     return response;
   }
