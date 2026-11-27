@@ -58,6 +58,9 @@ function fixture(context) {
   mkdirSync(path.join(root, '.nimi/spec'), { recursive: true });
   mkdirSync(path.join(root, '.nimi/config'), { recursive: true });
   symlinkSync(path.join(repoRoot, 'node_modules'), path.join(root, 'node_modules'), 'junction');
+  // The fixture borrows the workspace's pinned tools through the junction.
+  // Keep pnpm from attempting an install in this synthetic checkout.
+  writeFileSync(path.join(root, 'pnpm-workspace.yaml'), 'verifyDepsBeforeRun: false\n');
   writeFileSync(path.join(root, 'package.json'), JSON.stringify({
     name: 'nimi-ci-authority-fixture', private: true,
     scripts: Object.fromEntries(Object.entries(packageJson.scripts).filter(([name]) => name.startsWith('spec:authority:'))),

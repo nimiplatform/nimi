@@ -257,15 +257,20 @@ test('local companion assets have variant-neutral names and cite their artifact 
   const sourceDir = path.join(import.meta.dirname, '..', 'runtime', 'catalog', 'source', 'providers', 'local');
   const source = readYamlResource(sourceDir, { merge: true });
   const generated = generateProviderCatalog(source);
+  const sourcesById = new Map(source.sources.map((entry) => [entry.source_id, entry.url]));
   const companions = ['55-model-asset-offers.yaml', '65-models-upscale.yaml']
     .flatMap((file) => readYamlResource(path.join(sourceDir, file)).models)
     .filter((model) => model.install.artifact_roles.some((role) => ['vae', 'video_vae', 'audio_vae', 'text_encoder', 'mmproj'].includes(role)));
   assert.ok(companions.length > 0);
   for (const companion of companions) {
     const row = generated.models.find((model) => model.model_id === companion.model_id);
-    const sourcePath = new URL(row.source_ref.url).pathname;
+    const citedURLs = companion.source_ids.map((id) => sourcesById.get(id));
+    assert.ok(citedURLs.includes(row.source_ref.url), `${companion.model_id}: undeclared projected source`);
     const repoPath = `/${companion.install.repo}`;
-    assert.ok(sourcePath === repoPath || sourcePath.startsWith(`${repoPath}/`), `${companion.model_id}: ${row.source_ref.url}`);
+    assert.ok(citedURLs.some((url) => {
+      const sourcePath = new URL(url).pathname;
+      return sourcePath === repoPath || sourcePath.startsWith(`${repoPath}/`);
+    }), `${companion.model_id}: missing citation for ${companion.install.repo}`);
     assert.doesNotMatch(companion.model_id, /(?:^|-)(?:q\d+|bf16|f16|f32|fp16|fp32|cuda|metal|cpu)(?:-|$)/iu);
   }
   // Source list order carries no attribution meaning.

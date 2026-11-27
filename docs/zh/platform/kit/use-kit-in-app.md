@@ -60,7 +60,7 @@ import {
 import { createRendererEntryModuleLoader } from '@nimiplatform/kit/shell/renderer/bootstrap';
 ```
 
-标准渲染层入口通常初始化调用一次 `installNimiShellRuntimeBridge()`。`createNimiLocalAppStandardShellSurface()` 负责为宿主绑定的 SDK Client 提供标准 Shell 实现，Client 随后通过 `createNimiClient({ localApp: { standardShell } })` 完成组装。更底层的 `invokeShell` 与 `invokeTauri` 属于 Shell 适配层内部胶水，日常业务逻辑无需直接调用。
+在渲染层启动时调用一次 `installNimiShellRuntimeBridge()`。`createNimiLocalAppStandardShellSurface()` 提供标准 Shell 实现，通过 `createNimiClient({ localApp: { standardShell } })` 组装由宿主绑定的 SDK 客户端。App 业务逻辑通过该客户端调用能力。
 
 在 Electron 主进程 (Main) 与预加载脚本 (Preload) 中，使用专用导出：
 

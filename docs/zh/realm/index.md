@@ -1,10 +1,10 @@
 # Realm 核心服务与世界底座
 
-Realm 是 Nimi 的服务端业务层，负责维护跨应用的账户体系、社交关系、人与人即时通讯、世界与角色设定源（`WorldCore`、`WorldCharacter`、`PersonaCharacter`）以及创作者经济记录。
+Realm 是 Nimi 的服务端业务层，负责维护跨应用的账户体系、社交关系、人与人即时通讯，以及世界与角色设定源（`WorldCore`、`WorldCharacter`、`PersonaCharacter`）。
 
 在 Nimi 的整体架构中，各层职责如下：
 - **Runtime**：负责本地与云端 AI 模型推理、`LocalAgent` 对话执行与 Cognition 长期记忆的访问协调，并集中托管 Realm 访问凭据与远端实时连接；
-- **Realm**：维护共享账户、社交图谱、人与人实时通道（`DirectChat`、typing、inbox、`Presence`）、世界与角色设定数据（`WorldCore`、`WorldCharacter`、`PersonaCharacter`、`WorldEntity`、`WorldRelationship`）及创作者经济服务；
+- **Realm**：维护共享账户、社交图谱、人与人实时通道（`DirectChat`、typing、inbox、`Presence`）以及世界与角色设定数据（`WorldCore`、`WorldCharacter`、`PersonaCharacter`、`WorldEntity`、`WorldRelationship`）。
 - **SDK**：提供类型化客户端绑定（如 `client.realm.worldCore` 与 `client.realm.personaCharacter`），让应用调用经 Runtime 准入的能力；
 - **Desktop & Web**：Desktop 承载 Nimi Home 与受监管的 App；Web 提供官网与浏览器账号体验。
 
@@ -18,12 +18,11 @@ Realm 是 Nimi 的服务端业务层，负责维护跨应用的账户体系、�
 
 ### 核心领域契约
 - [社交与即时通讯](/zh/realm/chat)：经由 Runtime 中介的人与人 `DirectChat`、输入状态（typing）、收件箱（inbox）与在线状态（`Presence`）；
-- [社交图谱与经济系统](/zh/realm/social-and-economy)：共享好友关系、关注体系与价值流转；
+- [社交图谱](/zh/realm/social-and-economy)：账号级好友关系与拉黑；
 - [跨世界漫游（Transit）](/zh/realm/transit)：围绕系统主世界 OASIS 展开的跨世界连续性协议设计。
 
-### 创作者经济与应用互联
-- [创作者经济模型](/zh/realm/creator-economy)：数字内容变现与收益分配机制；
-- [创作者收益结算](/zh/realm/creator-payouts)：收益记录与结算流程；
+### 应用互联
+
 - [应用互联范式](/zh/realm/app-interconnect)：应用如何通过受保护宿主会话、清单 `realm.data` 声明与 Runtime 准入访问 Realm 数据。
 
 ## 应用如何与 Realm 协作？

@@ -26,9 +26,12 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Exact stable Vercel adapter SemVer for a dry-run
+        description: Exact stable or RC Vercel adapter version for a dry-run
         required: true
         type: string
+
+env:
+  NIMI_NPM_RELEASE_RC: 'true'
 
 permissions:
   contents: read

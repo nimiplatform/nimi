@@ -6,6 +6,8 @@ import { capabilityModelIdentity, deriveLoadoutDefaultDisplayName, exactRecommen
 import type { RuntimeSetupPreparationPlan } from '../src/shell/renderer/features/runtime-config/runtime-setup-task-runner.js';
 import { appJobLane, groupTransferAttempts, interruptionReasonKey, transferLane } from '../src/shell/renderer/features/runtime-config/global-downloads-presentation.js';
 
+const fixtureImportUlid = '01' + 'A'.repeat(24);
+
 const recipe = (contents: string[]) => ({
   recipeId: 'recipe', title: 'Readable model',
   slots: contents.map(content => ({ presence: 'required', recommendedContentIds: [content], recommendedVariantIds: [`variant-${content}`] })),
@@ -78,7 +80,7 @@ test('generic recipe identity resolves bound model asset name and avoids guessin
   const qwenAsset = {
     modelAssetId: 'asset-qwen',
     contentId: 'sha256:qwen',
-    displayName: 'Qwen3-8B-Q4_K_M-01JABC1234567890ABCDEFGHJK',
+    displayName: `Qwen3-8B-Q4_K_M-${fixtureImportUlid}`,
     entry: 'Qwen3-8B-Q4_K_M.gguf',
     totalSizeBytes: 5_000_000_000,
     contentVerified: true,
@@ -86,7 +88,7 @@ test('generic recipe identity resolves bound model asset name and avoids guessin
   } as unknown as NimiRuntimeModelAssetRecord;
   const identity = capabilityModelIdentity(boundLoadout, [genericRecipe], [], [qwenAsset]);
   assert.match(identity.shortTitle, /Qwen3/i);
-  assert.doesNotMatch(identity.shortTitle, /01JABC1234567890ABCDEFGHJK/);
+  assert.ok(!identity.shortTitle.includes(fixtureImportUlid));
   assert.equal(deriveLoadoutDefaultDisplayName(genericRecipe, boundLoadout.modelAxes, [], [qwenAsset]), 'Qwen3 8B · Q4');
 
   // Shared contentId across two distinct logical models must NOT pick the first catalog entry blindly.
@@ -140,6 +142,6 @@ test('the use action only skips preparation wording when chosen files and requir
 
 test('cleanAssetDisplayName strips both uppercase and lowercase importer ULID suffixes', async () => {
   const { cleanAssetDisplayName } = await import('../src/shell/renderer/features/runtime-config/runtime-config-loadout-model-display.js');
-  assert.equal(cleanAssetDisplayName('local-import-qwen3-4b-q4-k-m-01kze4gy6qzmbt3esrbgh2ddh4'), 'local-import-qwen3-4b-q4-k-m');
-  assert.equal(cleanAssetDisplayName('local-import-gemma-4-26b-a4b-it-q8-0-01KZE4HYP10SQQMXN9YVPMEQBW'), 'local-import-gemma-4-26b-a4b-it-q8-0');
+  assert.equal(cleanAssetDisplayName(`local-import-qwen3-4b-q4-k-m-${fixtureImportUlid.toLowerCase()}`), 'local-import-qwen3-4b-q4-k-m');
+  assert.equal(cleanAssetDisplayName(`local-import-gemma-4-26b-a4b-it-q8-0-${fixtureImportUlid}`), 'local-import-gemma-4-26b-a4b-it-q8-0');
 });

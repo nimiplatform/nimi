@@ -60,7 +60,7 @@ import {
 import { createRendererEntryModuleLoader } from '@nimiplatform/kit/shell/renderer/bootstrap';
 ```
 
-The renderer bootstrap calls `installNimiShellRuntimeBridge()` once. `createNimiLocalAppStandardShellSurface()` provides the standard Shell implementation for the host-bound SDK client created via `createNimiClient({ localApp: { standardShell } })`. Lower-level helpers like `invokeShell` and `invokeTauri` are host-level integration glue and should not be invoked by daily business logic.
+The renderer bootstrap calls `installNimiShellRuntimeBridge()` once. `createNimiLocalAppStandardShellSurface()` provides the standard Shell implementation for the host-bound SDK client created via `createNimiClient({ localApp: { standardShell } })`. Use that client in App business logic.
 
 In Electron main and preload scripts, use dedicated exports:
 

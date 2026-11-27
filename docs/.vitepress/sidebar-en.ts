@@ -207,15 +207,13 @@ const realmGroups: DefaultTheme.SidebarItem[] = [
     text: 'Domain Surfaces',
     items: [
       { text: 'Chat', link: '/realm/chat' },
-      { text: 'Social And Economy', link: '/realm/social-and-economy' },
+      { text: 'Social Graph', link: '/realm/social-and-economy' },
       { text: 'Transit', link: '/realm/transit' },
     ],
   },
   {
     text: 'Creator + App',
     items: [
-      { text: 'Creator Economy', link: '/realm/creator-economy' },
-      { text: 'Creator Payouts', link: '/realm/creator-payouts' },
       { text: 'App Interconnect', link: '/realm/app-interconnect' },
     ],
   },

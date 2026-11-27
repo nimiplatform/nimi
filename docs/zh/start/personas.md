@@ -22,7 +22,6 @@
 2. [Realm 核心](/zh/realm/)：掌握数字世界底座的三大要素：权威状态、实体关系及历史轨迹。
 3. [参考 → 世界字段规范](/zh/reference/world-fields)：在数据结构层面查阅对“世界”的具体定义与字段要求。
 4. [参考 → 六条基础协议](/zh/reference/six-primitives)：理解您的世界在跨域交互时遵循的基础通信与数据契约。
-5. [Realm → 创作者经济](/zh/realm/creator-economy)：了解跨世界的创作者权益、数字资产与价值流转模式。
 
 ## 应用开发者
 

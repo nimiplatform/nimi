@@ -1,10 +1,10 @@
 # Realm Core Service and World Substrate
 
-Realm is the server-side service layer of Nimi, maintaining shared accounts, social graphs, human-to-human messaging, world and character settings (`WorldCore`, `WorldCharacter`, `PersonaCharacter`), and creator economy records.
+Realm is the server-side service layer of Nimi, maintaining shared accounts, social graphs, human-to-human messaging, and world and character settings (`WorldCore`, `WorldCharacter`, `PersonaCharacter`).
 
 Platform responsibilities are divided across four layers:
 - **Runtime**: Executes local and cloud AI inference, manages `LocalAgent` conversations and mediates access to per-agent memory owned by Cognition, and mediates Realm credentials and remote realtime connections.
-- **Realm**: Manages shared account identities, social relationships, human-to-human realtime channels (`DirectChat`, typing, inbox, and `Presence`), world and character data (`WorldCore`, `WorldCharacter`, `PersonaCharacter`, `WorldEntity`, and `WorldRelationship`), and creator economy services.
+- **Realm**: Manages shared account identities, social relationships, human-to-human realtime channels (`DirectChat`, typing, inbox, and `Presence`), and world and character data (`WorldCore`, `WorldCharacter`, `PersonaCharacter`, `WorldEntity`, and `WorldRelationship`).
 - **SDK**: Provides typed client bindings—such as `client.realm.worldCore` and `client.realm.personaCharacter`—that connect applications to Runtime-admitted capabilities.
 - **Desktop & Web**: Desktop hosts Nimi Home and supervised Apps; Web provides the public website and browser account experience.
 
@@ -18,12 +18,11 @@ Platform responsibilities are divided across four layers:
 
 ### Core Domain Primitives
 - [Chat & Communication](/realm/chat) — Runtime-mediated human-to-human `DirectChat`, typing indicators, inbox, and `Presence`.
-- [Social & Economic Systems](/realm/social-and-economy) — Shared social graphs, follows, and economic value flows.
+- [Social Graph](/realm/social-and-economy) — Account-level friendships and blocking.
 - [Transit & Continuity](/realm/transit) — Protocol design for cross-world continuity centered on the OASIS system primary world.
 
-### Creator Ecosystem and App Interconnect
-- [Creator Economy](/realm/creator-economy) — Digital content monetization and revenue distribution.
-- [Creator Payouts](/realm/creator-payouts) — Payout records and settlement workflows.
+### App Interconnect
+
 - [App Interconnect](/realm/app-interconnect) — Integrating Realm data through protected host sessions, `realm.data` manifest permissions, and Runtime admission.
 
 ## How Nimi Applications Work with Realm

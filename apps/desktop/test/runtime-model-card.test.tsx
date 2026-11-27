@@ -84,7 +84,7 @@ test('install plan panel discloses host recipe compatibility warnings before dow
     installAvailable: true,
     entry: 'DreamShaper_8_pruned.safetensors',
     repo: 'Lykon/DreamShaper',
-    revision: '228d79cb20811466f5c5710aa91f05dabd0b8a14',
+    revision: 'a'.repeat(40),
     files: ['DreamShaper_8_pruned.safetensors'],
     totalSizeBytes: 2132625894,
     warnings: ['WARN_NO_HOST_RECIPE_SD1'],

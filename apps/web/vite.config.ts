@@ -22,6 +22,11 @@ function chunkName(id: string): string | undefined {
     const authored = /\/(landing-content\.[a-z-]+)\.ts$/u.exec(normalized);
     if (authored) return authored[1];
   }
+  // Keep the Capability Lab's interactive stages, controls and sample content
+  // together so changes in the rest of the Platform page can reuse its chunk.
+  if (normalized.startsWith(`${repoRootNormalized}/apps/web/src/pages/platform-capability-`)) {
+    return 'platform-capability-lab';
+  }
 
   if (
     normalized.includes('/node_modules/react/')
@@ -57,6 +62,8 @@ function chunkName(id: string): string | undefined {
     // Apps add their clients. Do not collapse all helpers into an eager SDK bundle.
     if (/\/core\/app\/local-app-runtime-platform-ai\.js$/u.test(normalized)) return 'vendor-nimi-app-ai';
     if (/\/core\/app\/local-app-runtime-platform-configure\.js$/u.test(normalized)) return 'vendor-nimi-app-agent-configure';
+    const agentOperations = /\/core\/app\/local-app-(?:runtime-platform-(?:(?:direct-)?(?:agent-work|conversation)|agent-references|embodiment|life|proactive)|agent-(?:introduction|work-input))\.js$/u;
+    if (agentOperations.test(normalized)) return 'remote-app-agent-operations';
     const wire = /\/core-generated\/runtime-protobuf\/(?:.+\/)?([^/]+)\.js$/u.exec(normalized);
     if (wire) return `vendor-nimi-proto-${wire[1]}`;
     if (/\/core-generated\/runtime-(?:client|typed-client|wire-codecs)\.js$/u.test(normalized)) return 'vendor-nimi-runtime-client';

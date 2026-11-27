@@ -210,6 +210,8 @@ const { output } = await client.ai.scenario.execute({
 | `@nimiplatform/sdk/types` | Portable TypeScript types, schemas, and standardized error codes |
 | `@nimiplatform/sdk-adapter-vercel-ai` | Separate adapter package for Vercel AI SDK 7 integration |
 
+The detailed health methods `Runtime.health()` and `Runtime.ready()` require the admitted Desktop machine transport. Standalone clients get `SDK_RUNTIME_METHOD_UNAVAILABLE` before transport dispatch. Handle availability errors on the operations your integration uses.
+
 ---
 
 ## 5. Protected Conversation Quotation and Source Reads

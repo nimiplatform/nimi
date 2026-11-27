@@ -429,9 +429,9 @@ test('signed installer migrates existing Runtime state to the fixed local-develo
   }
 });
 
-const runtimeInstallerPath = fileURLToPath(
+const runtimeInstallerPath = realpathSync.native(fileURLToPath(
   new URL('./install-windows-runtime-service.ps1', import.meta.url),
-);
+));
 const powerShellLiteral = (value) => `'${value.replaceAll("'", "''")}'`;
 const runInstallerContract = (commands) => {
   const result = spawnSync(resolveWindowsPowerShell7(), [

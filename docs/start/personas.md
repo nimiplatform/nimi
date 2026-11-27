@@ -22,7 +22,6 @@ If you are designing and publishing a digital world (including rules, lore, char
 2. [Realm](/realm/) — Authoritative state, entities, and historical trajectories.
 3. [Reference → World Fields](/reference/world-fields) — Schema definitions and field specifications for worlds.
 4. [Reference → Six Primitives](/reference/six-primitives) — Foundational contracts for cross-domain interaction.
-5. [Realm → Creator Economy](/realm/creator-economy) — Economic models, digital assets, and value flows.
 
 ## App Developer
 

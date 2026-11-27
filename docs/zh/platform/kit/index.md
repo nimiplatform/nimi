@@ -10,19 +10,14 @@
 | `auth` | 开箱即用的用户认证交互组件与适配层 |
 | `core` | 宿主环境无关的基础工具库与能力辅助函数 |
 | `telemetry` | 渲染层遥测与 React 错误边界 (Error Boundary) 组件 |
-| `shell/tauri` | 专为 Tauri 环境提供的轻量 Rust 宿主接入胶水层 |
+| `shell/renderer/bridge` | 供 App 渲染层使用的标准 Shell 桥接 |
+| `shell/electron/main`、`shell/electron/preload` | Electron 主进程与预加载脚本接入 |
 
 Kit 遵循按需演进原则：仅当多个应用或宿主环境存在明确的复用诉求、且所有权边界清晰时，才会沉淀为共享模块；避免过度抽象与超前设计，不为形式上的完整而堆砌未验证的组件。
 
-## 宿主环境支持：Electron 与 Tauri
+## 桌面宿主
 
-Nimi App 默认推荐在由 Desktop 调度的 Electron 宿主环境中开发与运行，其构建产物默认面向 Electron，承载完整的标准能力 Shell。
-
-Tauri 则是轻量级的可选构建目标，由共享的 Tauri Crate 提供标准能力的一个受限子集：
-
-- **Tauri 支持的能力**：会话状态查询、App AI 配置（AIConfig）、单次文本生成（`generateCandidate`）、Artifact 产物上传、App 本地存储（JSON 文档与静态资源）、Realm World 与 PersonaCharacter 基础操作、共享 Agent AIConfig、Agent 基础管理（自主性、形象、记忆控制、具身状态）以及 App Activity 记录。
-- **Tauri 暂不支持的能力**：流式文本会话、Scenario 复杂执行与 Job 调度、Artifact 文件下载读取、语音音色资源管理、Realm 实时音视频与聊天通道、Agent 协作推荐与工作流、第三方 Integrations 集成、实时音视频交互、媒体播放器原生句柄、Avatar 宿主交接以及 Resource Pack 资源包导入。
-- **调用行为**：在 Tauri 宿主中调用上述暂不支持的能力时，调用将在底层命令分发前直接以 `capability-unavailable`（原因代码 `tauri-standard-shell-operation-unsupported`）显式报错返回。App 自身在 Tauri 中独立注册的私有命令不受影响。
+由 Desktop 调度的 Electron 宿主为原生 Nimi App 提供标准 Shell。组装 App 客户端时使用渲染层桥接。Electron 主进程和预加载脚本由脚手架接入。
 
 ## 职责所有权边界
 

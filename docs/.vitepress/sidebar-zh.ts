@@ -207,15 +207,13 @@ const realmGroups: DefaultTheme.SidebarItem[] = [
     text: 'Realm 界面',
     items: [
       { text: '聊天', link: '/zh/realm/chat' },
-      { text: '社交与经济', link: '/zh/realm/social-and-economy' },
+      { text: '社交图谱', link: '/zh/realm/social-and-economy' },
       { text: '通行', link: '/zh/realm/transit' },
     ],
   },
   {
     text: '创作者与 App',
     items: [
-      { text: '创作者经济', link: '/zh/realm/creator-economy' },
-      { text: '创作者收益', link: '/zh/realm/creator-payouts' },
       { text: 'App 互联', link: '/zh/realm/app-interconnect' },
     ],
   },

@@ -2,13 +2,13 @@
 
 # SDK migration notes
 
-## Unreleased — Realm foundation slimdown (breaking, next 0.x minor)
-
-Pairs with the Realm foundation slimdown domain cutover. Removes retired WalletAuth/SIWE helpers (`createNimiRealmWalletChallenge`, `loginNimiRealmWallet`, `normalizeNimiRealmWalletChallengeResult`), `AuthUserDto.wallets` decoding requirement, `Realm.transit` (`REALM_TRANSIT_METHODS`), `UserStatsDto.postsCount`, and `CreatorEligibilityResponseDto` subscription `tier`/`status` fields. Removes `REALM_CHAT_MESSAGE_TYPE_POST_REF`, `RealmChatPostRefPayload`, `RealmChatMessagePayload.post_ref`, `REALM_ATTACHMENT_TARGET_TYPE_ASSET`, and `REALM_ATTACHMENT_TARGET_TYPE_BUNDLE` from `runtime/v1/realm_realtime.proto` with all removed wire numbers and names reserved. Update matching Realm, Runtime, native carriers, SDK, and Kit builds together.
-
 ## 0.24.0-rc.12 — Local candidate
 
-The public Runtime client exposes Agent sessions and limits ordinary Apps to their admitted methods. Home reads machine inventory and health through its machine product client. Native Apps using the retired Tauri IPC transport must migrate to the Electron integration. See the [component migration notes](../../RELEASE.md#migration-for-the-next-component-releases).
+The public Runtime client exposes Agent sessions and limits ordinary Apps to their admitted methods. Home reads machine inventory and detailed health through its protected machine product client. Standalone `Runtime.health()` and `Runtime.ready()` reject with `SDK_RUNTIME_METHOD_UNAVAILABLE` before dispatch. Native Apps using the retired Tauri IPC transport must migrate to the Electron integration. See the [component migration notes](../../RELEASE.md#migration-for-the-next-component-releases).
+
+### Realm foundation slimdown (0.24.0-rc.12, breaking)
+
+Pairs with the Realm foundation slimdown domain cutover. Removes retired WalletAuth/SIWE helpers (`createNimiRealmWalletChallenge`, `loginNimiRealmWallet`, `normalizeNimiRealmWalletChallengeResult`), `AuthUserDto.wallets` decoding requirement, `Realm.transit` (`REALM_TRANSIT_METHODS`), `UserStatsDto.postsCount`, and `CreatorEligibilityResponseDto` subscription `tier`/`status` fields. Removes `REALM_CHAT_MESSAGE_TYPE_POST_REF`, `RealmChatPostRefPayload`, `RealmChatMessagePayload.post_ref`, `REALM_ATTACHMENT_TARGET_TYPE_ASSET`, and `REALM_ATTACHMENT_TARGET_TYPE_BUNDLE` from `runtime/v1/realm_realtime.proto` with all removed wire numbers and names reserved. Update matching Realm, Runtime, native carriers, SDK, and Kit builds together.
 
 ## 0.24.0-rc.11 — Remote Agent work
 

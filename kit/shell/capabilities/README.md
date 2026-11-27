@@ -2,7 +2,7 @@
 
 `kit/shell/capabilities` is the standard contract surface for Nimi shell hosts.
 It owns capability ids, operation ids, standard command names, and the standard
-error envelope consumed by Tauri, Electron, and renderer bridge code.
+error envelope consumed by Electron and renderer bridge code.
 
 The machine authority for this module is
 `config/platform-standard-shell-capabilities.yaml`.
