@@ -85,10 +85,36 @@ func (r *residentModelAssets) holdOutput(body io.ReadCloser) io.ReadCloser {
 	}}
 }
 
+type modelAssetVerificationInvalidator interface {
+	InvalidateModelAssetVerification(modelAssetID string)
+}
+
+func (h *ExecutionHost) InvalidateModelAssetVerification() {
+	if h == nil || h.substrate == nil {
+		return
+	}
+	if invalidator, ok := h.substrate.(modelAssetVerificationInvalidator); ok && invalidator != nil {
+		invalidator.InvalidateModelAssetVerification("")
+	}
+}
+
+func (h *ExecutionHost) invalidateVerifiedModelAsset(id string) {
+	if h == nil || h.substrate == nil {
+		return
+	}
+	if invalidator, ok := h.substrate.(modelAssetVerificationInvalidator); ok && invalidator != nil {
+		invalidator.InvalidateModelAssetVerification(id)
+	}
+}
+
 func (h *ExecutionHost) RetireModelAsset(id string) (bool, error) {
 	if !h.residentModelAssets.uses(id) {
 		return true, nil
 	}
+	// Invalidate warm verification immediately even if the Host lease is busy
+	// with an already-captured Job so no subsequent turn skips re-verification
+	// against a retiring asset.
+	h.invalidateVerifiedModelAsset(id)
 	select {
 	case <-h.lease:
 	default:
@@ -106,6 +132,8 @@ func (h *ExecutionHost) RetireModelAsset(id string) (bool, error) {
 
 func (s *managerLlamaInvocationSubstrate) Stop() error {
 	s.mu.Lock()
+	s.invalidationGen++
+	s.verified = verifiedLlamaModelResidency{}
 	load := s.loading
 	if load != nil && load.cancel != nil {
 		load.cancel()
@@ -119,6 +147,11 @@ func (s *managerLlamaInvocationSubstrate) Stop() error {
 	}
 	s.mu.Lock()
 	s.currentKey = ""
+	s.lastInstanceID = ""
+	s.lastSupervisorID = ""
+	s.verified = verifiedLlamaModelResidency{}
+	s.pendingRetirementAssets = nil
+	s.invalidationGen++
 	s.accessKey = ""
 	s.mu.Unlock()
 	return nil

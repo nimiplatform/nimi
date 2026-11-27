@@ -16,3 +16,18 @@ func (s *Service) SetModelAssetHostRetirers(hosts ...localexecution.ModelAssetHo
 
 // Called after a supervised process reports exit, outside its callback locks.
 func (s *Service) RetryModelAssetCleanupAfterHostExit() { s.retryModelAssetCleanupObligations() }
+
+type modelAssetVerificationInvalidator interface {
+	InvalidateModelAssetVerification()
+}
+
+// invalidateHostModelAssetVerificationsLocked invalidates cached load-boundary
+// verification tokens on registered Hosts whenever a managed ModelAsset
+// mutation begins. Caller holds modelAssetMutationMu.
+func (s *Service) invalidateHostModelAssetVerificationsLocked() {
+	for _, host := range s.modelAssetHosts {
+		if invalidator, ok := host.(modelAssetVerificationInvalidator); ok && invalidator != nil {
+			invalidator.InvalidateModelAssetVerification()
+		}
+	}
+}

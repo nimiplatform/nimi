@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"context"
 	"strconv"
 	"strings"
 	"time"
@@ -301,6 +302,15 @@ type EngineConfig struct {
 	// ForceTerminationTimeout bounds confirmed process-tree exit after SIGKILL.
 	// Zero uses the supervisor's normal termination window.
 	ForceTerminationTimeout time.Duration
+
+	// PreSpawnValidated records that the caller validated captured model content
+	// immediately before calling StartEngine for this launch. Runtime-private.
+	PreSpawnValidated bool
+
+	// PreRestartValidate is an optional Runtime-private hook executed by
+	// Supervisor immediately before auto-restarting a crashed process. If it
+	// returns an error, Supervisor does not spawn a replacement process.
+	PreRestartValidate func(context.Context) error
 }
 
 // DefaultLlamaConfig returns the default configuration for the llama engine.

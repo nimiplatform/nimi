@@ -37,6 +37,19 @@ type llamaInvocationSubstrate interface {
 	AccessKey() string
 }
 
+type llamaInvocationEnsureRequest struct {
+	processKey                string
+	processArgs               []string
+	modelFiles                []capabilitydriver.InvocationExactBinding
+	allowWarmModelContentSkip bool
+	validateDependencies      func() error
+	validateModelContent      func(context.Context) error
+}
+
+type llamaLoadBoundarySubstrate interface {
+	EnsureInvocation(context.Context, llamaInvocationEnsureRequest, localexecution.TextProgressFunc) (string, bool, error)
+}
+
 // authorizeLlamaRequest presents the running worker's private key; without it
 // llama-server refuses every inference request (only its health and model
 // listing stay open).
@@ -62,6 +75,9 @@ type ExecutionHost struct {
 	lease chan struct{}
 	// idle releases the worker after its last request; Runtime-private.
 	idle residentIdleRelease
+	// modelContentValidator optionally wraps validateInvocationModelContentContext
+	// in package tests without global mutable state.
+	modelContentValidator func(context.Context, []capabilitydriver.InvocationExactBinding) error
 }
 
 func newExecutionLease() chan struct{} {
@@ -165,13 +181,21 @@ func (h *ExecutionHost) ExecuteEmbed(
 	}
 	acquiredAt := time.Now()
 	defer func() { h.lease <- struct{}{}; h.residentModelAssets.notifyIdle(); h.armIdleRelease() }()
-	h.residentModelAssets.capture(plan.ModelFiles())
+	modelFiles := plan.ModelFiles()
+	dependencySources := plan.DependencySources()
+	h.residentModelAssets.capture(modelFiles)
 
-	endpoint, resident, err := h.substrate.Ensure(ctx, plan.ProcessKey(), plan.ProcessArgs(), func(validationCtx context.Context) error {
-		if err := validateInvocationDependencySources(h.substrate, plan.DependencySources()); err != nil {
-			return err
-		}
-		return validateInvocationModelContentContext(validationCtx, plan.ModelFiles())
+	endpoint, resident, err := h.ensureSubstrateInvocation(ctx, llamaInvocationEnsureRequest{
+		processKey:                plan.ProcessKey(),
+		processArgs:               plan.ProcessArgs(),
+		modelFiles:                modelFiles,
+		allowWarmModelContentSkip: false,
+		validateDependencies: func() error {
+			return validateInvocationDependencySources(h.substrate, dependencySources)
+		},
+		validateModelContent: func(validationCtx context.Context) error {
+			return h.validateInvocationModelContent(validationCtx, modelFiles)
+		},
 	}, progress)
 	h.logger.Info("llama invocation preparation", "capability", "text.embed", "lease_wait_us", acquiredAt.Sub(queuedAt).Microseconds(), "prepare_ms", time.Since(acquiredAt).Milliseconds(), "resident", resident, "ready", err == nil)
 	if err != nil {
@@ -280,13 +304,21 @@ func (h *ExecutionHost) execute(
 	}
 	acquiredAt := time.Now()
 	defer func() { h.lease <- struct{}{}; h.residentModelAssets.notifyIdle(); h.armIdleRelease() }()
-	h.residentModelAssets.capture(plan.ModelFiles())
+	modelFiles := plan.ModelFiles()
+	dependencySources := plan.DependencySources()
+	h.residentModelAssets.capture(modelFiles)
 
-	endpoint, resident, err := h.substrate.Ensure(ctx, plan.ProcessKey(), plan.ProcessArgs(), func(validationCtx context.Context) error {
-		if err := validateInvocationDependencySources(h.substrate, plan.DependencySources()); err != nil {
-			return err
-		}
-		return validateInvocationModelContentContext(validationCtx, plan.ModelFiles())
+	endpoint, resident, err := h.ensureSubstrateInvocation(ctx, llamaInvocationEnsureRequest{
+		processKey:                plan.ProcessKey(),
+		processArgs:               plan.ProcessArgs(),
+		modelFiles:                modelFiles,
+		allowWarmModelContentSkip: true,
+		validateDependencies: func() error {
+			return validateInvocationDependencySources(h.substrate, dependencySources)
+		},
+		validateModelContent: func(validationCtx context.Context) error {
+			return h.validateInvocationModelContent(validationCtx, modelFiles)
+		},
 	}, progress)
 	h.logger.Info("llama invocation preparation", "capability", "text.generate", "lease_wait_us", acquiredAt.Sub(queuedAt).Microseconds(), "prepare_ms", time.Since(acquiredAt).Milliseconds(), "resident", resident, "ready", err == nil)
 	if err != nil {
@@ -334,6 +366,34 @@ func (h *ExecutionHost) execute(
 	return h.consumeResponse(ctx, response.Body)
 }
 
+func (h *ExecutionHost) ensureSubstrateInvocation(
+	ctx context.Context,
+	req llamaInvocationEnsureRequest,
+	progress localexecution.TextProgressFunc,
+) (string, bool, error) {
+	if loadBoundary, ok := h.substrate.(llamaLoadBoundarySubstrate); ok {
+		return loadBoundary.EnsureInvocation(ctx, req, progress)
+	}
+	return h.substrate.Ensure(ctx, req.processKey, req.processArgs, func(validationCtx context.Context) error {
+		if req.validateDependencies != nil {
+			if err := req.validateDependencies(); err != nil {
+				return err
+			}
+		}
+		if req.validateModelContent != nil {
+			return req.validateModelContent(validationCtx)
+		}
+		return nil
+	}, progress)
+}
+
+func (h *ExecutionHost) validateInvocationModelContent(ctx context.Context, files []capabilitydriver.InvocationExactBinding) error {
+	if h != nil && h.modelContentValidator != nil {
+		return h.modelContentValidator(ctx, files)
+	}
+	return validateInvocationModelContentContext(ctx, files)
+}
+
 func validateInvocationModelContentContext(ctx context.Context, files []capabilitydriver.InvocationExactBinding) error {
 	_, err := sealInvocationModelContentContext(ctx, files)
 	return err
@@ -352,7 +412,7 @@ func sealInvocationModelContentContext(ctx context.Context, bindings []capabilit
 		ctx = context.Background()
 	}
 	if len(bindings) == 0 {
-		return nil, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured local invocation has no model files"))
+		return nil, modelContentMismatchFailure(fmt.Errorf("captured local invocation has no model files"))
 	}
 	seals := make([]invocationModelContentSeal, 0, len(bindings))
 	for _, binding := range bindings {
@@ -378,23 +438,23 @@ func sealInvocationModelBindingContext(ctx context.Context, binding capabilitydr
 		}
 		if !strings.EqualFold(digest, strings.TrimSpace(binding.EntrySHA256)) ||
 			!strings.EqualFold("sha256:"+digest, strings.TrimSpace(binding.VerifiedContentID)) {
-			return invocationModelContentSeal{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured model content identity changed"))
+			return invocationModelContentSeal{}, modelContentMismatchFailure(fmt.Errorf("captured model content identity changed"))
 		}
 		return invocationModelContentSeal{declaredFileSHA256: map[string]string{filepath.Base(binding.AbsolutePath): digest}}, nil
 	}
 	if bundleDir == "" || len(declared) == 0 || !filepath.IsAbs(bundleDir) || filepath.Clean(bundleDir) != bundleDir {
-		return invocationModelContentSeal{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured model bundle identity is incomplete"))
+		return invocationModelContentSeal{}, modelContentMismatchFailure(fmt.Errorf("captured model bundle identity is incomplete"))
 	}
 	bundleInfo, err := os.Lstat(bundleDir)
 	if err != nil || !bundleInfo.IsDir() || bundleInfo.Mode()&os.ModeSymlink != 0 {
 		if err == nil {
 			err = fmt.Errorf("bundle path is not a direct directory")
 		}
-		return invocationModelContentSeal{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("open captured model bundle: %w", err))
+		return invocationModelContentSeal{}, modelContentMismatchFailure(fmt.Errorf("open captured model bundle: %w", err))
 	}
 	entryRelative, err := filepath.Rel(bundleDir, strings.TrimSpace(binding.AbsolutePath))
 	if err != nil || entryRelative == "." || filepath.IsAbs(entryRelative) || entryRelative == ".." || strings.HasPrefix(entryRelative, ".."+string(filepath.Separator)) {
-		return invocationModelContentSeal{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured model entry is outside its bundle"))
+		return invocationModelContentSeal{}, modelContentMismatchFailure(fmt.Errorf("captured model entry is outside its bundle"))
 	}
 	entryRelative = filepath.ToSlash(entryRelative)
 	contentHasher := sha256.New()
@@ -406,10 +466,10 @@ func sealInvocationModelBindingContext(ctx context.Context, binding capabilitydr
 		}
 		clean := filepath.Clean(filepath.FromSlash(relative))
 		if relative == "" || filepath.IsAbs(clean) || clean == "." || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) || filepath.ToSlash(clean) != relative {
-			return invocationModelContentSeal{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured model bundle has an invalid declared file"))
+			return invocationModelContentSeal{}, modelContentMismatchFailure(fmt.Errorf("captured model bundle has an invalid declared file"))
 		}
 		if _, exists := fileHashes[relative]; exists {
-			return invocationModelContentSeal{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured model bundle has duplicate declared files"))
+			return invocationModelContentSeal{}, modelContentMismatchFailure(fmt.Errorf("captured model bundle has duplicate declared files"))
 		}
 		digest, err := hashInvocationContentFileContext(ctx, filepath.Join(bundleDir, clean))
 		if err != nil {
@@ -421,40 +481,40 @@ func sealInvocationModelBindingContext(ctx context.Context, binding capabilitydr
 		if relative == entryRelative {
 			entryObserved = true
 			if !strings.EqualFold(digest, strings.TrimSpace(binding.EntrySHA256)) {
-				return invocationModelContentSeal{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured model entry content changed"))
+				return invocationModelContentSeal{}, modelContentMismatchFailure(fmt.Errorf("captured model entry content changed"))
 			}
 		}
 	}
 	if !entryObserved {
-		return invocationModelContentSeal{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured model entry is not declared"))
+		return invocationModelContentSeal{}, modelContentMismatchFailure(fmt.Errorf("captured model entry is not declared"))
 	}
 	contentDigest := fileHashes[declared[0]]
 	if len(declared) > 1 {
 		contentDigest = hex.EncodeToString(contentHasher.Sum(nil))
 	}
 	if !strings.EqualFold("sha256:"+contentDigest, strings.TrimSpace(binding.VerifiedContentID)) {
-		return invocationModelContentSeal{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured model bundle content identity changed"))
+		return invocationModelContentSeal{}, modelContentMismatchFailure(fmt.Errorf("captured model bundle content identity changed"))
 	}
 	if err := modelassetintegrity.ValidateDeclaredPayloadSet(bundleDir, declared); err != nil {
-		return invocationModelContentSeal{}, executionFailure(localexecution.FailureContentMismatch, err)
+		return invocationModelContentSeal{}, modelContentMismatchFailure(err)
 	}
 	return invocationModelContentSeal{declaredFileSHA256: fileHashes}, nil
 }
 
 func hashInvocationContentFileContext(ctx context.Context, path string) (string, error) {
 	if !filepath.IsAbs(path) || filepath.Clean(path) != path {
-		return "", executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("captured model path is not canonical and absolute"))
+		return "", modelContentMismatchFailure(fmt.Errorf("captured model path is not canonical and absolute"))
 	}
 	info, err := os.Lstat(path)
 	if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
 		if err == nil {
 			err = fmt.Errorf("path is not a direct regular file")
 		}
-		return "", executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("open captured model content: %w", err))
+		return "", modelContentMismatchFailure(fmt.Errorf("open captured model content: %w", err))
 	}
 	opened, err := os.Open(path)
 	if err != nil {
-		return "", executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("open captured model content: %w", err))
+		return "", modelContentMismatchFailure(fmt.Errorf("open captured model content: %w", err))
 	}
 	hash := sha256.New()
 	buffer := make([]byte, 4*1024*1024)
@@ -472,11 +532,11 @@ func hashInvocationContentFileContext(ctx context.Context, path string) (string,
 		}
 		if readErr != nil {
 			_ = opened.Close()
-			return "", executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("hash captured model content: %w", readErr))
+			return "", modelContentMismatchFailure(fmt.Errorf("hash captured model content: %w", readErr))
 		}
 	}
 	if closeErr := opened.Close(); closeErr != nil {
-		return "", executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("close captured model content: %w", closeErr))
+		return "", modelContentMismatchFailure(fmt.Errorf("close captured model content: %w", closeErr))
 	}
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
@@ -795,9 +855,17 @@ type managerLlamaInvocationSubstrate struct {
 	manager  llamaExecutionManager
 	lifetime context.Context
 	config   EngineConfig
+	// warmSkipPathEligible optionally overrides windowsLocalNTFSModelFilesEligible
+	// in package tests without global mutable state.
+	warmSkipPathEligible func([]capabilitydriver.InvocationExactBinding) bool
 
-	mu         sync.Mutex
-	currentKey string
+	mu                      sync.Mutex
+	currentKey              string
+	lastInstanceID          string
+	lastSupervisorID        string
+	verified                verifiedLlamaModelResidency
+	invalidationGen         uint64
+	pendingRetirementAssets map[string]uint64
 	// accessKey is the running worker's private key, fresh for each start and
 	// handed to it only through its environment (never argv or logs).
 	accessKey string
@@ -805,15 +873,19 @@ type managerLlamaInvocationSubstrate struct {
 }
 
 type managerLlamaInvocationLoad struct {
-	processKey      string
-	args            []string
-	validateContent func(context.Context) error
-	ctx             context.Context
-	cancel          context.CancelFunc
-	waiters         int
-	done            chan struct{}
-	endpoint        string
-	err             error
+	processKey                string
+	args                      []string
+	modelFiles                []capabilitydriver.InvocationExactBinding
+	allowWarmModelContentSkip bool
+	validateDependencies      func() error
+	validateModelContent      func(context.Context) error
+	invalidationGen           uint64
+	ctx                       context.Context
+	cancel                    context.CancelFunc
+	waiters                   int
+	done                      chan struct{}
+	endpoint                  string
+	err                       error
 }
 
 func newManagerLlamaInvocationSubstrate(manager *Manager) *managerLlamaInvocationSubstrate {
@@ -832,11 +904,129 @@ func newManagerLlamaInvocationSubstrateWithConfig(manager *Manager, config Engin
 	return &managerLlamaInvocationSubstrate{manager: manager, lifetime: context.Background(), config: config}
 }
 
+func (s *managerLlamaInvocationSubstrate) isWarmSkipPathEligible(bindings []capabilitydriver.InvocationExactBinding) bool {
+	if s != nil && s.warmSkipPathEligible != nil {
+		return s.warmSkipPathEligible(bindings)
+	}
+	return windowsLocalNTFSModelFilesEligible(bindings)
+}
+
+func (s *managerLlamaInvocationSubstrate) InvalidateModelAssetVerification(modelAssetID string) {
+	if s == nil {
+		return
+	}
+	trimmed := strings.TrimSpace(modelAssetID)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if trimmed == "" {
+		s.invalidationGen++
+		s.verified = verifiedLlamaModelResidency{}
+		return
+	}
+	if s.pendingRetirementAssets == nil {
+		s.pendingRetirementAssets = make(map[string]uint64)
+	}
+	s.invalidationGen++
+	s.pendingRetirementAssets[trimmed] = s.invalidationGen
+	if modelFilesReferenceAsset(s.verified.modelFiles, trimmed) {
+		s.verified = verifiedLlamaModelResidency{}
+	}
+}
+
+func (s *managerLlamaInvocationSubstrate) clearStalePendingRetirements(maxGen uint64) {
+	s.mu.Lock()
+	for id, gen := range s.pendingRetirementAssets {
+		if gen <= maxGen {
+			delete(s.pendingRetirementAssets, id)
+		}
+	}
+	s.mu.Unlock()
+}
+
+func (s *managerLlamaInvocationSubstrate) hasPendingRetirementLocked(bindings []capabilitydriver.InvocationExactBinding) bool {
+	if len(s.pendingRetirementAssets) == 0 {
+		return false
+	}
+	for _, binding := range bindings {
+		if _, pending := s.pendingRetirementAssets[strings.TrimSpace(binding.ModelAssetID)]; pending {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *managerLlamaInvocationSubstrate) invalidateResidencyOnContentMismatch() {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	s.invalidationGen++
+	s.currentKey = ""
+	s.lastInstanceID = ""
+	s.lastSupervisorID = ""
+	s.verified = verifiedLlamaModelResidency{}
+	s.accessKey = ""
+	s.mu.Unlock()
+}
+
+func (s *managerLlamaInvocationSubstrate) promoteVerifiedInstance(
+	expectedInfo SupervisorInfo,
+	processKey string,
+	modelFiles []capabilitydriver.InvocationExactBinding,
+	invalidationGenAtCheck uint64,
+) {
+	if s == nil || s.manager == nil || expectedInfo.ProcessInstanceID == "" {
+		return
+	}
+	liveInfo, err := s.manager.EngineStatus(EngineLlama)
+	if err != nil || liveInfo.Status != StatusHealthy ||
+		liveInfo.ProcessInstanceID == "" ||
+		liveInfo.ProcessInstanceID != expectedInfo.ProcessInstanceID ||
+		!liveInfo.PreSpawnVerified {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.loading != nil ||
+		s.currentKey != processKey ||
+		s.invalidationGen != invalidationGenAtCheck ||
+		s.hasPendingRetirementLocked(modelFiles) {
+		return
+	}
+	if s.lastSupervisorID != "" && liveInfo.SupervisorInstanceID != s.lastSupervisorID {
+		return
+	}
+	s.lastInstanceID = liveInfo.ProcessInstanceID
+	if liveInfo.SupervisorInstanceID != "" {
+		s.lastSupervisorID = liveInfo.SupervisorInstanceID
+	}
+	s.verified = verifiedLlamaModelResidency{
+		processInstanceID:    liveInfo.ProcessInstanceID,
+		supervisorInstanceID: liveInfo.SupervisorInstanceID,
+		processKey:           processKey,
+		modelFiles:           cloneInvocationExactBindings(modelFiles),
+		invalidationGen:      invalidationGenAtCheck,
+	}
+}
+
 func (s *managerLlamaInvocationSubstrate) Ensure(
 	ctx context.Context,
 	processKey string,
 	processArgs []string,
 	validateContent func(context.Context) error,
+	progress localexecution.TextProgressFunc,
+) (string, bool, error) {
+	return s.EnsureInvocation(ctx, llamaInvocationEnsureRequest{
+		processKey:                processKey,
+		processArgs:               processArgs,
+		allowWarmModelContentSkip: false,
+		validateModelContent:      validateContent,
+	}, progress)
+}
+
+func (s *managerLlamaInvocationSubstrate) EnsureInvocation(
+	ctx context.Context,
+	req llamaInvocationEnsureRequest,
 	progress localexecution.TextProgressFunc,
 ) (string, bool, error) {
 	if s == nil || s.manager == nil {
@@ -848,23 +1038,89 @@ func (s *managerLlamaInvocationSubstrate) Ensure(
 	if err := ctx.Err(); err != nil {
 		return "", false, err
 	}
+	processKey := req.processKey
+	processArgs := req.processArgs
+	modelFiles := cloneInvocationExactBindings(req.modelFiles)
 	for {
 		s.mu.Lock()
 		if s.loading == nil && processKey == s.currentKey {
 			endpoint, err := s.manager.EngineEndpoint(EngineLlama)
 			if err == nil {
-				s.mu.Unlock()
-				if validateContent != nil {
-					if err := validateContent(ctx); err != nil {
+				info, statusErr := s.manager.EngineStatus(EngineLlama)
+				sameTrackedInstance := statusErr == nil &&
+					info.Status == StatusHealthy &&
+					info.ProcessInstanceID != "" &&
+					s.lastInstanceID != "" &&
+					info.ProcessInstanceID == s.lastInstanceID
+				verifiedOwnSupervisorRestart := statusErr == nil &&
+					info.Status == StatusHealthy &&
+					info.ProcessInstanceID != "" &&
+					s.lastSupervisorID != "" &&
+					info.SupervisorInstanceID == s.lastSupervisorID &&
+					info.PreSpawnVerified
+				if s.lastInstanceID != "" && !sameTrackedInstance && !verifiedOwnSupervisorRestart {
+					// A different process instance (even with identical processKey,
+					// port, or PID) or an unverified restart replaced the tracked
+					// worker. Invalidate and perform a fresh verified load.
+					s.currentKey = ""
+					s.lastInstanceID = ""
+					s.lastSupervisorID = ""
+					s.verified = verifiedLlamaModelResidency{}
+					s.accessKey = ""
+				} else {
+					invalidationGenAtCheck := s.invalidationGen
+					canSkipModelContent := sameTrackedInstance &&
+						req.allowWarmModelContentSkip &&
+						s.verified.processInstanceID != "" &&
+						s.verified.processInstanceID == info.ProcessInstanceID &&
+						s.verified.processKey == processKey &&
+						s.verified.invalidationGen == invalidationGenAtCheck &&
+						!s.hasPendingRetirementLocked(modelFiles) &&
+						llamaTextProcessArgsAllowWarmSkip(processArgs) &&
+						equalInvocationModelFiles(modelFiles, s.verified.modelFiles)
+					s.mu.Unlock()
+
+					if err := ctx.Err(); err != nil {
 						return "", false, err
 					}
+					// Independent dependency-source validation always runs, even on
+					// warm same-instance hits.
+					if req.validateDependencies != nil {
+						if err := req.validateDependencies(); err != nil {
+							return "", false, err
+						}
+					}
+					if !canSkipModelContent {
+						if req.validateModelContent != nil {
+							if err := req.validateModelContent(ctx); err != nil {
+								if localexecution.FailureKindOf(err) == localexecution.FailureContentMismatch {
+									s.invalidateResidencyOnContentMismatch()
+								}
+								return "", false, err
+							}
+						}
+						if req.allowWarmModelContentSkip &&
+							(sameTrackedInstance || verifiedOwnSupervisorRestart) &&
+							len(modelFiles) > 0 &&
+							llamaTextProcessArgsAllowWarmSkip(processArgs) &&
+							s.isWarmSkipPathEligible(modelFiles) {
+							s.promoteVerifiedInstance(info, processKey, modelFiles, invalidationGenAtCheck)
+						}
+					}
+					if err := ctx.Err(); err != nil {
+						return "", false, err
+					}
+					if progress != nil {
+						progress(localexecution.TextExecutionProgressReused)
+					}
+					return endpoint, true, nil
 				}
-				if progress != nil {
-					progress(localexecution.TextExecutionProgressReused)
-				}
-				return endpoint, true, nil
+			} else {
+				s.currentKey = ""
+				s.lastInstanceID = ""
+				s.lastSupervisorID = ""
+				s.verified = verifiedLlamaModelResidency{}
 			}
-			s.currentKey = ""
 		}
 		load := s.loading
 		if load != nil && load.ctx.Err() != nil {
@@ -884,13 +1140,17 @@ func (s *managerLlamaInvocationSubstrate) Ensure(
 		if load == nil {
 			loadCtx, cancelLoad := context.WithCancel(s.lifetime)
 			load = &managerLlamaInvocationLoad{
-				processKey:      processKey,
-				args:            append([]string(nil), processArgs...),
-				validateContent: validateContent,
-				ctx:             loadCtx,
-				cancel:          cancelLoad,
-				waiters:         1,
-				done:            make(chan struct{}),
+				processKey:                processKey,
+				args:                      append([]string(nil), processArgs...),
+				modelFiles:                modelFiles,
+				allowWarmModelContentSkip: req.allowWarmModelContentSkip,
+				validateDependencies:      req.validateDependencies,
+				validateModelContent:      req.validateModelContent,
+				invalidationGen:           s.invalidationGen,
+				ctx:                       loadCtx,
+				cancel:                    cancelLoad,
+				waiters:                   1,
+				done:                      make(chan struct{}),
 			}
 			s.loading = load
 			go s.runLoad(load)
@@ -929,31 +1189,43 @@ func (s *managerLlamaInvocationSubstrate) Ensure(
 
 func (s *managerLlamaInvocationSubstrate) runLoad(load *managerLlamaInvocationLoad) {
 	if err := load.ctx.Err(); err != nil {
-		s.finishLoad(load, "", "", err)
+		s.finishLoad(load, "", "", SupervisorInfo{}, false, err)
 		return
 	}
 	if info, err := s.manager.EngineStatus(EngineLlama); err == nil && info.Status != StatusStopped {
 		if err := s.manager.StopEngine(EngineLlama); err != nil {
-			s.finishLoad(load, "", "", fmt.Errorf("stop prior llama process: %w", err))
+			s.finishLoad(load, "", "", SupervisorInfo{}, false, fmt.Errorf("stop prior llama process: %w", err))
 			return
 		}
 	}
+	s.clearStalePendingRetirements(load.invalidationGen)
 	if err := load.ctx.Err(); err != nil {
-		s.finishLoad(load, "", "", err)
+		s.finishLoad(load, "", "", SupervisorInfo{}, false, err)
 		return
 	}
 	// Revalidate only after the prior worker has stopped and immediately before
 	// StartEngine gives the captured paths to llama-server. Performing this
 	// check earlier would leave process shutdown as a replacement window.
-	if load.validateContent != nil {
-		if err := load.validateContent(load.ctx); err != nil {
-			s.finishLoad(load, "", "", err)
+	if load.validateDependencies != nil {
+		if err := load.validateDependencies(); err != nil {
+			s.finishLoad(load, "", "", SupervisorInfo{}, false, err)
 			return
 		}
 	}
+	if load.validateModelContent != nil {
+		if err := load.validateModelContent(load.ctx); err != nil {
+			s.finishLoad(load, "", "", SupervisorInfo{}, false, err)
+			return
+		}
+	}
+	warmEligible := load.allowWarmModelContentSkip &&
+		len(load.modelFiles) > 0 &&
+		llamaTextProcessArgsAllowWarmSkip(load.args) &&
+		s.isWarmSkipPathEligible(load.modelFiles)
+
 	accessKey, err := newLlamaAccessKey()
 	if err != nil {
-		s.finishLoad(load, "", "", err)
+		s.finishLoad(load, "", "", SupervisorInfo{}, false, err)
 		return
 	}
 	cfg := s.config
@@ -963,12 +1235,38 @@ func (s *managerLlamaInvocationSubstrate) runLoad(load *managerLlamaInvocationLo
 		cfg.CommandEnv[key] = value
 	}
 	cfg.CommandEnv["LLAMA_API_KEY"] = accessKey
+	cfg.PreSpawnValidated = true
+	validateDeps := load.validateDependencies
+	validateModel := load.validateModelContent
+	if validateDeps != nil || validateModel != nil {
+		cfg.PreRestartValidate = func(restartCtx context.Context) error {
+			if validateDeps != nil {
+				if err := validateDeps(); err != nil {
+					return err
+				}
+			}
+			if validateModel != nil {
+				if err := validateModel(restartCtx); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}
 	if err := s.manager.StartEngine(load.ctx, cfg); err != nil {
-		s.finishLoad(load, "", "", err)
+		s.finishLoad(load, "", "", SupervisorInfo{}, false, err)
 		return
 	}
 	endpoint, err := s.manager.EngineEndpoint(EngineLlama)
-	s.finishLoad(load, endpoint, accessKey, err)
+	if err != nil {
+		s.finishLoad(load, "", "", SupervisorInfo{}, false, err)
+		return
+	}
+	info, statusErr := s.manager.EngineStatus(EngineLlama)
+	if statusErr != nil {
+		info = SupervisorInfo{}
+	}
+	s.finishLoad(load, endpoint, accessKey, info, warmEligible, nil)
 }
 
 func newLlamaAccessKey() (string, error) {
@@ -985,17 +1283,44 @@ func (s *managerLlamaInvocationSubstrate) AccessKey() string {
 	return s.accessKey
 }
 
-func (s *managerLlamaInvocationSubstrate) finishLoad(load *managerLlamaInvocationLoad, endpoint string, accessKey string, err error) {
+func (s *managerLlamaInvocationSubstrate) finishLoad(
+	load *managerLlamaInvocationLoad,
+	endpoint string,
+	accessKey string,
+	info SupervisorInfo,
+	warmEligible bool,
+	err error,
+) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	load.endpoint = endpoint
 	load.err = err
 	if err != nil {
 		s.currentKey = ""
+		s.lastInstanceID = ""
+		s.lastSupervisorID = ""
+		s.verified = verifiedLlamaModelResidency{}
 		s.accessKey = ""
 	} else {
 		s.currentKey = load.processKey
 		s.accessKey = accessKey
+		s.lastInstanceID = info.ProcessInstanceID
+		s.lastSupervisorID = info.SupervisorInstanceID
+		if warmEligible &&
+			info.Status == StatusHealthy &&
+			info.ProcessInstanceID != "" &&
+			s.invalidationGen == load.invalidationGen &&
+			!s.hasPendingRetirementLocked(load.modelFiles) {
+			s.verified = verifiedLlamaModelResidency{
+				processInstanceID:    info.ProcessInstanceID,
+				supervisorInstanceID: info.SupervisorInstanceID,
+				processKey:           load.processKey,
+				modelFiles:           cloneInvocationExactBindings(load.modelFiles),
+				invalidationGen:      load.invalidationGen,
+			}
+		} else {
+			s.verified = verifiedLlamaModelResidency{}
+		}
 	}
 	if s.loading == load {
 		s.loading = nil

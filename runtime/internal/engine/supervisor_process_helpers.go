@@ -74,6 +74,18 @@ func processLifecycle(process *supervisedProcess) *supervisorProcessLifecycle {
 	return process.lifecycle
 }
 
+func supervisedProcessExited(process *supervisedProcess) bool {
+	if process == nil || process.done == nil {
+		return true
+	}
+	select {
+	case <-process.done:
+		return true
+	default:
+		return false
+	}
+}
+
 func supervisedProcessBlocksStart(process *supervisedProcess) bool {
 	if process == nil {
 		return false
@@ -180,6 +192,12 @@ func (s *Supervisor) handleExitedProcess(ctx context.Context, process *supervise
 	if !s.isRunEpochActive(epoch) {
 		return
 	}
+	s.mu.Lock()
+	if s.process == process {
+		s.activeInstanceID = ""
+		s.activePreSpawnVerified = false
+	}
+	s.mu.Unlock()
 	if lifecycleErr := process.lifecycleError(); lifecycleErr != nil {
 		detail := fmt.Sprintf("process tree cleanup failed: %v", lifecycleErr)
 		s.logger.Error("engine process tree cleanup failed",

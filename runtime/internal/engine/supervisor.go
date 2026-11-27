@@ -2,6 +2,8 @@ package engine
 
 import (
 	"context"
+	cryptorand "crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -13,6 +15,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 )
 
 // StateChangeFunc is called when the engine transitions state.
@@ -37,10 +41,14 @@ type Supervisor struct {
 	healthProbeFailures  int
 	healthProbeSuccesses int
 	unhealthySince       time.Time
-	cancel               context.CancelFunc
-	runEpoch             uint64
-	stderrTail           []string
-	processLogPhase      string
+	cancel                 context.CancelFunc
+	runEpoch               uint64
+	instancePrefix         string
+	spawnSeq               uint64
+	activeInstanceID       string
+	activePreSpawnVerified bool
+	stderrTail             []string
+	processLogPhase        string
 }
 
 const maxConsecutiveHealthProbeFailures = 3
@@ -78,11 +86,20 @@ func NewSupervisor(cfg EngineConfig, logger *slog.Logger, onState StateChangeFun
 		onState = func(EngineKind, EngineStatus, string) {}
 	}
 	return &Supervisor{
-		cfg:     cfg,
-		logger:  logger,
-		onState: onState,
-		status:  StatusStopped,
+		cfg:            cfg,
+		logger:         logger,
+		onState:        onState,
+		status:         StatusStopped,
+		instancePrefix: newSupervisorInstancePrefix(),
 	}
+}
+
+func newSupervisorInstancePrefix() string {
+	var raw [16]byte
+	if _, err := cryptorand.Read(raw[:]); err == nil {
+		return hex.EncodeToString(raw[:])
+	}
+	return fmt.Sprintf("sup-%d-%d", time.Now().UnixNano(), rand.Uint64())
 }
 
 // Start launches the engine process and begins health monitoring.
@@ -115,7 +132,7 @@ func (s *Supervisor) Start(ctx context.Context) error {
 	epoch := s.runEpoch
 	s.mu.Unlock()
 
-	return s.spawn(ctx, epoch)
+	return s.spawn(ctx, epoch, s.cfg.PreSpawnValidated)
 }
 
 // Stop gracefully shuts down the engine process.
@@ -213,6 +230,8 @@ func (s *Supervisor) clearStoppedProcess(process *supervisedProcess) {
 		s.cmd = nil
 		s.process = nil
 		s.pid = 0
+		s.activeInstanceID = ""
+		s.activePreSpawnVerified = false
 	}
 	s.mu.Unlock()
 }
@@ -234,10 +253,19 @@ func (s *Supervisor) Info() SupervisorInfo {
 			binarySize = fi.Size()
 		}
 	}
+	processInstanceID := ""
+	preSpawnVerified := false
+	if s.status == StatusHealthy && s.process != nil && !supervisedProcessExited(s.process) {
+		processInstanceID = s.activeInstanceID
+		preSpawnVerified = s.activePreSpawnVerified
+	}
 	return SupervisorInfo{
 		Kind:                  s.cfg.Kind,
 		Version:               s.cfg.Version,
 		ExecutionHostIdentity: s.cfg.ExecutionHostIdentity,
+		ProcessInstanceID:     processInstanceID,
+		SupervisorInstanceID:  s.instancePrefix,
+		PreSpawnVerified:      preSpawnVerified,
 		Port:                  s.cfg.Port,
 		Status:                s.status,
 		Detail:                s.statusDetail,
@@ -265,19 +293,25 @@ type SupervisorInfo struct {
 	Kind                  EngineKind
 	Version               string
 	ExecutionHostIdentity string
-	Port                  int
-	Status                EngineStatus
-	Detail                string
-	PID                   int
-	StartedAt             time.Time
-	LastHealthyAt         time.Time
-	ConsecutiveFailures   int
-	BinaryPath            string
-	BinarySizeBytes       int64
-	Endpoint              string
+	// ProcessInstanceID, SupervisorInstanceID, and PreSpawnVerified are
+	// Runtime-private lifecycle proofs for the exact live child process spawned
+	// by this Supervisor. They are never projected onto public DTOs or RPCs.
+	ProcessInstanceID    string
+	SupervisorInstanceID string
+	PreSpawnVerified     bool
+	Port                 int
+	Status               EngineStatus
+	Detail               string
+	PID                  int
+	StartedAt            time.Time
+	LastHealthyAt        time.Time
+	ConsecutiveFailures  int
+	BinaryPath           string
+	BinarySizeBytes      int64
+	Endpoint             string
 }
 
-func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
+func (s *Supervisor) spawn(ctx context.Context, epoch uint64, preSpawnVerified bool) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -437,6 +471,12 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 	s.process = process
 	s.pid = cmd.Process.Pid
 	s.startedAt = time.Now()
+	s.spawnSeq++
+	if s.instancePrefix == "" {
+		s.instancePrefix = newSupervisorInstancePrefix()
+	}
+	s.activeInstanceID = fmt.Sprintf("%s:%d", s.instancePrefix, s.spawnSeq)
+	s.activePreSpawnVerified = preSpawnVerified
 	s.stderrTail = nil
 	s.mu.Unlock()
 
@@ -729,7 +769,35 @@ func (s *Supervisor) handleCrash(ctx context.Context, crashDetail string, epoch 
 		if !s.isRunEpochActive(epoch) {
 			return
 		}
-		if err := s.spawn(ctx, epoch); err != nil {
+		preRestartVerified := false
+		if s.cfg.PreRestartValidate != nil {
+			if err := s.cfg.PreRestartValidate(ctx); err != nil {
+				if ctx.Err() != nil || !s.isRunEpochActive(epoch) {
+					return
+				}
+				if s.logger != nil {
+					s.logger.Error("engine restart pre-spawn validation failed",
+						"event", "engine.process.restart_validation_failed",
+						"engine", s.cfg.Kind,
+						"attempt", failures,
+						"error", err,
+					)
+				}
+				if localexecution.FailureKindOf(err) == localexecution.FailureContentMismatch {
+					s.mu.Lock()
+					s.activeInstanceID = ""
+					s.activePreSpawnVerified = false
+					s.mu.Unlock()
+					s.setStatus(StatusUnhealthy, fmt.Sprintf("restart content verification failed: %v", err))
+					s.removePIDFile()
+					return
+				}
+				crashDetail = fmt.Sprintf("restart validation failed: %v", err)
+				continue
+			}
+			preRestartVerified = true
+		}
+		if err := s.spawn(ctx, epoch, preRestartVerified); err != nil {
 			s.logger.Error("engine restart failed",
 				"event", "engine.process.restart_failed",
 				"engine", s.cfg.Kind,

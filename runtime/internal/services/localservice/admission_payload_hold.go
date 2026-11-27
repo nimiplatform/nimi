@@ -222,11 +222,13 @@ func (s *Service) releaseAdmissionHolds() {
 }
 
 // lockModelAssetMutation takes modelAssetMutationMu for a ModelAsset change and
-// first releases every admission hold, so the change never meets a payload file
-// that admission keeps open.
+// first releases every admission hold and invalidates cached Host verification
+// tokens, so the change never meets a payload file that admission keeps open
+// and managed mutations immediately invalidate resident warm-skip verification.
 func (s *Service) lockModelAssetMutation() {
 	s.modelAssetMutationMu.Lock()
 	s.releaseAdmissionHolds()
+	s.invalidateHostModelAssetVerificationsLocked()
 }
 
 // computeFileSHA256Context hashes one payload file and stops when ctx ends.
