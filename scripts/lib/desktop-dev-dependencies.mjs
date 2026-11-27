@@ -314,9 +314,14 @@ export async function prepareDesktopDevDependencies(root, { signal, realm = read
   const logRoot = path.join(root, '.nimi', 'local', 'dev-services');
   mkdirSync(logRoot, { recursive: true });
   const owned = [];
-  const runtimeOwner = createSourceRuntimeOwner((runtimeSignal) => runSourceRuntimeDevelopment({
-    argv: ['--realm', realm.name], env: { ...env, ...developmentRealmEnvironment(realm) }, repoRoot: root, signal: runtimeSignal,
-  }));
+  let awaitingRuntimeConstruction = false;
+  const runtimeOwner = createSourceRuntimeOwner((runtimeSignal) => {
+    awaitingRuntimeConstruction = process.platform === 'win32';
+    return runSourceRuntimeDevelopment({
+      argv: ['--realm', realm.name], env: { ...env, ...developmentRealmEnvironment(realm) }, repoRoot: root, signal: runtimeSignal,
+      onRuntimeConstructed: () => { awaitingRuntimeConstruction = false; },
+    });
+  });
   let closeTask;
   let phase = 'dependency preflight';
   const log = (message) => process.stdout.write(`[desktop-deps] ${message}\n`);
@@ -330,7 +335,13 @@ export async function prepareDesktopDevDependencies(root, { signal, realm = read
     return closeTask;
   };
   try {
-    const runtime = { name: 'Source Runtime', probe: () => probeRuntime(root, realm) };
+    const runtime = { name: 'Source Runtime', probe: async () => {
+      const result = await probeRuntime(root, realm);
+      // The owned Windows child creates its endpoint before it validates the
+      // selected root. Let its startup result win that race. An independently
+      // running Runtime retains its existing attach and protected-probe path.
+      return awaitingRuntimeConstruction && result.state === 'ready' ? { ...result, state: 'starting' } : result;
+    } };
     const services = desktopHttpDependencies(root, realm);
     const states = await Promise.all(services.map((service) => service.probe()));
     for (let index = 0; index < services.length; index += 1) {

@@ -3,6 +3,7 @@ import { DESKTOP_FORMAL_SESSION_INVALIDATED_EVENT } from '../src/shell/shared/fo
 import { parseZhiyuConversationOpenTarget } from '../../zhiyu/src/shell/app/conversation-open.js';
 import { createDesktopExecutionNoticesHost } from './execution-notices-host.js';
 import { writeDesktopStderr } from './stderr-log.js';
+import { showSourceDataRootRepair } from './source-data-root-repair.js';
 import { DesktopProductUpdateHost } from './product-update-host.js';
 import { MacOSProductUpdateAdapter } from './macos-product-update-adapter.js';
 import { WindowsProductUpdateAdapter } from './windows-product-update-adapter.js';
@@ -72,7 +73,14 @@ import {
 import { importPickedModelFile } from './model-file-import.js';
 import { createDesktopElectronProductControlHost } from './product-control-host.js';
 import { createDesktopMacOSRuntimeServiceHost } from './macos-runtime-service.js';
-import { observeDesktopRuntimeMaintenance, readDesktopRuntimeMaintenance, NIMI_RUNTIME_STORED_DATA_UNSUPPORTED } from './runtime-maintenance.js';
+import {
+  NIMI_RUNTIME_STORED_DATA_UNSUPPORTED,
+  observeDesktopRuntimeMaintenance,
+  readDesktopRuntimeMaintenance,
+  readStartupHomeProfileScope,
+  startWindowsHomeRuntime,
+  type WindowsHomeRuntimeStart,
+} from './runtime-maintenance.js';
 import { createDesktopInstalledAppHost, type DesktopInstalledAppHost } from './installed-app-host.js';
 import {
   DesktopSourceRuntimeUnavailableError,
@@ -258,6 +266,10 @@ let systemSessionEnding = false;
 let entryUnavailableNoticeOpen = false;
 type DesktopRuntimeStatus = { readonly running: boolean; readonly managed: boolean; readonly launchMode: string; readonly version?: string; readonly lastError?: string };
 let productUpdateHost: DesktopProductUpdateHost | undefined;
+const runtimeLifecycleProfile = SOURCE_PER_USER_RUNTIME_D2 ? 'source' : 'fixed';
+const runtimeCommandNames = createElectronRuntimeBridgeCommandNames();
+let earlyWindowsRuntime: Promise<WindowsHomeRuntimeStart> | undefined;
+let fixedRuntimeHost: ReturnType<typeof createNimiElectronRuntimeLifecycleHost> | undefined;
 let productUpdateAdapter: MacOSProductUpdateAdapter | WindowsProductUpdateAdapter | undefined;
 let reconcileProductActivation: (() => Promise<void>) | undefined;
 let productUpdateHomeReady = false;
@@ -267,6 +279,9 @@ const DESKTOP_FORMAL_RESOURCE_SHUTDOWN_TIMEOUT_MS = 5_000;
 const HOME_PROFILE_RELAUNCH_ARGUMENT = '--nimi-home-profile-relaunch';
 const HOME_PROFILE_RELAUNCH_EXIT_CODE = 75;
 const HOME_PROFILE_SCOPE_READ_TIMEOUT_MS = 12_000;
+// This D2 launcher outcome may only select the restricted bootstrap profile.
+const sourceRootRepair = SOURCE_PER_USER_RUNTIME_D2 && process.platform === 'win32'
+  ? process.env.NIMI_WINDOWS_SOURCE_DATA_ROOT_REPAIR : undefined;
 const HOME_PROFILE_RELAUNCHED = process.argv.includes(HOME_PROFILE_RELAUNCH_ARGUMENT);
 const HOME_PROFILE_REPAIR_COMMANDS: ReadonlySet<string> = new Set([
   'product_control_record_select_data_root',
@@ -339,6 +354,11 @@ if (!ownsDesktopInstanceLock) {
   app.quit();
 } else if (!await configureDesktopHomeHostProfile()) {
   desktopFinalExit.exit(1);
+} else if (sourceRootRepair) {
+  void showSourceDataRootRepair(sourceRootRepair, code => desktopFinalExit.exit(code)).catch(() => {
+    writeDesktopStderr('[desktop-bootstrap] source-data-root-recovery-window-failed\n');
+    desktopFinalExit.exit(1);
+  });
 } else {
   app.on('second-instance', () => {
     void focusDesktopMainWindow();
@@ -364,9 +384,23 @@ if (!ownsDesktopInstanceLock) {
 // bootstrap below awaits readiness, so awaiting it here would self-wait.
 async function configureDesktopHomeHostProfile(): Promise<boolean> {
   const temporaryEnvironment = captureDesktopTemporaryEnvironment();
+  if (process.platform === 'win32' && runtimeLifecycleProfile === 'fixed' && !unregisterProductionService) {
+    const updates = new WindowsProductUpdateAdapter(windowsUpdateCacheRoot(), app.isPackaged && !ELECTRON_DEVELOPMENT_BUILD);
+    productUpdateAdapter = updates;
+    const host = createNimiElectronRuntimeLifecycleHost(PROTECTED_DESKTOP_RUNTIME_TRANSPORT_REF, 'fixed');
+    fixedRuntimeHost = host;
+    earlyWindowsRuntime = startWindowsHomeRuntime(
+      () => updates.hasPending(),
+      () => host.invoke(runtimeCommandNames.start, runtimeCommandNames) as Promise<DesktopRuntimeStatus>,
+    );
+  }
   try {
     const profile = await prepareDesktopHomeHostProfile({
-      readScopeRoot: () => readDesktopHomeProfileScope(),
+      readScopeRoot: () => {
+        if (sourceRootRepair) throw new Error('source-runtime-data-root-repair-required');
+        return readStartupHomeProfileScope(earlyWindowsRuntime,
+          () => createDesktopElectronProductControlHost().resolveHostProfileScope(), HOME_PROFILE_SCOPE_READ_TIMEOUT_MS);
+      },
       singleInstanceScope: app.getPath('userData'),
       temporaryEnvironment,
       reportCleanupFailure: (error) => {
@@ -401,21 +435,8 @@ function requestDesktopMaintenanceRelaunch(): void {
   setTimeout(() => app.quit(), 250);
 }
 
-async function readDesktopHomeProfileScope(): Promise<string> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      createDesktopElectronProductControlHost().resolveHostProfileScope(),
-      new Promise<never>((_resolve, reject) => {
-        timer = setTimeout(
-          () => reject(new Error('desktop-home-profile-scope-read-timeout')),
-          HOME_PROFILE_SCOPE_READ_TIMEOUT_MS,
-        );
-      }),
-    ]);
-  } finally {
-    if (timer !== undefined) clearTimeout(timer);
-  }
+function windowsUpdateCacheRoot(): string {
+  return path.join(app.getPath('appData'), 'Nimi', 'product-updates');
 }
 
 // Bootstrap serves setup and repair only: App launches are refused until Home
@@ -488,9 +509,9 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     }
     const updateCacheRoot = process.platform === 'darwin'
       ? path.join(app.getPath('home'), 'Library', 'Caches', 'ai.nimi.product-update')
-      : process.platform === 'win32' ? path.join(app.getPath('appData'), 'Nimi', 'product-updates') : path.join(app.getPath('userData'), 'product-updates');
+      : process.platform === 'win32' ? windowsUpdateCacheRoot() : path.join(app.getPath('userData'), 'product-updates');
     const productionUpdate = app.isPackaged && !ELECTRON_DEVELOPMENT_BUILD && !MACOS_LOCAL_DEVELOPMENT_BUILD;
-    productUpdateAdapter = process.platform === 'win32' ? new WindowsProductUpdateAdapter(updateCacheRoot, productionUpdate) : new MacOSProductUpdateAdapter(updateCacheRoot, productionUpdate);
+    productUpdateAdapter ??= process.platform === 'win32' ? new WindowsProductUpdateAdapter(updateCacheRoot, productionUpdate) : new MacOSProductUpdateAdapter(updateCacheRoot, productionUpdate);
     const windowsUpdate = productUpdateAdapter instanceof WindowsProductUpdateAdapter ? productUpdateAdapter : undefined;
     const updateFailureStore = new ProductUpdateFailureStore(updateCacheRoot, windowsUpdate ? (file) => windowsUpdate.validatePrivateFile(file) : undefined);
     // @nimi-authority: rule.nimi.platform.product-lifecycle.p-pkgrel-002
@@ -566,9 +587,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       electronDevelopmentBuild: ELECTRON_DEVELOPMENT_BUILD,
       macOSLocalDevelopmentBuild: MACOS_LOCAL_DEVELOPMENT_BUILD,
     });
-    const runtimeLifecycleProfile = SOURCE_PER_USER_RUNTIME_D2 ? 'source' : 'fixed';
-    const runtimeCommandNames = createElectronRuntimeBridgeCommandNames();
-    const fixedRuntimeLifecycleHost = createNimiElectronRuntimeLifecycleHost(
+    const fixedRuntimeLifecycleHost = fixedRuntimeHost ?? createNimiElectronRuntimeLifecycleHost(
       PROTECTED_DESKTOP_RUNTIME_TRANSPORT_REF,
       runtimeLifecycleProfile,
     );
@@ -675,9 +694,17 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       await runtimeLifecycleHost.invoke(command, runtimeCommandNames)
     ) as DesktopRuntimeStatus;
     if (!SOURCE_PER_USER_RUNTIME_D2 && !macOSProductionService) {
-      runtimeMaintenance = await readDesktopRuntimeMaintenance(
-        () => invokeRuntimeLifecycle(runtimeCommandNames.start),
-      );
+      const early = await earlyWindowsRuntime;
+      if (!early || early.kind === 'deferred') {
+        // A pending update retains its existing activation-before-start order.
+        runtimeMaintenance = await readDesktopRuntimeMaintenance(() => invokeRuntimeLifecycle(runtimeCommandNames.start));
+      } else if (early.kind === 'failed') {
+        runtimeStartupFailure = desktopBootstrapFailureCode(early.error);
+        homeProfileWorkBlocked = true;
+        writeDesktopStderr(`[desktop-bootstrap] runtime-start-failed:${runtimeStartupFailure}\n`);
+      } else {
+        runtimeMaintenance = early.kind === 'maintenance';
+      }
     }
     const productControlHost = createDesktopElectronProductControlHost({
       operationGate: dataRootOperationGate,
@@ -1179,6 +1206,15 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
             const prepared = await macOSProductionService.prepare(runtimeCommandNames);
             if (prepared === 'approval-pending') { app.quit(); return { requested: true }; }
             runtimeMaintenance = prepared === 'maintenance';
+            runtimeStartupFailure = null;
+            requestDesktopMaintenanceRelaunch();
+            return { requested: true };
+          }
+          if (runtimeStartupFailure && process.platform === 'win32' && runtimeLifecycleProfile === 'fixed') {
+            const status = await invokeRuntimeLifecycle(runtimeCommandNames.start);
+            if (!status.running && status.lastError !== NIMI_RUNTIME_STORED_DATA_UNSUPPORTED) {
+              throw new Error(status.lastError || 'runtime-service-unavailable');
+            }
             runtimeStartupFailure = null;
             requestDesktopMaintenanceRelaunch();
             return { requested: true };

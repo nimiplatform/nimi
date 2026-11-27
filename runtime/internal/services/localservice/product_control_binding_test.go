@@ -239,6 +239,43 @@ func TestProductControlRawRecordSharedVectorDispositions(t *testing.T) {
 	}
 }
 
+func TestCompletedRootDirectoryCollisionReportsRepairWithoutBinding(t *testing.T) {
+	control, root := createProductControlBindingLayoutForTest(t)
+	record := productControlBindingRecordForTest(root)
+	models := filepath.Join(root, "models")
+	saved := filepath.Join(root, "models-original")
+	if err := os.Rename(models, saved); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(models, []byte("test data"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	writeProductControlBindingRecordForTest(t, control, record)
+	binding, err := LoadProductControlDataRootBinding(control, ProductControlDataRootSecurityBinding{})
+	var repair *ProductControlDataRootRepairError
+	if err == nil || errors.As(err, &repair) || binding.DataRoot != "" {
+		t.Fatalf("first-run collision: binding=%v err=%v", binding, err)
+	}
+	record["state"] = "ready_for_use"
+	record["dataRoot"].(map[string]any)["status"] = "ready"
+	record["firstRun"] = map[string]any{"completed": true, "completedAt": "2026-07-26T00:01:00.000Z"}
+	writeProductControlBindingRecordForTest(t, control, record)
+	binding, err = LoadProductControlDataRootBinding(control, ProductControlDataRootSecurityBinding{})
+	if !errors.As(err, &repair) || binding.DataRoot != "" || !strings.Contains(repair.Error(), "models") {
+		t.Fatalf("completed root collision: binding=%v err=%v", binding, err)
+	}
+	if err := os.Rename(models, filepath.Join(root, "preserved-file")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(saved, models); err != nil {
+		t.Fatal(err)
+	}
+	binding, err = LoadProductControlDataRootBinding(control, ProductControlDataRootSecurityBinding{})
+	if err != nil || binding.DataRoot != root {
+		t.Fatalf("restored root: binding=%v err=%v", binding, err)
+	}
+}
+
 func TestLoadProductControlDataRootBindingAcceptsSelectedAndReady(t *testing.T) {
 	for _, status := range []string{"selected", "ready"} {
 		t.Run(status, func(t *testing.T) {

@@ -114,8 +114,17 @@ async function runWindowsDesktopDev() {
       repoRoot: workspaceRoot,
       electronExecutable: electronBin,
     });
-    dependencyTask = prepareDesktopDevDependencies(workspaceRoot, { signal: dependencyAbort.signal, realm: developmentRealm, externalEnvironment: externalServiceEnvironment });
-    await dependencyTask;
+    const prepareDependencies = async () => {
+      dependencyTask = prepareDesktopDevDependencies(workspaceRoot, { signal: dependencyAbort.signal, realm: developmentRealm, externalEnvironment: externalServiceEnvironment });
+      try {
+        await dependencyTask;
+        return '';
+      } catch (error) {
+        if (error?.reasonCode !== 'source-runtime-data-root-repair-required' || avatarOnly || shuttingDown) throw error;
+        return error.message;
+      }
+    };
+    let repairDetail = await prepareDependencies();
     dependencyAbort.signal.throwIfAborted();
     process.env.NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT = '1';
     const workspaceSurfaceWatcher = spawnWorkspaceSurfaceWatcher();
@@ -130,11 +139,7 @@ async function runWindowsDesktopDev() {
       mainIteration: 'workspace_build',
       protectedRuntime: 'source-local-development',
     })}\n`);
-    if (!avatarOnly) {
-      spawnRenderer();
-      await waitForUrl(rendererUrl, 45_000);
-    }
-    const exitCode = await runDesktopElectronUntilExit((relaunch) => spawnDesktopTracked(electronBin, [
+    const launchHome = (relaunch) => spawnDesktopTracked(electronBin, [
       ...desktopDevObservationArguments,
       `--user-data-dir=${profileRoot}`,
       'dist-electron/main.js',
@@ -152,6 +157,7 @@ async function runWindowsDesktopDev() {
         NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID:
           process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID || '',
         NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: localAssetRoot,
+        NIMI_WINDOWS_SOURCE_DATA_ROOT_REPAIR: repairDetail,
         NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT: '1',
         NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE: windowsSourceLocalDevelopmentRuntime,
         NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_DESKTOP_EXECUTABLE: electronBin,
@@ -159,7 +165,22 @@ async function runWindowsDesktopDev() {
         NIMI_SOURCE_RUNTIME_REPO_ROOT: workspaceRoot,
         NIMI_REALM_URL: sourceLocalDevelopmentRealmUrl,
       },
-    }));
+    });
+    // A refused Runtime has already exited. Only an explicit retry from the
+    // isolated Home window starts another dependency check.
+    while (repairDetail) {
+      const outcome = await waitForExit(launchHome([]));
+      if (outcome !== 76 || shuttingDown) {
+        await requestAllChildrenShutdown('SIGTERM');
+        process.exit(outcome);
+      }
+      repairDetail = await prepareDependencies();
+    }
+    if (!avatarOnly) {
+      spawnRenderer();
+      await waitForUrl(rendererUrl, 45_000);
+    }
+    const exitCode = await runDesktopElectronUntilExit(launchHome);
     await requestAllChildrenShutdown('SIGTERM');
     process.exit(exitCode);
   } catch (error) {

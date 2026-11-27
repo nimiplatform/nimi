@@ -4,6 +4,7 @@ import os from 'node:os';
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import test from 'node:test';
 import { EventEmitter } from 'node:events';
+import { PassThrough } from 'node:stream';
 
 import {
   parseSourceRuntimeArguments,
@@ -113,6 +114,45 @@ test('Desktop cancellation asks its own Runtime supervisor to stop through stdin
   abort.abort();
   assert.equal(await run, 0);
   assert.equal(stopped, 1);
+});
+
+test('an owned Windows launch carries only the Runtime repair diagnosis through supervisor exit', async t => {
+  for (const structured of [false, true]) {
+    const child = new EventEmitter();
+    child.stderr = new PassThrough();
+    const run = runSourceRuntimeDevelopment({
+      ...isolatedWindowsLaunch(t), signal: new AbortController().signal,
+      makeTemp() {}, removeTemp() {}, spawnSync: () => ({ status: 0 }), spawn: () => child,
+    });
+    child.emit('exit', 1, null);
+    // The child's final stderr may arrive in pieces after the exit event.
+    const detail = 'required directory models is unavailable';
+    const line = structured ? JSON.stringify({ event: 'runtime.source.data_root_repair_required', detail }) : 'serve failed: ' + detail;
+    child.stderr.write(line.slice(0, 16));
+    child.stderr.end(line.slice(16) + '\n');
+    child.emit('close', 1, null);
+    await assert.rejects(run, error => structured
+      ? error.reasonCode === 'source-runtime-data-root-repair-required' && error.message === detail
+      : error.reasonCode === 'source-runtime-supervisor-exited');
+  }
+});
+
+test('opening an owned source process does not finish the startup check', async t => {
+  const child = new EventEmitter();
+  child.stderr = new PassThrough();
+  let constructed = 0;
+  const run = runSourceRuntimeDevelopment({
+    ...isolatedWindowsLaunch(t), signal: new AbortController().signal,
+    makeTemp() {}, removeTemp() {}, spawnSync: () => ({ status: 0 }), spawn: () => child,
+    onRuntimeConstructed: () => { constructed++; },
+  });
+  assert.equal(constructed, 0);
+  child.stderr.write('{"event":"runtime.source.');
+  assert.equal(constructed, 0);
+  child.stderr.end('construction_complete"}\n');
+  child.emit('close', 0, null);
+  assert.equal(await run, 0);
+  assert.equal(constructed, 1);
 });
 
 test('an invalid Electron source leaves the existing development carrier intact', async (t) => {

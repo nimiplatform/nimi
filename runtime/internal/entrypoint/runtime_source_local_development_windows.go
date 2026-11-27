@@ -13,6 +13,7 @@ import (
 
 	"github.com/nimiplatform/nimi/runtime/internal/daemon"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
+	"github.com/nimiplatform/nimi/runtime/internal/services/localservice"
 )
 
 func runProductionDaemon(version string) error {
@@ -70,11 +71,20 @@ func runProductionDaemon(version string) error {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	// Package-level diagnostics log through the Runtime logger too.
 	slog.SetDefault(logger)
+	startupLog := slog.New(slog.NewJSONHandler(os.Stderr, nil))
 	runtimeDaemon, err := daemon.NewProtectedFromWindowsSecurityState(cfg, logger, version, state, requestRestart)
 	if err != nil {
+		var repair *localservice.ProductControlDataRootRepairError
+		if errors.As(err, &repair) {
+			startupLog.Error("Selected data folder requires repair",
+				"event", "runtime.source.data_root_repair_required", "detail", repair.Error())
+		}
 		return fmt.Errorf("construct current-user Windows Runtime: %w", err)
 	}
 	stateOwnedByDaemon = true
+	// Named pipes already exist during construction. Only now can the source
+	// launcher advance to Home's own protected session and service-mode check.
+	startupLog.Info("Runtime construction complete", "event", "runtime.source.construction_complete")
 	err = runtimeDaemon.RunProtectedWithLocalApp(ctx, desktopListener, localAppListener)
 	if restartRequested.Load() {
 		if err != nil && !errors.Is(err, context.Canceled) {

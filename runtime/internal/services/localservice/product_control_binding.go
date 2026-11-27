@@ -26,6 +26,12 @@ type ProductControlDataRootSecurityBinding struct {
 	PerUserRuntime     bool
 }
 
+// ProductControlDataRootRepairError reports a selected root which Product
+// Control has classified as repair_required. It grants no binding to that root.
+type ProductControlDataRootRepairError struct{ detail string }
+
+func (e *ProductControlDataRootRepairError) Error() string { return e.detail }
+
 type productControlUsability struct {
 	Selected       bool
 	RepairRequired bool
@@ -86,6 +92,11 @@ func LoadProductControlDataRootBinding(productControlRoot string, security Produ
 		}
 	}
 	if state, failure := verifyProductControlSelectedDataRoot(record, security); failure != "" {
+		if state == productControlStateRepairRequired {
+			return ProductControlDataRootBinding{}, &ProductControlDataRootRepairError{
+				detail: fmt.Sprintf("Product Control data-root verification failed (%s): %s", state, failure),
+			}
+		}
 		return ProductControlDataRootBinding{}, fmt.Errorf("Product Control data-root verification failed (%s): %s", state, failure)
 	}
 	return ProductControlDataRootBinding{

@@ -111,16 +111,17 @@ export async function runSourceRuntimeDevelopment(input = {}) {
       );
     }
     input.signal?.throwIfAborted();
+    const observeRepair = Boolean(input.signal) && (input.platform ?? process.platform) === 'win32';
     const child = launch(plan.run.command, plan.run.args, {
       cwd: plan.repoRoot,
       env: plan.environment,
-      stdio: ['pipe', 'inherit', 'inherit'],
+      stdio: ['pipe', 'inherit', observeRepair ? 'pipe' : 'inherit'],
       windowsHide: true,
       // An enclosing Desktop launcher owns shutdown order. Its Runtime must
       // not receive terminal signals before Desktop has released its hosts.
       detached: Boolean(input.signal),
     });
-    return await waitForSupervisor(child, input.signal);
+    return await waitForSupervisor(child, input.signal, input.onRuntimeConstructed);
   } finally {
     removeTemp();
   }
@@ -153,9 +154,34 @@ export function stopSourceRuntimeDevelopment(args = [], input = {}) {
   }
 }
 
-function waitForSupervisor(child, abortSignal) {
+function waitForSupervisor(child, abortSignal, onRuntimeConstructed) {
   return new Promise((resolve, reject) => {
     let stopping = false;
+    // Only the owned Windows Home launch pipes stderr. Preserve the terminal
+    // output and read the Runtime's structured refusal, never classify OS text.
+    let repairDetail;
+    if (child.stderr) {
+      let partial = '';
+      child.stderr.setEncoding('utf8').pipe(process.stderr, { end: false });
+      const observeStartup = chunk => {
+        const lines = (partial + chunk).split('\n');
+        partial = lines.pop().slice(-65536);
+        for (const line of lines) {
+          if (!line.startsWith('{') || !line.includes('runtime.source.')) continue;
+          let event;
+          try { event = JSON.parse(line); } catch { continue; }
+          if (event.event === 'runtime.source.construction_complete') {
+            child.stderr.off('data', observeStartup);
+            onRuntimeConstructed?.();
+            return;
+          }
+          if (event.event === 'runtime.source.data_root_repair_required' && typeof event.detail === 'string' && event.detail) {
+            repairDetail = event.detail.length <= 8192 ? event.detail : event.detail.slice(0, 4096) + ' … ' + event.detail.slice(-4096);
+          }
+        }
+      };
+      child.stderr.on('data', observeStartup);
+    }
     const handlers = new Map();
     const cleanup = () => {
       for (const [signal, handler] of handlers) process.off(signal, handler);
@@ -179,10 +205,14 @@ function waitForSupervisor(child, abortSignal) {
         'inspect_source_runtime_supervisor_launch',
       ));
     });
-    child.once('exit', (code, signal) => {
+    child.once(child.stderr ? 'close' : 'exit', (code, signal) => {
       cleanup();
       if (code === 0) {
         resolve(0);
+        return;
+      }
+      if (!stopping && repairDetail) {
+        reject(sourceRuntimeError(repairDetail, 'source-runtime-data-root-repair-required', 'restore_selected_data_root_and_retry'));
         return;
       }
       reject(sourceRuntimeError(
