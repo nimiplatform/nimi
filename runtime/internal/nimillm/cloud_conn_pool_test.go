@@ -161,7 +161,7 @@ type tlsConnStats struct {
 	protos      []string
 }
 
-func newTrackedTLSProviderServer(t testing.TB, dnsNames []string, handler http.HandlerFunc) (*httptest.Server, *x509.CertPool, *x509.Certificate, *tlsConnStats, string) {
+func newTrackedTLSProviderServer(t testing.TB, dnsNames []string, handler http.HandlerFunc, connObservers ...func(net.Conn, http.ConnState)) (*httptest.Server, *x509.CertPool, *x509.Certificate, *tlsConnStats, string) {
 	t.Helper()
 	caPool, caCert, cert := generateTestTLSBundle(t, dnsNames...)
 	stats := &tlsConnStats{}
@@ -181,12 +181,15 @@ func newTrackedTLSProviderServer(t testing.TB, dnsNames []string, handler http.H
 		Certificates: []tls.Certificate{cert},
 		MinVersion:   tls.VersionTLS12,
 	}
-	server.Config.ConnState = func(_ net.Conn, state http.ConnState) {
+	server.Config.ConnState = func(conn net.Conn, state http.ConnState) {
 		switch state {
 		case http.StateNew:
 			stats.newConns.Add(1)
 		case http.StateClosed:
 			stats.closedConns.Add(1)
+		}
+		for _, observe := range connObservers {
+			observe(conn, state)
 		}
 	}
 	server.StartTLS()
@@ -701,18 +704,13 @@ func TestCloudOutboundPoolRecoversCleanlyAfterIdleServerClose(t *testing.T) {
 	var serverConns []net.Conn
 	server, caPool, _, stats, port := newTrackedTLSProviderServer(t, []string{host}, func(w http.ResponseWriter, r *http.Request) {
 		writeOpenAIChatOK(w, "ok")
-	})
-	baseConnState := server.Config.ConnState
-	server.Config.ConnState = func(c net.Conn, s http.ConnState) {
-		if baseConnState != nil {
-			baseConnState(c, s)
-		}
-		if s == http.StateIdle {
+	}, func(conn net.Conn, state http.ConnState) {
+		if state == http.StateIdle {
 			mu.Lock()
-			serverConns = append(serverConns, c)
+			serverConns = append(serverConns, conn)
 			mu.Unlock()
 		}
-	}
+	})
 	defer server.Close()
 
 	provider := NewCloudProvider(CloudConfig{HTTPTimeout: 5 * time.Second, AllowLoopbackEndpoint: true})

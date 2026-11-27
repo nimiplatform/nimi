@@ -939,7 +939,7 @@ func TestSupervisorAnnotatesManagedImageProgressPhase(t *testing.T) {
 	}
 	setSupervisorTestHome(t)
 
-	var logBuffer bytes.Buffer
+	var logBuffer supervisorLogBuffer
 	logger := slog.New(slog.NewTextHandler(&logBuffer, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	script := writeTestScript(t, "python3 - <<'PY'\nimport sys, time\nsys.stderr.write('loading tensors from /tmp/ae.safetensors\\n')\nsys.stderr.flush()\nsys.stdout.write('453/1095 - 43.16it/s\\r')\nsys.stdout.flush()\ntime.sleep(0.1)\nsys.stderr.write('sampling using Euler method\\n')\nsys.stderr.flush()\nsys.stdout.write('1/8 - 5.71s/it\\r')\nsys.stdout.flush()\ntime.sleep(2)\nPY")
 	cfg := testSupervisorCfg(script)
