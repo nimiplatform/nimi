@@ -7,6 +7,7 @@ import { AppPackageSourceClass } from '@nimiplatform/sdk/runtime/wire-types';
 import { DesktopAIExecutionRoute, DesktopAIExecutionState } from '@nimiplatform/sdk/runtime/generated';
 import { initI18n, changeLocale } from '../src/shell/renderer/i18n/index.js';
 import { HomeAppsWorkbench } from '../src/shell/renderer/features/home/home-apps-workbench.js';
+import { analyzeIconArtworkPixels } from '../src/shell/renderer/features/home/home-app-icon-frame.js';
 import { focusRunningDesktopApp, HomeActiveWorkCardView } from '../src/shell/renderer/features/home/home-active-work-card.js';
 import { HOME_FOCUS_APP_WINDOW, parseHomeAppFocusRequest } from '../src/shell/shared/system-entry-types.js';
 import {
@@ -42,7 +43,7 @@ function makeEntry(overrides: Partial<DesktopAppsEntry> & { appId: string; displ
   };
 }
 
-test('apps dock renders pure icons without visible names for artwork apps, preserves fallback label for monogram-only apps, and removes counts and catalog promo', async () => {
+test('apps dock renders pure icons without visible names for all apps and removes counts and catalog promo', async () => {
   await initI18n();
   await changeLocale('zh');
   const entries: DesktopAppsEntry[] = [
@@ -85,7 +86,9 @@ test('apps dock renders pure icons without visible names for artwork apps, prese
   assert.doesNotMatch(html, />Nimi Lab</, 'familiar app with custom icon omits visible text label');
   assert.match(html, /data-testid="home-app-running:nimi\.lab"/, 'running app shows dock indicator dot');
   assert.match(html, /data-testid="home-app-manage:nimi\.lab"/);
-  assert.match(html, /data-testid="home-app-fallback-label:storybook"[^>]*>Storybook</, 'monogram-only app without artwork retains fallback label');
+  assert.match(html, /data-testid="home-app:storybook"/);
+  assert.match(html, /aria-label="Storybook"/);
+  assert.doesNotMatch(html, /home-app-fallback-label:|>Storybook</, 'monogram-only app without artwork also omits visible text label');
   assert.match(html, /data-testid="home-apps-more-tile"/);
   assert.doesNotMatch(html, /最近使用|精选目录应用|home-apps-spotlight|ParentOS/, 'counts, store promo, and uninstalled catalog entries stay out of Home dock');
 });
@@ -374,4 +377,55 @@ test('active work card hides when idle and renders running apps, AI executions, 
   assert.match(activeHtml, /data-testid="home-active-execution:att-1"/);
   assert.match(activeHtml, /data-testid="home-active-download:dl-1"/);
   assert.match(activeHtml, />50%</);
+});
+
+test('analyzeIconArtworkPixels separates self-framed icons from transparent glyphs and computes crop scale for padded squircles', () => {
+  const makeRaster = (predicate: (x: number, y: number) => boolean) => {
+    const size = 64;
+    const rgba = new Uint8ClampedArray(size * size * 4);
+    for (let y = 0; y < size; y += 1) {
+      for (let x = 0; x < size; x += 1) {
+        if (predicate(x, y)) {
+          const idx = (y * size + x) * 4;
+          rgba[idx] = 24;
+          rgba[idx + 1] = 128;
+          rgba[idx + 2] = 112;
+          rgba[idx + 3] = 255;
+        }
+      }
+    }
+    return rgba;
+  };
+
+  // Full-bleed square icon (e.g. Harness)
+  const fullBleed = analyzeIconArtworkPixels(makeRaster(() => true), 64, 64);
+  assert.equal(fullBleed.hasOwnBackground, true);
+  assert.equal(fullBleed.scale, 1);
+
+  // Padded macOS squircle (~80% centered box)
+  const paddedSquircle = analyzeIconArtworkPixels(
+    makeRaster((x, y) => x >= 6 && x <= 57 && y >= 6 && y <= 57),
+    64,
+    64,
+  );
+  assert.equal(paddedSquircle.hasOwnBackground, true);
+  assert.ok(paddedSquircle.scale > 1.2 && paddedSquircle.scale < 1.3, `expected ~1.23 crop scale, got ${paddedSquircle.scale}`);
+
+  // Free-floating transparent glyph (e.g. Lab flask / ParentOS mark)
+  const glyph = analyzeIconArtworkPixels(
+    makeRaster((x, y) => (x >= 26 && x <= 37 && y >= 10 && y <= 54) || (x >= 14 && x <= 50 && y >= 42 && y <= 54)),
+    64,
+    64,
+  );
+  assert.equal(glyph.hasOwnBackground, false);
+  assert.equal(glyph.scale, 1);
+
+  // Circular badge with transparent corners
+  const circle = analyzeIconArtworkPixels(
+    makeRaster((x, y) => (x - 31.5) ** 2 + (y - 31.5) ** 2 <= 28 ** 2),
+    64,
+    64,
+  );
+  assert.equal(circle.hasOwnBackground, false);
+  assert.equal(circle.scale, 1);
 });

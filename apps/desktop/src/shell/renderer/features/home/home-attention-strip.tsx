@@ -78,11 +78,13 @@ export function HomeAttentionStrip({
           key={item.id}
           data-testid={`home-attention-item:${item.id}`}
           data-tone={item.tone}
-          className={`flex min-w-0 items-center justify-between gap-3 rounded-2xl px-3.5 py-2 text-xs ${ATTENTION_TONE_CLASS[item.tone]}`}
+          className={`flex min-w-0 items-start justify-between gap-2.5 rounded-2xl px-3.5 py-2.5 text-xs ${ATTENTION_TONE_CLASS[item.tone]}`}
         >
-          <span className="flex min-w-0 items-center gap-2.5">
-            <AttentionIcon tone={item.tone} />
-            <span className="min-w-0 truncate font-medium text-[var(--nimi-text-primary)]">
+          <span className="flex min-w-0 items-start gap-2 pt-0.5">
+            <span className="mt-0.5 shrink-0">
+              <AttentionIcon tone={item.tone} />
+            </span>
+            <span className="min-w-0 break-words leading-snug font-medium text-[var(--nimi-text-primary)]">
               {item.message}
             </span>
           </span>
@@ -163,13 +165,15 @@ export function HomeAttentionStrip({
             data-testid={`home-active-download:${item.id}`}
             className="flex min-w-0 flex-col gap-1.5 rounded-2xl bg-[var(--nimi-home-porcelain-card)] px-4 py-2.5 text-xs shadow-[var(--nimi-home-porcelain-shadow)]"
           >
-            <div className="flex min-w-0 items-center justify-between gap-3">
-              <span className="flex min-w-0 flex-1 items-center gap-2">
-                <Download size={14} aria-hidden="true" className="shrink-0 text-[var(--nimi-action-primary-bg)]" />
-                <span className="truncate font-medium text-[var(--nimi-text-primary)]">{item.title}</span>
-                {meta ? (
-                  <span className="shrink-0 tabular-nums text-[var(--nimi-text-secondary)]">{meta}</span>
-                ) : null}
+            <div className="flex min-w-0 items-start justify-between gap-2.5">
+              <span className="flex min-w-0 flex-1 items-start gap-2 pt-0.5">
+                <Download size={14} aria-hidden="true" className="mt-0.5 shrink-0 text-[var(--nimi-action-primary-bg)]" />
+                <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                  <span className="min-w-0 truncate font-medium text-[var(--nimi-text-primary)]">{item.title}</span>
+                  {meta ? (
+                    <span className="shrink-0 tabular-nums text-[var(--nimi-text-secondary)]">{meta}</span>
+                  ) : null}
+                </span>
               </span>
               <Button tone="ghost" size="sm" onClick={onOpenDownloads} className="shrink-0">
                 {t('runtimeConfig.overview.activeWork.viewDownloads')} →

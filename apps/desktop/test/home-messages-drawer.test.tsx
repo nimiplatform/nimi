@@ -3,7 +3,7 @@ import test from 'node:test';
 import React, { act } from 'react';
 import { JSDOM } from 'jsdom';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { DesktopAIExecutionRoute, type DesktopAIUsageSummary } from '@nimiplatform/sdk/runtime/generated';
+import { DesktopAIExecutionRoute, DesktopAIExecutionState, type DesktopAIUsageSummary } from '@nimiplatform/sdk/runtime/generated';
 import type { NimiAppActivityRecord } from '@nimiplatform/sdk/app';
 import type { HomeMessageCardContext } from '../src/shell/renderer/features/home/home-message-card.js';
 import type { HomeMessages } from '../src/shell/renderer/features/home/home-messages-controller.js';
@@ -252,6 +252,108 @@ test('HomeMessagesDrawer renders pending items, quick preferences, and closes on
       dom.window.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     });
     assert.deepEqual(actions, ['close', 'viewAll', 'close']);
+
+    await act(async () => {
+      root.render(
+        <QueryClientProvider client={client}>
+          <DesktopRendererBindingProvider bindings={bindings}>
+            <AppStoreProvider store={store}>
+              <DesktopI18nResourceProvider resource={productionDesktopI18n}>
+                <HomeMessagesDrawer
+                  open
+                  messages={inbox}
+                  context={cardContext}
+                  attentionStrip={{
+                    attention: [
+                      {
+                        id: 'session-attention:att-1',
+                        tone: 'warning',
+                        message: '待确认 · 写入 Q3报销汇总.xlsx',
+                        actionLabel: '去确认',
+                        onAction: () => actions.push('attention'),
+                      },
+                    ],
+                    executions: [
+                      {
+                        attemptId: 'exec-drawer-1',
+                        sourceKind: 'app',
+                        sourceLabel: 'Nimi Lab',
+                        capability: 'text.generate',
+                        route: DesktopAIExecutionRoute.DESKTOP_AI_EXECUTION_ROUTE_LOCAL,
+                        state: DesktopAIExecutionState.DESKTOP_AI_EXECUTION_STATE_RUNNING,
+                        models: [{ providerId: 'local', modelId: 'qwen', displayName: 'Qwen3', role: 'primary' }],
+                        parentWorkKind: '',
+                        parentWorkId: '',
+                      },
+                    ],
+                    downloads: [],
+                    onOpenActivity: () => actions.push('activity'),
+                    onOpenDownloads: () => actions.push('downloads'),
+                  }}
+                  onClose={() => actions.push('close')}
+                  onViewAll={() => actions.push('viewAll')}
+                  onOpenSettings={() => actions.push('settings')}
+                  onOpenPermissions={() => actions.push('permissions')}
+                />
+              </DesktopI18nResourceProvider>
+            </AppStoreProvider>
+          </DesktopRendererBindingProvider>
+        </QueryClientProvider>,
+      );
+    });
+
+    const attentionStrip = dom.window.document.querySelector('[data-testid="home-attention-strip"]');
+    assert.ok(attentionStrip, 'drawer must render HomeAttentionStrip inside the right-side drawer');
+    assert.match(attentionStrip.textContent ?? '', /写入 Q3报销汇总\.xlsx/);
+    assert.ok(dom.window.document.querySelector('[data-testid="home-active-execution:exec-drawer-1"]'));
+
+    const attentionButton = dom.window.document.querySelector<HTMLButtonElement>(
+      '[data-testid="home-attention-action:session-attention:att-1"]',
+    );
+    assert.ok(attentionButton);
+    await act(async () => attentionButton.click());
+    assert.deepEqual(actions, ['close', 'viewAll', 'close', 'attention']);
+
+    await act(async () => {
+      root.render(
+        <QueryClientProvider client={client}>
+          <DesktopRendererBindingProvider bindings={bindings}>
+            <AppStoreProvider store={store}>
+              <DesktopI18nResourceProvider resource={productionDesktopI18n}>
+                <HomeMessagesDrawer
+                  open
+                  messages={null}
+                  context={null}
+                  attentionStrip={{
+                    attention: [
+                      {
+                        id: 'runtime-unavailable',
+                        tone: 'danger',
+                        message: '本机 AI 引擎暂时离线',
+                        actionLabel: '查看状态',
+                        onAction: () => actions.push('diagnose'),
+                      },
+                    ],
+                    executions: [],
+                    downloads: [],
+                    onOpenActivity: () => actions.push('activity'),
+                    onOpenDownloads: () => actions.push('downloads'),
+                  }}
+                  onClose={() => actions.push('close')}
+                  onViewAll={() => actions.push('viewAll')}
+                  onOpenSettings={() => actions.push('settings')}
+                  onOpenPermissions={() => actions.push('permissions')}
+                />
+              </DesktopI18nResourceProvider>
+            </AppStoreProvider>
+          </DesktopRendererBindingProvider>
+        </QueryClientProvider>,
+      );
+    });
+
+    const unauthAttention = dom.window.document.querySelector('[data-testid="home-attention-item:runtime-unavailable"]');
+    assert.ok(unauthAttention, 'drawer must keep attention items visible even when account messages are unavailable');
+    assert.doesNotMatch(dom.window.document.querySelector('[data-testid="home-messages-drawer"]')?.textContent ?? '', /没有消息/);
   } finally {
     await act(async () => root.unmount());
     // Radix restores focus in a timer after unmount. Keep the test document alive for it.

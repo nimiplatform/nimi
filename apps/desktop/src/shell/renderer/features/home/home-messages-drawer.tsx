@@ -1,4 +1,4 @@
-import { Tooltip } from '@nimiplatform/kit/ui';
+import { ScrollArea, Tooltip } from '@nimiplatform/kit/ui';
 import { X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useId, useState } from 'react';
@@ -8,6 +8,7 @@ import {
   useHomeExecutionNotificationControls,
   type ExecutionNoticeAppArtworkResolver,
 } from './execution-notices.js';
+import { HomeAttentionStrip, type HomeAttentionStripProps } from './home-attention-strip.js';
 import type { HomeMessageCardContext } from './home-message-card.js';
 import { HomeMessagesColumn } from './home-messages-column.js';
 import type { HomeMessages } from './home-messages-controller.js';
@@ -18,6 +19,7 @@ export type HomeMessagesDrawerProps = {
   initialFilter?: HomeTimelineQuickFilter;
   messages: HomeMessages | null;
   context: HomeMessageCardContext | null;
+  attentionStrip?: HomeAttentionStripProps | null;
   appArtworkForNotice?: ExecutionNoticeAppArtworkResolver;
   onClose: () => void;
   onViewAll: () => void;
@@ -27,11 +29,13 @@ export type HomeMessagesDrawerProps = {
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r015
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r036
+// @nimi-authority: rule.nimi.desktop.product-surfaces.home-system-activity
 export function HomeMessagesDrawer({
   open,
   initialFilter = 'all',
   messages,
   context,
+  attentionStrip,
   appArtworkForNotice,
   onClose,
   onViewAll,
@@ -56,6 +60,30 @@ export function HomeMessagesDrawer({
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [open, onClose]);
+
+  const hasAttentionStripContent = Boolean(
+    attentionStrip
+    && (attentionStrip.attention.length > 0
+      || attentionStrip.executions.length > 0
+      || attentionStrip.downloads.length > 0),
+  );
+  const attentionNode = hasAttentionStripContent && attentionStrip ? (
+    <HomeAttentionStrip
+      {...attentionStrip}
+      onOpenActivity={() => {
+        onClose();
+        attentionStrip.onOpenActivity();
+      }}
+      onOpenDownloads={() => {
+        onClose();
+        attentionStrip.onOpenDownloads();
+      }}
+      onViewAllAttention={attentionStrip.onViewAllAttention ? () => {
+        onClose();
+        attentionStrip.onViewAllAttention?.();
+      } : undefined}
+    />
+  ) : null;
 
   return (
     <AnimatePresence>
@@ -165,12 +193,17 @@ export function HomeMessagesDrawer({
                 initialFilter={initialFilter}
                 messages={messages}
                 context={context}
+                topNotices={attentionNode}
                 appArtworkForNotice={appArtworkForNotice}
                 onViewAll={() => {
                   onClose();
                   onViewAll();
                 }}
               />
+            ) : attentionNode ? (
+              <ScrollArea className="min-h-0 flex-1 min-w-0" contentClassName="flex flex-col gap-3">
+                {attentionNode}
+              </ScrollArea>
             ) : (
               <div className="flex flex-1 items-center justify-center rounded-2xl bg-[var(--nimi-home-soft-well)] px-4 py-8 text-center text-xs text-[var(--nimi-text-secondary)]">
                 {t('runtimeConfig.overview.messages.empty')}

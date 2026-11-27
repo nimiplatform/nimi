@@ -10,6 +10,9 @@ import {
   ArrowUp,
   AtSign,
   Bot,
+  Check,
+  ChevronDown,
+  Compass,
   ExternalLink,
   FileText,
   FolderOpen,
@@ -17,7 +20,6 @@ import {
   Paperclip,
   Plus,
   ShieldAlert,
-  Sparkles,
   Split,
   Square,
   UserRound,
@@ -37,6 +39,8 @@ import { useTranslation } from 'react-i18next';
 import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
 import type { LocalAgentListItem } from '../agents/local-agent-list-model.js';
+import { PartnerAvatar } from './home-agent-card.js';
+import type { HomeRecentChatPartner } from './home-recent-conversations-model.js';
 import {
   addReadOnlyAttachmentPaths,
   bindWritableWorkspaceRoot,
@@ -71,6 +75,8 @@ export type OmniHumanContactOption = Readonly<{
 export type HomeOmniComposerProps = Readonly<{
   accountKey: string | null;
   partners: readonly LocalAgentListItem[];
+  partnersLoaded?: boolean;
+  partnerArtworkByRef?: ReadonlyMap<string, Pick<HomeRecentChatPartner, 'avatarUrl' | 'media'>>;
   humanContacts?: readonly OmniHumanContactOption[];
   recentSessions?: readonly WorkSessionRecord[];
   cloudRouteActive?: boolean;
@@ -80,6 +86,8 @@ export type HomeOmniComposerProps = Readonly<{
   onOpenPartnerZhiyu: (localAgentRef: string, draftText?: string) => void;
   onOpenHarness: (workSessionRef?: string) => void;
   onOpenModelSwitch: () => void;
+  onOpenAllPartners?: () => void;
+  onExplorePartners?: () => void;
 }>;
 
 function isOtherEditableElement(target: EventTarget | null, composerInput: HTMLTextAreaElement | null): boolean {
@@ -97,13 +105,18 @@ function randomRequestId(): string {
   return `req-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+const EMPTY_HUMAN_CONTACTS: readonly OmniHumanContactOption[] = [];
+const EMPTY_RECENT_SESSIONS: readonly WorkSessionRecord[] = [];
+
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r015
 // @nimi-authority: rule.nimi.desktop.product-surfaces.home-omni-composer
 export function HomeOmniComposer({
   accountKey,
   partners,
-  humanContacts = [],
-  recentSessions = [],
+  partnersLoaded = true,
+  partnerArtworkByRef,
+  humanContacts = EMPTY_HUMAN_CONTACTS,
+  recentSessions = EMPTY_RECENT_SESSIONS,
   cloudRouteActive = false,
   cloudRouteStatus,
   cloudModelLabel = null,
@@ -111,6 +124,8 @@ export function HomeOmniComposer({
   onOpenPartnerZhiyu,
   onOpenHarness,
   onOpenModelSwitch,
+  onOpenAllPartners,
+  onExplorePartners,
 }: HomeOmniComposerProps) {
   const { t } = useTranslation();
   const sdk = useDesktopRendererSdk();
@@ -121,6 +136,7 @@ export function HomeOmniComposer({
   const [target, setTarget] = useState<OmniTargetSelection>({ kind: 'auto' });
   const [attachments, setAttachments] = useState<OmniAttachmentState>(EMPTY_OMNI_ATTACHMENTS);
   const [plusMenuOpen, setPlusMenuOpen] = useState(false);
+  const [partnerPickerOpen, setPartnerPickerOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [disambiguation, setDisambiguation] = useState<OmniDisambiguationState | null>(null);
@@ -150,6 +166,7 @@ export function HomeOmniComposer({
     setTarget({ kind: 'auto' });
     setAttachments(EMPTY_OMNI_ATTACHMENTS);
     setPlusMenuOpen(false);
+    setPartnerPickerOpen(false);
     setSubmitting(false);
     setSubmitError(null);
     setDisambiguation(null);
@@ -277,6 +294,7 @@ export function HomeOmniComposer({
 
   useEffect(() => {
     setDisambiguation(null);
+    setPartnerPickerOpen(false);
   }, [target, pinnedPartnerHandle]);
 
   useEffect(() => {
@@ -773,6 +791,57 @@ export function HomeOmniComposer({
       || effectiveCloudRouteStatus === 'loading'
     );
 
+  const hasTopPills = target.kind !== 'auto'
+    || attachments.attachmentPaths.length > 0
+    || Boolean(attachments.workspaceRoot);
+  const showDefaultPartnerBar = target.kind === 'auto' && Boolean(defaultPartner);
+  const showAddPartnerCta = target.kind === 'auto' && partnersLoaded && partners.length === 0 && Boolean(onExplorePartners);
+  const showPartnerModeHint = target.kind === 'partner' && !hasOmniFileContext(attachments);
+  const placeholder = target.kind === 'auto' && defaultPartner
+    ? t('runtimeConfig.overview.quickStart.placeholderWithPartner', { name: defaultPartner.displayName })
+    : t('runtimeConfig.overview.quickStart.placeholder');
+
+  const insertTriggerSymbol = (symbol: '@' | '~' | '#') => {
+    const next = `${draft}${draft && !draft.endsWith(' ') ? ' ' : ''}${symbol}`;
+    setDraft(next);
+    setCaretIndex(next.length);
+    const focusInput = () => {
+      const el = inputRef.current;
+      if (el) {
+        el.focus();
+        el.setSelectionRange(next.length, next.length);
+      }
+    };
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(focusInput);
+    } else {
+      focusInput();
+    }
+  };
+
+  const renderPartnerMiniAvatar = (partner: LocalAgentListItem, sizeClass = 'size-5 text-[10px]') => {
+    const artwork = partnerArtworkByRef?.get(partner.localAgentRef);
+    if (artwork && (artwork.media || artwork.avatarUrl)) {
+      return (
+        <PartnerAvatar
+          displayName={partner.displayName}
+          avatarUrl={artwork.avatarUrl}
+          media={artwork.media}
+          className={sizeClass}
+          sizes="20px"
+        />
+      );
+    }
+    return (
+      <span
+        aria-hidden="true"
+        className={`flex ${sizeClass} shrink-0 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] font-semibold text-[var(--nimi-action-primary-text)]`}
+      >
+        {[...partner.displayName.trim()][0] || '?'}
+      </span>
+    );
+  };
+
   const submitLabel = isHumanTarget
     ? t('runtimeConfig.overview.omni.openHumanChatWithDraft')
     : hasDraft || requiresSessionDraft
@@ -780,190 +849,193 @@ export function HomeOmniComposer({
       : t('runtimeConfig.overview.omni.openHarnessAction');
 
   return (
-    <div className="relative z-30 flex min-w-0 flex-col gap-3" data-testid="home-omni-composer">
-      <form
-        onSubmit={handleSubmit}
-        onDragEnter={(event) => {
-          if (event.dataTransfer.types.includes('Files')) {
+    <div className="relative z-30 flex w-full min-w-0 flex-col gap-3" data-testid="home-omni-composer">
+      <div className="flex min-w-0 flex-col">
+        <form
+          onSubmit={handleSubmit}
+          onDragEnter={(event) => {
+            if (event.dataTransfer.types.includes('Files')) {
+              event.preventDefault();
+              dragDepthRef.current += 1;
+              setIsDragOver(true);
+            }
+          }}
+          onDragOver={(event) => {
             event.preventDefault();
-            dragDepthRef.current += 1;
-            setIsDragOver(true);
-          }
-        }}
-        onDragOver={(event) => {
-          event.preventDefault();
-          if (event.dataTransfer.types.includes('Files') && !isDragOver) {
-            setIsDragOver(true);
-          }
-        }}
-        onDragLeave={() => {
-          dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
-          if (dragDepthRef.current === 0) {
-            setIsDragOver(false);
-          }
-        }}
-        onDrop={handleDropFiles}
-        data-testid="home-quick-start-bar"
-        data-drag-over={isDragOver ? 'true' : undefined}
-        className={`relative flex min-w-0 flex-col gap-2 rounded-3xl px-4 py-3 shadow-[var(--nimi-home-porcelain-pill-shadow)] transition-[background-color,border-color,box-shadow] duration-150 focus-within:shadow-[var(--nimi-home-porcelain-shadow-hover)] focus-within:ring-2 focus-within:ring-[var(--nimi-focus-ring-color)]/30 ${
-          isDragOver
-            ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,var(--nimi-home-porcelain-card))] ring-2 ring-[var(--nimi-action-primary-bg)]'
-            : 'bg-[var(--nimi-home-porcelain-card)]'
-        }`}
-      >
-        {/* Top Target & Attachment Pills Row */}
-        <div className="flex flex-wrap items-center gap-1.5 text-xs">
-          {target.kind === 'auto' ? (
-            <span
-              data-testid="home-omni-target-pill:auto"
-              className="inline-flex items-center gap-1.5 rounded-full bg-[var(--nimi-home-soft-well)] px-2.5 py-1 text-[var(--nimi-text-secondary)]"
-            >
-              <Sparkles size={12} aria-hidden="true" className="text-[var(--nimi-action-primary-bg)]" />
-              <span>
-                {defaultPartner
-                  ? t('runtimeConfig.overview.omni.autoRouteWithPartner', { name: defaultPartner.displayName })
-                  : t('runtimeConfig.overview.omni.autoRouteLabel')}
-              </span>
-              {partners.length > 1 && defaultPartner ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const idx = partners.findIndex((p) => p.localAgentRef === defaultPartner.localAgentRef);
-                    const next = partners[(idx + 1) % partners.length];
-                    if (next) {
-                      setPinnedPartnerHandle(next.localAgentRef);
-                      writePinnedPartnerHandle(accountKey, next.localAgentRef);
-                    }
-                  }}
-                  className="ml-1 rounded-full px-1 text-[11px] font-medium text-[var(--nimi-action-primary-bg)] hover:underline"
+            if (event.dataTransfer.types.includes('Files') && !isDragOver) {
+              setIsDragOver(true);
+            }
+          }}
+          onDragLeave={() => {
+            dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+            if (dragDepthRef.current === 0) {
+              setIsDragOver(false);
+            }
+          }}
+          onDrop={handleDropFiles}
+          data-testid="home-quick-start-bar"
+          data-drag-over={isDragOver ? 'true' : undefined}
+          className={`relative flex min-w-0 flex-col rounded-[26px] border transition-[background-color,border-color,box-shadow] duration-150 ${
+            isDragOver
+              ? 'border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,var(--nimi-home-porcelain-card))] shadow-[var(--nimi-home-composer-shadow-focus)]'
+              : 'border-[var(--nimi-border-strong)]/80 bg-[var(--nimi-home-porcelain-card)] shadow-[var(--nimi-home-composer-shadow)]'
+          }`}
+        >
+          {/* On-Demand Target & Attachment Pills Row */}
+          {hasTopPills ? (
+            <div className="flex flex-wrap items-center gap-1.5 px-4.5 pt-3.5 text-xs" data-testid="home-omni-context-pills">
+              {target.kind === 'human' ? (
+                <span
+                  data-testid="home-omni-target-pill:human"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[var(--nimi-status-info-soft-bg)] px-2.5 py-1 font-medium text-[var(--nimi-action-primary-bg)]"
                 >
-                  {t('runtimeConfig.overview.omni.switchPartner')}
-                </button>
+                  <UserRound size={12} aria-hidden="true" />
+                  <span>{t('runtimeConfig.overview.omni.humanTargetPill', { name: target.displayName })}</span>
+                  <button
+                    type="button"
+                    aria-label={t('runtimeConfig.overview.omni.clearTarget')}
+                    onClick={() => setTarget({ kind: 'auto' })}
+                    className="rounded-full p-0.5 transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+                  >
+                    <X size={11} aria-hidden="true" />
+                  </button>
+                </span>
               ) : null}
-            </span>
+
+              {target.kind === 'partner' ? (
+                <span
+                  data-testid="home-omni-target-pill:partner"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[var(--nimi-home-soft-well)] px-2.5 py-1 font-medium text-[var(--nimi-text-primary)]"
+                >
+                  <Bot size={12} aria-hidden="true" className="text-[var(--nimi-action-primary-bg)]" />
+                  <span>{target.displayName}</span>
+                  <button
+                    type="button"
+                    data-testid="home-omni-partner-mode-toggle"
+                    disabled={hasOmniFileContext(attachments)}
+                    onClick={() => setTarget((prev) => toggleOmniPartnerMode(prev, attachments))}
+                    className="rounded-full bg-[var(--nimi-surface-card)] px-2 py-0.5 text-[11px] text-[var(--nimi-action-primary-bg)] shadow-xs transition-[transform,background-color] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] disabled:opacity-60"
+                    title={t('runtimeConfig.overview.omni.partnerModeHint')}
+                  >
+                    {effectivePartnerMode === 'harness'
+                      ? t('runtimeConfig.overview.omni.modeHarness')
+                      : t('runtimeConfig.overview.omni.modeZhiyu')}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={t('runtimeConfig.overview.omni.clearTarget')}
+                    onClick={() => setTarget({ kind: 'auto' })}
+                    className="rounded-full p-0.5 transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+                  >
+                    <X size={11} aria-hidden="true" />
+                  </button>
+                </span>
+              ) : null}
+
+              {target.kind === 'session' ? (
+                <span
+                  data-testid="home-omni-target-pill:session"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[var(--nimi-home-soft-well)] px-2.5 py-1 font-medium text-[var(--nimi-text-primary)]"
+                >
+                  <Hash size={12} aria-hidden="true" className="text-[var(--nimi-action-primary-bg)]" />
+                  <span className="max-w-[200px] truncate">{target.title}</span>
+                  <button
+                    type="button"
+                    aria-label={t('runtimeConfig.overview.omni.clearTarget')}
+                    onClick={() => setTarget({ kind: 'auto' })}
+                    className="rounded-full p-0.5 transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+                  >
+                    <X size={11} aria-hidden="true" />
+                  </button>
+                </span>
+              ) : null}
+
+              {attachments.attachmentPaths.map((filePath) => (
+                <span
+                  key={filePath}
+                  data-testid="home-omni-readonly-attachment"
+                  className="inline-flex items-center gap-1 rounded-full bg-[var(--nimi-home-soft-well)] px-2 py-0.5 text-[11px] text-[var(--nimi-text-secondary)]"
+                >
+                  <FileText size={11} aria-hidden="true" />
+                  <span className="max-w-[160px] truncate">{filePath.split(/[\\/]/u).at(-1) || filePath}</span>
+                  <span className="text-[10px] opacity-75">({t('runtimeConfig.overview.omni.readOnlyTag')})</span>
+                  <button
+                    type="button"
+                    aria-label={t('runtimeConfig.overview.omni.removeAttachment')}
+                    onClick={() => setAttachments((prev) => removeReadOnlyAttachmentPath(prev, filePath))}
+                    className="rounded-full p-0.5 transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+                  >
+                    <X size={10} aria-hidden="true" />
+                  </button>
+                </span>
+              ))}
+
+              {attachments.workspaceRoot ? (
+                <span
+                  data-testid="home-omni-writable-workspace"
+                  className="inline-flex items-center gap-1 rounded-full bg-[var(--nimi-status-warning-soft-bg)] px-2 py-0.5 text-[11px] font-medium text-[var(--nimi-status-warning-soft-text)]"
+                >
+                  <FolderOpen size={11} aria-hidden="true" />
+                  <span className="max-w-[180px] truncate">{attachments.workspaceRoot}</span>
+                  <span>({t('runtimeConfig.overview.omni.writableWorkspaceTag')})</span>
+                  <button
+                    type="button"
+                    aria-label={t('runtimeConfig.overview.omni.removeWorkspace')}
+                    onClick={() => setAttachments((prev) => clearWritableWorkspaceRoot(prev))}
+                    className="rounded-full p-0.5 transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+                  >
+                    <X size={10} aria-hidden="true" />
+                  </button>
+                </span>
+              ) : null}
+            </div>
           ) : null}
 
-          {target.kind === 'human' ? (
-            <span
-              data-testid="home-omni-target-pill:human"
-              className="inline-flex items-center gap-1.5 rounded-full bg-[var(--nimi-status-info-soft-bg)] px-2.5 py-1 font-medium text-[var(--nimi-action-primary-bg)]"
-            >
-              <UserRound size={12} aria-hidden="true" />
-              <span>{t('runtimeConfig.overview.omni.humanTargetPill', { name: target.displayName })}</span>
-              <button
-                type="button"
-                aria-label={t('runtimeConfig.overview.omni.clearTarget')}
-                onClick={() => setTarget({ kind: 'auto' })}
-                className="rounded-full p-0.5 transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
-              >
-                <X size={11} aria-hidden="true" />
-              </button>
-            </span>
-          ) : null}
+          {/* Generous Writing Canvas */}
+          <div className={`px-5 ${hasTopPills ? 'pt-2.5 pb-2' : 'pt-4.5 pb-2.5'}`}>
+            <textarea
+              ref={inputRef}
+              rows={1}
+              value={draft}
+              disabled={submitting}
+              onCompositionStart={() => { isComposingRef.current = true; }}
+              onCompositionEnd={(event) => {
+                isComposingRef.current = false;
+                setCaretIndex(event.currentTarget.selectionStart ?? event.currentTarget.value.length);
+              }}
+              onChange={(event) => {
+                setDraft(event.target.value);
+                setCaretIndex(event.currentTarget.selectionStart ?? event.target.value.length);
+                if (disambiguation) setDisambiguation(null);
+                if (submitError) setSubmitError(null);
+              }}
+              onSelect={(event) => {
+                setCaretIndex(event.currentTarget.selectionStart ?? event.currentTarget.value.length);
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholder}
+              aria-label={t('runtimeConfig.overview.quickStart.label')}
+              data-testid="home-quick-start-input"
+              className="min-h-[34px] max-h-36 w-full min-w-0 resize-none bg-transparent text-[0.96875rem] leading-6 text-[var(--nimi-text-primary)] placeholder:text-[var(--nimi-text-muted)] focus:outline-none"
+            />
+          </div>
 
-          {target.kind === 'partner' ? (
-            <span
-              data-testid="home-omni-target-pill:partner"
-              className="inline-flex items-center gap-1.5 rounded-full bg-[var(--nimi-home-soft-well)] px-2.5 py-1 font-medium text-[var(--nimi-text-primary)]"
-            >
-              <Bot size={12} aria-hidden="true" className="text-[var(--nimi-action-primary-bg)]" />
-              <span>{target.displayName}</span>
-              <button
-                type="button"
-                data-testid="home-omni-partner-mode-toggle"
-                disabled={hasOmniFileContext(attachments)}
-                onClick={() => setTarget((prev) => toggleOmniPartnerMode(prev, attachments))}
-                className="rounded-full bg-[var(--nimi-surface-card)] px-2 py-0.5 text-[11px] text-[var(--nimi-action-primary-bg)] shadow-xs transition-[transform,background-color] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] disabled:opacity-60"
-                title={t('runtimeConfig.overview.omni.partnerModeHint')}
-              >
-                {effectivePartnerMode === 'harness'
-                  ? t('runtimeConfig.overview.omni.modeHarness')
-                  : t('runtimeConfig.overview.omni.modeZhiyu')}
-              </button>
-              <button
-                type="button"
-                aria-label={t('runtimeConfig.overview.omni.clearTarget')}
-                onClick={() => setTarget({ kind: 'auto' })}
-                className="rounded-full p-0.5 transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
-              >
-                <X size={11} aria-hidden="true" />
-              </button>
-            </span>
-          ) : null}
-
-          {target.kind === 'session' ? (
-            <span
-              data-testid="home-omni-target-pill:session"
-              className="inline-flex items-center gap-1.5 rounded-full bg-[var(--nimi-home-soft-well)] px-2.5 py-1 font-medium text-[var(--nimi-text-primary)]"
-            >
-              <Hash size={12} aria-hidden="true" className="text-[var(--nimi-action-primary-bg)]" />
-              <span className="max-w-[200px] truncate">{target.title}</span>
-              <button
-                type="button"
-                aria-label={t('runtimeConfig.overview.omni.clearTarget')}
-                onClick={() => setTarget({ kind: 'auto' })}
-                className="rounded-full p-0.5 transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
-              >
-                <X size={11} aria-hidden="true" />
-              </button>
-            </span>
-          ) : null}
-
-          {attachments.attachmentPaths.map((filePath) => (
-            <span
-              key={filePath}
-              data-testid="home-omni-readonly-attachment"
-              className="inline-flex items-center gap-1 rounded-full bg-[var(--nimi-home-soft-well)] px-2 py-0.5 text-[11px] text-[var(--nimi-text-secondary)]"
-            >
-              <FileText size={11} aria-hidden="true" />
-              <span className="max-w-[160px] truncate">{filePath.split(/[\\/]/u).at(-1) || filePath}</span>
-              <span className="text-[10px] opacity-75">({t('runtimeConfig.overview.omni.readOnlyTag')})</span>
-              <button
-                type="button"
-                aria-label={t('runtimeConfig.overview.omni.removeAttachment')}
-                onClick={() => setAttachments((prev) => removeReadOnlyAttachmentPath(prev, filePath))}
-                className="rounded-full p-0.5 transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
-              >
-                <X size={10} aria-hidden="true" />
-              </button>
-            </span>
-          ))}
-
-          {attachments.workspaceRoot ? (
-            <span
-              data-testid="home-omni-writable-workspace"
-              className="inline-flex items-center gap-1 rounded-full bg-[var(--nimi-status-warning-soft-bg)] px-2 py-0.5 text-[11px] font-medium text-[var(--nimi-status-warning-soft-text)]"
-            >
-              <FolderOpen size={11} aria-hidden="true" />
-              <span className="max-w-[180px] truncate">{attachments.workspaceRoot}</span>
-              <span>({t('runtimeConfig.overview.omni.writableWorkspaceTag')})</span>
-              <button
-                type="button"
-                aria-label={t('runtimeConfig.overview.omni.removeWorkspace')}
-                onClick={() => setAttachments((prev) => clearWritableWorkspaceRoot(prev))}
-                className="rounded-full p-0.5 transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-action-ghost-hover)] active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
-              >
-                <X size={10} aria-hidden="true" />
-              </button>
-            </span>
-          ) : null}
-        </div>
-
-        {/* Main Input Row */}
-        <div className="flex min-w-0 items-end gap-2">
-          <Popover open={plusMenuOpen} onOpenChange={setPlusMenuOpen}>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                aria-label={t('runtimeConfig.overview.omni.openPlusMenu')}
-                aria-haspopup="menu"
-                aria-expanded={plusMenuOpen}
-                data-testid="home-omni-plus-button"
-                className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-[var(--nimi-home-soft-well)] text-[var(--nimi-text-secondary)] transition-[transform,background-color,color] duration-150 hover:bg-[var(--nimi-home-soft-well-hover)] hover:text-[var(--nimi-text-primary)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
-              >
-                <Plus size={16} aria-hidden="true" />
-              </button>
-            </PopoverTrigger>
+          {/* Integrated Composer Action Toolbar */}
+          <div className="flex min-w-0 items-center justify-between gap-2 px-3.5 pb-3 pt-1">
+            <div className="flex min-w-0 items-center gap-1">
+              <Popover open={plusMenuOpen} onOpenChange={setPlusMenuOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label={t('runtimeConfig.overview.omni.openPlusMenu')}
+                    aria-haspopup="menu"
+                    aria-expanded={plusMenuOpen}
+                    data-testid="home-omni-plus-button"
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)]/80 bg-[var(--nimi-home-soft-well)] text-[var(--nimi-text-secondary)] transition-[transform,background-color,color] duration-150 hover:bg-[var(--nimi-home-soft-well-hover)] hover:text-[var(--nimi-text-primary)] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+                  >
+                    <Plus size={16} aria-hidden="true" />
+                  </button>
+                </PopoverTrigger>
             <PopoverContent
               align="start"
               side="bottom"
@@ -1060,57 +1132,200 @@ export function HomeOmniComposer({
                 </button>
               </div>
             </PopoverContent>
-          </Popover>
+              </Popover>
 
-          <textarea
-            ref={inputRef}
-            rows={1}
-            value={draft}
-            disabled={submitting}
-            onCompositionStart={() => { isComposingRef.current = true; }}
-            onCompositionEnd={(event) => {
-              isComposingRef.current = false;
-              setCaretIndex(event.currentTarget.selectionStart ?? event.currentTarget.value.length);
-            }}
-            onChange={(event) => {
-              setDraft(event.target.value);
-              setCaretIndex(event.target.selectionStart ?? event.target.value.length);
-              if (disambiguation) setDisambiguation(null);
-              if (submitError) setSubmitError(null);
-            }}
-            onSelect={(event) => {
-              setCaretIndex(event.currentTarget.selectionStart ?? event.currentTarget.value.length);
-            }}
-            onKeyDown={handleKeyDown}
-            placeholder={t('runtimeConfig.overview.quickStart.placeholder')}
-            aria-label={t('runtimeConfig.overview.quickStart.label')}
-            data-testid="home-quick-start-input"
-            className="max-h-28 min-w-0 flex-1 resize-none bg-transparent py-1.5 text-[0.9375rem] leading-6 text-[var(--nimi-text-primary)] placeholder:text-[var(--nimi-text-muted)] focus:outline-none"
-          />
+              <span className="mx-1.5 hidden h-3.5 w-px bg-[var(--nimi-border-subtle)]/90 sm:inline-block" aria-hidden="true" />
 
-          <button
-            type="submit"
-            disabled={submitting || (requiresSessionDraft && !hasDraft)}
-            aria-label={submitLabel}
-            title={submitLabel}
-            data-testid="home-quick-start-submit"
-            className={`inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full transition-[transform,opacity,background-color,border-color,color] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] ${
-              isHumanTarget
-                ? 'bg-[var(--nimi-status-info-soft-bg)] px-3.5 text-xs font-semibold text-[var(--nimi-action-primary-bg)] hover:opacity-90'
-                : hasDraft
-                  ? 'w-9 bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[var(--nimi-elevation-base)] hover:opacity-90'
-                  : 'w-9 bg-[var(--nimi-home-soft-well)] text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-home-soft-well-hover)] hover:text-[var(--nimi-text-primary)]'
-            }`}
-          >
-            {isHumanTarget ? <span>{submitLabel}</span> : <ArrowUp size={16} aria-hidden="true" />}
-          </button>
-        </div>
+              <div className="hidden items-center gap-0.5 sm:flex" data-testid="home-omni-trigger-hints">
+                <button
+                  type="button"
+                  data-testid="home-omni-hint:human"
+                  onClick={() => insertTriggerSymbol('@')}
+                  className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs text-[var(--nimi-text-muted)] transition-colors duration-150 hover:bg-[var(--nimi-home-soft-well)] hover:text-[var(--nimi-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+                >
+                  <span className="font-mono text-[11px] opacity-80" aria-hidden="true">@</span>
+                  <span>{t('runtimeConfig.overview.omni.hintFriend')}</span>
+                </button>
+                <button
+                  type="button"
+                  data-testid="home-omni-hint:partner"
+                  onClick={() => insertTriggerSymbol('~')}
+                  className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs text-[var(--nimi-text-muted)] transition-colors duration-150 hover:bg-[var(--nimi-home-soft-well)] hover:text-[var(--nimi-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+                >
+                  <span className="font-mono text-[11px] opacity-80" aria-hidden="true">~</span>
+                  <span>{t('runtimeConfig.overview.omni.hintPartner')}</span>
+                </button>
+                <button
+                  type="button"
+                  data-testid="home-omni-hint:session"
+                  onClick={() => insertTriggerSymbol('#')}
+                  className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs text-[var(--nimi-text-muted)] transition-colors duration-150 hover:bg-[var(--nimi-home-soft-well)] hover:text-[var(--nimi-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+                >
+                  <span className="font-mono text-[11px] opacity-80" aria-hidden="true">#</span>
+                  <span>{t('runtimeConfig.overview.omni.hintSession')}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2">
+              {showDefaultPartnerBar && defaultPartner ? (
+                <div
+                  data-testid="home-omni-default-partner-bar"
+                  className="flex items-center"
+                >
+                  <span className="sr-only">
+                    {t('runtimeConfig.overview.omni.defaultPartnerLabel')}
+                  </span>
+                  <Popover open={partnerPickerOpen} onOpenChange={setPartnerPickerOpen}>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label={t('runtimeConfig.overview.omni.defaultPartnerPickerLabel', {
+                          name: defaultPartner.displayName,
+                        })}
+                        aria-haspopup="menu"
+                        aria-expanded={partnerPickerOpen}
+                        data-testid="home-omni-default-partner-trigger"
+                        className="inline-flex h-8 max-w-[180px] items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)]/90 bg-[var(--nimi-home-soft-well)] pl-1.5 pr-2.5 text-[12.5px] font-medium text-[var(--nimi-text-primary)] transition-[transform,background-color,border-color] duration-150 hover:bg-[var(--nimi-home-soft-well-hover)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+                      >
+                        {renderPartnerMiniAvatar(defaultPartner)}
+                        <span className="truncate">{defaultPartner.displayName}</span>
+                        <ChevronDown size={12} aria-hidden="true" className="shrink-0 text-[var(--nimi-text-muted)]" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      align="end"
+                      side="bottom"
+                      sideOffset={8}
+                      className="w-64 rounded-2xl border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-1.5 text-xs shadow-[var(--nimi-elevation-floating)]"
+                    >
+                      <div
+                        role="menu"
+                        aria-label={t('runtimeConfig.overview.omni.defaultPartnerMenuHeading')}
+                        data-testid="home-omni-default-partner-menu"
+                        onKeyDown={(event) => {
+                          if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+                          const items = Array.from(
+                            event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]:not(:disabled), [role="menuitem"]:not(:disabled)'),
+                          );
+                          if (items.length === 0) return;
+                          event.preventDefault();
+                          const current = items.indexOf(document.activeElement as HTMLButtonElement);
+                          const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1
+                            : event.key === 'ArrowDown' ? (current + 1) % items.length : (current - 1 + items.length) % items.length;
+                          items[next]?.focus();
+                        }}
+                      >
+                        <div className="px-2.5 py-1 text-[11px] text-[var(--nimi-text-muted)]">
+                          {t('runtimeConfig.overview.omni.defaultPartnerMenuHeading')}
+                        </div>
+                        <ScrollArea className="max-h-60">
+                          {partners.map((partner) => {
+                            const selected = partner.localAgentRef === defaultPartner.localAgentRef;
+                            return (
+                              <button
+                                key={partner.localAgentRef}
+                                type="button"
+                                role="menuitemradio"
+                                aria-checked={selected}
+                                data-testid={`home-omni-default-partner-option:${partner.localAgentRef}`}
+                                onClick={() => {
+                                  setPinnedPartnerHandle(partner.localAgentRef);
+                                  writePinnedPartnerHandle(accountKey, partner.localAgentRef);
+                                  setPartnerPickerOpen(false);
+                                }}
+                                className={`flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-left transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-home-soft-well)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] ${
+                                  selected
+                                    ? 'bg-[var(--nimi-home-soft-well)] font-medium text-[var(--nimi-text-primary)]'
+                                    : 'text-[var(--nimi-text-primary)]'
+                                }`}
+                              >
+                                <span className="flex min-w-0 items-center gap-2">
+                                  {renderPartnerMiniAvatar(partner)}
+                                  <span className="truncate">{partner.displayName}</span>
+                                </span>
+                                {selected ? (
+                                  <Check size={13} aria-hidden="true" className="shrink-0 text-[var(--nimi-action-primary-bg)]" />
+                                ) : null}
+                              </button>
+                            );
+                          })}
+                        </ScrollArea>
+                        {onOpenAllPartners ? (
+                          <>
+                            <div role="separator" className="my-1 border-t border-[var(--nimi-border-subtle)]" />
+                            <button
+                              type="button"
+                              role="menuitem"
+                              data-testid="home-omni-manage-all-partners"
+                              onClick={() => {
+                                setPartnerPickerOpen(false);
+                                onOpenAllPartners();
+                              }}
+                              className="flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-left text-[var(--nimi-text-secondary)] transition-[transform,background-color,color] duration-150 hover:bg-[var(--nimi-home-soft-well)] hover:text-[var(--nimi-text-primary)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+                            >
+                              <span>{t('runtimeConfig.overview.omni.manageAllPartners')}</span>
+                              <span aria-hidden="true" className="text-[11px] opacity-70">→</span>
+                            </button>
+                          </>
+                        ) : null}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              ) : showAddPartnerCta ? (
+                <button
+                  type="button"
+                  onClick={() => onExplorePartners?.()}
+                  data-testid="home-omni-add-partner-trigger"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)]/90 bg-[var(--nimi-home-soft-well)] px-3 text-[12.5px] font-medium text-[var(--nimi-action-primary-bg)] transition-[transform,background-color] duration-150 hover:bg-[var(--nimi-home-soft-well-hover)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+                >
+                  <Compass size={13} aria-hidden="true" />
+                  <span>{t('runtimeConfig.overview.omni.addPartnerAction')}</span>
+                  <span aria-hidden="true" className="text-[11px]">→</span>
+                </button>
+              ) : showPartnerModeHint ? (
+                <button
+                  type="button"
+                  onClick={() => setTarget((prev) => toggleOmniPartnerMode(prev, attachments))}
+                  className="hidden items-center gap-1.5 rounded-full px-2 py-1 text-[11.5px] text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-home-soft-well)] hover:text-[var(--nimi-text-primary)] sm:inline-flex"
+                  title={t('runtimeConfig.overview.omni.partnerModeHint')}
+                >
+                  <kbd className="rounded border border-[var(--nimi-border-subtle)] bg-[var(--nimi-home-soft-well)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--nimi-text-secondary)]">
+                    Tab
+                  </kbd>
+                  <span>
+                    {effectivePartnerMode === 'harness'
+                      ? t('runtimeConfig.overview.omni.tabSwitchToZhiyu')
+                      : t('runtimeConfig.overview.omni.tabSwitchToHarness')}
+                  </span>
+                </button>
+              ) : null}
+
+              <button
+                type="submit"
+                disabled={submitting || (requiresSessionDraft && !hasDraft)}
+                aria-label={submitLabel}
+                title={submitLabel}
+                data-testid="home-quick-start-submit"
+                className={`inline-flex h-[34px] shrink-0 items-center justify-center gap-1.5 rounded-full transition-[transform,opacity,background-color,border-color,color,box-shadow] duration-150 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)] disabled:opacity-50 ${
+                  isHumanTarget
+                    ? 'bg-[var(--nimi-status-info-soft-bg)] px-3.5 text-xs font-semibold text-[var(--nimi-action-primary-bg)] hover:opacity-90'
+                    : hasDraft
+                      ? 'w-[34px] bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[0_4px_12px_-2px_color-mix(in_srgb,var(--nimi-action-primary-bg)_40%,transparent)] hover:opacity-92'
+                      : 'w-[34px] bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)]'
+                }`}
+              >
+                {isHumanTarget ? <span>{submitLabel}</span> : <ArrowUp size={16} aria-hidden="true" />}
+              </button>
+            </div>
+          </div>
 
         {/* Cloud Data Destination Transparency Notice (02 §2.2) */}
         {showCloudDataNotice ? (
           <div
             data-testid="home-omni-cloud-notice"
-            className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-[var(--nimi-status-warning-soft-bg)] px-3 py-1.5 text-[11px] text-[var(--nimi-status-warning-soft-text)]"
+            className="mx-3.5 mb-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-[var(--nimi-status-warning-soft-bg)] px-3 py-1.5 text-[11px] text-[var(--nimi-status-warning-soft-text)]"
           >
             <span className="inline-flex items-center gap-1.5">
               <ShieldAlert size={12} aria-hidden="true" />
@@ -1139,7 +1354,7 @@ export function HomeOmniComposer({
         ) : null}
 
         {submitError ? (
-          <p role="alert" data-testid="home-omni-error" className="text-xs text-[var(--nimi-status-danger-soft-text)]">
+          <p role="alert" data-testid="home-omni-error" className="px-5 pb-3 text-xs text-[var(--nimi-status-danger-soft-text)]">
             {submitError}
           </p>
         ) : null}
@@ -1180,7 +1395,8 @@ export function HomeOmniComposer({
             ))}
           </div>
         ) : null}
-      </form>
+        </form>
+      </div>
 
       {/* Low-entropy 1/2/3 Disambiguation Strip (FT-02 / FT-23) */}
       {disambiguation ? (
@@ -1232,7 +1448,7 @@ export function HomeOmniComposer({
         <section
           data-testid="home-omni-light-qa-card"
           aria-label={t('runtimeConfig.overview.omni.lightQaCardLabel')}
-          className="flex min-w-0 flex-col gap-2.5 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-home-porcelain-card)] p-4 text-sm shadow-[var(--nimi-home-porcelain-shadow)]"
+          className="flex min-w-0 flex-col gap-2.5 rounded-[20px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-home-porcelain-card)]/95 p-4 text-sm shadow-[var(--nimi-home-porcelain-shadow)]"
         >
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--nimi-border-subtle)] pb-2 text-xs">
             <span className="font-medium text-[var(--nimi-text-primary)]">

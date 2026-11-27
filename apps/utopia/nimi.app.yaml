@@ -1,5 +1,7 @@
 app_id: nimi.utopia
 display_name: NimiUtopia
+metadata:
+  icon: assets/app-icon.png
 profile: standalone
 manifest_role: submitted-input
 app_access:

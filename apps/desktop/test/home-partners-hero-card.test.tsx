@@ -83,7 +83,7 @@ test('partners hero renders quiet familiar partners as compact avatar + minimal 
   assert.doesNotMatch(quietHtml, /继续对话|还没有对话|Agent conversation|本地伙伴|共 2 位|home-partners-explore-tile|home-partners-grid/);
 });
 
-test('partners hero splits context partners (real message, unread, or draft) from quiet compact chips', async () => {
+test('partners strip renders context partners (real message, unread, or draft) with concise tail previews alongside quiet pills', async () => {
   await initI18n();
   await changeLocale('zh');
 
@@ -104,25 +104,25 @@ test('partners hero splits context partners (real message, unread, or draft) fro
       onExplore={noop}
     />,
   );
-  assert.match(mixedHtml, /data-testid="home-partners-grid"/);
+  assert.match(mixedHtml, /data-testid="home-partners-compact-row"/);
   assert.match(mixedHtml, /data-testid="home-partner-card:partner-1"[^>]*data-variant="context"/);
   assert.match(mixedHtml, /data-testid="home-partner-card:partner-2"[^>]*data-variant="context"/);
-  assert.match(mixedHtml, /data-testid="home-partners-compact-row"/);
   assert.match(mixedHtml, /data-testid="home-partner-card:partner-3"[^>]*data-variant="compact"/);
   assert.match(mixedHtml, /data-testid="home-partners-unread-summary"[^>]*>1 位有新回复/);
   assert.match(mixedHtml, /刚整理完提纲/);
   assert.match(mixedHtml, /草稿：回头再聊/);
-  assert.doesNotMatch(mixedHtml, /继续对话|还没有对话|home-partners-explore-tile/);
+  assert.doesNotMatch(mixedHtml, /继续对话|还没有对话|home-partners-explore-tile|home-partners-grid|home-partners-rail/);
 });
 
-test('partners hero switches context cards to horizontal rail at 4+ and shows total count in All link when overflowed', async () => {
+test('partners strip caps visible whisper pills at HOME_PARTNERS_HERO_LIMIT and shows total count in All link when overflowed', async () => {
   await initI18n();
   await changeLocale('zh');
 
-  const manyPartners = Array.from({ length: HOME_PARTNERS_HERO_LIMIT + 3 }, (_, i) =>
+  const total = HOME_PARTNERS_HERO_LIMIT + 3;
+  const manyPartners = Array.from({ length: total }, (_, i) =>
     makePartner(i + 1, { hasUnread: i < 2 }),
   );
-  const railHtml = renderToStaticMarkup(
+  const stripHtml = renderToStaticMarkup(
     <HomePartnersHeroCardView
       state="ready"
       partners={manyPartners}
@@ -134,9 +134,9 @@ test('partners hero switches context cards to horizontal rail at 4+ and shows to
       onExplore={noop}
     />,
   );
-  assert.match(railHtml, /data-testid="home-partners-rail"/);
-  assert.match(railHtml, /data-testid="home-partners-rail-controls"/);
-  assert.match(railHtml, /data-testid="home-partners-unread-summary"[^>]*>2 位有新回复/);
-  assert.match(railHtml, /data-testid="home-partners-all"[^>]*>全部 15 位 →/);
-  assert.doesNotMatch(railHtml, /data-testid="home-partner-card:partner-13"/);
+  assert.match(stripHtml, /data-testid="home-partners-compact-row"/);
+  assert.match(stripHtml, new RegExp(`data-testid="home-partner-card:partner-${HOME_PARTNERS_HERO_LIMIT}"`));
+  assert.doesNotMatch(stripHtml, new RegExp(`data-testid="home-partner-card:partner-${HOME_PARTNERS_HERO_LIMIT + 1}"`));
+  assert.match(stripHtml, /data-testid="home-partners-unread-summary"[^>]*>2 位有新回复/);
+  assert.match(stripHtml, new RegExp(`data-testid="home-partners-all"[^>]*>全部 ${total} 位 →`));
 });

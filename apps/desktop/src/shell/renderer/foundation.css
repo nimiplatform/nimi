@@ -59,6 +59,12 @@
   --nimi-home-porcelain-shadow: 0 8px 28px -6px rgba(15,23,42,0.045), 0 2px 6px -1px rgba(15,23,42,0.02);
   --nimi-home-porcelain-shadow-hover: 0 14px 34px -8px rgba(15,23,42,0.075), 0 3px 8px -2px rgba(15,23,42,0.03);
   --nimi-home-porcelain-pill-shadow: 0 12px 36px -8px rgba(15,23,42,0.065), 0 2px 8px -2px rgba(15,23,42,0.03);
+  --nimi-home-hero-halo: radial-gradient(960px 460px at 50% 42%, rgba(255,255,255,0.56) 0%, rgba(241,246,251,0) 100%);
+  --nimi-home-composer-shadow: 0 22px 54px -18px rgba(15,23,42,0.09), 0 6px 20px -6px rgba(26,115,232,0.05), 0 1px 3px rgba(15,23,42,0.03), inset 0 1px 0 rgba(255,255,255,0.9);
+  --nimi-home-composer-shadow-focus: 0 24px 58px -18px rgba(15,23,42,0.10), 0 0 0 3px rgba(26,115,232,0.09), 0 2px 6px rgba(15,23,42,0.03);
+  --nimi-home-whisper-surface: rgba(255,255,255,0.62);
+  --nimi-home-whisper-surface-hover: rgba(255,255,255,0.94);
+  --nimi-home-whisper-border: rgba(227,235,244,0.9);
   --nimi-home-soft-well: #f5f8fc;
   --nimi-home-soft-well-hover: #ebf2fa;
   --nimi-home-drawer-bg: rgba(255,255,255,0.96);
@@ -105,6 +111,12 @@
   --nimi-home-porcelain-shadow: 0 10px 30px -8px rgba(2,6,23,0.36);
   --nimi-home-porcelain-shadow-hover: 0 16px 38px -8px rgba(2,6,23,0.48);
   --nimi-home-porcelain-pill-shadow: 0 14px 38px -8px rgba(2,6,23,0.44);
+  --nimi-home-hero-halo: radial-gradient(960px 460px at 50% 42%, color-mix(in srgb, var(--nimi-action-primary-bg) 8%, transparent) 0%, transparent 100%);
+  --nimi-home-composer-shadow: 0 22px 56px -16px rgba(2,6,23,0.52), 0 2px 8px rgba(2,6,23,0.32);
+  --nimi-home-composer-shadow-focus: 0 24px 60px -16px rgba(2,6,23,0.62), 0 0 0 3px color-mix(in srgb, var(--nimi-action-primary-bg) 22%, transparent);
+  --nimi-home-whisper-surface: color-mix(in srgb, var(--nimi-surface-card) 68%, transparent);
+  --nimi-home-whisper-surface-hover: var(--nimi-surface-card);
+  --nimi-home-whisper-border: color-mix(in srgb, var(--nimi-border-subtle) 85%, transparent);
   --nimi-home-soft-well: color-mix(in srgb, var(--nimi-text-primary) 6%, var(--nimi-surface-card));
   --nimi-home-soft-well-hover: color-mix(in srgb, var(--nimi-text-primary) 10%, var(--nimi-surface-card));
   --nimi-home-drawer-bg: var(--nimi-surface-overlay);

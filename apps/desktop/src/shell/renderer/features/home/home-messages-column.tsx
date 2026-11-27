@@ -1,7 +1,7 @@
 import { HomeExecutionNotices, type ExecutionNoticeAppArtworkResolver } from './execution-notices.js';
 import { ActionMenu, AppCardSurface, Button, IconButton, InlineAlert, LoadingSkeleton, Popover, PopoverContent, PopoverTrigger, ScrollArea, Tooltip, type NimiMenuItem } from '@nimiplatform/kit/ui';
 import { Bell, Check, ListFilter } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   HomeMessageCard,
@@ -80,11 +80,12 @@ export function HomeMessageSourceNotices({ messages, systemSources, app = true, 
  * One bounded timeline with its navigation and local filters above the list.
  * Source-owned state and the complete Message center remain independent.
  */
-export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkForNotice, variant = 'card', initialFilter = 'all' }: {
+export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkForNotice, topNotices, variant = 'card', initialFilter = 'all' }: {
   messages: HomeMessages;
   context: HomeMessageCardContext;
   onViewAll: () => void;
   appArtworkForNotice?: ExecutionNoticeAppArtworkResolver;
+  topNotices?: ReactNode;
   variant?: 'card' | 'drawer';
   initialFilter?: HomeTimelineQuickFilter;
 }) {
@@ -279,6 +280,7 @@ export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkFor
         ) : null}
 
         <div className="home-message-notices flex flex-col gap-3 empty:hidden">
+          {topNotices}
           <HomeExecutionNotices appArtworkFor={appArtworkForNotice} />
           <HomeMessageSourceNotices messages={messages} systemSources={systemSources} />
         </div>

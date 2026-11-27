@@ -127,7 +127,7 @@ function describeRemoteSegment(
 }
 
 const ITEM_BUTTON_CLASS =
-  'inline-flex min-w-0 items-center gap-1.5 rounded-lg px-1.5 py-1 text-xs text-[var(--nimi-text-secondary)] transition-[transform,background-color,color] duration-150 hover:bg-[var(--nimi-home-soft-well)] hover:text-[var(--nimi-text-primary)] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]';
+  'inline-flex min-w-0 items-center gap-1.5 rounded-lg px-1.5 py-0.5 text-[11.5px] text-[var(--nimi-text-muted)] transition-[transform,background-color,color] duration-150 hover:bg-[var(--nimi-home-whisper-surface)] hover:text-[var(--nimi-text-primary)] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]';
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r015
 // @nimi-authority: rule.nimi.desktop.product-surfaces.home-system-activity
@@ -155,7 +155,7 @@ export function HomeAmbientStatusStrip({
     <footer
       aria-label={t('runtimeConfig.overview.ambientStrip.sectionLabel')}
       data-testid="home-ambient-status-strip"
-      className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1.5 border-t border-[var(--nimi-border-subtle)]/70 pt-4 text-xs text-[var(--nimi-text-secondary)]"
+      className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-[11.5px] text-[var(--nimi-text-muted)]"
     >
       <button
         type="button"
@@ -164,7 +164,7 @@ export function HomeAmbientStatusStrip({
         data-state={runtime}
         className={ITEM_BUTTON_CLASS}
       >
-        <span className={`size-2 shrink-0 rounded-full ${RUNTIME_DOT[runtime]}`} aria-hidden="true" />
+        <span className={`size-1.5 shrink-0 rounded-full ${RUNTIME_DOT[runtime]}`} aria-hidden="true" />
         <span className="truncate">{t(ENGINE_LABEL_KEY[runtime])}</span>
       </button>
 

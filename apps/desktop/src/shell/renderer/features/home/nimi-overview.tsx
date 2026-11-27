@@ -30,7 +30,7 @@ import type { ExecutionNoticeAppArtworkResolver } from './execution-notices.js';
 import { activeExecutionsFromAI, type HomeActiveDownloadItem } from './home-active-work-card.js';
 import { HomeAmbientStatusStrip } from './home-ambient-status-strip.js';
 import { HomeAppsWorkbench } from './home-apps-workbench.js';
-import { HomeAttentionStrip, type HomeAttentionItem } from './home-attention-strip.js';
+import type { HomeAttentionItem, HomeAttentionStripProps } from './home-attention-strip.js';
 import { resolveHomeGreetingName } from './home-greeting-model.js';
 import { deriveHomeRemoteSummary } from './home-host-status-card.js';
 import { HOME_RESOURCE_WARN_PERCENT, homeRuntimeState } from './home-machine-status.js';
@@ -50,12 +50,13 @@ import {
   systemMessage,
   type HomeMessageFilter,
   type HomeSystemItemMessage,
+  type HomeTimelineQuickFilter,
 } from './home-messages-model.js';
 import type { PendingAttentionRecord, WorkSessionRecord } from '@nimiplatform/sdk/runtime/generated';
 import { createRuntimeAgentAIConfigAdapter } from '../../infra/runtime-agent-ai-config.js';
 import { useHumanChatList } from '../chat/use-human-chat-list.js';
 import { loadHumanContactPage } from '../relationship/human-contact-data.js';
-import { HomePartnersHeroCard } from './home-partners-hero-card.js';
+import { useHomeRecentPartners } from './home-agent-card.js';
 import { buildHomeQuickJumpItems, HomeQuickJumpModal } from './home-quick-jump-modal.js';
 import { HomeOmniComposer, type OmniHumanContactOption } from './home-omni-composer.js';
 import { projectSessionOverviewAttention } from './home-omni-composer-model.js';
@@ -221,6 +222,16 @@ export function NimiOverview() {
     enabled: authStatus === 'authenticated' && Boolean(ownerUserId) && isOverviewActive,
     staleTime: 30_000,
   });
+  const recentPartnersState = useHomeRecentPartners(isOverviewActive, 12);
+  const partnerArtworkByRef = useMemo(
+    () => new Map(
+      recentPartnersState.partners.map((partner) => [
+        partner.localAgentRef,
+        { avatarUrl: partner.avatarUrl, media: partner.media },
+      ]),
+    ),
+    [recentPartnersState.partners],
+  );
 
   const humanFriendsQuery = useQuery({
     queryKey: ['nimi-overview', 'human-friends', realmBaseUrl, ownerUserId],
@@ -652,22 +663,13 @@ export function NimiOverview() {
   const diskCritical = diskPercent !== null && diskPercent >= HOME_RESOURCE_WARN_PERCENT.disk;
   const memoryCritical = resourceSnapshot?.memoryPressure === 'critical';
 
-  const renderOverview = (messages: HomeMessages | null) => {
-    const pending = messages ? pendingSummary(messages) : null;
-    const hasPending = Boolean(pending && pending.count > 0);
-    const hasUnread = Boolean(messages?.homeMessages?.some(isUnreadMessage));
-    const showHeaderMessageSignal = hasPending || hasUnread;
-    const drawerTriggerLabel = pending && pending.count > 0
-      ? t(
-          pending.more
-            ? 'runtimeConfig.overview.messages.drawerTriggerPendingMore'
-            : 'runtimeConfig.overview.messages.drawerTriggerPending',
-          { count: pending.count },
-        )
-      : t('runtimeConfig.overview.messages.hasUnread');
-
+  const buildDrawerAttention = (messages: HomeMessages | null): HomeAttentionStripProps => {
     const attentionItems: HomeAttentionItem[] = [];
     const deferredOfflineAttentionItems: HomeAttentionItem[] = [];
+    const closeAndRun = (action: () => void) => () => {
+      setHomeMessagesDrawerOpen(false);
+      action();
+    };
 
     if (runtimeState === 'unavailable') {
       attentionItems.push({
@@ -675,7 +677,7 @@ export function NimiOverview() {
         tone: 'danger',
         message: t('runtimeConfig.overview.attention.runtimeUnavailable'),
         actionLabel: t('runtimeConfig.overview.attention.diagnoseAction'),
-        onAction: () => openDiagnostics('services'),
+        onAction: closeAndRun(() => openDiagnostics('services')),
       });
     } else if (runtimeState === 'attention') {
       attentionItems.push({
@@ -683,7 +685,7 @@ export function NimiOverview() {
         tone: 'warning',
         message: t('runtimeConfig.overview.attention.runtimeAttention'),
         actionLabel: t('runtimeConfig.overview.attention.diagnoseAction'),
-        onAction: () => openDiagnostics('services'),
+        onAction: closeAndRun(() => openDiagnostics('services')),
       });
     }
 
@@ -693,7 +695,7 @@ export function NimiOverview() {
         tone: 'warning',
         message: t('runtimeConfig.overview.attention.diskCritical', { percent: diskPercent }),
         actionLabel: t('runtimeConfig.overview.attention.manageStorageAction'),
-        onAction: () => void openHomeSettings(navigation, 'data'),
+        onAction: closeAndRun(() => void openHomeSettings(navigation, 'data')),
       });
     } else if (memoryCritical) {
       attentionItems.push({
@@ -701,7 +703,7 @@ export function NimiOverview() {
         tone: 'warning',
         message: t('runtimeConfig.overview.attention.memoryCritical'),
         actionLabel: t('runtimeConfig.overview.attention.diagnoseAction'),
-        onAction: () => openDiagnostics('services'),
+        onAction: closeAndRun(() => openDiagnostics('services')),
       });
     }
 
@@ -730,7 +732,7 @@ export function NimiOverview() {
         actionLabel: item.kind === 'body_offline'
           ? t('runtimeConfig.overview.attention.openHarnessAction')
           : t('runtimeConfig.overview.attention.reviewAction'),
-        onAction: () => openHarness(item.workSessionRef),
+        onAction: closeAndRun(() => openHarness(item.workSessionRef)),
       };
       if (item.kind === 'body_offline') {
         deferredOfflineAttentionItems.push(entry);
@@ -739,17 +741,20 @@ export function NimiOverview() {
       }
     }
 
-    if (remoteSummary.pendingConfirmCount > 0) {
+    // When signed in, HomeMessagesColumn in this same drawer already lists pending
+    // remote access requests, failed setup tasks, and active downloads individually.
+    const hasFailedTextSetup = failed.some((task) => task.capabilityContract === 'text.generate');
+    if (!messages && remoteSummary.pendingConfirmCount > 0) {
       attentionItems.push({
         id: 'remote-pending',
         tone: 'warning',
         message: t('runtimeConfig.overview.attention.remotePending', { count: remoteSummary.pendingConfirmCount }),
         actionLabel: t('runtimeConfig.overview.attention.reviewAction'),
-        onAction: () => void navigation.push({ id: 'connections' }),
+        onAction: closeAndRun(() => void navigation.push({ id: 'connections' })),
       });
     }
 
-    if (failed.length > 0) {
+    if (!messages && failed.length > 0) {
       const firstFailed = failed[0]!;
       attentionItems.push({
         id: `setup-failed:${firstFailed.taskId}`,
@@ -758,9 +763,9 @@ export function NimiOverview() {
           capability: displayRuntimeConfigCapabilityLabel(firstFailed.capabilityContract, t),
         }),
         actionLabel: t('runtimeConfig.overview.attention.reviewAction'),
-        onAction: () => commands.runtimeConfigNavigation.openSetupTask(firstFailed.taskId),
+        onAction: closeAndRun(() => commands.runtimeConfigNavigation.openSetupTask(firstFailed.taskId)),
       });
-    } else if (textNeedsSetup) {
+    } else if (!hasFailedTextSetup && textNeedsSetup) {
       attentionItems.push({
         id: 'text-setup',
         tone: effectiveTextState === 'attention' ? 'warning' : 'setup',
@@ -770,22 +775,9 @@ export function NimiOverview() {
             : 'runtimeConfig.overview.attention.textSetupUnset',
         ),
         actionLabel: t('runtimeConfig.overview.attention.configureAction'),
-        onAction: () => void navigation.push({ id: 'runtime', runtime: { page: 'aiSettings', capabilityContract: 'text.generate' } }),
-      });
-    }
-
-    if (hasPending && pending) {
-      attentionItems.push({
-        id: 'messages-pending',
-        tone: 'info',
-        message: t(
-          pending.more
-            ? 'runtimeConfig.overview.attention.pendingItemsMore'
-            : 'runtimeConfig.overview.attention.pendingItems',
-          { count: pending.count },
+        onAction: closeAndRun(() =>
+          void navigation.push({ id: 'runtime', runtime: { page: 'aiSettings', capabilityContract: 'text.generate' } }),
         ),
-        actionLabel: t('runtimeConfig.overview.attention.openMessagesAction'),
-        onAction: () => setHomeMessagesDrawerOpen(true, 'pending'),
       });
     }
 
@@ -801,93 +793,135 @@ export function NimiOverview() {
 
     attentionItems.push(...deferredOfflineAttentionItems);
 
+    return {
+      attention: attentionItems,
+      executions: activeExecutions,
+      downloads: messages ? [] : activeDownloads,
+      onOpenActivity: () => setView('ai-activity'),
+      onOpenDownloads: () => void navigation.push({ id: 'downloads' }),
+      onViewAllAttention: messages ? () => openCenter('pending') : undefined,
+    };
+  };
+
+  const renderOverview = (messages: HomeMessages | null, drawerAttention: HomeAttentionStripProps) => {
+    const pending = messages ? pendingSummary(messages) : null;
+    const hasPending = Boolean(pending && pending.count > 0);
+    const hasUnread = Boolean(messages?.homeMessages?.some(isUnreadMessage));
+    const hasDrawerAttention = drawerAttention.attention.length > 0;
+    const hasDrawerActiveWork = drawerAttention.executions.length > 0 || drawerAttention.downloads.length > 0;
+    const showHeaderMessageSignal = hasPending || hasUnread || hasDrawerAttention || hasDrawerActiveWork;
+    const drawerTriggerLabel = pending && pending.count > 0
+      ? t(
+          pending.more
+            ? 'runtimeConfig.overview.messages.drawerTriggerPendingMore'
+            : 'runtimeConfig.overview.messages.drawerTriggerPending',
+          { count: pending.count },
+        )
+      : hasDrawerAttention
+        ? t('runtimeConfig.overview.messages.drawerTriggerAttention', { count: drawerAttention.attention.length })
+        : hasUnread
+          ? t('runtimeConfig.overview.messages.hasUnread')
+          : t('runtimeConfig.overview.messages.drawerTriggerActiveWork');
+    const drawerTriggerFilter: HomeTimelineQuickFilter = hasPending
+      ? 'pending'
+      : hasUnread && !hasDrawerAttention && !hasDrawerActiveWork
+        ? 'unread'
+        : 'all';
+    const drawerSignalIconClass = drawerAttention.attention.some((item) => item.tone === 'danger')
+      ? 'text-[var(--nimi-status-danger)]'
+      : drawerAttention.attention.some((item) => item.tone === 'warning')
+        ? 'text-[var(--nimi-status-warning)]'
+        : 'text-[var(--nimi-action-primary-bg)]';
+    const drawerSignalDotClass = drawerAttention.attention.some((item) => item.tone === 'danger')
+      ? 'bg-[var(--nimi-status-danger)]'
+      : drawerAttention.attention.some((item) => item.tone === 'warning')
+        ? 'bg-[var(--nimi-status-warning)]'
+        : 'bg-[var(--nimi-action-primary-bg)]';
+
     return (
       <div
-        className="mx-auto flex w-full max-w-[780px] min-w-0 flex-1 flex-col justify-between gap-8"
+        className="flex min-h-full w-full min-w-0 flex-1 flex-col justify-between"
         data-testid="home-overview-root"
       >
-        <div className="flex min-w-0 flex-col gap-7">
-          <header className="relative z-20 flex min-w-0 flex-col gap-5 pt-2" data-testid="home-hero-header">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span data-testid="home-date" className="text-xs text-[var(--nimi-text-secondary)]">
-                {i18n.formatDate(now, { month: 'long', day: 'numeric', weekday: 'long' })}
+        {/* Quiet Top Utility Bar */}
+        <header
+          className="relative z-20 flex w-full flex-wrap items-center justify-end gap-2 pt-0.5"
+          data-testid="home-hero-header"
+        >
+          <span data-testid="home-date" className="mr-1.5 text-xs text-[var(--nimi-text-muted)]">
+            {i18n.formatDate(now, { month: 'long', day: 'numeric', weekday: 'long' })}
+          </span>
+
+          {showHeaderMessageSignal ? (
+            <button
+              type="button"
+              aria-expanded={messagesDrawerOpen}
+              onClick={() => toggleHomeMessagesDrawer(drawerTriggerFilter)}
+              data-testid="home-messages-drawer-trigger"
+              className="inline-flex h-[30px] items-center gap-2 rounded-full border border-[var(--nimi-home-whisper-border)] bg-[var(--nimi-home-whisper-surface)] px-3 text-xs font-medium text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)] transition-[transform,opacity,background-color,border-color,color,box-shadow] duration-150 hover:bg-[var(--nimi-home-whisper-surface-hover)] hover:shadow-[var(--nimi-home-porcelain-shadow)] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+            >
+              <span className={`relative inline-flex items-center justify-center ${drawerSignalIconClass}`}>
+                <Bell size={13} aria-hidden="true" />
+                <span
+                  className={`absolute -top-0.5 -right-0.5 size-1.5 rounded-full ${drawerSignalDotClass}`}
+                  aria-hidden="true"
+                />
               </span>
+              <span>{drawerTriggerLabel}</span>
+            </button>
+          ) : null}
 
-              <div className="flex flex-wrap items-center gap-2">
-                {showHeaderMessageSignal ? (
-                  <button
-                    type="button"
-                    aria-expanded={messagesDrawerOpen}
-                    onClick={() => toggleHomeMessagesDrawer(hasPending ? 'pending' : 'unread')}
-                    data-testid="home-messages-drawer-trigger"
-                    className="inline-flex items-center gap-2 rounded-full bg-[var(--nimi-home-porcelain-card)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-primary)] shadow-[var(--nimi-home-porcelain-shadow)] transition-[transform,opacity,background-color,border-color,color] duration-150 hover:shadow-[var(--nimi-home-porcelain-shadow-hover)] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
-                  >
-                    <span className="relative inline-flex items-center justify-center text-[var(--nimi-action-primary-bg)]">
-                      <Bell size={13} aria-hidden="true" />
-                      <span
-                        className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-[var(--nimi-action-primary-bg)]"
-                        aria-hidden="true"
-                      />
-                    </span>
-                    <span>{drawerTriggerLabel}</span>
-                  </button>
-                ) : null}
+          <button
+            type="button"
+            onClick={() => setQuickJumpOpen(true)}
+            aria-label={t('runtimeConfig.overview.quickJump.title')}
+            data-testid="home-quick-jump-trigger"
+            className="inline-flex h-[30px] items-center gap-1.5 rounded-full border border-[var(--nimi-home-whisper-border)] bg-[var(--nimi-home-whisper-surface)] px-2.5 text-xs text-[var(--nimi-text-secondary)] shadow-[var(--nimi-elevation-base)] transition-[transform,opacity,background-color,border-color,color,box-shadow] duration-150 hover:bg-[var(--nimi-home-whisper-surface-hover)] hover:text-[var(--nimi-text-primary)] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+          >
+            <Search size={12.5} aria-hidden="true" />
+            <kbd className="font-mono text-[11px]">{shortcutText}</kbd>
+          </button>
+        </header>
 
-                <button
-                  type="button"
-                  onClick={() => setQuickJumpOpen(true)}
-                  aria-label={t('runtimeConfig.overview.quickJump.title')}
-                  data-testid="home-quick-jump-trigger"
-                  className="inline-flex items-center gap-2 rounded-full bg-[var(--nimi-home-porcelain-card)] px-3 py-1.5 text-xs text-[var(--nimi-text-secondary)] shadow-[var(--nimi-home-porcelain-shadow)] transition-[transform,opacity,background-color,border-color,color] duration-150 hover:text-[var(--nimi-text-primary)] hover:shadow-[var(--nimi-home-porcelain-shadow-hover)] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
-                >
-                  <Search size={13} aria-hidden="true" />
-                  <kbd className="font-mono text-[11px]">{shortcutText}</kbd>
-                </button>
-              </div>
-            </div>
+        {/* Optical Center Gravitational Core: Greeting + Hero Omni-Composer */}
+        <div className="mx-auto flex w-full max-w-[680px] min-w-0 flex-1 flex-col items-center justify-center py-6 pb-16">
+          <h1 className="mb-6 min-w-0 text-center text-[1.625rem] font-semibold leading-tight tracking-tight text-[var(--nimi-text-primary)] md:text-[1.75rem]">
+            {displayName
+              ? t('runtimeConfig.overview.greetingWithName', { greeting: t(greetingKey(now.getHours())), name: displayName })
+              : t(greetingKey(now.getHours()))}
+          </h1>
 
-            <h1 className="min-w-0 text-3xl font-semibold leading-tight tracking-tight text-[var(--nimi-text-primary)] md:text-[2rem]">
-              {displayName
-                ? t('runtimeConfig.overview.greetingWithName', { greeting: t(greetingKey(now.getHours())), name: displayName })
-                : t(greetingKey(now.getHours()))}
-            </h1>
-
-            <HomeOmniComposer
-              accountKey={messagesAccountKey}
-              partners={agents.data ?? []}
-              humanContacts={omniHumanContacts}
-              recentSessions={sessionOverview.sessions}
-              cloudRouteActive={committedCloudRoute.active}
-              cloudRouteStatus={
-                sharedAgentAIConfigQuery.isPending || sharedAgentAIConfigQuery.isFetching
-                  ? 'loading'
-                  : sharedAgentAIConfigQuery.isError || committedCloudRoute.unknown
-                    ? 'unknown'
-                    : committedCloudRoute.active
-                      ? 'cloud'
-                      : 'local'
-              }
-              cloudModelLabel={committedCloudRoute.modelLabel}
-              onOpenHumanChatDraft={openHumanChatDraft}
-              onOpenPartnerZhiyu={openPartnerZhiyu}
-              onOpenHarness={openHarness}
-              onOpenModelSwitch={() =>
-                void navigation.push({ id: 'runtime', runtime: { page: 'aiSettings', capabilityContract: 'text.generate' } })
-              }
-            />
-          </header>
-
-          <HomeAttentionStrip
-            attention={attentionItems}
-            executions={activeExecutions}
-            downloads={activeDownloads}
-            onOpenActivity={() => setView('ai-activity')}
-            onOpenDownloads={() => void navigation.push({ id: 'downloads' })}
-            onViewAllAttention={() => openCenter('pending')}
+          <HomeOmniComposer
+            accountKey={messagesAccountKey}
+            partners={agents.data ?? []}
+            partnersLoaded={!agents.isPending && !agents.isError}
+            partnerArtworkByRef={partnerArtworkByRef}
+            humanContacts={omniHumanContacts}
+            recentSessions={sessionOverview.sessions}
+            cloudRouteActive={committedCloudRoute.active}
+            cloudRouteStatus={
+              sharedAgentAIConfigQuery.isPending || sharedAgentAIConfigQuery.isFetching
+                ? 'loading'
+                : sharedAgentAIConfigQuery.isError || committedCloudRoute.unknown
+                  ? 'unknown'
+                  : committedCloudRoute.active
+                    ? 'cloud'
+                    : 'local'
+            }
+            cloudModelLabel={committedCloudRoute.modelLabel}
+            onOpenHumanChatDraft={openHumanChatDraft}
+            onOpenPartnerZhiyu={openPartnerZhiyu}
+            onOpenHarness={openHarness}
+            onOpenModelSwitch={() =>
+              void navigation.push({ id: 'runtime', runtime: { page: 'aiSettings', capabilityContract: 'text.generate' } })
+            }
+            onOpenAllPartners={recentPartnersState.onOpenAll}
+            onExplorePartners={recentPartnersState.onExplore}
           />
+        </div>
 
-          <HomePartnersHeroCard enabled={isOverviewActive} />
-
+        {/* Bottom Calm Periphery: Compact App Micro-Dock + Ambient Status Strip */}
+        <div className="mt-auto flex w-full min-w-0 flex-col items-center gap-3.5 pt-4">
           <HomeAppsWorkbench
             focusGeneration={focusGeneration}
             key={`apps-dock:${messagesAccountKey ?? 'device'}`}
@@ -895,27 +929,27 @@ export function NimiOverview() {
             entries={entries}
             iconUrls={iconUrls}
             loading={apps.isPending}
-            unavailable={localAppsUnavailable && !attentionItems.slice(0, 2).some((item) => item.id === 'apps-unavailable')}
+            unavailable={localAppsUnavailable}
             onOpenAllApps={() => void navigation.push({ id: 'apps' })}
             onOpenApp={openApp}
             onAppsMutated={() => void apps.refetch()}
           />
-        </div>
 
-        <HomeAmbientStatusStrip
-          runtime={runtimeState}
-          capabilitiesLoading={inventory.isPending && !inventory.data}
-          capabilitiesFailed={inventory.isError}
-          readyCapabilityCount={prepared.length}
-          ai={ai}
-          remote={remoteSummary}
-          activeIntegrationCount={activeIntegrationCount}
-          onOpenDiagnostics={openDiagnostics}
-          onOpenCapabilities={() => void navigation.push({ id: 'runtime' })}
-          onOpenUsageDetails={() => setView('ai-activity')}
-          onOpenConnections={() => void navigation.push({ id: 'connections' })}
-          onOpenIntegrations={() => openIntegrations()}
-        />
+          <HomeAmbientStatusStrip
+            runtime={runtimeState}
+            capabilitiesLoading={inventory.isPending && !inventory.data}
+            capabilitiesFailed={inventory.isError}
+            readyCapabilityCount={prepared.length}
+            ai={ai}
+            remote={remoteSummary}
+            activeIntegrationCount={activeIntegrationCount}
+            onOpenDiagnostics={openDiagnostics}
+            onOpenCapabilities={() => void navigation.push({ id: 'runtime' })}
+            onOpenUsageDetails={() => setView('ai-activity')}
+            onOpenConnections={() => void navigation.push({ id: 'connections' })}
+            onOpenIntegrations={() => openIntegrations()}
+          />
+        </div>
 
         <HomeQuickJumpModal
           open={quickJumpOpen}
@@ -928,6 +962,7 @@ export function NimiOverview() {
 
   const renderPage = (messages: HomeMessages | null) => {
     const resolvedContext = messages ? cardContext(messages) : null;
+    const drawerAttention = buildDrawerAttention(messages);
     const content = view === 'ai-activity' ? (
       <SystemEntryDetails onBack={() => setView('overview')} />
     ) : view === 'integrations' ? (
@@ -952,11 +987,11 @@ export function NimiOverview() {
           />
         ) : (
           <ScrollArea
-            className="min-h-0 flex-1"
+            className="min-h-0 flex-1 bg-[image:var(--nimi-home-hero-halo)]"
             viewportClassName="bg-transparent [&>div]:!flex [&>div]:min-h-full [&>div]:flex-col"
-            contentClassName={`${SHELL_PAGE_WIDTH_CLASS} flex flex-1 flex-col pb-5 pt-5 lg:pt-8`}
+            contentClassName={`${SHELL_PAGE_WIDTH_CLASS} flex min-h-full flex-1 flex-col pb-4 pt-2 lg:pt-3`}
           >
-            {renderOverview(messages)}
+            {renderOverview(messages, drawerAttention)}
           </ScrollArea>
         )}
       </div>
@@ -971,6 +1006,7 @@ export function NimiOverview() {
             initialFilter={messagesDrawerFilter}
             messages={messages}
             context={resolvedContext}
+            attentionStrip={drawerAttention}
             appArtworkForNotice={appArtworkForNotice}
             onClose={() => setHomeMessagesDrawerOpen(false)}
             onViewAll={() => openCenter('all')}

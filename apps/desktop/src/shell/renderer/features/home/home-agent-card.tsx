@@ -45,7 +45,7 @@ export type HomeAgentCardViewProps = {
 };
 
 // @nimi-authority: rule.nimi.platform.ui-design-system.media-delivery
-function PartnerAvatar({
+export function PartnerAvatar({
   displayName,
   avatarUrl,
   media,
@@ -78,20 +78,28 @@ function PartnerAvatar({
   );
 }
 
-export function RecentPartnerAvatar({ partner, size = 'md' }: { partner: HomeRecentChatPartner; size?: 'md' | 'lg' }) {
-  const sizeClass = size === 'lg' ? 'size-12 text-base' : 'size-10 text-sm';
+export function RecentPartnerAvatar({ partner, size = 'md' }: { partner: HomeRecentChatPartner; size?: 'xs' | 'md' | 'lg' }) {
+  const sizeClass = size === 'xs'
+    ? 'size-5 text-[10.5px]'
+    : size === 'lg'
+      ? 'size-12 text-base'
+      : 'size-10 text-sm';
+  const sizesAttr = size === 'xs' ? '20px' : size === 'lg' ? '48px' : '40px';
+  const dotClass = size === 'xs'
+    ? 'absolute -right-0.5 -top-0.5 size-2 rounded-full bg-[var(--nimi-action-primary-bg)] ring-[1.5px] ring-[var(--nimi-surface-card)]'
+    : 'absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-[var(--nimi-action-primary-bg)] ring-2 ring-[var(--nimi-surface-card)]';
   return (
-    <span className="relative shrink-0">
+    <span className="relative inline-flex shrink-0">
       <PartnerAvatar
         displayName={partner.displayName}
         avatarUrl={partner.avatarUrl}
         media={partner.media}
         className={sizeClass}
-        sizes={size === 'lg' ? '48px' : '40px'}
+        sizes={sizesAttr}
       />
       {partner.hasUnread ? (
         <span
-          className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-[var(--nimi-action-primary-bg)] ring-2 ring-[var(--nimi-surface-card)]"
+          className={dotClass}
           data-testid={`home-recent-chat-unread:${partner.localAgentRef}`}
           aria-hidden="true"
         />
