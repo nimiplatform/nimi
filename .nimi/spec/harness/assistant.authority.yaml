@@ -20,9 +20,9 @@ units:
         target: definition.nimi.platform.core-protocol.agent-session-body-plane
   - id: rule.nimi.harness.assistant.security-gates
     kind: rule
-    title: Harness enforces seven PC Body security gates through SecureWorkspaceExecutionEnv and Rust native helpers
+    title: Apply all seven Harness PC Body security gates
     modality: must
-    statement: "Harness replaces NodeExecutionEnv with SecureWorkspaceExecutionEnv and consumes kit/shell/protected-local Rust native primitives (packaged in asarUnpack with matching Electron ABI) to enforce seven PC Body security gates: (1) Win32 Job Object (CREATE_SUSPENDED, KILL_ON_JOB_CLOSE, ActiveProcesses==0 wait) fail-closed child process tree containment with UTF-8 lossy output; (2) handle-level NTFS validation (CreateFileW, GetFinalPathNameByHandleW, nNumberOfLinks==1, precondition_sha256) and hard rejection of leading @, file://, \\\\?\\, ADS colons, and trailing dots/spaces; (3) case-folded workspace control-plane file wall forcing allow_once on .git/**, .github/**, package.json scripts, test/build configs, Makefile, scripts, conftest.py, and build.rs, safe git flags, and shared isSensitivePath() hard-denying .env*/keys across read, write, edit, and grep/glob; (4) free Shell restricted to explicit developer workspaces and strictly allow_once with inheritEnv=false minimal env allowlist, approval card highlighting recently AI-modified scripts/tests, and stdout/stderr high-entropy/credential .env* canary redaction to [REDACTED_WORKSPACE_SECRET] (OS AppContainer explicitly deferred to Phase 2); (5) unified local and remote revision atomic CAS with trusted execution-generated approval cards and 24-72h TTL; (6) overlapping workspace write mutex and pre-write isolated snapshots in <nimi-data>/snapshots/ for typed file restore only; and (7) redirected temp spill in <nimi-data>/spill/ (2 GB / 14d LRU), 256 KiB control-frame ceiling, single-instance lock, and utilityProcess isolation."
+    statement: SecureWorkspaceExecutionEnv and the protected-local Rust helpers enforce process containment, handle and path validation, workspace control-file and secret protection, developer shell approval, atomic approval revisions, recoverable workspace writes and bounded isolated workers. Package the native helpers in asarUnpack with the matching Electron ABI.
     condition: Whenever Harness resolves paths, reads/searches/modifies workspace files, executes shell commands, or processes local or remote approvals.
     failure: Deny policy violations, path escapes, hard-link/symlink escapes, sensitive file reads, stale CAS revisions, or Job Object assignment failures before executing any file or process side effect.
     relations:
@@ -35,6 +35,76 @@ units:
     statement: Harness exposes two top-level fixed views sharing one underlying session and receipt model—Tasks & Deliverables (default view for daily deliverables, approvals, alarms/delegations, receipts, and one-click typed pre-write file restore) and Project Workspace (pinned repositories, file tree, line-level diff review, terminal output, Follow-Up, Withdraw, and Stop)—alongside cross-Agent sidebar filtering, intake of general_inbox promotion handoff_history, and intake of user-editable Zhiyu handoff briefs.
     condition: Whenever a user operates Harness or hands off work from Home or Zhiyu.
     failure: Never claim automatic undo for Shell commands or sent external messages, and never silently ingest unapproved Zhiyu private companion transcripts.
+    relations:
+      - type: applies_to
+        target: definition.nimi.harness.assistant.core-app
+  - id: rule.nimi.harness.assistant.process-containment
+    kind: rule
+    title: Contain the complete Windows child process tree
+    modality: must
+    statement: Use a Win32 Job Object with CREATE_SUSPENDED and KILL_ON_JOB_CLOSE. Wait for ActiveProcesses to reach zero. Preserve lossy UTF-8 process output.
+    condition: When Harness launches or terminates a Windows workspace child process.
+    failure: Deny execution if the suspended child cannot be assigned to its Job Object.
+    relations:
+      - type: applies_to
+        target: definition.nimi.harness.assistant.core-app
+  - id: rule.nimi.harness.assistant.workspace-handles
+    kind: rule
+    title: Validate the actual workspace file handle
+    modality: must
+    statement: Use CreateFileW and GetFinalPathNameByHandleW for NTFS handle-level validation. Require nNumberOfLinks == 1 and enforce precondition_sha256. Reject paths with a leading @, file://, the Windows extended path prefix, ADS colons or trailing dots or spaces.
+    condition: When resolving a workspace path or operating on an NTFS file.
+    failure: Reject a path, link, final handle or content precondition that crosses the validated workspace boundary before the side effect.
+    relations:
+      - type: applies_to
+        target: definition.nimi.harness.assistant.core-app
+  - id: rule.nimi.harness.assistant.workspace-control-files
+    kind: rule
+    title: Protect workspace control files and secrets
+    modality: must
+    statement: Apply case-folded control-file checks and require allow_once for .git/**, .github/**, package.json scripts, test and build configs, Makefile, scripts, conftest.py and build.rs. Permit only safe git flags. Use the shared isSensitivePath() decision to deny .env* and keys across read, write, edit, grep and glob.
+    condition: When a workspace tool resolves a control file, command flag or sensitive path.
+    failure: Deny sensitive access or an unapproved control-file action before operating on it.
+    relations:
+      - type: applies_to
+        target: definition.nimi.harness.assistant.core-app
+  - id: rule.nimi.harness.assistant.developer-shell
+    kind: rule
+    title: Constrain and disclose free shell execution
+    modality: must
+    statement: Offer free Shell only in explicit developer workspaces. Each invocation requires allow_once, inheritEnv=false and a minimal environment allowlist. Its approval card highlights recently AI-modified scripts and tests. Redact high-entropy or credential .env* canary values from stdout and stderr as [REDACTED_WORKSPACE_SECRET]. This release makes no OS AppContainer guarantee.
+    condition: When Harness presents, runs or reports a free Shell request.
+    failure: Refuse a shell request outside its workspace or approval boundary and withhold unredacted output.
+    relations:
+      - type: applies_to
+        target: definition.nimi.harness.assistant.core-app
+  - id: rule.nimi.harness.assistant.approval-revisions
+    kind: rule
+    title: Use one atomic approval revision across carriers
+    modality: must
+    statement: Generate approval cards from trusted execution state. Local and remote decisions share atomic revision compare-and-swap and a 24-to-72-hour TTL.
+    condition: When a user acts on a local or remote approval.
+    failure: Reject an untrusted, expired or stale-revision decision before the requested effect.
+    relations:
+      - type: applies_to
+        target: definition.nimi.harness.assistant.core-app
+  - id: rule.nimi.harness.assistant.workspace-restore
+    kind: rule
+    title: Serialize overlapping writes and provide typed file restore
+    modality: must
+    statement: Record an isolated pre-write snapshot under <nimi-data>/snapshots/ before every workspace file write. Serialize writes to overlapping workspace paths. Use the snapshot and its contents only for typed restoration of the recorded file. Keep those contents out of task summaries, model context, Memory and other business uses.
+    condition: Whenever Harness writes a workspace file, accesses a pre-write snapshot or its contents, or receives a request for file restoration.
+    failure: Refuse a write without its required snapshot or overlapping-write protection. Reject snapshot use for any purpose outside typed file restore and deny restoration outside the recorded file scope.
+    relations:
+      - type: applies_to
+        target: definition.nimi.harness.assistant.core-app
+  - id: rule.nimi.harness.assistant.worker-isolation
+    kind: rule
+    title: Bound spill, control frames and worker lifetime
+    modality: must
+    statement: Redirect temporary spill to <nimi-data>/spill/ with a 2 GB limit and 14-day LRU policy. Bound control frames to 256 KiB and use a single-instance lock and an isolated utilityProcess.
+    condition: When the Harness worker starts, stores spill data or receives control frames.
+    failure: Reject an oversized frame or a conflicting worker and enforce the spill limits.
     relations:
       - type: applies_to
         target: definition.nimi.harness.assistant.core-app

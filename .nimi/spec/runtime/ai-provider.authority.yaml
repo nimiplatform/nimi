@@ -50,18 +50,10 @@ units:
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.nimillm-plane
-  - id: definition.nimi.runtime.ai-provider.profile-execution-plane
-    kind: definition
-    lifecycle: removed
-    title: Retired Runtime AI Profile execution plane
-    reason: Removed because Profile prepare, materialization, readiness, apply eligibility, and execution binding are no longer one product workflow.
   - id: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
     kind: definition
     title: Runtime capability execution composition plane
     meaning: The Runtime capability execution composition plane deterministically composes one committed AIConfig route with the current machine-selected Loadout for Local or its exact committed Connector reference plus Cloud CapabilityImplementation target and validates exact versioned Driver dialect, recipeId, options, Model Contracts, bindings, content identities, custody, ownership, credential, policy, and standardized-feature support; Job admission atomically persists immutable effective inputs including the exact selected Local Loadout identity and ResolvedAssembly, while successful realtime.interact Open atomically captures the exact equivalent Local or Cloud inputs into bounded session-generation-scoped ephemeral state, and neither path accepts App execution overrides, later machine-selection or owner rereads that reconstruct captured input, live catalog interpretation, search, ranking, probe, prewarm, re-selection, or fallback. Input freezing never freezes authorization; each later bounded Job step validates current account, registration, App access, policy and the original Connector status without changing the captured target, while realtime retains its independent session-generation lifetime.
-    relations:
-      - type: supersedes
-        target: definition.nimi.runtime.ai-provider.profile-execution-plane
   - id: definition.nimi.runtime.ai-provider.connector-plane
     kind: definition
     title: Runtime connector plane
@@ -94,18 +86,10 @@ units:
     kind: definition
     title: Runtime nimillm plane
     meaning: The Runtime nimillm plane is a Cloud CapabilityImplementationDriver family that maps exact committed implementation and provider-model target configuration plus the credential context resolved from the Job-captured or realtime.interact session-generation-captured current-account Connector reference into provider wire formats and normalizes responses and errors, while Remote ExecutionHost owns transport and the applicable remote Job or Realtime session lifecycle and Connector custody stays separate.
-  - id: definition.nimi.runtime.ai-provider.provider-health-plane
-    kind: definition
-    lifecycle: removed
-    title: Retired Runtime provider health plane
-    reason: Removed because periodic provider reachability, product health state machines, and probe-derived readiness are not execution authority.
   - id: definition.nimi.runtime.ai-provider.remote-execution-host-plane
     kind: definition
     title: Runtime Remote ExecutionHost plane
     meaning: The Runtime Remote ExecutionHost plane owns remote transport and the applicable remote Job or realtime.interact session lifecycle and private supervision; it consumes exact Driver output and finite Runtime-admitted execution authority, independently of an observing RPC for Jobs and within the separately declared session lifetime for realtime, without selecting a route or requiring provider readiness. It implements bounded create, receipt query, result acquisition and explicit stop while the Job writer owns durable facts and publication.
-    relations:
-      - type: supersedes
-        target: definition.nimi.runtime.ai-provider.provider-health-plane
   - id: rule.nimi.runtime.ai-provider.r001
     kind: rule
     title: Exact committed composition is the execution boundary
@@ -198,21 +182,6 @@ units:
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.connector-plane
-  - id: rule.nimi.runtime.ai-provider.r010
-    kind: rule
-    lifecycle: removed
-    title: First-run execution evidence is real local proof
-    reason: First-run admission now consumes current Runtime materialization and activation-gate state and no longer executes capabilities to mint a durable readiness proof.
-  - id: rule.nimi.runtime.ai-provider.r011
-    kind: rule
-    lifecycle: removed
-    title: Retired Profile Apply eligibility lifecycle
-    reason: Removed because Apply validates and atomically writes AIConfig intent without inventory, requirement, binding, grant, feasibility, or readiness gating.
-  - id: rule.nimi.runtime.ai-provider.r012
-    kind: rule
-    lifecycle: removed
-    title: Retired Profile prepare and materialization path
-    reason: Removed because Apply Profile to AIConfig never installs, prepares, binds, selects, probes, warms, or activates local execution dependencies.
   - id: rule.nimi.runtime.ai-provider.r013
     kind: rule
     title: Configuration admission and execution states are orthogonal
@@ -447,16 +416,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.model-service-plane
-  - id: rule.nimi.runtime.ai-provider.r036
-    kind: rule
-    lifecycle: removed
-    title: Retired generic PullModel surface
-    reason: Removed because explicit verified catalog acquisition is owned by ResolveModelInstallPlan and InstallModelFromPlan, while a generic model registry would duplicate ModelAsset inventory and content lifecycle truth.
-  - id: rule.nimi.runtime.ai-provider.r037
-    kind: rule
-    lifecycle: removed
-    title: Retired public model health and readiness probe
-    reason: Removed because model probe, warm, health, and not-ready state do not establish product routing or capability admission.
   - id: rule.nimi.runtime.ai-provider.r038
     kind: rule
     title: ModelAsset transfer and install status is content scoped
@@ -477,11 +436,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.model-service-plane
-  - id: rule.nimi.runtime.ai-provider.r040
-    kind: rule
-    lifecycle: removed
-    title: Retired public local health freshness owner
-    reason: Removed because Check, Warm, Start, background probing, and list-polling health do not create a public capability truth; ExecutionHost supervision stays Runtime private.
   - id: rule.nimi.runtime.ai-provider.r041
     kind: rule
     title: Local embedding bindings are exact Loadout slots
@@ -712,7 +666,7 @@ units:
     kind: rule
     title: Local image dialect mapping is fixed and catalog independent
     modality: must
-    statement: The exact versioned local image CapabilityImplementationDriver dialect derives task semantics only from the recipeId committed in the Loadout and its stable code facts, never from live catalog recipe content, revision, a public mode, arbitrary family, prompt convention, or image-presence inference. qwen-image requires no input.image and lowers without init_image, ref_images, or mask_image; qwen-image-edit-2511 requires exactly one input.image, fixes image count to one, and lowers it to ref_images[0], never init_image; both reject negative_prompt and every mask carrier. A Local image input uses only typed Runtime artifact custody resolved under the exact Job owner to bounded immutable bytes before Driver planning; Local HTTPS, caller paths or file URLs, identifier smuggling, missing owner evidence, foreign or invalid artifacts, and unresolved inputs fail before dispatch, and Host adapters never open caller paths or fetch caller URLs. Only a new post-v3 dialect identity and recipe that explicitly define image-to-image or inpaint may admit init_image or mask_image. Canonical Local inpaint stays a typed behavior within image.generate rather than a new CapabilityContract, reuses reference_image_artifact_id as the required Runtime-owned source carrier, adds mask_artifact_id as the required Runtime-owned mask carrier, maps those exact artifacts to native init_image and mask_image, and admits one optional typed strength; the URL mask string and mask_artifact_id are mutually exclusive and Local never fetches the URL carrier. Before Job publication Runtime authorizes both artifacts under the same exact owner, requires bounded immutable image content, equal source and mask pixel geometry, white or one as edit and black or zero as preserve, an exact inpaint recipe, Model Contract, package family, and dialect mapping, and rejects missing, foreign, incompatible, ambiguous, or unsupported inputs without resizing, probing, changing recipe, or falling back. No inpaint recipe or positive support cell exists until an exact model offer, slot topology, package tuple, and new dialect cohort are separately admitted. Image count defaults to one and batch-capable text-to-image recipes admit one through four, size admits only WIDTHxHEIGHT from 64 through 4096 divisible by eight, and the v5 image-generate dialect admits base seed -1 as random or 0 through 2147483647 as fixed and rejects every other negative value before Job publication or native dispatch; omitted seed preserves the committed explicit default and zero remains fixed; artifact i uses seed[i] = base_seed + i for zero-based i, admission rejects the complete batch before dispatch when any derived seed would overflow signed int32, and for request seed -1 the Nimi ExecutionHost resolves one concrete nonnegative signed-int32 base seed that leaves room for the complete batch before native dispatch. Every successful owner ScenarioArtifact and third-party Local App trimmed image artifact projection carries the exact concrete seed sent for that artifact in its dedicated typed optional int32 seed field; free-form metadata is not canonical seed truth and no free-form metadata crosses the Local App boundary. Any fixed mapping change requires a new dialect identity or version.
+    statement: The versioned local image Driver owns native argument mapping for the recipe committed in the Loadout. A catalog revision, caller mode, prompt or input presence cannot select a different task. qwen-image takes no input.image and emits no init_image, ref_images or mask_image. qwen-image-edit-2511 requires exactly one input.image, fixes the image count at one and maps that reference to ref_images[0], never init_image. Both reject negative_prompt and every mask carrier. Resolve Local inputs from bounded immutable Runtime artifacts under the exact Job owner before Driver planning. Refuse caller paths and URL carriers of any scheme, including a mask URL, along with disguised identifiers, missing ownership and unresolved or foreign artifacts. A Local Host never opens a caller path or obtains input from a caller-supplied URL. Only an explicitly admitted post-v3 dialect and recipe may add image-to-image or inpainting. Advertise Local inpaint support only for an independently admitted exact model offer, slot topology, package tuple and versioned dialect cohort. Inpainting is a typed image.generate behavior. It maps the Runtime-owned reference_image_artifact_id to native init_image and the Runtime-owned mask_artifact_id to native mask_image. Both inputs are required and optional strength is typed. A mask URL and artifact are mutually exclusive. Before Job publication require common ownership, matching pixel geometry, white or one for edit and black or zero for preserve, and an admitted offer, slot topology, package, recipe, Model Contract and dialect. Reject mismatches without resizing, probing or fallback. Image count defaults to one and batch-capable text-to-image recipes accept one through four. WIDTHxHEIGHT axes must each be 64 through 4096 and divisible by eight. In v5, omitted seed uses the committed default, -1 requests randomness and 0 through 2147483647 are fixed. Reject other negatives and any batch overflow before publication or dispatch. Host resolves a random request to one nonnegative int32 base that fits the whole batch. Artifact i uses base + i starting at zero. Each owner and trimmed Local App image artifact returns its actual native seed in the typed optional int32 field. Free-form metadata cannot supply it or cross the Local App boundary. Changing a fixed mapping requires a new dialect identity or version.
     condition: Whenever Runtime maps a local image workflow request from a committed Loadout or captured Job.
     failure: Reject live catalog reinterpretation, semantic drift under one dialect identity, silent drops, or mismapped image inputs before Job publication.
     relations:
@@ -738,11 +692,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
-  - id: rule.nimi.runtime.ai-provider.r066
-    kind: rule
-    lifecycle: removed
-    title: Retired legacy image option compatibility mapping
-    reason: Removed because pre-launch hard cut rejects legacy aliases and ignored-option shims; only the exact CapabilityImplementationDriver dialect and portable configuration are admitted.
   - id: rule.nimi.runtime.ai-provider.r067
     kind: rule
     title: TTS primary entry is typed voice_ref
@@ -935,11 +884,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
-  - id: rule.nimi.runtime.ai-provider.r086
-    kind: rule
-    lifecycle: removed
-    title: Retired music prior-audio extension
-    reason: Replaced by typed music.generate score and audio-reference inputs; rearrangement and append are music.edit operations and cannot retain the former extension as a second parser.
   - id: rule.nimi.runtime.ai-provider.music-generation
     kind: rule
     title: Music generation has typed conditions and complete results
@@ -950,8 +894,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
-      - type: supersedes
-        target: rule.nimi.runtime.ai-provider.r086
   - id: rule.nimi.runtime.ai-provider.r087
     kind: rule
     title: Stable output is typed proto
@@ -1026,7 +968,7 @@ units:
     kind: rule
     title: Committed Cloud composition is observable and audited
     modality: must
-    statement: Execution entry, the committed AIConfig route, exact committed Connector reference, Cloud CapabilityImplementation, Driver target, Remote ExecutionHost dispatch, and error exit write safe unified audit fields without secret material; no fallback decision exists to record because execution never switches implementation, provider, target, Connector, Host, or route.
+    statement: Record execution entry and exit, committed AIConfig route, exact Connector, Cloud implementation, Driver target and Remote ExecutionHost dispatch in the unified audit without secrets. The request never switches implementation, provider, target, Connector, Host or route.
     condition: Whenever nimillm executes or routes a request.
     failure: Fail the auditable operation rather than executing unobservably.
     relations:
@@ -1044,11 +986,6 @@ units:
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.nimillm-plane
-  - id: rule.nimi.runtime.ai-provider.r096
-    kind: rule
-    lifecycle: removed
-    title: Retired provider health state machine
-    reason: Removed because periodic reachability and healthy or unhealthy snapshots are not product readiness, binding, selection, admission, or execution authority.
   - id: rule.nimi.runtime.ai-provider.r097
     kind: rule
     title: Production Host targets reject external injection
@@ -1073,24 +1010,14 @@ units:
         target: definition.nimi.runtime.local-compute.local-engine-plane
   - id: rule.nimi.runtime.ai-provider.r099
     kind: rule
-    title: Local image compatibility attribution is matrix driven
+    title: Exact local image Driver and Host package compatibility
     modality: must
-    statement: Exact local image CapabilityImplementationDriver and ExecutionHost compatibility consumes the canonical matrix implementation, Driver, backend family, Host class and product-support facts, unsupported entries return recognized-but-unsupported typed admission detail, and private attribution may include backend and environment reason keys without producing provider health, selecting topology, changing machine selection, or routing to an attached or llama path.
-    condition: Whenever exact local image compatibility is validated or attributed.
+    statement: Runtime validates the exact local image implementation, Driver, backend family, Host class, native package tuple and product support against the compatibility matrix. An unsupported recognized tuple returns typed recognized-but-unsupported admission detail. Runtime keeps package sourcing and backend or environment reason keys private. Compatibility does not publish health, admit readiness, choose a binding, machine selection or topology, or fall back to an attached or llama Host.
+    condition: Whenever Runtime evaluates or attributes local image Driver and ExecutionHost compatibility.
     failure: Fail closed with recognized-but-unsupported or dependency detail for the exact composition.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.remote-execution-host-plane
-  - id: rule.nimi.runtime.ai-provider.r100
-    kind: rule
-    lifecycle: removed
-    title: Retired periodic provider probe strategy
-    reason: Removed because provider reachability is not polled into product readiness; only explicit bounded Test Connector diagnostics and actual Jobs make outbound calls.
-  - id: rule.nimi.runtime.ai-provider.r101
-    kind: rule
-    lifecycle: removed
-    title: Retired provider health panel and reachability truth
-    reason: Removed because connection tests are explicit bounded diagnostics and never readiness, binding, selection, admission, or execution prerequisites.
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.r102
     kind: rule
     title: Private Host health endpoints express process supervision only
@@ -1101,11 +1028,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.remote-execution-host-plane
-  - id: rule.nimi.runtime.ai-provider.r103
-    kind: rule
-    lifecycle: removed
-    title: Retired provider-health Runtime status linkage
-    reason: Removed because provider probe targets do not drive daemon READY or DEGRADED state or capability readiness.
   - id: rule.nimi.runtime.ai-provider.r104
     kind: rule
     title: ExecutionHost observability detail stays private
@@ -1128,16 +1050,6 @@ units:
         target: definition.nimi.runtime.ai-provider.nimillm-plane
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.remote-execution-host-plane
-  - id: rule.nimi.runtime.ai-provider.r106
-    kind: rule
-    title: Managed image package table validates exact compatibility
-    modality: must
-    statement: The managed image backend package table validates exact CapabilityImplementationDriver and Local ExecutionHost compatibility for recognized native-binary tuples, keeps package-source selection Runtime private, reports package-unsupported tuples as recognized-but-unsupported typed admission detail, and never produces public health, readiness, binding, machine selection, or a llama-derived alternate path.
-    condition: Whenever managed image Driver and Host compatibility is evaluated.
-    failure: Fail the exact composition with recognized-but-unsupported detail without fallback.
-    relations:
-      - type: applies_to
-        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.r107
     kind: rule
     title: Local App foreground text candidates consume App AIConfig
@@ -1334,11 +1246,11 @@ units:
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
   - id: rule.nimi.runtime.ai-provider.r122
     kind: rule
-    title: Interrupted synchronous and streaming execution fails typed
+    title: Immediate execution reports interruptions and uncertain Cloud outcomes
     modality: must
-    statement: A Runtime restart that interrupts an in-flight synchronous or streaming scenario returns AI_EXECUTION_INTERRUPTED together with the typed Runtime-restart cause and caller-may-resubmit disposition, emits no completed outcome and no item after the terminal failure, and never reconstructs or resumes the interrupted call after restart; explicit user cancellation remains cancellation rather than interruption. The same interruption shape is usable as a gRPC error detail for synchronous failure and as the typed terminal payload for stream failure without parsing action hints or diagnostic text.
-    condition: Whenever a Runtime restart interrupts a synchronous or streaming scenario before terminal completion.
-    failure: Reject fabricated completion, silent close, automatic resume, late stream items, or string-only retry guidance.
+    statement: For an immediate synchronous call or stream, preserve a trustworthy terminal result for the original execution and report only observed usage or charges as known. If interrupted before such a result, preserve the actual cause. An interrupting Runtime restart produces AI_EXECUTION_INTERRUPTED with the typed Runtime-restart cause. Explicit user cancellation remains cancellation. Return CALLER_MAY_RESUBMIT only with proof that the request was never dispatched or that exclusively Local execution definitely stopped. If a Cloud request may have reached the provider and its terminal result is unconfirmed, return OUTCOME_UNCERTAIN and surface the unknown outcome and possible charges. This also applies when Runtime stays running and the provider response or client connection is lost. A timeout, partial stream, cancellation request or missing dispatch observation cannot by itself establish non-dispatch, completion or stopped billing. When the transport permits, carry the actual cause and the typed disposition in the synchronous gRPC error detail without requiring a public job_id, or in the terminal stream failure. End interrupted streams without fabricated completion or later items. Do not resume or automatically replay the interrupted call. After an uncertain external effect, disclose the risk of an additional charge before the user can explicitly start a separate request.
+    condition: Whenever an immediate synchronous or streaming scenario finishes, is interrupted or loses a trustworthy terminal observation.
+    failure: Reject an omitted typed disposition on an available error channel, a fabricated cause or terminal result, a safe-retry indication or invented charge for an uncertain execution, silent close in place of an available terminal failure, late stream items and string-only retry guidance.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
@@ -1556,11 +1468,6 @@ units:
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
-  - id: rule.nimi.runtime.ai-provider.anthropic-sonnet46-text-behaviors
-    kind: rule
-    lifecycle: removed
-    title: The first Cloud text adapter uses exact Anthropic Messages semantics
-    reason: The single-target Sonnet 4.6 slice is replaced by the reviewed Anthropic Messages cohorts, which keep its exact semantics for claude-sonnet-4-6 and add the current adaptive-thinking models.
   - id: rule.nimi.runtime.ai-provider.anthropic-messages-text-behaviors
     kind: rule
     title: Anthropic text uses exact reviewed Messages cohorts
@@ -1573,8 +1480,6 @@ units:
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
-      - type: supersedes
-        target: rule.nimi.runtime.ai-provider.anthropic-sonnet46-text-behaviors
   - id: rule.nimi.runtime.ai-provider.mimo-v26-tool-text
     kind: rule
     title: MiMo V2.6 admits native thinking replay and multimodal text
@@ -1611,11 +1516,6 @@ units:
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
-  - id: rule.nimi.runtime.ai-provider.codex-text-behaviors
-    kind: rule
-    lifecycle: removed
-    title: Codex function tools use one captured Responses adapter
-    reason: The private ChatGPT backend and fixed Codex CLI device client are replaced by a Nimi-issued SIWC ChatGPT-plan Connector and public Responses route; old exact target claims cannot be transferred.
   - id: rule.nimi.runtime.ai-provider.chatgpt-plan-refresh-custody
     kind: rule
     title: SIWC refresh rotates within one Runtime Connector custody store
@@ -1650,8 +1550,6 @@ units:
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
-      - type: supersedes
-        target: rule.nimi.runtime.ai-provider.codex-text-behaviors
   - id: rule.nimi.runtime.ai-provider.internal-output-budget
     kind: rule
     title: Runtime output budgets never become caller output limits
@@ -2306,3 +2204,145 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.dashscope-speech-endpoint-materialization
+    kind: rule
+    title: DashScope speech endpoints follow the captured protocol and region
+    modality: must
+    statement: For an already admitted non-realtime DashScope Qwen or Qwen3 TTS audio.synthesize request, the Remote ExecutionHost deterministically constructs the native Qwen-TTS endpoint before dispatch from the captured Connector and target. Map only an official HTTPS workspace origin with one ws-prefixed workspace label, the default HTTPS port and no userinfo, query or fragment. Use dashscope.aliyuncs.com for cn-beijing and dashscope-intl.aliyuncs.com for ap-southeast-1. Send the exact captured workspace in X-DashScope-WorkSpace on the inference request. Never substitute the credential default or send this header to artifact downloads. Qwen Audio 3.0, CosyVoice, transcription, voice creation and lifecycle operations keep their captured endpoints. Other capabilities, realtime protocols, custom endpoints, proxies, plan domains and unmapped regions are not rewritten. Validate the actual destination and pin the transport before any credential-bearing request. Preserve the original Connector, credential, model, public AIConfig and target admission without retry or fallback.
+    condition: Whenever a DashScope speech request is materialized for remote execution from an official workspace Connector.
+    failure: Fail the exact request on policy, transport or provider failure without alternate-host retries, region changes, model substitution, App bypasses or guessed workspace identities.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.remote-execution-host-plane
+  - id: definition.nimi.runtime.ai-provider.media-upscale
+    kind: definition
+    title: Image and video super-resolution
+    meaning: image.upscale and video.upscale enlarge an owned image or complete owned video by an exact integer factor through a selected Runtime implementation, preserving framing and video timing while allowing learned reconstruction of fine detail.
+  - id: rule.nimi.runtime.ai-provider.media-upscale-contract
+    kind: rule
+    title: Super-resolution uses owned media and complete artifacts
+    modality: must
+    statement: image.upscale and video.upscale use the existing protected ScenarioJob, AIConfig, cancellation and artifact ownership contracts. Apps submit one owned source artifact, an exact scale of two or four and an optional nonnegative signed-int32 seed. An omitted seed resolves to 42. The image form accepts one PNG or JPEG, at most 32 MiB, and returns a decoded PNG with exact multiplied dimensions bounded to 4096 on each axis. The video form accepts one complete MP4, at most 32 MiB, with one H264 video stream, a bounded strictly increasing zero-origin timeline with nominal 24, 25 or 30 FPS, at most 300 frames and ten seconds, and zero or one AAC audio stream. It preserves frame count, order, presentation timeline, frame rate and the complete source audio stream, returns an independently inspected MP4, and bounds the output frame dimensions to 4096 with at most 512 MiB of decoded RGB frames. Failed, canceled, malformed or partial outputs never publish success. The Runtime implementation uses the admitted Windows NVIDIA and Apple Silicon Metal stable-diffusion.cpp packages with independent transformer and VAE slots for RelayVSR 2x, RelayVSR 4x, SeedVR2 3B and SeedVR2 7B Sharp. Native inference and codecs run under Runtime-owned captured dependencies; RelayVSR VAE admission jointly checks its tensor architecture and model-authored upscale_factor for the exact requested scale, model sources and filenames never bypass architecture checks, and Apps receive no arbitrary command, path or provider interface.
+    condition: Whenever an image.upscale or video.upscale Job is admitted or executed.
+    failure: Reject unsupported routes, factors, model contracts or media limits and preserve the typed failure and publish no partial completed artifact.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.media-upscale
+  - id: definition.nimi.runtime.speaker-representation.audio-speaker-embedding-contract
+    kind: definition
+    title: Short-audio speaker representation contract
+    meaning: audio.speaker.embed is an independent finite short-audio request and speaker-representation vector result, consumed without selecting a provider, model, Driver, execution route, person or business profile; it is neither text.embed, generic acoustic or semantic audio embedding, transcription, speaker diarization, reusable synthesis voice creation nor identity authentication.
+  - id: rule.nimi.runtime.speaker-representation.audio-speaker-embedding-result
+    kind: rule
+    title: Speaker vectors preserve exact captured representation semantics
+    modality: must
+    statement: An audio.speaker.embed ASYNC_JOB follows the common scenario Job contract and consumes one owned audio input through the existing scenario and protected Local App admission, cancellation and terminal Get owner boundaries, captures the selected exact implementation and model contents before publication, and returns one nonempty finite speaker-representation vector of the positive dimension verified by that Driver Model Contract together with a Runtime-derived opaque space_id covering the capability, exact captured implementation and dialect, model contents and representation preprocessing semantics. Every successful terminal result is validated and durably captured before publication and projected without provider, model, route, credential, path, person name or free-form metadata. Equal dimension alone never permits vector comparison or combination, and a different space requires separate or rebuilt App-derived profiles and indexes. Missing speech qualification is not a model-reported no-speech result, an insufficient or invalid input or failed inference cannot become a zero vector or fabricated successful representation, and no vector result identifies a person, verifies a login or promises recognition accuracy. The App owns capture windows, enrollment consent, profile names and account scope, matching thresholds, centroids, clustering, retention and business workflow; Runtime owns the exact model execution and immutable result, without selecting another resource or adopting business profiles into Cognition.
+    condition: Whenever a speaker representation is admitted, executed, stored, projected or consumed.
+    failure: Reject an incompatible, missing, nonfinite or wrong-width representation, unsupported input, retired scope or uncaptured model without guessing an identity, substituting another representation task or resource, copying an old unmarked vector into a new space, or publishing pseudo-success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.scenario-job-plane
+      - type: applies_to
+        target: definition.nimi.runtime.speaker-representation.audio-speaker-embedding-contract
+  - id: rule.nimi.runtime.speaker-representation.sherpa-speaker-encoder
+    kind: rule
+    title: Local speaker encoder uses a captured compatible ONNX payload
+    modality: must
+    statement: The initial Local audio.speaker.embed implementation executes the versioned sherpa-onnx speaker encoder dialect with one required speaker.encoder ModelAsset slot and a pinned Runtime-managed CPU dependency profile. Its Model Contract verifies the exact self-contained ONNX graph and model-authored 3d-speaker framework, 16000-Hz sample rate, normalized samples, global-mean feature normalization, one Float32 batch-by-time-by-80 feature input and one Float32 batch-by-dimension output whose positive width agrees with output_dim metadata, rejecting custom graph domains, external tensor dependencies and contradictory interface or preprocessing facts. Admission derives output width from those verified payload facts rather than a filename, catalog hash, inventory hint, caller-entered dimension or trial inference. Execution decodes the captured short audio, supplies its complete mono waveform to the admitted extractor, uses the model-declared preprocessing and returns the actual extractor vector; it admits at most 30 seconds per input and fails an input without computable features or valid output rather than padding a successful result, truncating input or substituting ambient weights. This bounded initial implementation makes no claim for unrelated model architectures, generic audio meaning, speech detection, cross-space equivalence or person authentication, and the App's enrollment window policy remains outside the generic contract.
+    condition: Whenever the local speaker encoder recipe is declared, selected or executed.
+    failure: Fail the exact Job on changed or incompatible model bytes, unmanaged dependencies, unsupported duration or audio, extractor failure, invalid vector or cancellation without downloading weights, changing the route or ModelAsset, or fabricating a person or successful representation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+      - type: applies_to
+        target: definition.nimi.runtime.speaker-representation.audio-speaker-embedding-contract
+  - id: definition.nimi.runtime.ai-provider.voice-conversion
+    kind: definition
+    title: Voice conversion retargets an existing singing performance
+    meaning: audio.voice.convert transfers an owned canonical singing source to a different target voice while that source carries the melody, lyrics and timing. The target voice is an independent input and never a second source performance. Conversion produces one independent vocal artifact, never overwrites the source, never generates accompaniment, and does not assert lyric accuracy, naturalness or listener identity of the result.
+  - id: rule.nimi.runtime.ai-provider.voice-conversion
+    kind: rule
+    title: Voice conversion has bounded typed inputs and one owned vocal output
+    modality: must
+    statement: AUDIO_VOICE_CONVERT uses audio.voice.convert and MODAL_MUSIC with ASYNC_JOB through the existing protected ScenarioJob operation family. Input contains exactly sourceVocal as an owned canonical MusicAudioInput with sourceKind singing and exactly one target voice carrier, where that carrier is reference audio as an owned canonical MusicAudioInput, a Runtime-projected presetVoiceId, or a compatible voiceAssetId. Carriers never substitute for each other and no prompt, lyrics, emotion, energy, style text or free-form instruction is accepted. Runtime authorizes and captures the immutable source vocal, target voice snapshot, source frame facts, requested range, selected exact Driver and complete ResolvedAssembly before publication. An optional explicit integer semitoneShift inside the declared implementation range requests a real pitch shift; absence or zero preserves the source key and implementations never auto-shift into a reference range. Success atomically commits one converted vocal artifact distinct from the source and returns its reference with source artifact identity and AudioInfo, the converted input frame range, converted vocal AudioInfo, a bounded length relation and signed duration delta derived from real output facts. Canonical audio is bounded to 600 seconds and 512 MiB per input with missing input-capability projection meaning unknown. The original source and its accompaniment stay unchanged; the result contains no generated audio beyond the converted vocal and no invented confidence or identity claim.
+    condition: Whenever Runtime, SDK, Kit or a protected App admits, executes or projects audio.voice.convert.
+    failure: Reject unowned or noncanonical source or target input, mixed target carriers, invalid ranges or closed-set fields, unsupported kind or shift values, malformed output or missing artifacts; never publish partial success, a copied source vocal, a synthesized substitute voice or a pseudo-conversion.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-contract
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.canonical-audio
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.voice-conversion
+  - id: rule.nimi.runtime.ai-provider.voice-conversion-length
+    kind: rule
+    title: Converted vocal length differences are reported not repaired
+    modality: must
+    statement: A converted vocal reports its measured output sample rate, channel count, frame count and duration together with the analyzed source range and a bounded length relation of exact or model-frame-rounding plus a signed duration delta in milliseconds computed from those measured facts as the reported vocal duration minus the analyzed range duration, each the floored milliseconds of its frame count at its own sample rate, so every Runtime, SDK and carrier projection derives the same value; exact means the two durations are equal. Native source chunking and crossfades may round the tail inside the implementation's own frame grid; Runtime never trims, pads, time-stretches or splices the converted vocal to force equal frame counts with the source or any accompaniment, and never reports an unverified alignment. Product mixing must treat a reported tail difference as real input and may align tracks only through an explicit visible derived operation.
+    condition: Whenever a voice conversion result is produced, projected or consumed for mixing.
+    failure: Reject inconsistent output facts or an absent length relation instead of inventing exact alignment, and never hide a real tail difference behind silent truncation, speed change or moved segments.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.voice-conversion
+  - id: definition.nimi.runtime.ai-provider.music-transcription
+    kind: definition
+    title: Music transcription is an estimate of an existing recording
+    meaning: music.transcribe estimates symbolic musical structure from an owned canonical audio source or its explicit half-open frame range. It is distinct from lyric or speech recognition, new music composition, deterministic ABC or MIDI conversion, and faithful singing synthesis. Its estimated scores and timeline never replace the original audio or assert acoustically verified melody, harmony or singer identity.
+  - id: rule.nimi.runtime.ai-provider.music-transcription
+    kind: rule
+    title: Music transcription has bounded typed inputs and complete owned outputs
+    modality: must
+    statement: MUSIC_TRANSCRIBE uses music.transcribe and MODAL_MUSIC with ASYNC_JOB through the existing protected ScenarioJob operation family. Input contains exactly sourceAudio as an owned canonical MusicAudioInput, a nonempty duplicate-free requestedFormats set drawn from abc, midi and timeline, and a nonempty duplicate-free requestedParts set drawn from vocal-melody, lead-sheet, full-arrangement and note-events. The note-events part estimates possibly polyphonic note onsets, exclusive ends and MIDI pitches in the selected source interval without promising human voice, instrument, harmony or arrangement roles; the meanings of the other three parts are unchanged. Runtime authorizes and captures the immutable audio, source frame facts, requested range, selected exact Driver and complete ResolvedAssembly before publication; no prompt, lyrics, model, path, tokenizer option or output conversion is accepted as a substitute. Exact Driver profiles admit only implemented combinations, with canonical audio bounded to 600 seconds and 512 MiB, and missing input-capability projection means unknown. Success atomically commits every requested score format and part, plus the requested timeline, and returns their references with transcribed-estimate origin, original source artifact identity and AudioInfo, the analyzed input frame range and explicit completeness of unknown, complete or truncated from real engine evidence. A processed input window or last event timestamp never establishes complete transcription; missing evidence remains unknown. ABC is at most 1 MiB, MIDI and timeline each at most 16 MiB, and unsupported requested output fails rather than silently converting or omitting it. The original audio is unchanged; outputs contain no generated audio or invented confidence, lyrics, voice identity or expressive-control claim.
+    condition: Whenever Runtime, SDK, Kit or a protected App admits, executes or projects music.transcribe.
+    failure: Reject unowned or noncanonical input, invalid ranges or closed-set fields, unsupported format and part combinations, malformed output, missing requested artifacts or invalid captured state; publish no partial success or pseudo-transcription.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-contract
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.canonical-audio
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.music-transcription
+  - id: rule.nimi.runtime.ai-provider.music-transcription-timeline
+    kind: rule
+    title: Estimated music timelines use source frames and normalized musical events
+    modality: must
+    statement: A requested music timeline is one application/vnd.nimi.music-timeline+json artifact using schema version 1, original source artifact identity, measured source AudioInfo and analyzed half-open input range, with at most 100000 ordered events on that source frame timeline. Event kinds are note, beat, chord, key and section. Notes contain integer MIDI pitch, nonnegative track index and start and exclusive end frames; beat markers contain source frame and a reported position in eighth notes from the downbeat with meter only when observed; chord and key labels use bounded normalized musical notation and section labels use bounded text decoded by the exact Driver. The Driver translates actual model timestamps and symbolic vocabulary, applies the captured source-range offset once, bounds events to the analyzed source interval and validates finite timing, legal pitches and field-specific shapes. Native tokenizer ids, duration bins, provider payloads, local paths, free-form metadata and fabricated velocity or confidence are excluded. Deterministic note-time rounding is a frame projection of an estimate, not a sample-preserving audio edit.
+    condition: When a music transcription requests or consumes a timeline artifact.
+    failure: Reject unversioned or oversized timelines, unknown fields or event kinds, invalid source facts, nonmonotonic or out-of-range times, incomplete note spans and undeclared native vocabulary instead of forwarding raw model JSON.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.canonical-audio
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.music-transcription
+  - id: definition.nimi.runtime.ai-provider.music-note-events
+    kind: definition
+    title: Note events estimate pitches and spans without musical roles
+    meaning: A note-events transcription estimates possibly overlapping note pitches and time spans from an existing owned audio interval without claiming vocal melody, instrument identity, voice separation, harmony or complete arrangement. Its MIDI and source-frame timeline are two serializations of the same estimated note sequence, not deterministic transcription of a supplied symbolic score.
+  - id: rule.nimi.runtime.ai-provider.music-note-events-output
+    kind: rule
+    title: Note-event MIDI and timelines preserve the same estimated spans
+    modality: must
+    statement: A note-events Driver may admit midi, timeline or their combination and rejects other parts or ABC before Job publication when not implemented. Both requested outputs derive from the same validated native note sequence. A timeline uses the original source sample-frame basis and adds the captured input-range start exactly once. A MIDI uses times relative to the beginning of the captured input interval, so MIDI seconds plus that interval start correspond to the timeline estimates within the declared deterministic encoding resolution. The admitted Basic Pitch MIDI dialect is complete single-track SMF format 0 with an explicit SMPTE time division of 25 frames per second and 40 ticks per frame, bounded variable-length deltas, paired note-on and note-off events and one terminal end-of-track; the fixed note-on velocity 64 and channel allocation are serialization conventions and are not observed loudness, tempo, instrument or voice evidence. It emits no program, tempo, lyric or expressive controller claim. Publication validates the complete MIDI structure, bounds, termination and note pairing rather than only its header. The note-only timeline contains no invented beat, chord, key, velocity or confidence. Empty real predictions may be serialized without fabricating notes, while an empty prediction alone never verifies useful transcription. Missing completeness evidence remains unknown and all requested artifacts commit atomically under the existing transcription owner.
+    condition: Whenever music.transcribe admits or publishes note-events results.
+    failure: Reject unsupported part and format combinations, invalid or unpaired MIDI events, missing termination, unsafe timing or spans, mismatched note sequences or source offsets, fabricated musical roles or partial successful output.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.canonical-audio
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.music-note-events
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.music-transcription
+  - id: rule.nimi.runtime.ai-provider.basic-pitch-onnx-note-events
+    kind: rule
+    title: Basic Pitch uses a structural CPU ONNX note-transcription contract
+    modality: must
+    statement: The Basic Pitch Driver on dialect python/basic-pitch-onnx/music-transcribe/v2 admits Windows amd64 and macOS arm64, Runtime-managed Python 3.12.15 and ONNX Runtime CPU only, for compatible self-contained ONNX ModelAssets (a single .onnx file or a directory bundle containing exactly one .onnx file with no external tensor data) without pinning an exact upstream commit SHA-256, fixed file count, or hardcoded nmp.onnx path, while curated catalog offers continue to pin verified download digests and retained Apache 2.0 license and NOTICE materials. The versioned Driver locates the unique .onnx file from the captured asset manifest, inspects it through a bounded structural reader without loading full tensor payloads, validates the exact model signature, fixed preprocessing and note decoding defaults, and immutable Python profile and Driver bundle identity, and passes that exact resolved .onnx path to execution. It validates finite float32 tensors, the 43844-sample mono input and the native 172-frame note/onset/contour outputs, preserves the reviewed 22050 Hz resampling, overlap, padding removal and native note-time correction, and returns only note-events midi and timeline estimates from the captured canonical source/range. It neither imports the upstream distribution's TensorFlow dependency nor selects TensorFlow, CoreML, TFLite, GPU or a different model after failure. Runtime captures the real Python package/profile and exact model bindings, revalidates the same assembly for execution or recovery, and cancels its owned process without publishing late or partial results. The existing SheetSage Driver and its existing supported combinations retain their own exact substrate and semantics.
+    condition: Whenever the Basic Pitch local Driver is prepared, selected, executed or projected.
+    failure: Fail closed on zero or multiple .onnx files, wrong or external-data model signature, missing or mismatched profile identity, unsupported platform or accelerator, invalid tensors, automatic backend substitution, fake audio.cpp custody or incomplete requested outputs.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.music-note-events
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.music-transcription

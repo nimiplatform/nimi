@@ -26,18 +26,10 @@ units:
     kind: definition
     title: Runtime app projection plane
     meaning: The Runtime app projection plane owns current App-private JSON and binary asset storage truth, protected exact local-app storage operations, Runtime-custody artifact adoption, package jobs and readiness, and the local inventory projection that keeps Platform catalog identity, committed local package state, Desktop Host state, Runtime registration, and current access availability distinct.
-  - id: definition.nimi.runtime.app-surface.local-app-principal-record-plane
-    kind: definition
-    lifecycle: removed
-    title: Retired Runtime local-app principal and record plane
-    reason: Removed because Registered App Subject is the sole current App security-subject term and physical record or storage identity remains Runtime implementation without a principal alias.
   - id: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
     kind: definition
     title: Runtime Registered App Subject and record plane
     meaning: The Runtime Registered App Subject and record plane owns one durable canonical registration and stable non-reused opaque subject in each Runtime-owned registration owner scope, shared by separately admitted verified-installed, local-import, local-development, bundled, platform and remote sources; copied or reselected owner data preserves the canonical record and subject bytes, the current product may reopen them only through an exact owner-validated current-host binding already associated with that registration, and another host without an admitted owner-issued reopen selector keeps them inactive and unavailable; source class, source generation, declaration generation, and lifecycle state remain durable registration facts, while current OS-user access scope, current Account partition selection, security-relevant Host launch facts, process, credential, session, snapshot, and per-operation resolution are freshly derived and physical record and storage layout remains Runtime implementation.
-    relations:
-      - type: supersedes
-        target: definition.nimi.runtime.app-surface.local-app-principal-record-plane
   - id: definition.nimi.runtime.app-surface.auth-service-plane
     kind: definition
     title: Runtime auth service plane
@@ -66,11 +58,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
-  - id: rule.nimi.runtime.app-surface.r003
-    kind: rule
-    lifecycle: removed
-    title: Retired ordinary package principal non-admission
-    reason: Removed because installed and local-import Apps now use the same Runtime registration, declaration, verified launch, and protected-session model as development Apps while installer and distribution details remain separately owned.
   - id: rule.nimi.runtime.app-surface.r004
     kind: rule
     title: Ordinary lifecycle jobs are current Runtime truth
@@ -213,56 +200,6 @@ units:
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-projection-plane
-  - id: rule.nimi.runtime.app-surface.r018
-    kind: rule
-    lifecycle: removed
-    title: Retired generic App message send
-    reason: Removed because generic Third-party App-to-App messaging is outside the canonical App operation contract and no generic send surface remains.
-  - id: rule.nimi.runtime.app-surface.r019
-    kind: rule
-    lifecycle: removed
-    title: Retired generic App message subscription
-    reason: Removed because generic Third-party App subscriptions and delivery-state projection are outside the canonical App operation contract.
-  - id: rule.nimi.runtime.app-surface.r020
-    kind: rule
-    lifecycle: removed
-    title: Retired generic App message event enum
-    reason: Removed with the generic App message surface.
-  - id: rule.nimi.runtime.app-surface.r021
-    kind: rule
-    lifecycle: removed
-    title: Retired generic App message sender identity
-    reason: Removed with SendAppMessage; protected App identity is now used only for operations in the canonical App operation contract.
-  - id: rule.nimi.runtime.app-surface.r022
-    kind: rule
-    lifecycle: removed
-    title: Retired generic App message payload bound
-    reason: Removed with the generic App message payload contract; each supported operation owns its own typed bounds.
-  - id: rule.nimi.runtime.app-surface.r023
-    kind: rule
-    lifecycle: removed
-    title: Retired generic App message rate limit
-    reason: Removed with generic App message sending; owner operations retain their own resource bounds.
-  - id: rule.nimi.runtime.app-surface.r024
-    kind: rule
-    lifecycle: removed
-    title: Retired App-pair message circuit breaker
-    reason: Removed with the generic cross-App message bus.
-  - id: rule.nimi.runtime.app-surface.r025
-    kind: rule
-    lifecycle: removed
-    title: Retired generic message-bus exclusivity
-    reason: Removed because no generic Runtime or Desktop App-to-App message bus is admitted.
-  - id: rule.nimi.runtime.app-surface.r026
-    kind: rule
-    lifecycle: removed
-    title: Retired generic messaging SDK projection
-    reason: Removed because SendAppMessage and SubscribeAppMessages have no Third-party SDK mapping.
-  - id: rule.nimi.runtime.app-surface.r027
-    kind: rule
-    lifecycle: removed
-    title: Retired generic App message delivery contract
-    reason: Removed with the generic send and subscribe surface; supported typed streams use their owner-specific delivery contract.
   - id: rule.nimi.runtime.app-surface.r028
     kind: rule
     title: Internal Runtime Agent carrier admits fixed subtypes
@@ -287,11 +224,6 @@ units:
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-messaging-plane
-  - id: rule.nimi.runtime.app-surface.r030
-    kind: rule
-    lifecycle: removed
-    title: Retired companion multi-App message projection
-    reason: Removed because generic multi-App messaging and projection are outside the canonical Third-party App operation contract.
   - id: rule.nimi.runtime.app-surface.r031
     kind: rule
     title: The Avatar product boundary uses canonical App operations
@@ -302,46 +234,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-messaging-plane
-  - id: rule.nimi.runtime.app-surface.r032
-    kind: rule
-    lifecycle: removed
-    title: AppHealth reports eight typed dimensions
-    reason: Removed because ordinary AppHealth projection is deferred and physically absent from the current wire, Runtime, SDK, and host surfaces.
-  - id: rule.nimi.runtime.app-surface.r033
-    kind: rule
-    lifecycle: removed
-    title: Overall state derivation is a closed table
-    reason: Removed with the deferred ordinary AppHealth projection; no current derivation table or placeholder state remains.
-  - id: rule.nimi.runtime.app-surface.r034
-    kind: rule
-    lifecycle: removed
-    title: Dimensions and overall states never conflate
-    reason: Removed with the deferred ordinary AppHealth projection; its dimension and overall-state contract is not reserved.
-  - id: rule.nimi.runtime.app-surface.r035
-    kind: rule
-    lifecycle: removed
-    title: AppResponseState fields are exactly five
-    reason: Removed because ordinary AppResponseState projection is deferred and physically absent rather than reserved as a current contract.
-  - id: rule.nimi.runtime.app-surface.r036
-    kind: rule
-    lifecycle: removed
-    title: Response-state sources are typed and closed
-    reason: Removed with the deferred ordinary AppResponseState projection; no current response-state input contract remains.
-  - id: rule.nimi.runtime.app-surface.r037
-    kind: rule
-    lifecycle: removed
-    title: The support next-action enum is exactly ten tokens
-    reason: Removed because ordinary lifecycle support next-actions are deferred and their token vocabulary is not reserved.
-  - id: rule.nimi.runtime.app-surface.r038
-    kind: rule
-    lifecycle: removed
-    title: Next-action tokens are non-executable projections
-    reason: Removed with the non-admitted support next-action vocabulary; current Runtime exposes neither the projection nor executable ordinary lifecycle actions.
-  - id: rule.nimi.runtime.app-surface.r039
-    kind: rule
-    lifecycle: removed
-    title: The state-to-action mapping table is closed
-    reason: Removed with the deferred ordinary AppHealth, AppResponseState, and support next-action projections; no mapping table remains current.
   - id: rule.nimi.runtime.app-surface.r040
     kind: rule
     title: App storage partitions are Registered-App-Subject-scoped Runtime truth
@@ -506,11 +398,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
-  - id: rule.nimi.runtime.app-surface.r056
-    kind: rule
-    lifecycle: removed
-    title: Retired ordinary package subject non-admission
-    reason: Removed because installed and local-import Apps now receive registered subjects through the common Runtime seam without moving installer, update, distribution, or marketplace semantics into App access.
   - id: rule.nimi.runtime.app-surface.r057
     kind: rule
     title: Owner stores stay separate behind a resolver
@@ -645,11 +532,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.auth-service-plane
-  - id: rule.nimi.runtime.app-surface.r088
-    kind: rule
-    lifecycle: removed
-    title: Retired AppMode and grant ceiling
-    reason: Removed because current Third-party App access derives from declaration domains and the canonical App operation contract without LITE, CORE_ONLY, FULL, scope ceilings, or grant admission.
   - id: rule.nimi.runtime.app-surface.r089
     kind: rule
     title: Local App sessions stay bound to the exact connection
@@ -660,11 +542,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.auth-service-plane
-  - id: rule.nimi.runtime.app-surface.r090
-    kind: rule
-    lifecycle: removed
-    title: Retired AppMode and permission evaluation order
-    reason: Removed because Runtime now evaluates verified exact Host origin, fresh protected session, declaration-derived snapshot coverage, and owner policy without a mode ceiling or permission decision.
   - id: rule.nimi.runtime.app-surface.r091
     kind: rule
     title: World relation is separate from App access
@@ -775,8 +652,6 @@ units:
         target: definition.nimi.runtime.app-surface.auth-service-plane
       - type: applies_to
         target: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
-      - type: supersedes
-        target: rule.nimi.runtime.app-surface.r003
   - id: rule.nimi.runtime.app-surface.r101
     kind: rule
     title: App activity storage is one transactional Runtime owner store

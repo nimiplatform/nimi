@@ -22,11 +22,6 @@ units:
     kind: definition
     title: Desktop LocalAgent companion projection
     meaning: A Desktop companion panel is a first-party LocalAgent projection that owns placement and bounded user controls only and never owns execution, Conversation, Memory, Knowledge, voice truth, scheduling, provider routing, or Avatar rendering.
-  - id: definition.nimi.desktop.agent-projection.realm-group-participation
-    kind: definition
-    lifecycle: removed
-    title: Deferred Realm group LocalAgent participation projection
-    reason: Removed because Realm and Nimi hard-cut group LocalAgent participation and the complete group-chat product instead of retaining a future Desktop projection.
   - id: rule.nimi.desktop.agent-projection.r001
     kind: rule
     title: Home hands off explicit partner conversation intent
@@ -247,11 +242,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.agent-projection.companion-panel
-  - id: rule.nimi.desktop.agent-projection.r189
-    kind: rule
-    lifecycle: removed
-    title: Realm group participation remains deferred
-    reason: Removed because Realm and Nimi hard-cut group LocalAgent participation and the complete group-chat product rather than retaining a deferred Desktop surface.
   - id: rule.nimi.desktop.agent-projection.r199
     kind: rule
     title: Avatar startup cannot infer a default LocalAgent

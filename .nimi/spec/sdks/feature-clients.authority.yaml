@@ -17,7 +17,7 @@ units:
   - id: definition.nimi.sdks.feature-clients.ai-adapter-plane
     kind: definition
     title: SDK AI adapter plane
-    meaning: The SDK AI adapter plane owns typed CapabilityContract request and Job projection for independent framework adapters and core AI helpers; adapters consume the canonical AIConfig owner and Runtime-persisted exact Job inputs without becoming a CapabilityImplementationDriver, selecting routes or Loadouts, changing selection, owning provider catalogs, reconstructing ResolvedAssembly, or replicating Runtime validation.
+    meaning: The SDK supplies typed capability requests and Job projections to AI helpers and independently packaged framework adapters. Nimi maintains @nimiplatform/sdk-adapter-vercel-ai. The canonical AIConfig owner commits route intent. Select Loadout is the action for explicitly setting or clearing the machine selection. Delete Loadout clears a selection pointing to its target in the same atomic commit, without choosing a replacement or requiring a separate Select action. Runtime admits the operation and captures its exact effective inputs. The versioned Driver checks its Model Contract and maps captured inputs for execution. Framework adapters consume these public contracts without selecting routes or Loadouts, owning provider catalogs, reconstructing a ResolvedAssembly or its bindings, replicating Runtime admission or falling back to another target.
   - id: definition.nimi.sdks.feature-clients.ai-config-plane
     kind: definition
     title: SDK AI config plane
@@ -30,11 +30,6 @@ units:
     kind: definition
     title: SDK canonical Realtime owner API plane
     meaning: The SDK canonical Realtime owner API plane provides shared typed lifecycle, status, error, pressure, cancellation, and close control plus separate typed Realm Realtime, LocalAgent Conversation and Agent Realtime media, and provider-independent AI Realtime text and audio APIs plus the separately admitted video.face_swap Session API to every formal App without exposing the Neutral Runtime Realtime Core, Runtime internals, Realm socket or token, provider-native protocol, generic event envelope, or privileged consumer profile.
-  - id: definition.nimi.sdks.feature-clients.permission-plane
-    kind: definition
-    lifecycle: removed
-    title: SDK permission plane
-    reason: Removed because third-party App access derives from declaration and Runtime admission with no public permission catalog, status, request, subscription, grant, revoke, or permission-settings product surface.
   - id: definition.nimi.sdks.feature-clients.proposal-plane
     kind: definition
     title: SDK proposal plane
@@ -47,18 +42,10 @@ units:
     kind: definition
     title: SDK local environment plane
     meaning: The SDK local environment plane owns typed downstream full catalog search with browse-only model locators, model-index featured source observation, opaque ModelAsset offer references for exact featured entries and selected variants, installation, ModelAsset integrity, Recipe slot offer recommendation, dependency-job, saved-candidate environment plan and revision-condition, acquisition operation-to-result correlation, and Runtime-private ExecutionHost diagnostic projections, preserves Runtime ordering, concrete identities, and structured failures, keeps Market candidates free of caller-reconstructible install payloads, and never projects environment readiness, selected-source authority, route selection, machine selection, binding, or capability admission truth.
-  - id: definition.nimi.sdks.feature-clients.route-plane
-    kind: definition
-    lifecycle: removed
-    title: Retired SDK route plane
-    reason: Removed because list, resolve, health, warm-candidate, inventory ranking, and route-description APIs formed a second router and public readiness path.
   - id: definition.nimi.sdks.feature-clients.capability-composition-plane
     kind: definition
     title: SDK capability composition plane
     meaning: The SDK capability composition plane projects the route committed by a canonical AIConfig owner, the current machine-selected Local resource facts or committed exact Cloud resource reference, and Runtime's atomic Job-submission composition into either a complete persisted Local ResolvedAssembly or exact Cloud effective inputs, together with typed derived admission and immutable Job inputs, without exposing credentials or endpoints, accepting Job-time resource overrides, rereading mutable owner state after publication, searching, ranking, probing, warming, choosing, or falling back.
-    relations:
-      - type: supersedes
-        target: definition.nimi.sdks.feature-clients.route-plane
   - id: definition.nimi.sdks.feature-clients.delegation-plane
     kind: definition
     title: SDK delegated capability boundary
@@ -75,7 +62,7 @@ units:
     kind: rule
     title: Adapters never own routing decisions
     modality: must
-    statement: AI adapters bind to an explicit NimiClient and canonical App AIConfig owner, or to the shared LocalAgent AIConfig through the protected Runtime surface; the AIConfig owner alone commits Local or Cloud route intent, Select Loadout alone sets or explicitly clears the machine relation, and Runtime alone atomically persists complete Job effective inputs including Local ResolvedAssembly before publication. Adapters and callers never default, select, search, rank, probe, reconstruct from current owner state, or fall back among routes, ModelAssets, Loadouts, implementations, providers, grants, or selections and never replicate Runtime request validation.
+    statement: AI adapters bind to an explicit NimiClient and canonical App AIConfig owner, or to the shared LocalAgent AIConfig through the protected Runtime surface; the AIConfig owner alone commits Local or Cloud route intent, explicit selection or deselection uses the machine owner’s Select Loadout action, and Runtime alone atomically persists complete Job effective inputs including Local ResolvedAssembly before publication. Adapters and callers never default, select, search, rank, probe, reconstruct from current owner state, or fall back among routes, ModelAssets, Loadouts, implementations, providers, grants, or selections and never replicate Runtime request validation.
     condition: Whenever an AI adapter is constructed or routes a request.
     failure: Fail closed on missing committed owner intent and reject independent routing tables, target selection, fallback, and replicated upstream validation.
     relations:
@@ -211,11 +198,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.ai-config-plane
-  - id: rule.nimi.sdks.feature-clients.r015
-    kind: rule
-    lifecycle: removed
-    title: First-run evidence refs stay opaque and verified
-    reason: Product Control no longer exchanges or persists first-run evidence refs; built-in scope configuration uses ordinary typed profile application and current Runtime binding resolution.
   - id: rule.nimi.sdks.feature-clients.r016
     kind: rule
     title: Profile intent preview is typed and non-committing
@@ -332,11 +314,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane
-  - id: rule.nimi.sdks.feature-clients.r026
-    kind: rule
-    lifecycle: removed
-    title: App subscriptions carry projection events only
-    reason: Removed because no current app lifecycle subscription is admitted; ordinary lifecycle and account-inventory event projections are physically absent.
   - id: rule.nimi.sdks.feature-clients.r027
     kind: rule
     title: Catalog projection follows current lifecycle admission
@@ -403,11 +380,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane
-  - id: rule.nimi.sdks.feature-clients.r033
-    kind: rule
-    lifecycle: removed
-    title: The review-evidence accessor is read-only
-    reason: Removed because ordinary release review is deferred and no current SDK catalog row, release descriptor, review accessor, generated projection, Desktop Apps projection, or permission placement seam remains.
   - id: rule.nimi.sdks.feature-clients.r034
     kind: rule
     title: Generated-app auth composition is closed
@@ -434,16 +406,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane
-  - id: rule.nimi.sdks.feature-clients.r036
-    kind: rule
-    lifecycle: removed
-    title: Package readiness is typed unavailable in 0K
-    reason: Removed because package readiness is deferred and its accessor, request, response, decoder, placeholder, and bridge projection are physically absent.
-  - id: rule.nimi.sdks.feature-clients.r037
-    kind: rule
-    lifecycle: removed
-    title: Account inventory truth is Runtime-resolved
-    reason: Removed because account app inventory is deferred and its accessor, request, record schema, parser, decoder, fixture, and alternate file reader are physically absent.
   - id: rule.nimi.sdks.feature-clients.r038
     kind: rule
     title: Inventory entries compose deterministically
@@ -486,67 +448,12 @@ units:
     kind: rule
     title: Desktop Open Intent is a data surface only
     modality: must
-    statement: The SDK app subpath exposes NimiDesktopOpenIntent, NimiDesktopOpenEnvelope, parser, and type guard surfaces for the Platform Desktop Open Intent protocol, the SDK is the TypeScript semantic parser owner whose behavior matches the desktop-open-intent golden vectors table, the SDK never exposes an opener or imports Kit, Electron, Tauri, browser globals, OS opener code, Desktop private bridge code, or Runtime private boundaries because apps call Desktop Open Intent through Kit standard shell hosts and not through the SDK, and SDK Desktop Open Intent data never carries auth, session, or token material, provider, model, or connector credential truth, Runtime caller identity, or executable LocalAgent truth.
+    statement: The SDK app subpath exposes NimiDesktopOpenIntent, NimiDesktopOpenEnvelope, parser, and type guard surfaces for the Platform Desktop Open Intent protocol, the SDK is the TypeScript semantic parser owner whose behavior matches the desktop-open-intent golden vectors table, the SDK never exposes an opener or imports Kit, Electron, other native shell APIs, browser globals, OS opener code, Desktop private bridge code, or Runtime private boundaries because apps call Desktop Open Intent through Kit standard shell hosts and not through the SDK, and SDK Desktop Open Intent data never carries auth, session, or token material, provider, model, or connector credential truth, Runtime caller identity, or executable LocalAgent truth.
     condition: Whenever Desktop Open Intent surfaces are exposed or parsed.
     failure: Reject opener exposure and forbidden payloads.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane
-  - id: rule.nimi.sdks.feature-clients.r042
-    kind: rule
-    lifecycle: removed
-    title: Local App voice consumption stays Runtime owned
-    reason: Removed because voice operations are not in the current central App Operation Contract and no shadow or conditional third-party App voice surface is admitted.
-  - id: rule.nimi.sdks.feature-clients.r043
-    kind: rule
-    lifecycle: removed
-    title: The permission client is the sole public path
-    reason: Removed because the product has no third-party App permission client, posture, request, subscription, or grant ledger.
-  - id: rule.nimi.sdks.feature-clients.r044
-    kind: rule
-    lifecycle: removed
-    title: The permission operation set is minimal
-    reason: Removed because permission status, request, subscribe, revoke, history, and settings operations are not product surfaces.
-  - id: rule.nimi.sdks.feature-clients.r045
-    kind: rule
-    lifecycle: removed
-    title: Request input is permission id plus reason
-    reason: Removed because App access has no permission request input or user-facing reason carrier.
-  - id: rule.nimi.sdks.feature-clients.r046
-    kind: rule
-    lifecycle: removed
-    title: The permission catalog is closed
-    reason: Removed because exact App operations are owned by the central App Operation Contract rather than a public permission catalog.
-  - id: rule.nimi.sdks.feature-clients.r047
-    kind: rule
-    lifecycle: removed
-    title: Posture is public and never grant lifecycle
-    reason: Removed because prompt, pending, granted, denied, revoked, and permission posture are not third-party App product states.
-  - id: rule.nimi.sdks.feature-clients.r048
-    kind: rule
-    lifecycle: removed
-    title: No fallback and no parallel ledger
-    reason: Removed with the permission plane; no permission or grant ledger exists, and the surviving no-fallback rule is carried by the App client and Runtime admission contract.
-  - id: rule.nimi.sdks.feature-clients.r049
-    kind: rule
-    lifecycle: removed
-    title: Public and internal enforcement stay separate
-    reason: Removed because declaration domains map directly to the central App Operation Contract and there is no public permission or item-request layer.
-  - id: rule.nimi.sdks.feature-clients.r050
-    kind: rule
-    lifecycle: removed
-    title: One-shot and cross-app rows stay reserved
-    reason: Removed because future one-shot and cross-App permission rows do not belong in the current App access contract.
-  - id: rule.nimi.sdks.feature-clients.r051
-    kind: rule
-    lifecycle: removed
-    title: App-private authority is not permission
-    reason: Removed with the permission plane; the surviving App-private storage boundary is owned by the active App client storage rule.
-  - id: rule.nimi.sdks.feature-clients.r052
-    kind: rule
-    lifecycle: removed
-    title: Deferred release review never enters permission
-    reason: Removed with the permission plane; the active App client path directly states that marketplace and review metadata never create or enlarge Runtime access.
   - id: rule.nimi.sdks.feature-clients.r053
     kind: rule
     title: Proposal intake goes through the SDK only
@@ -637,11 +544,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.connector-auth-plane
-  - id: rule.nimi.sdks.feature-clients.r062
-    kind: rule
-    lifecycle: removed
-    title: Refresh and rotation stay unadmitted
-    reason: Superseded by SIWC refresh within the sole Runtime Connector custody store; one-hour access tokens and rotating refresh tokens require a confirmed owner without a second secret store.
   - id: rule.nimi.sdks.feature-clients.siwc-refresh
     kind: rule
     title: SDK and Desktop do not own SIWC rotating secrets
@@ -652,8 +554,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.connector-auth-plane
-      - type: supersedes
-        target: rule.nimi.sdks.feature-clients.r062
   - id: rule.nimi.sdks.feature-clients.r063
     kind: rule
     title: Local environment projection mirrors Runtime
@@ -844,11 +744,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.package-plane
-  - id: rule.nimi.sdks.feature-clients.r100
-    kind: rule
-    lifecycle: removed
-    title: Local App conversation attachments stay bounded
-    reason: Removed because attachment upload, readback, and artifact-reference operations are absent from the current central App Operation Contract.
   - id: rule.nimi.sdks.feature-clients.r101
     kind: rule
     title: Local App text candidate generation is one bounded typed operation
@@ -929,8 +824,6 @@ units:
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane
-      - type: supersedes
-        target: rule.nimi.sdks.feature-clients.r100
   - id: rule.nimi.sdks.feature-clients.r106
     kind: rule
     title: Shared LocalAgent manager carries one participation projection

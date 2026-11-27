@@ -10,20 +10,10 @@ units:
     kind: definition
     title: Cognition overlap boundary
     meaning: Future overlapping standalone Cognition capabilities may be used only when they preserve or strengthen the Cognition Memory owner, Runtime retained responsibilities, typed failure, Agent isolation, privacy, lifecycle, and Bridge opacity without creating a second canonical owner or compatibility path.
-  - id: definition.nimi.cognition.runtime-bridge.knowledge-scope-registry
-    kind: definition
-    lifecycle: removed
-    title: Retired Cognition Knowledge adapter scope
-    reason: Removed because generic Knowledge bank listing and owner selectors are absent from Cognition Memory V1 and Runtime authorization now enters through one opaque Bridge boundary.
   - id: definition.nimi.cognition.runtime-bridge.local-agent-source-scope
     kind: definition
     title: Cognition opaque per-Agent source scope
     meaning: Cognition LocalAgent source scope is an opaque per-Agent identity supplied under Runtime authorization and combined with one immutable materialization snapshot identity for source corpus, generation, query, hit, rebuild, and deletion isolation; it is not a Knowledge bank owner selector, product registry, authorization source, raw LocalAgentRef, or reusable bearer.
-  - id: definition.nimi.cognition.runtime-bridge.knowledge-authorizer
-    kind: definition
-    lifecycle: removed
-    title: Retired Cognition Knowledge authorization adapter
-    reason: Removed because the generic Knowledge surface is hard cut and the Bridge now uses one Runtime authorization boundary for admitted Memory and source operations.
   - id: definition.nimi.cognition.runtime-bridge.embedding-resolution
     kind: definition
     title: Cognition execution adapter
@@ -51,7 +41,7 @@ units:
   - id: definition.nimi.cognition.runtime-bridge.memory-ai-port-plane
     kind: definition
     title: Cognition Memory Runtime AI port plane
-    meaning: The Bridge allows a persisted Cognition Memory operation to request an abstract admitted AI capability from Runtime and receive the bounded typed result for its exact operation binding while Runtime alone resolves and captures the exact Local or Cloud execution target, credential, policy, Quota, Budget, and usage.
+    meaning: The Bridge allows a persisted Cognition Memory operation to request an abstract admitted AI capability from Runtime and receive the bounded typed result for its exact operation binding while Runtime alone resolves and captures the exact Local or Cloud execution target, credential, policy, Quota, Budget, and usage. A separately admitted cloud semantic extraction must identify the personal content that may leave the device, the authorized destination, possible charges and the offline outcome. Without applicable user authorization or available transport, preserve the typed unavailability and the original operation binding.
   - id: definition.nimi.cognition.runtime-bridge.memory-adapter-outcome
     kind: definition
     title: Cognition Memory adapter outcome
@@ -164,11 +154,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.cognition.runtime-bridge.domain
-  - id: rule.nimi.cognition.runtime-bridge.r011
-    kind: rule
-    lifecycle: removed
-    title: Retired generic Knowledge bank listing
-    reason: Removed because generic App-private and workspace Knowledge bank listing is absent from Cognition Memory V1 and has no compatibility or placeholder route.
   - id: rule.nimi.cognition.runtime-bridge.r012
     kind: rule
     title: Source ingestion accepts only the Runtime partition envelope
@@ -399,9 +384,9 @@ units:
     kind: rule
     title: Session pointer handoff and DeleteSession outbox neutralization
     modality: must
-    statement: Runtime proposes session_pointer_committed events only at bounded session milestones using slot_key session_ref:<work_session_ref> so Cognition supersedes prior slots in place; on chat recall of session_ref pointers, Runtime authorizes the current reader and fetches at most Top-2 non-deleted session receipts from sessions.db within a 1.5 KiB non-instruction frame without requiring Harness to be open. On explicit DeleteSession, Runtime first writes an irreversible deleted_at tombstone and PURGE_SESSION outbox entry in sessions.db, neutralizes all pending runtime_cognition_memory_outbox rows linked to that work_session_ref to cutoff_non_effecting with cleared payload in memory.db, and then forgets committed memories matched by memory_lineage (ref_type=source, ref_kind=session, ref_value=work_session_ref) through Facade.Forget so replay cannot resurrect deleted session pointers.
-    condition: Whenever Runtime commits session pointers, performs offline two-stage recall, or executes DeleteSession.
-    failure: Reject unauthorized receipt disclosure, unneutralized outbox replay resurrecting deleted session memories, or recall frames exceeding the Top-2 and 1.5 KiB non-instruction data budget.
+    statement: Runtime proposes session_pointer_committed events only at bounded session milestones using slot_key session_ref:<work_session_ref> so Cognition supersedes prior slots in place. A named Harness handoff permits at most an opaque session reference and content-free metadata in general Memory. Runtime excludes the brief and its content-bearing derivatives from general Memory events, their outbox payloads, topic_summary and indexing inputs, including on replay. On chat recall Runtime authorizes the current reader. Before Cognition matches or ranks candidates, Runtime limits eligible fields from named handoffs to those authorized for this reader and task. Hidden content in existing pointers must not influence hits, their order or which sessions occupy the result limit. When resolving a pointer and assembling model input, Runtime applies the same subject and purpose limits to titles, summaries and receipts. Cloud use also requires authorization for the destination. Chat recall fetches at most Top-2 authorized, non-deleted session receipts from sessions.db within a 1.5 KiB non-instruction frame without requiring Harness to be open. On explicit DeleteSession, Runtime first writes an irreversible deleted_at tombstone and PURGE_SESSION outbox entry in sessions.db, neutralizes all pending runtime_cognition_memory_outbox rows linked to that work_session_ref to cutoff_non_effecting with cleared payload in memory.db, and then forgets committed memories matched by memory_lineage (ref_type=source, ref_kind=session, ref_value=work_session_ref) through Facade.Forget so replay cannot resurrect deleted session pointers.
+    condition: Whenever Runtime publishes or replays a session pointer, performs two-stage recall, assembles model input from a recalled session, or executes DeleteSession.
+    failure: Omit pointers whose eligible fields cannot be isolated before matching. Withhold unauthorized content from the recall frame and model input. Reject receipt disclosure outside the authorized scope, unneutralized outbox replay resurrecting deleted session memories, or recall frames exceeding the Top-2 and 1.5 KiB non-instruction data budget.
     relations:
       - type: applies_to
         target: definition.nimi.cognition.memory.lifecycle-plane

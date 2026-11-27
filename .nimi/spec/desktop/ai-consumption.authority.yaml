@@ -16,18 +16,10 @@ units:
     kind: definition
     title: Desktop AI profile configuration consumption surface
     meaning: The Desktop AI profile and configuration consumption surface is the typed SDK and host projection for portable AIProfile, canonical App or shared LocalAgent AIConfig, the separately machine-owned Machine Loadout store and Loadouts, the seven closed product actions, the user-initiated setup task that sequences those existing owner actions and separately owned acquisition and environment actions under one explicit bounded authorization, derived admission, and immutable Job inputs including a Local Job's complete ResolvedAssembly; Desktop owns placement and interaction for its authorized owner context but no per-Agent or feature configuration, execution binding, credential, machine selection, Runtime process, or Job truth.
-  - id: definition.nimi.desktop.ai-consumption.llm-adapter
-    kind: definition
-    lifecycle: removed
-    title: Retired Desktop LLM adaptation consumption surface
-    reason: Removed because adapter, connector, route resolver, local health, and public readiness projections do not own capability execution.
   - id: definition.nimi.desktop.ai-consumption.capability-execution-projection
     kind: definition
     title: Desktop capability execution projection
     meaning: The Desktop capability execution projection submits CapabilityContract requests under a canonical AIConfig owner and consumes Runtime's deterministic Local or Cloud composition, typed derived admission, immutable Job events, artifacts, and failures without selecting a target, acting as a CapabilityImplementationDriver or ExecutionHost, holding secrets, probing readiness, or falling back.
-    relations:
-      - type: supersedes
-        target: definition.nimi.desktop.ai-consumption.llm-adapter
   - id: definition.nimi.desktop.ai-consumption.streaming
     kind: definition
     title: Desktop streaming consumption surface
@@ -46,7 +38,7 @@ units:
     kind: rule
     title: Profile, configuration, selection, and Job facts are orthogonal
     modality: must
-    statement: AIProfile remains a portable template, AIConfig remains current route and feature intent for one canonical App or shared LocalAgent owner, the Machine Loadout store remains the one machine aggregate with saved Loadouts and a set-or-empty selected relation, and each Local Job owns a complete immutable ResolvedAssembly atomically persisted at submission; none is a fallback for, shadow of, or write-back source for another.
+    statement: Desktop presents AIProfile as a portable template, AIConfig as the canonical App or shared LocalAgent owner’s route and feature intent, and machine selection as a saved Loadout or an explicitly empty selection. A Local Job uses its own immutable ResolvedAssembly captured at submission. None of these records supplies a fallback or writes back into another owner.
     condition: Whenever Desktop consumes AI configuration, selection, or execution evidence.
     failure: Reject Profile-as-live-config, AIConfig-owned local bindings, selection-as-readiness, deletion required for explicit selection clearing, live rereads in place of Job inputs, and cross-owner write-back.
     relations:
@@ -292,21 +284,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
-  - id: rule.nimi.desktop.ai-consumption.r027
-    kind: rule
-    lifecycle: removed
-    title: Retired AI configuration probe classes
-    reason: Removed because static validation, availability probes, engine health, and feasibility do not form a product readiness surface or configuration authority.
-  - id: rule.nimi.desktop.ai-consumption.r028
-    kind: rule
-    lifecycle: removed
-    title: Retired aggregate capability feasibility probe
-    reason: Removed because only exact Job submission derives admission from committed inputs and no scope aggregate, scheduler Peek, or probe result is execution authority.
-  - id: rule.nimi.desktop.ai-consumption.r029
-    kind: rule
-    lifecycle: removed
-    title: Retired capability probe presentation
-    reason: Removed with the public probe lifecycle; Desktop presents typed request admission and Job failure reasons instead.
   - id: rule.nimi.desktop.ai-consumption.r030
     kind: rule
     title: Home App and LocalAgent AIConfig owners remain distinct
@@ -317,11 +294,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
-  - id: rule.nimi.desktop.ai-consumption.r031
-    kind: rule
-    lifecycle: removed
-    title: Built-in config evidence is backend-verifiable
-    reason: Built-in AIConfig is ordinary scope configuration and no longer produces a second proof record for Product Control admission.
   - id: rule.nimi.desktop.ai-consumption.r032
     kind: rule
     title: Built-in config has no inferred success or fallback owner
@@ -432,16 +404,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.capability-execution-projection
-  - id: rule.nimi.desktop.ai-consumption.r043
-    kind: rule
-    lifecycle: removed
-    title: Retired public local text health projection
-    reason: Removed because inventory, installed state, process health, residency, and warm state do not establish capability routing or product readiness.
-  - id: rule.nimi.desktop.ai-consumption.r044
-    kind: rule
-    lifecycle: removed
-    title: Retired local capability health inference
-    reason: Removed because Desktop has no public local capability probe, health, readiness, or endpoint-derived sendability surface.
   - id: rule.nimi.desktop.ai-consumption.r045
     kind: rule
     title: Speech uses the typed Runtime media surface

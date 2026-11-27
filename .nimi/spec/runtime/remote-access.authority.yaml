@@ -74,7 +74,7 @@ units:
     kind: rule
     title: Remote connection loss ends live calls without replay
     modality: must
-    statement: A disconnected stream ends and a lost response never causes automatic business resubmission. Local source pause, user-context loss, expired authorization or host shutdown closes the peer and its live calls; closing a remote client never stops the host.
+    statement: A source pause, loss of current user context, expired authorization or host shutdown closes the affected peer and live calls. A disconnected stream ends. A lost response is not automatically resubmitted. Already accepted durable work follows the Job owner’s execution and observation rules. Closing a remote client leaves the host running.
     condition: When an established remote connection or its authorization ends.
     failure: Close affected live calls and preserve the existing durable Job rules without replay, transparent stream continuation or stopping the host from a client disconnect.
     relations:

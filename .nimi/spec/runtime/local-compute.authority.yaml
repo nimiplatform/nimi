@@ -196,11 +196,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.category-capability-plane
-  - id: rule.nimi.runtime.local-compute.r017
-    kind: rule
-    lifecycle: removed
-    title: Retired custom invoke-profile requirement
-    reason: Removed because custom ModelAssets are unclassified content and become executable only through an explicit Loadout whose exact versioned Driver dialect, recipeId, Model Contract, options, and bindings validate them; no custom invoke-profile mechanism remains.
   - id: rule.nimi.runtime.local-compute.r018
     kind: rule
     title: Local unavailability mapping is exact
@@ -507,18 +502,10 @@ units:
     kind: definition
     title: Runtime local environment materializer plane
     meaning: The Runtime local environment materializer plane owns the admitted materializer families, materializer job execution and verification, the materializer projection and command surface, download progress projection, and install-level plan resolution for local environment dependencies.
-  - id: definition.nimi.runtime.local-compute.profile-application-plane
-    kind: definition
-    lifecycle: removed
-    title: Retired Runtime local Profile application plane
-    reason: Removed because Profile Apply no longer resolves, installs, binds, selects, probes, warms, bootstraps, or rolls back local execution state.
   - id: definition.nimi.runtime.local-compute.machine-local-configuration-plane
     kind: definition
     title: Runtime Loadout plane
     meaning: The Runtime Loadout plane persists the unique machine Loadout store and stable Loadout resources containing exact recipeId and Driver dialect, typed options, independently projected model slots with exact ModelAsset and expected content identities or unresolved state, RecipeCustody references, validation facts, and at most one current selected Loadout per CapabilityContract; App and shared LocalAgent AIConfig Local branches remain route-only, Runtime reads the current matching selection only for effective projection and new Job admission, and ModelAsset inventory, catalog recipes, dependency activation, process supervision, ResolvedAssembly, and Jobs remain separate owners.
-    relations:
-      - type: supersedes
-        target: definition.nimi.runtime.local-compute.profile-application-plane
   - id: rule.nimi.runtime.local-compute.r046
     kind: rule
     title: Accelerator dependency readiness is Runtime owned
@@ -649,16 +636,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.topology-resolver-plane
-  - id: rule.nimi.runtime.local-compute.r059
-    kind: rule
-    lifecycle: removed
-    title: Retired media supervised automatic selection
-    reason: Removed because media uses the explicit Machine Local AI Configuration selection relation and never re-arbitrates after removal, health change, repair, or import.
-  - id: rule.nimi.runtime.local-compute.r060
-    kind: rule
-    lifecycle: removed
-    title: Retired media supervised Host modes
-    reason: Removed because the Python media server Host and its native-proxy and Python-pipeline supervised modes were retired without a consumer; media Jobs execute only through the exact Driver's Runtime-private image, video, or face-replacement ExecutionHost.
   - id: rule.nimi.runtime.local-compute.r061
     kind: rule
     title: Internal media lifecycle is a closed ladder
@@ -699,11 +676,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.runtime-environment-plane
-  - id: rule.nimi.runtime.local-compute.r065
-    kind: rule
-    lifecycle: removed
-    title: Retired public supervised llama residency state
-    reason: Removed because residency, loading, switching, and warm failure are Runtime-private ExecutionHost facts and no longer project product readiness or routability.
   - id: rule.nimi.runtime.local-compute.r066
     kind: rule
     title: Local selection and Job preparation are distinct
@@ -884,11 +856,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.consumer-activation-plane
-  - id: rule.nimi.runtime.local-compute.r084
-    kind: rule
-    lifecycle: removed
-    title: Retired first-run Local AI baseline evidence
-    reason: Removed because Local dependency activation and selected-source evidence no longer participate in Product Control ready_for_use.
   - id: rule.nimi.runtime.local-compute.r085
     kind: rule
     title: Materializers are the only dependency and custody materialization path
@@ -943,7 +910,7 @@ units:
     kind: rule
     title: Download progress projection is bounded and honest
     modality: must
-    statement: The dependency job projection carries bytes received as fetched on-disk bytes including any resumed prefix, bytes total as the known final size or zero when unknown, percent as an integer zero through one hundred projected only when the total is known with unknown totals rendering an indeterminate affordance rather than a fabricated percentage, speed in bytes per second computed only from positive observed bytes over positive elapsed time and otherwise absent, and ETA seconds projected only when total, speed, and remaining bytes are all positive and otherwise absent, the fields are meaningful only while a job actively transfers in downloading or verifying and project zero or absent for every other state without back-filling, carry-over, or fabrication, consumers gate percentage, rate, and ETA display on the transferring states and treat zero rate or ETA as not yet known rather than stalled, and the progress projection is an additive non-breaking detail that never changes job lifecycle, selected-source promotion, activation, or readiness semantics with bytes never promoting, selecting, or substituting for verification evidence.
+    statement: While a dependency job downloads or verifies an active transfer, report fetched on-disk bytes including any resumed prefix. A zero total means unknown and displays indeterminate progress. With a known total, report an integer percent from zero to 100. Report bytes per second only from positive observed bytes and elapsed time, and ETA only from a positive total, rate and remaining bytes. Consumers display percent, transfer rate and ETA only while an actual transfer is in the downloading or verifying state. In all other states report zero or absent fields, suppress those three indicators and do not carry earlier observations forward. Consumers treat zero rate or ETA as unknown. Transfer bytes establish neither verification nor lifecycle, source selection, activation or readiness.
     condition: Whenever dependency job download progress is projected or rendered.
     failure: Reject fabricated progress values and progress-derived readiness or selection.
     relations:
@@ -959,26 +926,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.environment-materializer-plane
-  - id: rule.nimi.runtime.local-compute.r092
-    kind: rule
-    lifecycle: removed
-    title: Retired Profile execution declaration resolver
-    reason: Removed because Profile Apply never resolves required, optional, alternative, preferred, or fallback local execution entries.
-  - id: rule.nimi.runtime.local-compute.r093
-    kind: rule
-    lifecycle: removed
-    title: Retired Profile-driven local asset installation
-    reason: Removed because Profile Apply never installs assets or produces Service, Node, binding, or local execution-plan truth.
-  - id: rule.nimi.runtime.local-compute.r094
-    kind: rule
-    lifecycle: removed
-    title: Retired four-stage Profile Apply pipeline
-    reason: Removed because preflight, installation, bootstrap, health, and readiness are not part of Apply Profile to AIConfig.
-  - id: rule.nimi.runtime.local-compute.r095
-    kind: rule
-    lifecycle: removed
-    title: Retired Profile Apply rollback pipeline
-    reason: Removed because Apply Profile to AIConfig has no installation or process side effects requiring a product rollback lifecycle.
   - id: rule.nimi.runtime.local-compute.r096
     kind: rule
     title: Loadout state persists atomically with a private CAS token
@@ -999,8 +946,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
-      - type: supersedes
-        target: rule.nimi.runtime.local-compute.r099
   - id: rule.nimi.runtime.local-compute.r098
     kind: rule
     title: Policy gates are explicit and typed
@@ -1011,11 +956,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
-  - id: rule.nimi.runtime.local-compute.r099
-    kind: rule
-    lifecycle: removed
-    title: Retired active-service Node routing catalog
-    reason: Removed because process health, live Node catalogs, provider hints, probes, and rank ordering no longer select local execution or establish capability availability.
   - id: rule.nimi.runtime.local-compute.r100
     kind: rule
     title: Local Job submission captures one complete ResolvedAssembly
@@ -1026,11 +966,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
-  - id: rule.nimi.runtime.local-compute.r101
-    kind: rule
-    lifecycle: removed
-    title: Retired occurrence rule that deferred ordering and bundle authority
-    reason: Replaced by the media vertical slice occurrence rule that admits ordered occurrences and sharded-bundle identity.
   - id: rule.nimi.runtime.local-compute.r102
     kind: rule
     title: Driver-owned portable configuration excludes bindings and paths
@@ -1063,16 +998,14 @@ units:
         target: definition.nimi.runtime.local-compute.category-capability-plane
   - id: rule.nimi.runtime.local-compute.r105
     kind: rule
-    title: Explicit Loadout selection supersedes media arbitration
+    title: Explicit machine selection and deletion of the selected Loadout
     modality: must
-    statement: The current machine-selected Loadout is changed only through Select Loadout and remains the unique Local resource selection for every future Job whose canonical App or shared LocalAgent AIConfig commits Local for the same CapabilityContract; Select preserves every Loadout, ModelAsset, AIConfig, revision, and captured Job and chooses no replacement. A missing, removed, changed, or damaged bound ModelAsset, unavailable Driver, Model Contract failure, dependency failure, process restart, or Job failure preserves the Loadout, model axes, and every route-only Local intent while effective projection and execution fail typed without fallback.
-    condition: Whenever the current machine selection is set, explicitly cleared, or reevaluated after its target becomes blocked, or whenever a selected Loadout changes effective state.
-    failure: Reject per-owner Local pinning, copying selection into AIConfig, automatic takeover, ranking, replacement, AIConfig clearing, ambient repair, or fallback and preserve each canonical owner record unless that owner explicitly overwrites its route intent.
+    statement: Each CapabilityContract has at most one current machine Loadout. At new Job admission the committed Local route of a canonical App or shared LocalAgent AIConfig uses only that contract’s current machine selection. Select Loadout explicitly sets an eligible target or clears the selection. Select preserves Loadouts, ModelAssets, AIConfig, their content revisions and captured Jobs. Explicit clearing chooses no replacement. After confirmation of machine-wide impact, Delete Loadout removes the selected target, clears its selection and advances the affected selection revision in one atomic commit. No preceding Select or separate deselection is required. Deleting an unselected Loadout leaves the current selection unchanged. Deletion chooses no replacement, removes no shared ModelAsset and rewrites neither AIConfig nor a captured Job. A missing, removed, changed, or damaged bound ModelAsset, unavailable Driver, Model Contract failure, dependency failure, process restart, or Job failure preserves the Loadout, model axes, and every route-only Local intent while effective projection and execution fail typed without fallback.
+    condition: Whenever a machine selection is explicitly set or cleared, a Loadout is deleted, or the effective state of a selected Loadout is reevaluated.
+    failure: Reject a selected-target deletion that could leave a dangling selection or publish only part of the deletion and cleanup. Reject per-owner Local pinning, copying selection into AIConfig, automatic takeover, ranking, replacement, AIConfig clearing, ambient repair, or fallback and preserve each canonical owner record unless that owner explicitly overwrites its route intent.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
-      - type: supersedes
-        target: rule.nimi.runtime.local-compute.r059
   - id: rule.nimi.runtime.local-compute.r106
     kind: rule
     title: Residency is private ExecutionHost state
@@ -1083,8 +1016,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.local-engine-plane
-      - type: supersedes
-        target: rule.nimi.runtime.local-compute.r065
   - id: rule.nimi.runtime.local-compute.r107
     kind: rule
     title: Loadout mutation uses one Prepare and Commit channel
@@ -1095,8 +1026,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
-      - type: supersedes
-        target: rule.nimi.runtime.local-compute.r094
   - id: rule.nimi.runtime.local-compute.r108
     kind: rule
     title: Ordered model occurrences and sharded ModelAssets are exact Driver truth
@@ -1107,8 +1036,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
-      - type: supersedes
-        target: rule.nimi.runtime.local-compute.r101
   - id: rule.nimi.runtime.local-compute.r109
     kind: rule
     title: Heavy media jobs hold one serial execution lease and report artifacts exactly

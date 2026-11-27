@@ -24,18 +24,10 @@ units:
     kind: definition
     title: Runtime pagination plane
     meaning: The Runtime pagination plane provides bounded deterministic listing with opaque owner-issued continuation state and typed validation.
-  - id: definition.nimi.runtime.rpc-foundations.route-description-plane
-    kind: definition
-    lifecycle: removed
-    title: Retired Runtime route description plane
-    reason: Removed because public model, readiness, health, probe, and fallback route descriptions are not capability execution authority.
   - id: definition.nimi.runtime.rpc-foundations.capability-composition-plane
     kind: definition
     title: Runtime capability composition plane
     meaning: The Runtime capability composition plane checks the committed AIConfig route and standardized features together with the current machine-selected Loadout for Local or the exact committed Connector reference plus Cloud CapabilityImplementation target for Cloud, ownership, credentials, App Capability access, policy, and derived admission, then either at Job submission atomically dereferences and captures the selected Local Loadout identity into a complete persisted ResolvedAssembly or captures the committed Cloud references, or before successful realtime.interact Open atomically captures the same exact Local or Cloud execution inputs into bounded session-generation-scoped ephemeral state; queued, running, and resumed Jobs and active Realtime sessions use only their respective captured effective inputs without request-time overrides, machine-selection or current-owner rereads, searching, ranking, probing, warming, re-selection, or substitution.
-    relations:
-      - type: supersedes
-        target: definition.nimi.runtime.rpc-foundations.route-description-plane
   - id: definition.nimi.runtime.rpc-foundations.streaming-plane
     kind: definition
     title: Runtime streaming plane
@@ -138,7 +130,7 @@ units:
     kind: rule
     title: Consumers respect AIConfig route and resource owners
     modality: must_not
-    statement: SDK, Kit, Desktop, Avatar, or an App guesses a provider, model, Local or Cloud route, Loadout or Connector reference, fallback, CapabilityContract, standardized feature, Quota, Budget, Rate Limit, or admission from names, cached state, unselected inventory, health, or partial metadata; an authorized AIConfig owner may instead commit an explicit route and exact Cloud resource references, while Select Loadout alone sets or clears the current machine selection without a seventh Clear action, copying it into AIConfig, or rewriting captured Job or Realtime-session truth.
+    statement: SDK, Kit, Desktop, Avatar, or an App guesses a provider, model, Local or Cloud route, Loadout or Connector reference, fallback, CapabilityContract, standardized feature, Quota, Budget, Rate Limit, or admission from names, cached state, unselected inventory, health, or partial metadata. A consumer bypasses the authorized AIConfig owner for explicit route intent or exact Cloud references, changes the machine selection outside an explicit Select Loadout action or the atomic cleanup of a selection pointing to the Loadout being deleted, introduces a standalone Clear action, copies machine selection into AIConfig, or rewrites captured Job or Realtime-session truth because a selection changed.
     condition: Whenever a consumer presents, changes, or executes AI intent.
     failure: Use the canonical owner action or captured composition and report the typed failure without inference, deletion-required deselection, or current-state reconstruction.
     relations:

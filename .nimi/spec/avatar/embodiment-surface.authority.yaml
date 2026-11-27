@@ -18,16 +18,6 @@ units:
     kind: definition
     title: Avatar event wire family
     meaning: The Avatar event wire family is the typed avatar namespace for local user interaction, rendering, application lifecycle, shell intent, composition, audio playback, lipsync phase, generated motion, hit-region, carrier lifecycle, debug evaluation, and cancellable before-event observations without becoming Runtime semantic truth.
-  - id: definition.nimi.avatar.embodiment.nas-projection-api
-    kind: definition
-    lifecycle: removed
-    title: NAS EmbodimentProjectionApi
-    reason: Removed because current Avatar admits only its built-in backend-neutral semantic projection and no creator handler loader, sandbox, capability surface, or NAS fallback product contract.
-  - id: definition.nimi.avatar.embodiment.shell-lifecycle
-    kind: definition
-    lifecycle: removed
-    title: Avatar shell lifecycle protocol
-    reason: Removed because Avatar presentation has no public renderer or shell lifecycle state machine; shell prerequisite composition remains an implementation detail and terminal presentation failure is handled locally in the Avatar window.
   - id: definition.nimi.avatar.embodiment.generated-motion-provider
     kind: definition
     title: Generated-motion provider
@@ -106,11 +96,6 @@ units:
         target: definition.nimi.avatar.embodiment.backend-branch
       - type: applies_to
         target: definition.nimi.avatar.embodiment.projection-output
-  - id: rule.nimi.avatar.embodiment.r007
-    kind: rule
-    lifecycle: removed
-    title: Backend Branch Contract 2.7 through 2.9 branch shape
-    reason: Removed because the exact aggregate TypeScript-like surface shape and typed lifecycle reporting had no product consumer; active resource, projection, interaction, and shutdown rules own the surviving semantics.
   - id: rule.nimi.avatar.embodiment.r008
     kind: rule
     title: Backend Branch Contract 2.6 branch-local extension
@@ -227,16 +212,6 @@ units:
         target: definition.nimi.avatar.embodiment.event-family
       - type: applies_to
         target: definition.nimi.avatar.embodiment.product-boundary
-  - id: rule.nimi.avatar.embodiment.r021
-    kind: rule
-    lifecycle: removed
-    title: K-NAV-SHELL-COMPOSITION-001 closed shell lifecycle
-    reason: Removed because loading, ready, degraded, fatal, and relaunch are not a canonical Avatar presentation state machine; bootstrap and host prerequisite composition remains App-local implementation.
-  - id: rule.nimi.avatar.embodiment.r022
-    kind: rule
-    lifecycle: removed
-    title: K-NAV-SHELL-COMPOSITION-002 ready and degraded exclusion
-    reason: Removed with the shell lifecycle state machine; Avatar presentation inability is governed directly by the local failure rule rather than ready and degraded phase exclusion.
   - id: rule.nimi.avatar.embodiment.r023
     kind: rule
     title: Avatar caller-scoped targeted launch intent
@@ -523,11 +498,6 @@ units:
         target: definition.nimi.avatar.embodiment.live2d-compatibility-tier
       - type: applies_to
         target: definition.nimi.avatar.embodiment.live2d-diagnostic-namespace
-  - id: rule.nimi.avatar.embodiment.r047
-    kind: rule
-    lifecycle: removed
-    title: Live2D Asset Compatibility Contract 5 NAS fallback binding
-    reason: Removed with the creator NAS handler and fallback product contract; current typed activity resolves only through validated built-in Avatar adapter mappings and otherwise returns unsupported semantic without successful playback.
   - id: rule.nimi.avatar.embodiment.r048
     kind: rule
     title: Live2D Compatibility Tiers validator-owned claim
@@ -588,11 +558,6 @@ units:
         target: definition.nimi.avatar.embodiment.live2d-adapter-manifest
       - type: applies_to
         target: definition.nimi.avatar.embodiment.live2d-compatibility-tier
-  - id: rule.nimi.avatar.embodiment.r053
-    kind: rule
-    lifecycle: removed
-    title: Live2D Asset Compatibility Contract 7 product-observable validation
-    reason: Removed because canonical authority does not define first-frame, pixel, timing, quality, or backend-specific visual acceptance criteria; actual visible presentation remains a real product acceptance target.
   - id: rule.nimi.avatar.embodiment.r054
     kind: rule
     title: Live2D Adapter Diagnostics v1 closed code meanings
@@ -693,31 +658,6 @@ units:
         target: definition.nimi.avatar.embodiment.backend-branch
       - type: applies_to
         target: definition.nimi.avatar.embodiment.projection-output
-  - id: rule.nimi.avatar.embodiment.r063
-    kind: rule
-    lifecycle: removed
-    title: Nimi2D Backend Contract 2 and 3 Avatar adapter intake
-    reason: Removed because Nimi2D is blocked and is not an admitted current Avatar backend; no current carrier or reporting contract is reserved for it.
-  - id: rule.nimi.avatar.embodiment.r064
-    kind: rule
-    lifecycle: removed
-    title: Nimi2D Backend Contract 2 render-plan consumption
-    reason: Removed because Nimi2D is blocked and no current Avatar render-plan consumer is admitted.
-  - id: rule.nimi.avatar.embodiment.r065
-    kind: rule
-    lifecycle: removed
-    title: Nimi2D Backend Contract 4 through 6 projection lanes and scheduler
-    reason: Removed because Nimi2D is blocked and no current Avatar live-action lane or scheduler contract is admitted.
-  - id: rule.nimi.avatar.embodiment.r066
-    kind: rule
-    lifecycle: removed
-    title: Nimi2D Backend Contract 7 outfit-visible bounds and hit region
-    reason: Removed because Nimi2D is blocked and no current Nimi2D interaction or bounds contract is admitted.
-  - id: rule.nimi.avatar.embodiment.r067
-    kind: rule
-    lifecycle: removed
-    title: Nimi2D Backend Contract 8 mounted visual truth
-    reason: Removed because Nimi2D is blocked and canonical authority does not define Nimi2D renderer readiness or visual thresholds.
   - id: rule.nimi.avatar.embodiment.r068
     kind: rule
     title: Backend Capability Profile Schema v1 closure
@@ -730,16 +670,6 @@ units:
         target: definition.nimi.avatar.embodiment.generated-motion-provider
       - type: applies_to
         target: definition.nimi.avatar.embodiment.product-boundary
-  - id: rule.nimi.avatar.embodiment.r069
-    kind: rule
-    lifecycle: removed
-    title: Nimi2D Backend Capability Profile Schema v1 carrier closure
-    reason: Removed because Nimi2D is blocked and its capability profile is not part of the current Avatar schema.
-  - id: rule.nimi.avatar.embodiment.r070
-    kind: rule
-    lifecycle: removed
-    title: Nimi2D Live Action Routes v1 mapping invariants
-    reason: Removed because Nimi2D is blocked and no current Avatar Nimi2D route mapping is admitted.
   - id: rule.nimi.avatar.embodiment.r071
     kind: rule
     title: Generated Motion Routes v1 and Activity Mapping v2 invariants

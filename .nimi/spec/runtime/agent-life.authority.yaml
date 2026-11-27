@@ -22,11 +22,6 @@ units:
     kind: definition
     title: Shared life arrangement and established facts
     meaning: One Runtime-owned record connects two eligible LocalAgents to a supported shared_invite habitat activity, its open public place, activation identity, frozen creation-time habitat, place and activity display labels, offered time window within the activity's configured duration bounds, response deadline, accepted agreement and any actual simulated participation. Individual timelines may refer to the shared record and resolve its frozen display labels. Invitation, independent response, established participation, same-habitat invalidation or interruption, and cross-habitat relocation outcomes (relocated before start and relocated_partial after settling established overlap) are distinct facts; none establishes an external meeting, delivery or Conversation.
-  - id: definition.nimi.runtime.agent-life.user-commitment
-    kind: definition
-    lifecycle: removed
-    title: Persistent explicit user commitment
-    reason: User task understanding, agreements and deterministic fulfillment belong to Personal Agent enhancement products, not Runtime LocalAgent life.
   - id: definition.nimi.runtime.agent-life.proactive-intent
     kind: definition
     title: Source-qualified proactive expression
@@ -109,11 +104,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-life.frame-timeline
-  - id: rule.nimi.runtime.agent-life.control-intent
-    kind: rule
-    lifecycle: removed
-    title: Current user intent is interpreted separately from dialogue
-    reason: General natural-language task interpretation, clarification and control batches are outside Runtime LocalAgent ownership.
   - id: rule.nimi.runtime.agent-life.context
     kind: rule
     title: Context selection does not revoke accepted life and isolates habitat prose
@@ -124,11 +114,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-life.life-context
-  - id: rule.nimi.runtime.agent-life.commitments
-    kind: rule
-    lifecycle: removed
-    title: User commitments retain their own lifetime
-    reason: Runtime LocalAgent no longer owns user commitments, timed occurrences or deterministic fulfillment.
   - id: rule.nimi.runtime.agent-life.proactive-execution
     kind: rule
     title: Proactive success requires a real Conversation commit

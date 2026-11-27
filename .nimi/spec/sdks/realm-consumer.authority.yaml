@@ -36,11 +36,6 @@ units:
     kind: definition
     title: SDK world facade plane
     meaning: The SDK world facade plane owns the app-facing sdk world facade boundary covering the public world-domain family boundary, the world-input projection boundary, the fixture package boundary, the renderer orchestration versus driver boundary, and the world-session composition boundary, without owning Realm canonical truth semantics, Runtime provider execution semantics, renderer-driver implementation semantics, or branch-local simulation semantics.
-  - id: definition.nimi.sdks.realm-consumer.group-participation-plane
-    kind: definition
-    lifecycle: removed
-    title: Deferred Realm group LocalAgent participation client boundary
-    reason: Removed because Realm and Nimi hard-cut group LocalAgent participation and the complete group-chat product instead of retaining a deferred client boundary.
   - id: definition.nimi.sdks.realm-consumer.character-profile-projection
     kind: definition
     title: Shared Realm character profile consumer projection
@@ -129,8 +124,8 @@ units:
     kind: rule
     title: The facade fails closed and exposes no packets
     modality: must
-    statement: A handwritten TypeScript Realm facade over generated Realm core fails closed on malformed operation boundaries, never restores global OpenAPI singleton configuration, may validate, route, retry, and correlate current small Realm reads, never exposes packet issuance, challenge, bearer, authorization selection, raw packet, proof, segment, or component bytes, or Packet v3 decoding to SDK, Kit, Desktop, or Web callers because those callers submit only CharacterSourceRefV3 and requestId through the authenticated Runtime MaterializeRealmSource facade with Runtime alone acquiring and verifying the generated Packet v3 transport, generated language manifests prove schema and operation shape convergence without proving that every language exposes or can execute every operation, Runtime-private operations are never projected as public SDK methods, and language behavior claims require an executable conformance path that returns normally or a typed error and never panics, traps, or aborts the process.
-    condition: Whenever the Realm facade or language conformance claims are evaluated.
+    statement: The TypeScript Realm facade may validate, route, retry and correlate current small Realm reads through generated Realm core. It rejects malformed operation boundaries and uses instance-local OpenAPI configuration. Callers submit only CharacterSourceRefV3 and requestId to authenticated Runtime MaterializeRealmSource. Runtime alone acquires, decodes and verifies the Packet v3 transport. Keep packet issuance, challenge, bearer, authorization selection, raw packet, proof, segment and component bytes private from SDK, Kit, Desktop and Web callers. A generated manifest establishes schema and operation shape. Public behavior requires an executable path returning a result or typed error without panic, trap or abort. Runtime-private operations stay outside the public SDK.
+    condition: Whenever the TypeScript Realm facade exposes an operation or makes a conformance claim.
     failure: Fail closed on malformed boundaries and reject packet exposure and panic paths.
     relations:
       - type: applies_to
@@ -271,11 +266,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.sdks.realm-consumer.world-facade-plane
-  - id: rule.nimi.sdks.realm-consumer.r044
-    kind: rule
-    lifecycle: removed
-    title: Realm group participation remains deferred
-    reason: Removed because Realm and Nimi hard-cut group LocalAgent participation and the complete group-chat product rather than retaining a deferred SDK surface.
   - id: rule.nimi.sdks.realm-consumer.r045
     kind: rule
     title: Character sources share one consumer profile projection

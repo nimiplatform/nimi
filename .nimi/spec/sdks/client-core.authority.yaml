@@ -37,7 +37,7 @@ units:
   - id: definition.nimi.sdks.client-core.transport-plane
     kind: definition
     title: SDK consumer access plane
-    meaning: The SDK consumer access plane separates formal protected Apps from independent Direct SDK consumers outside the protected App surface by authentication, token custody, and protected-App admission while preserving shared owner-domain operation, result, and error semantics without creating a common permission plane.
+    meaning: Formal protected Apps and independent Direct SDK consumers have distinct admission, authentication and token custody. They share owner-domain operation, result and error semantics. Electron is the maintained desktop-shell IPC transport. Direct and remote consumers retain their respective transport boundaries.
   - id: definition.nimi.sdks.client-core.error-projection-plane
     kind: definition
     title: SDK error projection plane
@@ -48,8 +48,8 @@ units:
     meaning: The SDK boundary plane owns SDK public composition and package boundaries, keeps developer ergonomics non-authoritative, and prevents SDK code from crossing Realm, Runtime, App, or host private boundaries.
   - id: definition.nimi.sdks.client-core.scope-plane
     kind: definition
-    title: SDK language and testing plane
-    meaning: TypeScript is the core SDK and reference implementation; Python, Rust, and Go are additional support, and SDK testing helpers remain deterministic consumers of public types rather than alternate transports or product authorities.
+    title: Supported SDK language and testing surface
+    meaning: Nimi maintains the TypeScript SDK and its generated client core. SDK testing helpers exercise public types deterministically and confer no transport or product authority.
   - id: rule.nimi.sdks.client-core.r001
     kind: rule
     title: SDK subpath imports stay on public export faces
@@ -112,21 +112,11 @@ units:
         target: definition.nimi.sdks.client-core.public-surface-plane
   - id: rule.nimi.sdks.client-core.r007
     kind: rule
-    title: TypeScript is the core SDK
+    title: TypeScript owns the supported SDK product path
     modality: must
-    statement: TypeScript is the core SDK, complete reference implementation, and current product-path priority.
-    condition: Whenever SDK language investment or product-path support is prioritized.
-    failure: Reject a plan that blocks the TypeScript product path on parity in another language.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.client-core.scope-plane
-  - id: rule.nimi.sdks.client-core.r008
-    kind: rule
-    title: Additional languages preserve domain semantics
-    modality: must
-    statement: Python, Rust, and Go preserve the same Realm, Runtime, Character, LocalAgent, owner-authorization, and typed-error semantics but need not provide the complete TypeScript App, Kit, UI, or host surface in the current phase.
-    condition: Whenever an additional language SDK is designed or evaluated.
-    failure: Reject domain-semantic drift while allowing explicitly incomplete support.
+    statement: TypeScript is the supported SDK language and reference implementation. Qualify releases against its public Realm, Runtime and typed-error behavior.
+    condition: Whenever Nimi qualifies a public SDK release.
+    failure: Block public SDK release qualification when its supported TypeScript Realm, Runtime or typed-error behavior is unverified or fails verification. Do not gate the TypeScript product path on parity with an unsupported language.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.client-core.scope-plane
@@ -246,9 +236,9 @@ units:
     kind: rule
     title: Owner failures remain typed
     modality: must
-    statement: SDK preserves owner-specific unavailable, unauthenticated, permission, validation, readiness, connectivity, rate-limit, cancellation, and terminal failure states without merging them into a generic success or local fallback.
+    statement: SDK preserves owner-specific unavailable, unauthenticated, permission, validation, readiness, connectivity, rate-limit, cancellation, and terminal failure states without merging them into a generic success or local fallback. For immediate synchronous calls and streams, preserve a trustworthy terminal result or the owner’s typed interruption cause and resubmission disposition when available. If a transport error, timeout, cancellation or premature stream close leaves the SDK without a trustworthy terminal result and the request may have reached a Cloud provider, project OUTCOME_UNCERTAIN alongside the observed cause. Never infer a Runtime restart or a provider acknowledgement from that observation. For every OUTCOME_UNCERTAIN disposition, tell the user the original outcome is unknown and charges may already have accrued. Suppress safe-retry indications and automatic replay. Only an explicit user action after disclosure of possible additional charges may start a separate request. An interrupted call permits a safe-resubmission indication only with CALLER_MAY_RESUBMIT backed by proof of non-dispatch or a definite stop of exclusively Local execution.
     condition: Whenever an SDK operation or stream ends.
-    failure: Return the typed failure and preserve owner attribution.
+    failure: Return the typed failure with its actual attribution. Reject a generic transport retry hint, an inferred zero charge or a fabricated terminal result for uncertain Cloud execution, including when no Runtime error detail reaches the SDK.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.client-core.error-projection-plane

@@ -298,12 +298,14 @@ units:
         target: definition.nimi.zhiyu.local-partner-surface.product-surface
   - id: rule.nimi.zhiyu.local-partner-surface.harness-brief-handoff
     kind: rule
-    title: Zhiyu hands off PC work through an explicit user-editable brief without leaking companion transcripts
+    title: Confirm Nimi Harness as the recipient of the editable brief
     modality: must
-    statement: Zhiyu preserves its pure companion boundary and canonical conversation_* storage without embedding local PC tools, and initiates PC work handoff to Nimi Harness strictly through a user-editable, bounded handoff brief submitted via Runtime AgentSessionService.RouteAndSubmitInput under agent.local without automatically forwarding private companion chat history or raw message transcripts.
-    condition: Whenever a user explicitly invokes handoff to Nimi Harness from a Zhiyu partner conversation.
-    failure: Reject unvalidated or over-budget handoff briefs, raw companion transcript leakage, unverified renderer frames, or silent mutation of companion conversation state.
+    statement: Zhiyu keeps its companion boundary and canonical conversation_* storage and embeds no local PC tools. Offer this handoff only for a current partner on a carrier with the local bridge. Identify Nimi Harness (nimi.harness) as the receiving App. Conversation points start unselected. Before submission the user can select or exclude points and edit or remove text from the final brief. Obtain the user’s explicit confirmation of that final content and its named recipient. Submit only the confirmed version of the bounded brief through Runtime AgentSessionService.RouteAndSubmitInput under agent.local. Never forward raw transcripts or automatically include private history. Runtime binds this handoff to the verified recipient before accepting it and verifies the same subject at delivery. Harness owns the work result after acceptance by that recipient.
+    condition: When Zhiyu offers or submits a handoff from a partner conversation to Nimi Harness.
+    failure: Keep the action unavailable without its local bridge. Refuse an unverified Harness destination, invalid frame, over-budget brief or raw transcript. Preserve the editable draft on refusal, ambiguity or unconfirmed delivery. Never substitute the current PC Body, silently mutate companion state or report delivery or completed work from a queue receipt.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.registered-app-subject
       - type: applies_to
         target: definition.nimi.platform.core-protocol.agent-session-body-plane
       - type: applies_to

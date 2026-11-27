@@ -42,18 +42,10 @@ units:
     kind: definition
     title: L0 request envelope
     meaning: The L0 request envelope carries protocol version, participant protocol version, participant identity, domain, optional app identity, trace identity, idempotency identity, and world and primitive identity for world-primitive requests through gRPC metadata while the business payload remains in the proto body.
-  - id: definition.nimi.platform.core-protocol.protected-app-authorization
-    kind: definition
-    lifecycle: removed
-    title: Retired protected App permission authorization decision
-    reason: Removed because protected App ingress now uses one exact App operation contract and a fresh Effective App Access Snapshot derived from registration and declaration, with no permission or grant decision.
   - id: definition.nimi.platform.core-protocol.app-operation-contract
     kind: definition
     title: Canonical App operation contract
-    meaning: The closed App operation contract contains exactly one hundred thirty-three mappings—runtime.app-storage.json.read as Base, runtime.app-storage.json.write as Base, runtime.app-storage.json.remove as Base, runtime.app-storage.asset.stat as Base, runtime.app-storage.asset.list as Base, runtime.app-storage.asset.write as Base, runtime.app-storage.asset.read as Base, runtime.app-storage.asset.remove as Base, runtime.app-storage.asset.move as Base, runtime.app-storage.asset.reveal as Base, realm.world-core.list as AppAccess realm.data, realm.world-core.create as AppAccess realm.data, realm.world-core.creation-eligibility.get as AppAccess realm.data, realm.world-core.get as AppAccess realm.data, realm.world-core.replace as AppAccess realm.data, realm.world-character.list as AppAccess realm.data, realm.world-character.get as AppAccess realm.data, realm.world-character.create as AppAccess realm.data, realm.world-character.replace as AppAccess realm.data, realm.world-entity.list as AppAccess realm.data, realm.world-entity.get as AppAccess realm.data, realm.world-entity.create as AppAccess realm.data, realm.world-relationship.list as AppAccess realm.data, realm.world-relationship.get as AppAccess realm.data, realm.persona-character.list-owned as AppAccess realm.data, realm.persona-character.get-owned as AppAccess realm.data, realm.persona-character.create as AppAccess realm.data, realm.persona-character.replace as AppAccess realm.data, realm.persona-character.delete as AppAccess realm.data, realm.chat.list as AppAccess realm.data, realm.realtime.channel.open as AppAccess realm.data, realm.realtime.events.subscribe as AppAccess realm.data, realm.realtime.events.ack as AppAccess realm.data, realm.realtime.subscription.close as AppAccess realm.data, realm.realtime.channel.close as AppAccess realm.data, runtime.ai.app-config.get as AppAccess runtime.consume, runtime.ai.app-config.overwrite as AppAccess runtime.consume, runtime.ai.app-config.options.list as AppAccess runtime.consume, runtime.ai.text-candidate.generate as AppAccess runtime.consume, runtime.ai.text-turn.stream as AppAccess runtime.consume, runtime.ai.scenario.execute as AppAccess runtime.consume, runtime.ai.scenario-job.submit as AppAccess runtime.consume, runtime.ai.scenario-job.get as AppAccess runtime.consume, runtime.ai.scenario-job.subscribe as AppAccess runtime.consume, runtime.ai.scenario-job.cancel as AppAccess runtime.consume, runtime.ai.artifact.read as AppAccess runtime.consume, runtime.ai.artifact.upload as AppAccess runtime.consume, runtime.ai.artifact.adopt-to-app-storage as AppAccess runtime.consume, runtime.ai.voice-assets.list as AppAccess runtime.consume, runtime.ai.voice-assets.delete as AppAccess runtime.consume, runtime.ai.realtime.open as AppAccess runtime.consume, runtime.ai.realtime.input.append as AppAccess runtime.consume, runtime.ai.realtime.owner-control.submit as AppAccess runtime.consume, runtime.ai.realtime.events.read as AppAccess runtime.consume, runtime.ai.realtime.output.interrupt as AppAccess runtime.consume, runtime.ai.realtime.close as AppAccess runtime.consume, runtime.ai.video-session.open as AppAccess runtime.consume, runtime.ai.video-session.frame.submit as AppAccess runtime.consume, runtime.ai.video-session.result.read as AppAccess runtime.consume, runtime.ai.video-session.close as AppAccess runtime.consume, runtime.agent.reference.list as AppAccess agent.local, runtime.agent.character-source.list as AppAccess agent.acquire, runtime.agent.character-source.connect as AppAccess agent.acquire, runtime.agent.introduction.get as AppAccess agent.local, runtime.agent.conversation.open as AppAccess agent.local, runtime.agent.conversation.turn.send as AppAccess agent.local, runtime.agent.conversation.turn.interrupt as AppAccess agent.local, runtime.agent.conversation.events.subscribe as AppAccess agent.local, runtime.agent.conversation.snapshot.get as AppAccess agent.local, runtime.agent.conversation.message.read as AppAccess agent.local, runtime.agent.conversation.follow-up.cancel as AppAccess agent.local, runtime.agent.conversation.attachment.upload as AppAccess agent.local, runtime.agent.conversation.artifact.read as AppAccess agent.local, runtime.agent.conversation.voice.transcribe as AppAccess agent.local, runtime.agent.conversation.voice.render as AppAccess agent.local, runtime.agent.realtime.open as AppAccess agent.local, runtime.agent.realtime.input.append as AppAccess agent.local, runtime.agent.realtime.events.subscribe as AppAccess agent.local, runtime.agent.realtime.status.get as AppAccess agent.local, runtime.agent.realtime.output.interrupt as AppAccess agent.local, runtime.agent.realtime.close as AppAccess agent.local, runtime.agent.embodiment.snapshot.get as AppAccess agent.local, runtime.agent.embodiment.events.subscribe as AppAccess agent.local, runtime.agent.manager.snapshot.get as AppAccess agent.configure, runtime.agent.ai-config.get as AppAccess agent.configure, runtime.agent.ai-config.overwrite as AppAccess agent.configure, runtime.agent.ai-config.options.list as AppAccess agent.configure, runtime.agent.autonomy.snapshot.get as AppAccess agent.configure, runtime.agent.autonomy.update as AppAccess agent.configure, runtime.agent.conversation-context.update as AppAccess agent.configure, runtime.agent.presentation.snapshot.get as AppAccess agent.configure, runtime.agent.presentation.commit as AppAccess agent.configure, runtime.agent.memory.inspect as AppAccess agent.configure, runtime.agent.memory.correct as AppAccess agent.configure, runtime.agent.memory.forget as AppAccess agent.configure, runtime.agent.memory.switch as AppAccess agent.configure, runtime.agent.memory.delete as AppAccess agent.configure, runtime.agent.utopia.snapshot.get as AppAccess agent.utopia.read, runtime.agent.utopia.settings.update as AppAccess agent.utopia.manage, runtime.app-activity.put as AppAccess app.activity, runtime.app-activity.list as AppAccess app.activity, runtime.app-activity.subscribe as AppAccess app.activity, runtime.app-activity.mark-read as AppAccess app.activity, runtime.app-activity.open as AppAccess app.activity, runtime.app-activity.open-request.subscribe as AppAccess app.activity, and runtime.app-activity.open-request.complete as AppAccess app.activity, runtime.agent.work.reference.list as AppAccess agent.work, runtime.agent.work.start as AppAccess agent.work, runtime.agent.work.get as AppAccess agent.work, runtime.agent.work.status.get as AppAccess agent.work, runtime.agent.work.tool-calls.list as AppAccess agent.work, runtime.agent.work.tool-result.submit as AppAccess agent.work, runtime.agent.work.cancel as AppAccess agent.work, runtime.agent.work.events.subscribe as AppAccess agent.work, runtime.integration.catalog.list as AppAccess integration.consume, runtime.integration.connection.list as AppAccess integration.consume, runtime.integration.call.invoke as AppAccess integration.consume, runtime.integration.snapshots.subscribe as AppAccess integration.consume, runtime.integration.call.get as AppAccess integration.consume, runtime.integration.call.list as AppAccess integration.consume, runtime.integration.call.cancel as AppAccess integration.consume, runtime.integration.provider.register as AppAccess integration.provide, runtime.integration.provider.unregister as AppAccess integration.provide, runtime.integration.provider.poll as AppAccess integration.provide, runtime.integration.provider.complete as AppAccess integration.provide, runtime.integration.management.get as AppAccess integration.manage, runtime.integration.connection.put as AppAccess integration.manage, runtime.integration.connection.remove as AppAccess integration.manage, runtime.integration.permission.set as AppAccess integration.manage, runtime.integration.connection.setup.start as AppAccess integration.manage, runtime.integration.connection.setup.get as AppAccess integration.manage, runtime.integration.connection.setup.submit as AppAccess integration.manage, and runtime.integration.connection.setup.cancel as AppAccess integration.manage; each AppOperationId is a stable callable identity derived by Runtime from the typed protected ingress rather than caller-supplied classification, authority, exact handler identity, implementation detail, or an extensible public catalog.
-    relations:
-      - type: supersedes
-        target: definition.nimi.platform.core-protocol.protected-app-authorization
+    meaning: Runtime derives each stable AppOperationId from the typed protected ingress. The closed contract has 162 operations, each classified as Base or in one primary AppAccess domain. Base covers runtime.app-storage.json.read, runtime.app-storage.json.write, runtime.app-storage.json.remove, runtime.app-storage.asset.stat, runtime.app-storage.asset.list, runtime.app-storage.asset.write, runtime.app-storage.asset.read, runtime.app-storage.asset.remove, runtime.app-storage.asset.move, runtime.app-storage.asset.reveal. realm.data covers realm.world-core.list, realm.world-core.create, realm.world-core.creation-eligibility.get, realm.world-core.get, realm.world-core.replace, realm.world-character.list, realm.world-character.get, realm.world-character.create, realm.world-character.replace, realm.world-entity.list, realm.world-entity.get, realm.world-entity.create, realm.world-relationship.list, realm.world-relationship.get, realm.persona-character.list-owned, realm.persona-character.get-owned, realm.persona-character.create, realm.persona-character.replace, realm.persona-character.delete, realm.chat.list, realm.realtime.channel.open, realm.realtime.events.subscribe, realm.realtime.events.ack, realm.realtime.subscription.close, realm.realtime.channel.close. runtime.consume covers runtime.ai.artifact.adopt-to-app-storage, runtime.ai.app-config.get, runtime.ai.app-config.overwrite, runtime.ai.app-config.options.list, runtime.ai.text-candidate.generate, runtime.ai.text-turn.stream, runtime.ai.scenario.execute, runtime.ai.scenario-job.submit, runtime.ai.scenario-job.get, runtime.ai.scenario-job.subscribe, runtime.ai.scenario-job.cancel, runtime.ai.artifact.read, runtime.ai.artifact.upload, runtime.ai.voice-assets.list, runtime.ai.voice-assets.delete, runtime.ai.realtime.open, runtime.ai.realtime.input.append, runtime.ai.realtime.owner-control.submit, runtime.ai.realtime.events.read, runtime.ai.realtime.output.interrupt, runtime.ai.realtime.close, runtime.ai.video-session.open, runtime.ai.video-session.frame.submit, runtime.ai.video-session.result.read, runtime.ai.video-session.close. agent.local covers runtime.agent.realtime.open, runtime.agent.realtime.input.append, runtime.agent.realtime.events.subscribe, runtime.agent.realtime.status.get, runtime.agent.realtime.output.interrupt, runtime.agent.realtime.close, runtime.agent.introduction.get, runtime.agent.reference.list, runtime.agent.conversation.open, runtime.agent.conversation.turn.send, runtime.agent.conversation.turn.interrupt, runtime.agent.conversation.events.subscribe, runtime.agent.conversation.snapshot.get, runtime.agent.conversation.message.read, runtime.agent.conversation.follow-up.cancel, runtime.agent.conversation.attachment.upload, runtime.agent.conversation.artifact.read, runtime.agent.conversation.voice.transcribe, runtime.agent.conversation.voice.render, runtime.agent.embodiment.snapshot.get, runtime.agent.embodiment.events.subscribe, runtime.agent.session.route-submit, runtime.agent.session.split-redirect, runtime.agent.session.get, runtime.agent.session.list, runtime.agent.session.update, runtime.agent.session.delete, runtime.agent.session.overview.watch, runtime.agent.session.brain-events.subscribe, runtime.agent.session.brain-turn.stop. agent.acquire covers runtime.agent.character-source.list, runtime.agent.character-source.connect. agent.configure covers runtime.agent.manager.snapshot.get, runtime.agent.ai-config.get, runtime.agent.ai-config.overwrite, runtime.agent.ai-config.options.list, runtime.agent.autonomy.snapshot.get, runtime.agent.autonomy.update, runtime.agent.conversation-context.update, runtime.agent.presentation.snapshot.get, runtime.agent.presentation.commit, runtime.agent.memory.inspect, runtime.agent.memory.correct, runtime.agent.memory.forget, runtime.agent.memory.switch, runtime.agent.memory.delete. agent.utopia.read covers runtime.agent.utopia.snapshot.get. agent.utopia.manage covers runtime.agent.utopia.settings.update. app.activity covers runtime.app-activity.put, runtime.app-activity.list, runtime.app-activity.subscribe, runtime.app-activity.mark-read, runtime.app-activity.open, runtime.app-activity.open-request.subscribe, runtime.app-activity.open-request.complete. agent.work covers runtime.agent.work.reference.list, runtime.agent.work.start, runtime.agent.work.get, runtime.agent.work.status.get, runtime.agent.work.tool-calls.list, runtime.agent.work.tool-result.submit, runtime.agent.work.cancel, runtime.agent.work.events.subscribe. agent.body.pc covers runtime.agent.body.pc.register, runtime.agent.body.pc.heartbeat, runtime.agent.body.pc.unregister, runtime.agent.body.pc.outbox.subscribe, runtime.agent.body.pc.outbox.ack, runtime.agent.body.pc.side-effect.authorize, runtime.agent.body.pc.step.stream, runtime.agent.body.pc.projection.report. agent.body.app covers runtime.agent.body.app.register, runtime.agent.body.app.heartbeat, runtime.agent.body.app.unregister, runtime.agent.body.app.outbox.subscribe, runtime.agent.body.app.outbox.ack, runtime.agent.body.app.side-effect.authorize, runtime.agent.body.app.step.stream, runtime.agent.body.app.projection.report. agent.trigger.delegate covers runtime.agent.trigger.alarm.create, runtime.agent.trigger.alarm.list, runtime.agent.trigger.alarm.update, runtime.agent.trigger.alarm.delete. integration.consume covers runtime.integration.catalog.list, runtime.integration.connection.list, runtime.integration.call.invoke, runtime.integration.snapshots.subscribe, runtime.integration.call.get, runtime.integration.call.list, runtime.integration.call.cancel. integration.provide covers runtime.integration.provider.register, runtime.integration.provider.unregister, runtime.integration.provider.poll, runtime.integration.provider.complete. integration.manage covers runtime.integration.management.get, runtime.integration.connection.put, runtime.integration.connection.remove, runtime.integration.permission.set, runtime.integration.connection.setup.start, runtime.integration.connection.setup.get, runtime.integration.connection.setup.submit, runtime.integration.connection.setup.cancel. The additional domains agent.session.manage and agent.companion supply no primary operation or ingress authority. The AgentSession owner applies them only within the scope of an operation already admitted under its required primary domain. Callers cannot supply classification or authority. These identities do not identify handlers or define an extensible public catalog.
   - id: definition.nimi.platform.core-protocol.persona-character-owner-app-contract
     kind: definition
     title: Owner PersonaCharacter App contract
@@ -62,16 +54,6 @@ units:
     kind: definition
     title: Effective App Access Snapshot
     meaning: An Effective App Access Snapshot is the immutable session-scoped Runtime result derived from one registered App subject, exact source and declaration generations, current account context generation, and only the supported declared AppAccess domain coverage; Base operation classification and invariants remain outside the snapshot in the canonical App operation contract, and the snapshot is neither persistent configuration, catalog or review truth, a service, a PermissionGrant, nor a durable authorization posture.
-  - id: definition.nimi.platform.core-protocol.world-app-binding
-    kind: definition
-    lifecycle: removed
-    title: Retired world and extension-app binding
-    reason: Removed because supported App Realm access is only the Runtime-mediated realm.data typed operation path and no render-app or extension-app world binding authorizes a direct Realm primitive operation.
-  - id: definition.nimi.platform.core-protocol.app-mode
-    kind: definition
-    lifecycle: removed
-    title: Retired render-app and extension-app access mode
-    reason: Removed because supported App access uses Base plus the closed declaration domains and exact operation mapping, with no mode-based direct world access matrix.
   - id: definition.nimi.platform.core-protocol.action-plane
     kind: definition
     title: Isolated external action capability plane
@@ -92,31 +74,6 @@ units:
     kind: definition
     title: AI route
     meaning: An AIConfig route intent is exactly Local or Cloud for one CapabilityContract; Local is a route-only marker composed with that CapabilityContract's current machine-selected Loadout either at new Job admission or before successful realtime.interact Open, while Cloud names one exact current-account Connector reference plus one Cloud CapabilityImplementation and Driver-owned provider-model target captured at the same applicable Job or Realtime admission boundary; neither route carries resource content, credential, endpoint, account identity, fallback, or alternate target, and local privacy semantics apply only to Local.
-  - id: definition.nimi.platform.core-protocol.ai-scope-ref
-    kind: definition
-    lifecycle: removed
-    title: Retired scoped AI configuration identity
-    reason: Removed because AIConfig ownership is now closed to App or product owners and one shared Runtime LocalAgent subsystem rather than app, module, feature, or per-LocalAgent scopes.
-  - id: definition.nimi.platform.core-protocol.ai-scope-lifecycle
-    kind: definition
-    lifecycle: removed
-    title: Retired AI scope lifecycle
-    reason: Removed with the scoped AI configuration identity and replaced by canonical AIConfig owner lifecycle.
-  - id: definition.nimi.platform.core-protocol.materialized-ai-config
-    kind: definition
-    lifecycle: removed
-    title: Retired materialized scoped AI configuration
-    reason: Removed because AIConfig no longer owns Local implementation, model, component, LocalAsset binding, or Runtime exact-target materialization.
-  - id: definition.nimi.platform.core-protocol.built-in-chat-scopes
-    kind: definition
-    lifecycle: removed
-    title: Retired built-in chat scopes
-    reason: Removed because Desktop Nimi Chat uses the Desktop App AIConfig while Desktop Agent Chat projects the one shared Runtime LocalAgent subsystem AIConfig.
-  - id: definition.nimi.platform.core-protocol.app-launch-ai-scope
-    kind: definition
-    lifecycle: removed
-    title: Retired Nimi App launch AI scope
-    reason: Removed because each admitted App or product owner owns one AIConfig and launch does not create feature, module, route, renderer, or transient AI scopes.
   - id: definition.nimi.platform.core-protocol.capability-contract
     kind: definition
     title: CapabilityContract
@@ -141,23 +98,14 @@ units:
     kind: definition
     title: AIConfig owner
     meaning: The closed current AIConfig owner union is discriminated by owner kind inside one authenticated account namespace and contains each canonical App owner keyed by canonical App identity plus exactly one Runtime LocalAgent subsystem owner shared by all Runtime LocalAgents in that account; Agent, feature, module, route, chat mode, renderer, window, conversation, registration generation, or other transient identities are not AIConfig owners.
-    relations:
-      - type: supersedes
-        target: definition.nimi.platform.core-protocol.ai-scope-ref
   - id: definition.nimi.platform.core-protocol.ai-config-owner-lifecycle
     kind: definition
     title: AIConfig owner lifecycle
     meaning: An App or product AIConfig follows its account-scoped canonical App owner lifecycle, while the shared Runtime LocalAgent AIConfig follows the account-scoped Runtime LocalAgent subsystem lifecycle and never follows an individual LocalAgent lifecycle; registration or declaration generation controls current admission without becoming the persistent owner key.
-    relations:
-      - type: supersedes
-        target: definition.nimi.platform.core-protocol.ai-scope-lifecycle
   - id: definition.nimi.platform.core-protocol.ai-config
     kind: definition
     title: AIConfig
     meaning: An AIConfig is the revisioned whole-object current capability intent for exactly one account-scoped canonical AIConfig owner, contains at most one entry per CapabilityContract in canonical order, treats an omitted entry on overwrite as clearing that capability, and stores required standardized features, defaults, and either a route-only Local marker or a Cloud Connector reference plus CapabilityImplementation and Driver-owned provider-model target; an admitted protected App may get and compare-and-swap overwrite its own App owner under runtime.consume or the shared LocalAgent owner under agent.configure, Desktop may manage only currently projected owners without becoming the exclusive configuration path, and no AIConfig carries Local Loadout or ModelAsset identity, machine selection, credential, endpoint, account identity, resource content, readiness, fallback, or shadow App truth.
-    relations:
-      - type: supersedes
-        target: definition.nimi.platform.core-protocol.materialized-ai-config
   - id: definition.nimi.platform.core-protocol.ai-profile
     kind: definition
     title: AIProfile
@@ -166,9 +114,6 @@ units:
     kind: definition
     title: AIProfile and Loadout product actions
     meaning: The closed formal product action set is Import Profile, Apply Profile to AIConfig, Delete Profile, Prepare Loadout, Commit Loadout, Select Loadout, and Delete Loadout; Apply Profile produces only a non-committing portable prefill for a later canonical AIConfig Save after the user chooses a route and, for Cloud, exact current-environment Connector and target references, Delete Profile removes only one account-scoped portable Profile library record by exact identity and changes no AIConfig, Loadout, ModelAsset, machine selection, or Job, Prepare is a server-held no-write action, Commit is the only Loadout content mutation, Select Loadout either sets one eligible Loadout as the current machine selection for that CapabilityContract or explicitly clears that selection without deleting or rewriting any AIConfig owner state, UpdateLoadout is only a Prepare-plus-Commit convenience rather than another action, independent bind, unbind, rebind, reprojection, and Clear Loadout Selection actions do not exist, and every action returns only its own typed outcome without cross-owner success.
-    relations:
-      - type: supersedes
-        target: definition.nimi.platform.core-protocol.ai-profile-apply-state
   - id: definition.nimi.platform.core-protocol.machine-local-ai-configuration
     kind: definition
     title: Machine Loadout store
@@ -177,11 +122,6 @@ units:
     kind: definition
     title: Loadout
     meaning: A Loadout is a machine-local saved record with a stable Runtime-generated identity containing one CapabilityContract, exact CapabilityImplementation, versioned CapabilityImplementationDriver dialect and recipeId, typed execution options, deterministically projected independent model slots each unresolved or bound as model_asset_id plus expected_content_id, pinned non-model RecipeCustody references when required, declared standardized-feature support, Model Contract validation state with typed reasons, provenance, and display metadata; it contains no path, endpoint, engine choice, raw argument union, inventory search rule, download action, public CAS, product revision, history, rollback, or process identity.
-  - id: definition.nimi.platform.core-protocol.connector-grant
-    kind: definition
-    lifecycle: removed
-    title: Retired ConnectorGrant definition
-    reason: Removed because the current product provides no per-Connector delegated authorization mechanism; any future cross-account, cross-Realm, shared-credential, service-account, enterprise-managed, or time-bounded delegation requires new authority and a new subject model without compatibility with this retired identity.
   - id: definition.nimi.platform.core-protocol.capability-job-effective-inputs
     kind: definition
     title: Capability job effective inputs
@@ -194,16 +134,10 @@ units:
     kind: definition
     title: Built-in chat AIConfig owners
     meaning: Desktop Nimi Chat consumes the Desktop App AIConfig. Home and Zhiyu consume Runtime LocalAgent Conversation and the one shared LocalAgent subsystem AIConfig. These remain distinct consumers and never create chat-specific or per-Agent AIConfig owners.
-    relations:
-      - type: supersedes
-        target: definition.nimi.platform.core-protocol.built-in-chat-scopes
   - id: definition.nimi.platform.core-protocol.app-ai-config-owner
     kind: definition
     title: App AIConfig owner
     meaning: Each admitted Nimi App or product has one canonical account-scoped owner which may hold multiple named AIConfig records and one default when records exist. The Runtime-minted record reference is scoped to that owner; app launch, features, modules, surfaces, and renderer instances do not create additional AIConfig owners.
-    relations:
-      - type: supersedes
-        target: definition.nimi.platform.core-protocol.app-launch-ai-scope
   - id: definition.nimi.platform.core-protocol.capability-catalog
     kind: definition
     title: Canonical capability catalog
@@ -454,31 +388,6 @@ units:
         target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
-  - id: rule.nimi.platform.core-protocol.p-proto-040
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PROTO-040 current permission decisions
-    reason: Removed with the per-capability permission decision store and direct render-app or extension-app world access path; the replacement is the session snapshot and exact fourteen-operation Runtime ingress contract.
-  - id: rule.nimi.platform.core-protocol.p-proto-040b
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PROTO-040 no pre-admission positive store
-    reason: Removed with the per-capability permission decision store and direct render-app or extension-app world access path; the replacement is the session snapshot and exact fourteen-operation Runtime ingress contract.
-  - id: rule.nimi.platform.core-protocol.p-proto-050
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PROTO-050 world-app write admission
-    reason: Removed with the per-capability permission decision store and direct render-app or extension-app world access path; the replacement is the session snapshot and exact fourteen-operation Runtime ingress contract.
-  - id: rule.nimi.platform.core-protocol.p-proto-050b
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PROTO-050 unique binding state machine
-    reason: Removed with the per-capability permission decision store and direct render-app or extension-app world access path; the replacement is the session snapshot and exact fourteen-operation Runtime ingress contract.
-  - id: rule.nimi.platform.core-protocol.p-proto-060
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PROTO-060 app mode boundary
-    reason: Removed with the per-capability permission decision store and direct render-app or extension-app world access path; the replacement is the session snapshot and exact fourteen-operation Runtime ingress contract.
   - id: rule.nimi.platform.core-protocol.p-proto-070
     kind: rule
     title: P-PROTO-070 cross-primitive consistency
@@ -575,7 +484,7 @@ units:
     modality: must
     statement: When separately admitted, external action execution uses Runtime-owned descriptors, permission checks, execution state, completion results, and audit while Desktop, Web, Kit, and Apps consume only typed SDK projections.
     condition: Whenever an external action capability is discovered, executed, completed, or audited.
-    failure: Reject renderer-local, host-only, app-local, or Tauri-local action, token, success, handler-state, or audit authority.
+    failure: Reject any action authority, token, success, handler state or audit result claimed solely by a renderer, host or App.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.action-plane
@@ -1043,11 +952,6 @@ units:
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.platform.core-protocol.protocol-compatibility-matrix
-  - id: rule.nimi.platform.core-protocol.p-ctm-l1-world-app
-    kind: rule
-    lifecycle: removed
-    title: Retired compliance-test-matrix L1_world_app P-PROTO-050 P-PROTO-060 compatibility
-    reason: Removed with the per-capability permission decision store and direct render-app or extension-app world access path; the replacement is the session snapshot and exact fourteen-operation Runtime ingress contract.
   - id: rule.nimi.platform.core-protocol.p-ctm-l2
     kind: rule
     title: compliance-test-matrix L2 P-PROTO-070 P-PROTO-100 through P-PROTO-105 compatibility
@@ -1104,18 +1008,10 @@ units:
     kind: definition
     title: local-standard factory AIProfile row
     meaning: The local-standard row portably recommends Local AIConfig intent for text.generate and text.embed and may carry corresponding portable Loadout intent, but importing or applying it does not acquire a ModelAsset or invoke Prepare, Commit, Select, or Delete Loadout.
-  - id: definition.nimi.platform.core-protocol.factory-profile-local-speech-ready
-    kind: definition
-    lifecycle: removed
-    title: Retired local-speech-ready factory AIProfile row
-    reason: Removed because a portable Profile alias must not encode product readiness and local-speech is its hard-cut successor.
   - id: definition.nimi.platform.core-protocol.factory-profile-local-speech
     kind: definition
     title: local-speech factory AIProfile row
     meaning: The local-speech row portably recommends Local AIConfig intent for text.generate, audio.transcribe, and audio.synthesize and may carry corresponding local implementation configuration intent, but it performs no installation, binding, machine selection, admission, probe, or readiness action.
-    relations:
-      - type: supersedes
-        target: definition.nimi.platform.core-protocol.factory-profile-local-speech-ready
   - id: definition.nimi.platform.core-protocol.factory-profile-local-gpu
     kind: definition
     title: local-gpu factory AIProfile row
@@ -1128,11 +1024,6 @@ units:
     kind: definition
     title: AIProfile recommendation result
     meaning: An AIProfile recommendation result is a typed canonical factory AIProfile alias plus per-CapabilityContract applicability and reasons produced from an optional explicit CapabilityContract filter and bounded catalog or host facts; a filter admits only rows declaring that contract and uses only that contract for its recommendation bucket, while an unfiltered read preserves canonical factory order and exposes independent capability limitations without a profile-level reducer, score, or aggregate status, and no result becomes AIConfig route choice, Loadout, machine selection, binding, installation, admission, or execution truth.
-  - id: definition.nimi.platform.core-protocol.ai-profile-apply-state
-    kind: definition
-    lifecycle: removed
-    title: Retired AIProfile apply state
-    reason: Removed because Apply Profile to AIConfig is one atomic create-or-overwrite action and does not own materialization, installation, readiness, activation, recovery, revision, or re-apply lifecycle.
   - id: definition.nimi.platform.core-protocol.first-party-ai-profile-hint
     kind: definition
     title: First-party AIProfile hint
@@ -1403,7 +1294,7 @@ units:
     kind: rule
     title: P-AIPS-010 formal action scope closure
     modality: must
-    statement: Import Profile, Apply Profile to AIConfig, Delete Profile, Prepare Loadout, Commit Loadout, Select Loadout, and Delete Loadout each return only their own typed outcome; Apply returns only non-committing portable prefill, Delete Profile removes only its portable Profile library record, Prepare returns only server-held proposal identity and diagnostics, Commit alone mutates Loadout content, Select alone mutates current machine selection, Delete Loadout alone removes its target, and none establishes a second CAS, product revision, history, durable draft, rollback, re-apply, materialization, activation, readiness, or cross-action lifecycle beyond the canonical AIConfig manager's owner-scoped revision and whole-object overwrite.
+    statement: Import Profile, Apply Profile to AIConfig, Delete Profile, Prepare Loadout, Commit Loadout, Select Loadout, and Delete Loadout each return only their own typed outcome; Apply returns only non-committing portable prefill, Delete Profile removes only its portable Profile library record, Prepare returns only server-held proposal identity and diagnostics, Commit alone mutates Loadout content, Select Loadout handles explicit selection or deselection, Delete Loadout alone removes the target Loadout and in the same atomic commit clears only a machine selection pointing to that target, and none establishes a second CAS, product revision, history, durable draft, rollback, re-apply, materialization, activation, readiness, or cross-action lifecycle beyond the canonical AIConfig manager's owner-scoped revision and whole-object overwrite.
     condition: Whenever a formal Profile or Loadout action is executed or projected.
     failure: Reject an undeclared action or mutation channel, Profile Apply commit, a second CAS or revision, cross-owner success, lifecycle state machine, or success inferred from a later action.
     relations:
@@ -1615,11 +1506,6 @@ units:
         target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.platform.core-protocol.capability-implementation-driver
-  - id: rule.nimi.platform.core-protocol.p-caiex-010
-    kind: rule
-    lifecycle: removed
-    title: Retired occurrence exactness rule that deferred bundle and ordering semantics
-    reason: Replaced by the successor occurrence rule that admits ordered occurrences and sharded-bundle identity through the media vertical slice.
   - id: rule.nimi.platform.core-protocol.p-caiex-013
     kind: rule
     title: P-CAIEX-013 ModelAsset occurrences remain independent with admitted ordering and bundles
@@ -1632,8 +1518,6 @@ units:
         target: definition.nimi.platform.core-protocol.local-capability-configuration
       - type: applies_to
         target: definition.nimi.platform.core-protocol.standardized-capability-feature
-      - type: supersedes
-        target: rule.nimi.platform.core-protocol.p-caiex-010
   - id: rule.nimi.platform.core-protocol.p-caiex-011
     kind: rule
     title: P-CAIEX-011 Jobs atomically capture exact immutable composition
@@ -2054,7 +1938,7 @@ units:
     kind: rule
     title: desktop-open-intents P-DOPEN-001 closed sourceHost values
     modality: must
-    statement: Desktop Open sourceHost is exactly electron-standard-shell, tauri-standard-shell, desktop-electron-local-app-host, or dev-fixture, and the SDK and Kit projections remain @nimiplatform/sdk/app and @nimiplatform/kit/core/desktop-open.
+    statement: Desktop Open admits exactly three sourceHost values, electron-standard-shell, desktop-electron-local-app-host and dev-fixture. The public projections are @nimiplatform/sdk/app and @nimiplatform/kit/core/desktop-open.
     condition: Whenever a Desktop Open source host or public projection is emitted or accepted.
     failure: Reject an unknown sourceHost or a projection outside the declared public surfaces.
     relations:
@@ -2194,7 +2078,7 @@ units:
     kind: rule
     title: Agent Session and Body operations preserve protected transport invariants
     modality: must
-    statement: All AgentSessionService operations are admitted strictly through protected transport using Unary and ServerStream RPCs with zero bidirectional streams, derive account and Registered App Subject solely from the verified connection without granting built-in App-id privileges, address work sessions by work_session_ref and LocalAgents by opaque agent_handle or non-authorizing agent_binding, reject caller-supplied session_id, account_id, app_id, or snapshot_id fields, key session ownership, external channel scopes, attention trust scopes, alarms, and carrier leases strictly by Registered App Subject, enforce static domain coverage with subject-scoped ordinary session operations under agent.local, cross-session account overview and writable pc_work routing under agent.session.manage, companion session access under agent.companion, local non-remote os.pc.* Body control-plane operations under agent.body.pc with single-active-subject exclusive lease fencing (never allowing a different Registered App Subject to silently preempt an active lease), App Body operations confined to app.<app_id>.* under agent.body.app, and directed trigger delegations under agent.trigger.delegate.
+    statement: All AgentSessionService operations are admitted strictly through protected transport using Unary and ServerStream RPCs with zero bidirectional streams, derive account and Registered App Subject solely from the verified connection without granting built-in App-id privileges, address work sessions by work_session_ref and LocalAgents by opaque agent_handle or non-authorizing agent_binding, reject caller-supplied session_id, account_id, app_id, or snapshot_id fields, key session ownership, external channel scopes, attention trust scopes, alarms, and carrier leases strictly by Registered App Subject, enforce static domain coverage with subject-scoped ordinary session operations under agent.local, cross-session account overview and writable pc_work routing under agent.session.manage, companion session access under agent.companion, local non-remote os.pc.* Body control-plane operations under agent.body.pc with single-active-subject exclusive lease fencing (never allowing a different Registered App Subject to silently preempt an active lease), App Body operations confined to app.<app_id>.* under agent.body.app, and directed trigger delegations under agent.trigger.delegate. Alarm create, list, update and delete require primary ingress under agent.trigger.delegate. Creating a direct personal alarm, enabling model use for an alarm or managing alarms beyond the caller’s own subject also requires agent.session.manage within the authorized account and applicable Agent scope. An ordinary delegating App may create only zero-model app_delegation alarms and may access only alarms scoped to its own Registered App Subject. The account overview granted by agent.session.manage includes authorized status for a named Zhiyu-to-Harness handoff. That management scope alone grants no access to the brief or to content-bearing fields derived from it on any session read or overview update.
     condition: Whenever any formal protected App invokes an AgentSessionService operation.
     failure: Reject forbidden caller assertion fields, missing static domain coverage, remote agent.body.pc admission, cross-subject session or lease preemption, or unverified transport before mutating session, outbox, or alarm state.
     relations:

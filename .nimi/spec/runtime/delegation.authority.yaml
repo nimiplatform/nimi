@@ -46,11 +46,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.delegation.capability-gateway-plane
-  - id: rule.nimi.runtime.delegation.r003
-    kind: rule
-    lifecycle: removed
-    title: Retired delegated Cloud credential selection rule
-    reason: Removed because the current product has no delegated Cloud credential-authorization or selection mechanism; any future cross-account, cross-Realm, shared-credential, service-account, enterprise-managed, or time-bounded delegation requires new authority and a new subject model.
   - id: rule.nimi.runtime.delegation.r004
     kind: rule
     title: Trust tier is closed and fails closed

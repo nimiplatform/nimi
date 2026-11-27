@@ -370,7 +370,7 @@ units:
     kind: rule
     title: P-DESIGN-025 composition extraction boundary
     modality: must
-    statement: Desktop reference compositions may identify reusable shell, navigation, control, panel, list, badge, avatar, stat, and meter primitive gaps but do not become platform-owned dock, status-bar, workflow, metric, world-data, contact, route, or panel-placement truth, and an ambiguous candidate remains app-local until reusable abstraction is established.
+    statement: Desktop compositions can reveal gaps in shared primitives. App layouts, navigation placement, workflows, metrics and product data stay App-owned. A candidate remains local until its reusable primitive contract is established.
     condition: Whenever a Desktop reference composition is evaluated for shared extraction.
     failure: Reject the app composition as platform truth and retain only a proven reusable primitive abstraction.
     relations:
@@ -490,11 +490,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.agent-center-surface
-  - id: rule.nimi.platform.ui-design-system.p-agent-center-002a
-    kind: rule
-    lifecycle: removed
-    title: P-AGENT-CENTER-002 complete generic sections
-    reason: Superseded by the public successor contract of 2026-07-29; deleted without tombstone in d1e7034d8.
   - id: rule.nimi.platform.ui-design-system.p-agent-center-002c
     kind: rule
     title: P-AGENT-CENTER-002 complete semantic areas and identity chrome
@@ -505,8 +500,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.agent-center-surface
-      - type: supersedes
-        target: rule.nimi.platform.ui-design-system.p-agent-center-002a
   - id: rule.nimi.platform.ui-design-system.p-agent-center-002b
     kind: rule
     title: P-AGENT-CENTER-002 bounded context summary
@@ -557,11 +550,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.runtime-projection
-  - id: rule.nimi.platform.ui-design-system.p-agent-center-006a
-    kind: rule
-    lifecycle: removed
-    title: P-AGENT-CENTER-006 surface ownership mapping
-    reason: Superseded by the public successor contract of 2026-07-29; deleted without tombstone in d1e7034d8.
   - id: rule.nimi.platform.ui-design-system.p-agent-center-006c
     kind: rule
     title: P-AGENT-CENTER-006 single canonical Manager Session and factory
@@ -574,8 +562,6 @@ units:
         target: definition.nimi.platform.app-ecosystem.agent-center-resource-pack-placement
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.agent-center-surface
-      - type: supersedes
-        target: rule.nimi.platform.ui-design-system.p-agent-center-006a
   - id: rule.nimi.platform.ui-design-system.p-agent-center-006b
     kind: rule
     title: P-AGENT-CENTER-006 intent presentation and truth separation
@@ -870,7 +856,7 @@ units:
     kind: rule
     title: P-KIT-003 package host and dependency boundary
     modality: must
-    statement: Kit remains one workspace package; its modules never import app or Runtime-internal code; TypeScript apps use explicit Kit subpaths; standard shell identifiers, commands, and errors come from the shell-capabilities surface; Tauri hosts consume the shared non-npm Rust surface; Electron main and preload consume the Electron surface; and renderer applications consume neither host-specific surface.
+    statement: Kit ships as one workspace package. Modules use public App and Runtime boundaries and do not import App code or Runtime internals. TypeScript Apps use explicit Kit subpaths. The shell-capabilities surface owns standard identifiers, commands and errors. Electron main and preload use the Electron host surface. Renderers use the host-neutral bridge.
     condition: Whenever a Kit module or app resolves a Kit or shell dependency.
     failure: Reject an independent submodule authority, private import, duplicated shell contract, wrong host delivery, or host-specific renderer dependency.
     relations:
@@ -956,7 +942,7 @@ units:
     kind: rule
     title: P-KIT-040 renderer-safe telemetry boundary
     modality: must
-    statement: The telemetry infrastructure module provides renderer-side telemetry and reusable React-only error boundaries, accepts caller-shaped payloads without imposing a schema, assumes no app context, and has no direct Tauri, Node.js, or Electron dependency beyond React as a peer.
+    statement: The telemetry infrastructure module provides renderer-side telemetry and reusable React-only error boundaries, accepts caller-shaped payloads without imposing a schema, assumes no app context, and has no direct native host, Node.js or Electron dependency beyond React as a peer.
     condition: Whenever shared renderer telemetry or an error boundary is implemented.
     failure: Reject a host import, app-context assumption, payload-schema ownership, or non-React dependency.
     relations:
@@ -964,10 +950,10 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
   - id: rule.nimi.platform.ui-design-system.p-kit-041
     kind: rule
-    title: P-KIT-041 protected carrier and Tauri boundaries
+    title: P-KIT-041 protected local host boundary
     modality: must
     statement: Protected-local carries only typed exact-Host correlation, fresh protected-session bootstrap, and fixed-service status, start, and restart while Runtime and the operating system retain admission, security, and lifecycle truth; its host-only carrier never reaches renderer and neither proves binary or project-payload integrity nor creates an operating-system sandbox or long-lived authorization lineage; host adapters do not own credentials, OAuth, Realm, Runtime, App, snapshot, operation, or business truth, shared defaults remain non-security hints, platform catalogs are read-only display projections, and IPC semantics and generated commands retain their external owner.
-    condition: Whenever Kit carries protected local or Tauri shell behavior.
+    condition: Whenever Kit carries protected local shell operations.
     failure: Reject renderer exposure, product stop, caller selectors, generic configuration or RPC, foreign truth, hardcoded branding, cross-layer app inclusion, duplicate App access catalogs, or parallel command truth.
     relations:
       - type: applies_to
@@ -1390,3 +1376,23 @@ units:
         target: definition.nimi.platform.remote-clients.registration
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.kit-module-family
+  - id: rule.nimi.platform.chat-message-interaction.shared-actions
+    kind: rule
+    title: Shared desktop message actions preserve reading and identity
+    modality: must
+    statement: Kit Chat owns reusable message-ID-addressed context-menu, explicit more-actions, keyboard access, selection-copy, quotation preparation, confirmed-quote presentation and bounded source-navigation mechanics for Home Agent Chat and Zhiyu. Hosts provide only public typed Conversation access and host navigation, clipboard and view placement. Text selection, links, code copying and image controls keep their existing semantics; unavailable actions do not fabricate success, ordinary text does not require an idle playback row, hover is not the sole discovery path, and active media or essential failure recovery remains reachable. Selection is anchored to source identity and the canonical quotation representation; remount or virtualization change preserves it or explicitly cancels without replacing a fragment action with a whole-message action. Quote preparation, navigation and scope lifetimes reject their own obsolete results without creating a second transcript or widening LocalAgent semantics to Human or Nimi Chat.
+    condition: Whenever Home or Zhiyu exposes desktop Conversation message actions.
+    failure: Reject inconsistent duplicate action shells, wrong-message execution, hidden essential recovery, lost input, mouse-only interaction or App-authored canonical quote or history truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.kit-module-surface
+  - id: rule.nimi.platform.chat-message-interaction.playback-lifetime
+    kind: rule
+    title: Message playback survives transient UI and preserves generation intent
+    modality: must
+    statement: One renderer-host message playback controller owns ephemeral audio, artifact identity, progress and generation fences independently of menus and virtual rows; menu closure and row unmount do not stop it, while scope or access loss and explicit stop invalidate late playback. A read or play failure retries only the confirmed artifact, sidecar refresh is read-only and absence remains unknown, and explicit continuation with the original render requestId may admit a not-yet-consumed request but never resynthesizes a consumed one. A genuinely new generation remains explicit. Message audio cannot start or resume while that renderer has connecting, active, closing or unconfirmed-closed Realtime; starting Realtime invalidates local playback and only confirmed closure restores availability without autoplay. Local playback never calls Runtime turn interruption, and separate Home and Zhiyu renderer processes retain independent playback without a new global Host lock.
+    condition: Whenever shared Conversation controls generate, read, play, retry or stop final voice.
+    failure: Reject menu-owned audio lifetime, late sound after cancellation, hidden regeneration, read-only labeling of a possible generation request, overlapping local Realtime audio or consumer playback reported as Runtime cancellation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.kit-module-surface

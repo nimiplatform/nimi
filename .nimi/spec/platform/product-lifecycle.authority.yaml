@@ -42,11 +42,6 @@ units:
     kind: definition
     title: Runtime service configuration boundary
     meaning: Production Runtime configuration is protected state owned by the isolated Runtime service and contains private service identity, custody, grants, sessions, security evidence, and data-root verification derived from the canonical product-control record, while product control communicates only through the protected Home Host Contract and never owns physical Runtime configuration paths.
-  - id: definition.nimi.platform.product-lifecycle.development-checkpoint-lineage
-    kind: definition
-    lifecycle: removed
-    title: Retired signed development checkpoint lineage
-    reason: Removed because fixed platform development candidates no longer create a parallel signed-trial, profile, acceptance-round, or Runtime-candidate lineage.
   - id: definition.nimi.platform.product-lifecycle.governed-local-config-family
     kind: definition
     title: Governed local configuration family
@@ -141,11 +136,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.home-surface
-  - id: rule.nimi.platform.product-lifecycle.p-cold-006
-    kind: rule
-    lifecycle: removed
-    title: Retired first-run factory AIProfile selection boundary
-    reason: Removed because first run no longer selects or applies an AIProfile and AI configuration is an independent post-entry product action.
   - id: rule.nimi.platform.product-lifecycle.p-cold-007
     kind: rule
     title: P-COLD-007 Runtime-owned local dependency setup
@@ -220,11 +210,6 @@ units:
         target: definition.nimi.platform.app-ecosystem.registered-app-subject
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
-  - id: rule.nimi.platform.product-lifecycle.p-cold-011a
-    kind: rule
-    lifecycle: removed
-    title: Retired first-run Local AI install levels
-    reason: Removed because Minimal or Recommended Local AI setup is no longer part of the Product Control first-run or ready_for_use contract.
   - id: rule.nimi.platform.product-lifecycle.p-cold-011b
     kind: rule
     title: P-COLD-011 AI capability state is outside ordinary product entry
@@ -261,14 +246,16 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-surface
   - id: rule.nimi.platform.product-lifecycle.p-cold-012b
     kind: rule
-    title: P-COLD-012 authenticated ordinary shell
-    modality: must_not
-    statement: Desktop renders ordinary shell normal use while account state is not_logged_in or treats anonymous Runtime or debug posture as authenticated readiness.
-    condition: Until a Runtime account-session projection exists.
-    failure: Route the user to login or recovery-only state.
+    title: P-COLD-012 Home follows current Runtime account admission
+    modality: must
+    statement: Home permits entry and continued ordinary use only with a current authenticated Runtime account projection under existing Product Control admission. During a Realm outage, a previously authenticated, unexpired local session may continue authorized App data access and prepared Local execution under their existing owner checks. Home identifies unavailable Cloud or account actions explicitly. For an absent or expired identity, Home routes to login or recovery and Runtime denies new protected local and cloud actions for that identity. When an owner confirms withdrawal, Runtime denies new affected actions and fences affected live access according to its owner contract. Other valid scopes retain their existing rights. After reconnect, restore previously unavailable protected access only on actual refresh and revalidation of current permissions. Connectivity alone cannot reinstate withdrawn access or invalidate independently authorized, still-valid local work.
+    condition: Whenever Home enters or continues ordinary use, including during a Realm outage, account expiry, effective withdrawal or reconnection.
+    failure: Route an absent or expired account to login or recovery and show the owner’s denial or unavailability for the affected action. Reject anonymous, debug or stale cached state as authenticated readiness and do not report restored access without current owner authorization.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.product-control-record
+      - type: applies_to
+        target: definition.nimi.runtime.protected-session.account-session-plane
   - id: rule.nimi.platform.product-lifecycle.p-cold-013a
     kind: rule
     title: P-COLD-013 service-owned Runtime configuration
@@ -353,11 +340,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.product-control-record
-  - id: rule.nimi.platform.product-lifecycle.p-cold-015c
-    kind: rule
-    lifecycle: removed
-    title: Retired development lineage continuity
-    reason: Removed with the parallel development checkpoint lineage; development candidates now use the fixed platform installation and current service state without signed-trial or acceptance-round continuity records.
   - id: rule.nimi.platform.product-lifecycle.p-cold-015d
     kind: rule
     title: P-COLD-015 Product Control survives service lifecycle
@@ -368,11 +350,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.product-control-record
-  - id: rule.nimi.platform.product-lifecycle.p-cold-015e
-    kind: rule
-    lifecycle: removed
-    title: Retired protected checkpoint identity inputs
-    reason: Removed with checkpoint, profile, harness, and round identities; the active Product Control data-root rule independently rejects non-UI selection channels.
   - id: rule.nimi.platform.product-lifecycle.p-cold-015f
     kind: rule
     title: P-COLD-015 service consumers reuse canonical data-root selection
@@ -385,16 +362,6 @@ units:
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.product-control-record
-  - id: rule.nimi.platform.product-lifecycle.p-cold-015g
-    kind: rule
-    lifecycle: removed
-    title: Retired isolated checkpoint evidence
-    reason: Removed because checkpoint-specific profile, candidate, catalog-hash, manifest, and isolated-evidence records duplicated Product Control and Runtime readiness instead of proving a separate product decision.
-  - id: rule.nimi.platform.product-lifecycle.p-cold-015h
-    kind: rule
-    lifecycle: removed
-    title: Retired checkpoint product-bypass rule
-    reason: Removed because the checkpoint profile and its parallel Product Control state no longer exist.
   - id: rule.nimi.platform.product-lifecycle.p-cold-016-owner
     kind: rule
     title: P-COLD-016 Runtime-owned finalization operation
@@ -955,28 +922,10 @@ units:
     kind: definition
     title: Nimi update channel
     meaning: A Nimi update channel is the Platform-owned stable or beta release identity together with its configured updater endpoint, verification public-key policy, compatibility gates, and rollback policy.
-  - id: definition.nimi.platform.product-lifecycle.web-release-surface
-    kind: definition
-    lifecycle: removed
-    title: Web release surface
-    reason: Removed because the pre-release Web Shell and its Desktop renderer adapters are retired; the replacement public and account Web surface has a distinct canonical identity.
   - id: definition.nimi.platform.product-lifecycle.public-account-web-surface
     kind: definition
     title: Public and account Web surface
     meaning: The Web release surface consists of the first-party public Nimi site, Realm-backed authentication and a personal account center for profile, privacy, friendship management, security, sessions, primary Runtime binding confirmation and verified remote owner management, and data, Nimi Home and App informational pages, static legal and navigation pages, Cloudflare function adapters, and the release-distribution gateway under apps/install-gateway, while Desktop remains the current Nimi Home host.
-    relations:
-      - type: supersedes
-        target: definition.nimi.platform.product-lifecycle.web-release-surface
-  - id: definition.nimi.platform.product-lifecycle.first-party-app-registration
-    kind: definition
-    lifecycle: removed
-    title: First-party app registration
-    reason: Removed because public App registry, trust, distribution, and ordinary-user lifecycle are deferred; current local first-party identity and admission do not reserve a registry-backed lifecycle contract.
-  - id: definition.nimi.platform.product-lifecycle.first-party-migration-state
-    kind: definition
-    lifecycle: removed
-    title: First-party migration state
-    reason: Removed because the pre-release hard cut retains no first-party dual track or migration product state, while ordinary-user App lifecycle remains deferred.
   - id: rule.nimi.platform.product-lifecycle.p-supd-001
     kind: rule
     title: P-SUPD-001 Platform owns self-update policy
@@ -1235,26 +1184,6 @@ units:
         target: definition.nimi.platform.product-lifecycle.product-update-candidate
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.release-bundle
-  - id: rule.nimi.platform.product-lifecycle.p-web-001a
-    kind: rule
-    lifecycle: removed
-    title: P-WEB-001 Web surface ownership
-    reason: Removed because it includes the retired web-shell adapters; the replacement rule preserves Platform ownership without retaining Web Shell semantics.
-  - id: rule.nimi.platform.product-lifecycle.p-web-002a
-    kind: rule
-    lifecycle: removed
-    title: P-WEB-002 public Web adapter boundary
-    reason: Removed with Web Shell because a standalone Web surface no longer consumes Desktop-shaped capabilities or public-for-Web adapters.
-  - id: rule.nimi.platform.product-lifecycle.p-web-002b
-    kind: rule
-    lifecycle: removed
-    title: P-WEB-002 unsupported Desktop release behavior fails closed
-    reason: Removed with Web Shell because standalone Web has no Desktop release operation surface to adapt.
-  - id: rule.nimi.platform.product-lifecycle.p-web-002c
-    kind: rule
-    lifecycle: removed
-    title: P-WEB-002 client-only browser boundary
-    reason: Removed because its client-only and memory-bearer Web Shell model is replaced by a Realm-owned secure browser session contract.
   - id: rule.nimi.platform.product-lifecycle.p-web-005a
     kind: rule
     title: P-WEB-005 standalone public and account surface
@@ -1265,20 +1194,16 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.public-account-web-surface
-      - type: supersedes
-        target: rule.nimi.platform.product-lifecycle.p-web-001a
   - id: rule.nimi.platform.product-lifecycle.p-web-005b
     kind: rule
     title: P-WEB-005 public dependency boundary
     modality: must_not
-    statement: Web imports Desktop source or package surfaces, Desktop renderer aliases, Runtime private modules, local-file behavior, native IPC, Tauri APIs, or Desktop CORS bypass instead of Kit and public typed SDK or Realm surfaces.
+    statement: Web imports Desktop source or package surfaces, Desktop renderer aliases, Runtime private modules, local-file behavior, native host APIs or IPC, or Desktop CORS bypass instead of Kit and public typed SDK or Realm surfaces.
     condition: Whenever Web composes product or account behavior.
     failure: Reject the private dependency and keep the affected Web capability unavailable until a public typed surface exists.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.public-account-web-surface
-      - type: supersedes
-        target: rule.nimi.platform.product-lifecycle.p-web-002a
   - id: rule.nimi.platform.product-lifecycle.p-web-005c
     kind: rule
     title: P-WEB-005 Realm-owned browser account session
@@ -1289,8 +1214,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.public-account-web-surface
-      - type: supersedes
-        target: rule.nimi.platform.product-lifecycle.p-web-002c
   - id: rule.nimi.platform.product-lifecycle.p-web-005d
     kind: rule
     title: P-WEB-005 OAuth continuation is origin bound
@@ -1351,71 +1274,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.public-account-web-surface
-  - id: rule.nimi.platform.product-lifecycle.p-fpi-001
-    kind: rule
-    lifecycle: removed
-    title: P-FPI-001 registered first-party hardcut targets only
-    reason: Removed with registry-backed first-party lifecycle; current local first-party identities are admitted by their owning identity projection rather than registry rows.
-  - id: rule.nimi.platform.product-lifecycle.p-fpi-002
-    kind: rule
-    lifecycle: removed
-    title: P-FPI-002 single registry and typed lifecycle client
-    reason: Removed because ordinary-user App installation, update, uninstall, health, and repair are deferred and no registry-backed lifecycle client is current.
-  - id: rule.nimi.platform.product-lifecycle.p-fpi-003
-    kind: rule
-    lifecycle: removed
-    title: P-FPI-003 first-party AI profile hint consumption
-    reason: Removed with the deferred registry row and AI-profile hint contract; current AI configuration remains governed by its owning typed configuration authority.
-  - id: rule.nimi.platform.product-lifecycle.p-fpi-004
-    kind: rule
-    lifecycle: removed
-    title: P-FPI-004 first-party permission classification
-    reason: Removed as a registry-specific duplicate; current protected operations and permissions remain fail closed under their owning Runtime and Platform authorities.
-  - id: rule.nimi.platform.product-lifecycle.p-fpi-005
-    kind: rule
-    lifecycle: removed
-    title: P-FPI-005 Runtime registration relationship
-    reason: Removed because no current registry-declared app-managed launch relationship is admitted; local first-party identity and protected session ownership remain separate current contracts.
-  - id: rule.nimi.platform.product-lifecycle.p-fpi-006a
-    kind: rule
-    lifecycle: removed
-    title: P-FPI-006 Avatar admission and visibility
-    reason: Removed with the registry row and ordinary Apps visibility contract; Avatar remains a local first-party projection Consumer under its owning authority.
-  - id: rule.nimi.platform.product-lifecycle.p-fpi-006b
-    kind: rule
-    lifecycle: removed
-    title: P-FPI-006 Avatar registers before protected reads
-    reason: Removed because registry-backed launch registration is not current; protected reads still require verified local first-party identity and owning fail-closed projections.
-  - id: rule.nimi.platform.product-lifecycle.p-fpi-007
-    kind: rule
-    lifecycle: removed
-    title: P-FPI-007 no standalone ordinary-user truth
-    reason: Removed because ordinary-user App lifecycle and registry ownership are deferred; current scope admits only the explicit local-development flow.
-  - id: rule.nimi.platform.product-lifecycle.p-fpi-008
-    kind: rule
-    lifecycle: removed
-    title: P-FPI-008 Avatar kernel authority stays canonical
-    reason: Removed as a registry and migration integration duplicate; canonical Avatar ownership remains governed directly by the Avatar authority.
-  - id: rule.nimi.platform.product-lifecycle.p-fpm-002
-    kind: rule
-    lifecycle: removed
-    title: P-FPM-002 closed fail-closed migration states
-    reason: Removed with the first-party migration state set; no migration projection remains current.
-  - id: rule.nimi.platform.product-lifecycle.p-fpm-003
-    kind: rule
-    lifecycle: removed
-    title: P-FPM-003 no silent user-state reset
-    reason: Removed with the migration path; the pre-release hard cut does not retain a reset, compatibility loader, or automatic migration product behavior.
-  - id: rule.nimi.platform.product-lifecycle.p-fpm-004
-    kind: rule
-    lifecycle: removed
-    title: P-FPM-004 source-development marker boundary
-    reason: Removed as a registry-migration rule; current local-development admission is governed directly by host and protected-session configuration.
-  - id: rule.nimi.platform.product-lifecycle.p-fpm-005
-    kind: rule
-    lifecycle: removed
-    title: P-FPM-005 zero dual-track after cutover
-    reason: Removed because no ordinary-user dual track or Nimi-managed registry variant remains current after the pre-release hard cut.
   - id: rule.nimi.platform.product-lifecycle.p-cold-014-not-logged-in
     kind: rule
     title: P-COLD-014 not_logged_in transition closure from first-run-state-machine
@@ -1456,31 +1314,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.first-run-lifecycle
-  - id: rule.nimi.platform.product-lifecycle.p-cold-014-ai-environment-unconfigured
-    kind: rule
-    lifecycle: removed
-    title: Retired ai_environment_unconfigured first-run state
-    reason: Removed because AI environment configuration is orthogonal to Product Control first run and ready_for_use.
-  - id: rule.nimi.platform.product-lifecycle.p-cold-014-assets-missing
-    kind: rule
-    lifecycle: removed
-    title: Retired local_ai_profile_selected_assets_missing first-run state
-    reason: Removed because missing LocalAssets block only affected Local capability admission and no longer block Product Control first run.
-  - id: rule.nimi.platform.product-lifecycle.p-cold-014-environment-not-ready
-    kind: rule
-    lifecycle: removed
-    title: Retired local_ai_profile_selected_environment_not_ready first-run state
-    reason: Removed because Local execution environment state is Runtime-private or capability-specific and no longer blocks Product Control first run.
-  - id: rule.nimi.platform.product-lifecycle.p-cold-014-assets-downloaded
-    kind: rule
-    lifecycle: removed
-    title: Retired local_ai_assets_downloaded_environment_not_ready first-run state
-    reason: Removed because Local dependency activation state no longer participates in Product Control first run.
-  - id: rule.nimi.platform.product-lifecycle.p-cold-014-local-ai-ready
-    kind: rule
-    lifecycle: removed
-    title: Retired local_ai_ready first-run state
-    reason: Removed because the product exposes no aggregate Local AI readiness state and capability admission is evaluated per request.
   - id: rule.nimi.platform.product-lifecycle.p-cold-014-repair-required
     kind: rule
     title: P-COLD-014 repair_required transition closure from first-run-state-machine
@@ -1595,26 +1428,6 @@ units:
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.product-control-record
-  - id: rule.nimi.platform.product-lifecycle.p-cold-015-account-profile-ref
-    kind: rule
-    lifecycle: removed
-    title: P-COLD-015 product-control-record-schema accountDefaultProfileRef projection
-    reason: Product readiness no longer stores or verifies an Account Default Profile proof reference; profiles remain ordinary product configuration outside Product Control admission.
-  - id: rule.nimi.platform.product-lifecycle.p-cold-015-built-in-config-refs
-    kind: rule
-    lifecycle: removed
-    title: P-COLD-015 product-control-record-schema builtInAiConfigRefs projection
-    reason: Product readiness no longer stores or verifies built-in AIConfig proof references; scope configuration is initialized and validated by its ordinary product owner when consumed.
-  - id: rule.nimi.platform.product-lifecycle.p-cold-015-runtime-baseline-ref
-    kind: rule
-    lifecycle: removed
-    title: P-COLD-015 product-control-record-schema runtimeBaselineRef projection
-    reason: Product readiness consumes current Runtime materialization and activation-gate state directly and no longer mints or persists a duplicate baseline proof reference.
-  - id: rule.nimi.platform.product-lifecycle.p-cold-015-execution-evidence-ref
-    kind: rule
-    lifecycle: removed
-    title: P-COLD-015 product-control-record-schema executionEvidenceRef projection
-    reason: Product readiness no longer runs baseline capabilities to mint a durable proof; ordinary execution failures are handled by the owning feature after current Runtime activation readiness is admitted.
   - id: rule.nimi.platform.product-lifecycle.p-mig-006-directory-declarations
     kind: rule
     title: P-MIG-006 nimi-data-directory-ownership declaration closure

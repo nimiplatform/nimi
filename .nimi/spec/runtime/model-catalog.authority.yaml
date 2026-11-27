@@ -6,18 +6,10 @@ units:
     kind: definition
     title: Runtime model catalog plane
     meaning: The Runtime model catalog plane owns provider-scoped snapshot and source truth for models, voices, pricing, capabilities, and activation, together with catalog resolution order, overlay merge semantics, and lookup fail-close behavior for every catalog consumer.
-  - id: definition.nimi.runtime.model-catalog.local-resolver-plane
-    kind: definition
-    lifecycle: removed
-    title: Retired Runtime local resolver plane
-    reason: Removed because catalog and host fitness may recommend concrete LocalAssets but never resolve bindings, machine selection, admission, readiness, or execution routes.
   - id: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
     kind: definition
     title: Runtime local recipe and install recommendation plane
     meaning: The Runtime local recipe and install recommendation plane owns versioned catalog recipe metadata, concrete entry-level ModelAsset install offers with transfer integrity and stable Runtime-issued opaque offer references, per-Driver-slot non-binding content recommendations and Model Contract parameters, minimal pinned non-model RecipeCustody declarations, host and engine authoring requirements, and deterministic recommendation results; the versioned Driver dialect owns slot topology and fixed request or execution mapping, and catalog owns no download trigger, Loadout, binding, selection, admission, route, mutable execution fact, or Job truth.
-    relations:
-      - type: supersedes
-        target: definition.nimi.runtime.model-catalog.local-resolver-plane
   - id: definition.nimi.runtime.model-catalog.provider-metadata-plane
     kind: definition
     title: Runtime provider metadata plane
@@ -248,7 +240,7 @@ units:
     kind: rule
     title: Desktop speech bundle is a projection
     modality: must
-    statement: A Desktop local speech bundle projection reads only runtime catalog truth and runtime-owned asset and service truth, mints no second bundle catalog, bundle row, or generic local speech marketplace truth, never flattens the qwen3_asr and qwen3_tts family lines into one canonical install row, keeps its admitted scope fixed to baseline local speech, and never rewrites the catalog into an install truth owner from Desktop or shell helpers.
+    statement: Desktop projects baseline local speech bundles from Runtime catalog, asset and service facts. Keep qwen3_asr and qwen3_tts as separate install lines. Neither Desktop nor shell helpers own another catalog, install row or Local Speech marketplace.
     condition: Whenever Desktop projects admitted local speech rows as a user-facing bundle.
     failure: Reject second bundle truths and flattened or rewritten catalog rows.
     relations:
@@ -358,7 +350,7 @@ units:
     kind: rule
     title: Every model slot recommendation is independent
     modality: must
-    statement: Model content formerly described as a companion is an ordinary independent ModelAsset candidate listed under the exact Driver-projected slot metadata, never a child or identity component of another model; a recipe may recommend one or more content references per slot, including host-ranked alternatives, but makes no cross-slot training-compatibility guarantee, binding inheritance, grouped identity, selection, or download claim. A passive install-only ModelAsset offer retains its canonical model_type through catalog search and install-plan projections and may declare zero CapabilityContracts; product consumers use that model_type only to present and install the independent ModelAsset and never to infer Driver slot eligibility, cross-slot compatibility, selection, route, readiness, or execution support. RecipeCustody is a separate list limited to pinned non-model loader or execution supply and never contains a model, encoder, VAE, tokenizer data payload, or user-replaceable slot.
+    statement: Each model slot recommends independent ModelAsset offers using exact Driver-projected metadata. A recipe may rank alternatives for the host. No recommendation binds, groups or downloads assets, establishes parentage, or proves compatibility across slots. Search and install plans preserve an install-only offer’s canonical model_type, even with zero CapabilityContracts. Use it only to present or install that asset. It grants no slot eligibility, route, selection, readiness or execution support. RecipeCustody contains only pinned non-model loader or execution supplies. Models, encoders, VAEs, tokenizer data and replaceable slots remain independent.
     condition: Whenever slot recommendations or RecipeCustody are authored or consumed.
     failure: Reject parent-coupled companion identity, model-bearing custody, inherited or grouped bindings, catalog-defined slot requiredness, and recommendation presented as selection or compatibility proof.
     relations:

@@ -26,11 +26,6 @@ units:
     kind: definition
     title: Nimi Home degradation plane
     meaning: The degradation plane presents explicit owner-specific Runtime, Realm, account, configuration, derived-admission, and Job failure facts, keeps support and repair reachable, and prevents cached or partial state from masquerading as owner truth or aggregate Local AI readiness.
-  - id: definition.nimi.desktop.shell-runtime.self-update-plane
-    kind: definition
-    lifecycle: removed
-    title: Desktop self-update plane
-    reason: Removed because the pre-release Electron Desktop has no authorized self-update mechanism; release update authority will be designed with the distribution path.
   - id: definition.nimi.desktop.shell-runtime.network-plane
     kind: definition
     title: Desktop shell network boundary
@@ -195,11 +190,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-runtime.security-boundary
-  - id: rule.nimi.desktop.shell-runtime.r017
-    kind: rule
-    lifecycle: removed
-    title: Desktop update does not own Runtime update
-    reason: Removed with the unauthorized pre-release Desktop self-update path; Runtime service lifecycle remains independently owned.
   - id: rule.nimi.desktop.shell-runtime.r018
     kind: rule
     title: Shell networking cannot bypass owners

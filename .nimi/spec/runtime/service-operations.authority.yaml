@@ -340,11 +340,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.artifact-plane
-  - id: rule.nimi.runtime.service-operations.r032
-    kind: rule
-    lifecycle: removed
-    title: Retired Third-party App artifact permission and selector
-    reason: Removed because generic artifact reads are absent from the canonical Third-party App operation contract and no permission, selector, or hidden compatibility path remains.
   - id: rule.nimi.runtime.service-operations.r033
     kind: rule
     title: Artifact retrieval is a hard cut with distinct typed surfaces
@@ -779,16 +774,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.cli-plane
-  - id: rule.nimi.runtime.service-operations.r076
-    kind: rule
-    lifecycle: removed
-    title: Retired Runtime CLI generation targeting
-    reason: Removed because Runtime CLI is not an AIConfig owner and nimi run no longer exists as a high-level text-generation or request-scoped route, provider, or model selector.
-  - id: rule.nimi.runtime.service-operations.r077
-    kind: rule
-    lifecycle: removed
-    title: Retired Runtime CLI generation grammar
-    reason: Removed with nimi run; --local, --cloud, --provider, and --model carry no generation route, target, default, product authority, alias, or compatibility interpretation.
   - id: rule.nimi.runtime.service-operations.r078
     kind: rule
     title: Daemon-down CLI failures are actionable and redacted
@@ -799,16 +784,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.cli-plane
-  - id: rule.nimi.runtime.service-operations.r079
-    kind: rule
-    lifecycle: removed
-    title: Retired generation-triggered model installation
-    reason: Removed because a generation command no longer resolves a model, starts installation, or continues execution, and ModelAsset product operations are absent from Runtime CLI and remain on Desktop's verified protected surface.
-  - id: rule.nimi.runtime.service-operations.r080
-    kind: rule
-    lifecycle: removed
-    title: Retired high-level model and provider route grammar
-    reason: Removed because Runtime CLI has no model or provider namespace and protected ModelAsset and Connector product operations remain on Desktop's verified protected surface rather than acting as generation route or target selectors.
   - id: rule.nimi.runtime.service-operations.r081
     kind: rule
     title: Connector custody stays outside Runtime CLI

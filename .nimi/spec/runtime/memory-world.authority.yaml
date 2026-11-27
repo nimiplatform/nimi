@@ -2,26 +2,6 @@ format: nimicoding.authority/v2
 owner: team.runtime
 scope: runtime.memory-world
 units:
-  - id: definition.nimi.runtime.memory-world.canonical-memory-plane
-    kind: definition
-    lifecycle: removed
-    title: Retired Runtime LocalAgent operational Memory plane
-    reason: Removed because Cognition now solely owns LocalAgent long-term Memory canonical state, provenance, lifecycle, recall, and derived indexes while Runtime retains only mediation responsibilities.
-  - id: definition.nimi.runtime.memory-world.memory-service-plane
-    kind: definition
-    lifecycle: removed
-    title: Retired Runtime Memory service plane
-    reason: Removed because Runtime no longer provides or owns a long-term Memory service and exposes only an authorized mediation facade to Cognition Memory.
-  - id: definition.nimi.runtime.memory-world.memory-substrate-plane
-    kind: definition
-    lifecycle: removed
-    title: Retired Runtime Memory substrate boundary
-    reason: Removed because long-term Memory storage, indexing, migration, and lifecycle substrate are Cognition-private rather than Runtime-private.
-  - id: definition.nimi.runtime.memory-world.knowledge-plane
-    kind: definition
-    lifecycle: removed
-    title: Retired Runtime LocalAgent operational Knowledge plane
-    reason: Removed because Cognition is the sole long-term Knowledge owner and Knowledge has no active V1 Runtime turn, prompt, or generic product surface.
   - id: definition.nimi.runtime.memory-world.memory-mediation-plane
     kind: definition
     title: Runtime LocalAgent Memory mediation plane
@@ -154,7 +134,7 @@ units:
     kind: rule
     title: Mutation and deletion are owner confirmed
     modality: must
-    statement: "Runtime reports Memory correction, forget, delete-all, Agent termination, or admitted account deletion success only after every required Cognition and Runtime owner phase commits or is already absent, and retry remains idempotent according to the opaque owner operation contract without changing Realm source, committed Conversation, or another Agent. V1 terminal subject cleanup always returns typed unsupported before custody or mutation; if future additive authority admits it, success likewise requires every newly specified owner and barrier phase to commit or be already absent. For an admitted Memory forget or deletion, completion includes the corresponding Nimi-controlled execution-copy disposition: Cognition determines the target and Runtime independently disposes its exact Job-side content before confirming required local cleanup, retaining only non-content facts and nonrecoverable lineage. Disabling Memory preserves established canonical Memory while retiring ineligible execution and its unnecessary copies under the existing cutoff; it is not delete-all."
+    statement: Confirm Memory correction, forget, delete-all, Agent termination or admitted account deletion only after all required Cognition and Runtime phases have committed or are already absent. Retries follow the opaque owner operation and preserve Realm sources, committed Conversation and unrelated Agents. V1 terminal subject cleanup returns typed unsupported before custody or mutation. Any later admitted terminal cleanup must complete its owner and barrier phases. Cognition selects the content to forget. Runtime independently disposes its corresponding Job-side copies before reporting required local cleanup and retains only non-content facts and nonrecoverable lineage. Disabling Memory keeps established canonical Memory and retires ineligible execution and unneeded copies under the cutoff.
     condition: Whenever Memory or Knowledge lifecycle intent executes.
     failure: Return the typed failure or pending state without changing Conversation or unrelated owner truth.
     relations:

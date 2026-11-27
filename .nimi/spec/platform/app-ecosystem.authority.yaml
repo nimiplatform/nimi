@@ -328,45 +328,14 @@ units:
         target: definition.nimi.platform.app-ecosystem.agent-manager-snapshot
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.projection-lifecycle
-  - id: definition.nimi.platform.app-ecosystem.app-permission
-    kind: definition
-    lifecycle: removed
-    title: Retired App permission
-    reason: Removed because Third-party App access now comes only from the registered declaration and fresh Effective App Access Snapshot, with no per-capability permission, request, approval, revocation, or settings lifecycle.
-  - id: definition.nimi.platform.app-ecosystem.permission-grant
-    kind: definition
-    lifecycle: removed
-    title: Retired permission grant
-    reason: Removed because App declaration coverage is derived into a session snapshot and never materializes a durable PermissionGrant or user decision state.
-  - id: definition.nimi.platform.app-ecosystem.agents-configure-operation-family
-    kind: definition
-    lifecycle: removed
-    title: Retired agents.configure operation family
-    reason: Removed because the initial App operation contract contains no shared Runtime LocalAgent AIConfig, autonomy, or presentation operations and introduces no per-Agent permission family.
   - id: definition.nimi.platform.app-ecosystem.agent-configuration-operation-family
     kind: definition
     title: App agent configuration operation family
     meaning: The agent configuration operation family is the bounded agent.configure App operation set runtime.agent.manager.snapshot.get, runtime.agent.ai-config.get, runtime.agent.ai-config.overwrite, runtime.agent.ai-config.options.list, runtime.agent.autonomy.snapshot.get, runtime.agent.autonomy.update, runtime.agent.conversation-context.update, runtime.agent.presentation.snapshot.get, runtime.agent.presentation.commit, runtime.agent.memory.inspect, runtime.agent.memory.correct, runtime.agent.memory.forget, runtime.agent.memory.switch, and runtime.agent.memory.delete; the shared account-scoped Runtime LocalAgent subsystem AIConfig operations resolve the singular subsystem owner without an Agent handle and expose the canonical record, compare-and-swap mutation, lightweight effective selected-resource projection, one bounded current machine-selected Local projection, bounded safe Cloud Connector and target options, shared-owner preset voice options, or bounded bindable custom VoiceAsset options derived from the current session account-plus-App owner through canonical ListVoiceAssets truth, and for Get and Overwrite one fixed Runtime-owned LocalAgent capability-role participation projection independent of configured intent, while custom VoiceAsset selection commits only through the separately handle-addressed presentation operation and neither the shared AIConfig nor agent.configure creates, deletes, re-owns, or crosses an App boundary for a VoiceAsset; the handle-addressed presentation snapshot and commit operations also project and atomically mutate the zero-or-one Zhiyu-targeted LocalAgent Resource Pack selection, including the byte-snapshot compare-and-swap commit used by canonical AgentCenter for same-reviewed-byte Apply and selection-only Clear, without adding an AppOperationId, while bounded current selected-resource reads remain beneath the same presentation authorization; the bounded manager snapshot plus autonomy, presentation, and Memory operations are addressed by the session-scoped opaque Agent reference handle, preserve only their owner-specific concurrency and typed conflict semantics, and keep Cognition as long-term Memory canonical owner, all without a secondary access state, raw identity sideband, first-party inspect path, per-Agent AIConfig or per-Agent Cloud override, App-owned shadow carrier, Connector credential, endpoint, generic Connector operation, or second participation catalog. Conversation context selection is one handle-and-anchor-bound manager mutation with an expected revision; the bounded manager snapshot exposes its current range, supplemental-context choice, revision, committed count and safe recommendation without private context.
-    relations:
-      - type: supersedes
-        target: definition.nimi.platform.app-ecosystem.agents-configure-operation-family
-  - id: definition.nimi.platform.app-ecosystem.ai-text-generate-operation-family
-    kind: definition
-    lifecycle: removed
-    title: Retired ai.text.generate permission family
-    reason: Removed because runtime.ai.text-candidate.generate is one exact runtime.consume App operation in the single canonical App operation contract rather than a separate permission or operation-family catalog.
-  - id: definition.nimi.platform.app-ecosystem.app-authority-class
-    kind: definition
-    lifecycle: removed
-    title: Retired App action authority classes
-    reason: Removed because the supported App surface now uses only the closed Base and AppAccess operation mapping while App-owned native behavior remains outside Nimi access semantics.
   - id: definition.nimi.platform.app-ecosystem.registered-app-subject
     kind: definition
     title: Registered App subject
     meaning: A registered App subject is the stable Runtime-derived formal protected App security subject for one canonical App registration in its Runtime-owned durable registration owner scope, including separately admitted installed, immutable local-import, Developer-Mode, bundled, platform and Registry-admitted remote App sources; preserved canonical registration and subject bytes remain owner truth across root copy or reselection, the current product may reopen them only through an exact owner-validated current-host binding that already exists for that registration, and another host without an admitted owner-issued reopen selector keeps them inactive and unavailable rather than inferring, reminting, or merging the subject; durable provenance lineage and declaration and source generations remain preserved registration facts, and current local OS-user access scope, current Account and its private-storage partition, display identity, Host-control principal, Desktop launch witness, native profile or trust class, process, credential, protected session, and Effective App Access Snapshot remain distinct and are freshly derived or validated as applicable.
-    relations:
-      - type: supersedes
-        target: definition.nimi.platform.app-ecosystem.local-app-principal
   - id: definition.nimi.platform.app-ecosystem.agent-center-resource-pack-placement
     kind: definition
     title: Bounded AgentCenter Resource Pack placement
@@ -374,16 +343,11 @@ units:
   - id: definition.nimi.platform.app-ecosystem.app-access-domain
     kind: definition
     title: App access domain
-    meaning: The closed AppAccess domain set is exactly realm.data, runtime.consume, agent.local, agent.session.manage, agent.companion, agent.acquire, agent.configure, agent.utopia.read, agent.utopia.manage, app.activity, agent.work, agent.body.pc, agent.body.app, agent.trigger.delegate, integration.consume, integration.provide, and integration.manage; a declaration names domains rather than permissions, grants, operations, resources, or owner-internal policy, Runtime admits os.pc.* capability scope to any local formal App whose Effective App Access Snapshot activates agent.body.pc under single-active-subject exclusive carrier lease fencing (keyed by Registered App Subject without silent cross-subject preemption), agent.body.app carriers are confined to app.<app_id>.* under the same non-privileged subject isolation, and Base operations require no declared domain.
+    meaning: The 15 primary AppAccess domains are realm.data, runtime.consume, agent.local, agent.acquire, agent.configure, agent.utopia.read, agent.utopia.manage, app.activity, agent.work, agent.body.pc, agent.body.app, agent.trigger.delegate, integration.consume, integration.provide and integration.manage. The additional declaration domain agent.session.manage qualifies management of sessions admitted under agent.local and alarms admitted under agent.trigger.delegate. The additional agent.companion domain qualifies companion session access under agent.local. Neither domain admits an operation by itself. Declarations admit domain names only, never permissions, grants, operations, resources or owner policy. Base operations require none. Runtime admits os.pc.* only to local formal Apps with effective agent.body.pc coverage and an exclusive single-active-subject lease without silent preemption. App Body carriers also enforce subject isolation and are limited to app.<app_id>.*.
   - id: definition.nimi.platform.app-ecosystem.current-user-display-projection
     kind: definition
     title: Current User Display Projection
     meaning: The App-facing Current User Display Projection is a Host-carried SDK bootstrap projection outside the closed App Operation Contract and AppAccess domains, contains exactly handle, displayName, and nullable avatarUrl from the current Account owner projection, requires any present avatarUrl to be a safe-display URL containing no bearer, token, private signature, credential-like query, internal endpoint, or local sensitive path, and carries no internal account identity, token, session, generation, policy, credential, or authorization material.
-  - id: definition.nimi.platform.app-ecosystem.local-app-principal
-    kind: definition
-    lifecycle: removed
-    title: Retired local App principal term
-    reason: Removed because registered-app-subject is the sole current stable Runtime-derived formal protected App security-subject definition and no principal alias or parallel identity remains.
   - id: definition.nimi.platform.app-ecosystem.local-app-provenance
     kind: definition
     title: Local app provenance
@@ -392,11 +356,6 @@ units:
     kind: definition
     title: Protected-local transport
     meaning: Protected-local transport is the per-user Runtime boundary that binds the connected native peer to Desktop's current exact Host launch witness and then creates a fresh protected session for Runtime-owned App, account, snapshot, and operation admission; the peer check proves only the exact Desktop-launched Host connection and is not binary or mutable-project integrity, OS sandboxing, complete process attestation, machine identity, or long-lived authorization lineage.
-  - id: definition.nimi.platform.app-ecosystem.executable-trust-set
-    kind: definition
-    lifecycle: removed
-    title: Executable trust set
-    reason: Removed because native admission now validates the current operating-system peer directly and no product-level executable trust-set record remains.
   - id: definition.nimi.platform.app-ecosystem.macos-protected-admission
     kind: definition
     title: macOS per-user protected admission
@@ -433,176 +392,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.current-user-display-projection
-  - id: rule.nimi.platform.app-ecosystem.p-perm-001
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-001 canonical product permission vocabulary
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-002a
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-002 closed catalog and current admission
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-002b
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-002 no partial permission admission
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-003a
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-003 public posture and app request boundary
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-003b
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-003 durable owner lifecycle
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-003c
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-003 denial carrier precision
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-004a
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-004 owner audit binding
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-004b
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-004 no secret-bearing or coalesced audit
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-005a
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-005 fail-closed user permission evaluation
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-005b
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-005 bounded base entitlement
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-005c
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-005 non-forgeable one-shot consent
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-006
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-006 owner-brokered cross-app resource
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-007a
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-007 exact public request shapes
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-007b
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-007 no internal authorization fields on public surfaces
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-008
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-008 AI metering is mandatory owner policy
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-009
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-009 first-party entitlements stay distinct
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-010
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-010 decision-owner boundaries
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-011a
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-011 app-private storage authority
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-011b
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-011 external files remain picker-bound
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-012
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-012 preferences do not mint permission
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-013a
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-013 local identity and permission separation
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-013b
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-013 future Runtime permission binding
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-014
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-014 source materialization is first-party
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-015a
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-015 closed mutually exclusive authority classes
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-015b
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-015 no protected-operation relabeling
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-016a
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-016 public intent with exact internal enforcement
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-016b
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-016 no internal-resource approval UX
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-017a
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-017 atomic owner-complete admission
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-017b
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-017 bounded permission UX
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-019a
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-019 agents.configure dependency and semantic boundary
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-019b
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-019 closed configure operation mapping
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-019c
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-019 atomic configure publication
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-020a
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-020 closed foreground text candidate mapping
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
-  - id: rule.nimi.platform.app-ecosystem.p-perm-020b
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-020 atomic foreground text publication
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
   - id: rule.nimi.platform.app-ecosystem.p-napp-030a
     kind: rule
     title: P-NAPP-030 complete listing-closure field set
@@ -657,31 +446,11 @@ units:
         target: definition.nimi.platform.app-ecosystem.local-app-provenance
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.registered-app-subject
-  - id: rule.nimi.platform.app-ecosystem.p-napp-035b
-    kind: rule
-    lifecycle: removed
-    title: Retired P-NAPP-035 bound development consent and permission requirements
-    reason: Removed because local development has no run_once or allow_project consent, project authorization, durable consent store, permission or capability fingerprint, or project-level access state.
-  - id: rule.nimi.platform.app-ecosystem.p-napp-035c
-    kind: rule
-    lifecycle: removed
-    title: Retired P-NAPP-035 lease renewal and consent invalidation
-    reason: Removed because local development has no run_once or allow_project consent, project authorization, durable consent store, permission or capability fingerprint, or project-level access state.
-  - id: rule.nimi.platform.app-ecosystem.p-napp-035d
-    kind: rule
-    lifecycle: removed
-    title: Retired P-NAPP-035 stable protected consent custody
-    reason: Removed because local development has no run_once or allow_project consent, project authorization, durable consent store, permission or capability fingerprint, or project-level access state.
-  - id: rule.nimi.platform.app-ecosystem.p-napp-035e
-    kind: rule
-    lifecycle: removed
-    title: Retired P-NAPP-035 zero-permission app authority remains valid
-    reason: Removed because local development has no run_once or allow_project consent, project authorization, durable consent store, permission or capability fingerprint, or project-level access state.
   - id: rule.nimi.platform.app-ecosystem.p-napp-035f
     kind: rule
     title: P-NAPP-035 development host custody and disclosure
     modality: must
-    statement: Controlled-account development remains Runtime-mediated and receives no token, bearer, portable authority, persistent managed logon, or boot autostart; UI discloses that Nimi App access does not constrain the ordinary OS rights of native code, renderer receives no raw account, credential, partition, internal peer proof, or generic protected proxy, and exact Electron or Tauri App-owned host commands remain outside Nimi protected-operation semantics.
+    statement: Runtime mediates controlled-account development without a token, bearer, portable authority, persistent managed logon or boot autostart. The UI discloses that Nimi App access governs only Nimi-mediated operations. Granting or withdrawing that access does not change the ordinary OS rights of native code running as the user. The renderer receives no raw account, credential, partition, internal peer proof or generic protected proxy. App-owned host commands remain outside Nimi protected-operation semantics.
     condition: Whenever a local-development host is launched or its authority is disclosed.
     failure: Deny secret, peer-proof, or generic-proxy exposure and present the applicable OS-rights disclosure without terminating the App merely because Nimi access is unavailable.
     relations:
@@ -971,7 +740,7 @@ units:
     kind: rule
     title: P-NAPP-012 canonical identity syntax and native bundle mapping
     modality: must
-    statement: A product has one 3–120 character canonical app_id shared across its carriers. app_id is lowercase dot-separated with segments starting and ending in ASCII lowercase letters or digits and containing only internal lowercase letters, digits, or hyphens, underscore is forbidden, and an Electron or Tauri native bundle identifier is only an OS bundle, signing, and update identifier derived exactly as ai.nimi.apps.<app_id> without AI semantics; for a managed-web App hosted by Nimi's shared desktop carrier, the shared carrier retains its Nimi product bundle identifier while ai.nimi.apps.<app_id> serves only as OS presentation identity such as Windows AppUserModelId without granting Home control identity.
+    statement: A product has one 3–120 character canonical app_id shared across its carriers. app_id is lowercase dot-separated with segments starting and ending in ASCII lowercase letters or digits and containing only internal lowercase letters, digits, or hyphens, underscore is forbidden, and the native bundle identifier is only an OS bundle, signing, and update identifier derived exactly as ai.nimi.apps.<app_id> without AI semantics; for a managed-web App hosted by Nimi's shared desktop carrier, the shared carrier retains its Nimi product bundle identifier while ai.nimi.apps.<app_id> serves only as OS presentation identity such as Windows AppUserModelId without granting Home control identity. App Tools uses the derived nativeBundleIdentifier in scaffold identity and Electron packaging. The current scaffold accepts no second host-specific identity field. A tooling-field change preserves the existing app_id and native bundle identifier.
     condition: Whenever app_id or a native shell bundle identifier is admitted.
     failure: Reject invalid syntax or a non-derived or overloaded bundle identifier.
     relations:
@@ -1073,11 +842,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.release-descriptor
-  - id: rule.nimi.platform.app-ecosystem.p-napp-019a
-    kind: rule
-    lifecycle: removed
-    title: Retired P-NAPP-019 immutable package lifecycle non-admission
-    reason: Removed because package-lifecycle state truth and the six-field Runtime identity seam are governed by P-NAPP-019b and P-NAPP-040; removal does not make install, update, repair, uninstall, or installed readiness currently available.
   - id: rule.nimi.platform.app-ecosystem.p-napp-019b
     kind: rule
     title: P-NAPP-019 frozen schema and non-local metadata
@@ -1108,11 +872,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.publisher-identity
-  - id: rule.nimi.platform.app-ecosystem.p-napp-022
-    kind: rule
-    lifecycle: removed
-    title: Retired P-NAPP-022 Nimi artifact mirror requirement
-    reason: Removed because the publisher immutable GitHub Release is the sole canonical third-party artifact origin, the static registry stores only reviewed references and metadata, and a Nimi mirror or rebuild would create a forbidden second artifact owner.
   - id: rule.nimi.platform.app-ecosystem.p-napp-023
     kind: rule
     title: P-NAPP-023 third-party build assurance
@@ -1293,11 +1052,6 @@ units:
         target: definition.nimi.platform.app-ecosystem.registered-app-subject
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.host-technical-profile
-  - id: rule.nimi.platform.app-ecosystem.p-napp-038
-    kind: rule
-    lifecycle: removed
-    title: Retired P-NAPP-038 public App lifecycle deferral
-    reason: Removed because source-specific lifecycle semantics are governed by P-NAPP-040; removal did not itself activate public catalog discovery or the ordinary install, update, installed launch, repair, and uninstall lifecycle, whose current availability is stated by P-NAPP-040a.
   - id: rule.nimi.platform.app-ecosystem.p-napp-039
     kind: rule
     title: P-NAPP-039 stable trust-tier transitions
@@ -1324,8 +1078,6 @@ units:
         target: definition.nimi.platform.app-ecosystem.app-local-lifecycle-projection
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.local-app-provenance
-      - type: supersedes
-        target: rule.nimi.platform.app-ecosystem.p-napp-038
   - id: rule.nimi.platform.app-ecosystem.p-napp-040b
     kind: rule
     title: P-NAPP-040 atomic package lifecycle jobs
@@ -1340,8 +1092,6 @@ units:
         target: definition.nimi.platform.app-ecosystem.app-local-lifecycle-projection
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.managed-web-desktop-carrier
-      - type: supersedes
-        target: rule.nimi.platform.app-ecosystem.p-napp-019a
   - id: rule.nimi.platform.app-ecosystem.p-napp-040c
     kind: rule
     title: P-NAPP-040 lifecycle owner and state separation
@@ -1506,11 +1256,6 @@ units:
         target: definition.nimi.platform.app-ecosystem.registry-row
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.review-decision
-  - id: rule.nimi.platform.app-ecosystem.p-perm-018
-    kind: rule
-    lifecycle: removed
-    title: Retired P-PERM-018 closed permission catalog row schema
-    reason: Removed with the per-capability App permission, grant, request, approval, revocation, and settings model; any still-current safety invariant is expressed by the declaration, session snapshot, exact operation contract, or canonical owner rule.
   - id: rule.nimi.platform.app-ecosystem.p-audit-001
     kind: rule
     title: P-AUDIT-001 admission outcomes preserve required truth
@@ -1603,16 +1348,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.release-descriptor
-  - id: rule.nimi.platform.app-ecosystem.p-dev-006
-    kind: rule
-    lifecycle: removed
-    title: Retired P-DEV-006 production Developer Mode security boundary
-    reason: Removed because local development has no run_once or allow_project consent, project authorization, durable consent store, permission or capability fingerprint, or project-level access state.
-  - id: rule.nimi.platform.app-ecosystem.p-dev-006b
-    kind: rule
-    lifecycle: removed
-    title: Retired P-DEV-006 production Developer Mode revocation and custody
-    reason: Removed because local development has no run_once or allow_project consent, project authorization, durable consent store, permission or capability fingerprint, or project-level access state.
   - id: definition.nimi.platform.app-ecosystem.scaffold-custody
     kind: definition
     title: Scaffold authoring and custody boundary
@@ -1657,8 +1392,8 @@ units:
     kind: rule
     title: P-SCAF-002 accepted bootstrap command and dependency boundaries
     modality: must
-    statement: Third-party repository authoring, development, build, packaging, and managed workflow preparation remain under the exact nimi-app command family defined by P-SCAF-008, local publish remains unavailable, and publisher pull-request preparation uses the Registry owner path; desktop App execution supports both the default managed-web shared desktop carrier (requiring no Electron or Kit Node native binding dependencies inside the App repository) and the first-class custom native Electron carrier on Windows x64 and macOS arm64. Native Electron Apps consume Kit prebuilt Node bindings without Rust, Cargo or the Tauri CLI. The platform builds the shared Rust core and bindings from source. Tauri host support is deferred and its independent crate channel is outside the standard Electron npm release chain. Workspace consumption remains a non-public validation topology.
-    condition: Whenever the app-authoring command or Rust-shell dependency surface is selected.
+    statement: P-SCAF-008 defines the closed nimi-app command family for authoring, developing, building and packaging third-party Apps and preparing managed workflows. Publisher pull requests go through the Registry owner. Local publish is unavailable. On Windows x64 and macOS arm64 the default managed-web desktop carrier needs no App-local Electron or Kit native dependency. Custom native Electron Apps use Kit’s prebuilt Node bindings without a Rust or Cargo toolchain. The platform builds the shared Rust core and bindings. Workspace consumption is limited to non-public validation.
+    condition: Whenever an App authoring command, desktop carrier or native dependency is selected.
     failure: Reject a Runtime CLI takeover, unadmitted publication claim, or dependency path outside the applicable boundary.
     relations:
       - type: applies_to
@@ -1825,7 +1560,7 @@ units:
     kind: rule
     title: P-SCAF-018 production path and bypass prohibition
     modality: must
-    statement: The native protected-development command requests official Developer Mode tooling and Desktop launch and receives only truthful lifecycle or operation results; Windows and macOS use the common per-user non-elevated Runtime path with their thin native peer adapters, while direct Tauri or Electron process launch, generic proxy, token custody, App-owned admission, caller-selected Runtime inputs, private launchers, registration bypasses, project consent, and renderer-only protected success remain forbidden.
+    statement: The native protected-development command requests official Developer Mode tooling and Desktop launch and receives only truthful lifecycle or operation results; Windows and macOS use the common per-user non-elevated Runtime path with their thin native peer adapters, while direct process launch, generic proxy, token custody, App-owned admission, caller-selected Runtime inputs, private launchers, registration bypasses, project consent, and renderer-only protected success remain forbidden.
     condition: Whenever native Desktop local development attempts to reach protected operations.
     failure: Fail the exact protected session or operation closed, route official protected development through Desktop and the common Runtime path, and return typed unavailable rather than protected success from an unverified Host path.
     relations:
@@ -1835,7 +1570,7 @@ units:
     kind: rule
     title: P-SCAF-018 synchronization preserves app custody
     modality: must
-    statement: nimi-app sync keeps official launcher, the selected dependency combination, managed workflow, and package-contract references deterministic and never overwrites app-owned product files; NIMI_APP.md, README.md and SECURITY.md belong to the App after initial creation; create supplies an honest starter introduction and the App maintains its actual user content, sync never overwrites or recreates NIMI_APP.md, and explicit sync transfers the older README.md and SECURITY.md paths from earlier scaffold-managed locks without rewriting, recreating, or deleting their contents, and releases only the known retired Tauri template paths on the same terms, while check requires the ownership transfer before accepting the old lock; fresh create uses the tool default SDK and Kit combination, an existing App keeps its current SDK and Kit combination when it is one of the limited verified combinations app-tools declares, sync preserves that combination and its matching glue while synchronizing the app-tools and nimi-coding tool dependencies separately, manifest, lock, glue, build, pack and workflow checks share one combination judgment that rejects an unlisted SDK and Kit pairing instead of accepting arbitrary pairings or adding compatibility shims, and a declaration change never changes the selected combination; App Tools accepts the running compatible patch within the App’s bounded declared tool range. Equivalent SDK and Kit ranges and exact selections within the same verified combination retain their declarations and associated native contract. A tooling update retains differing SDK-bound renderer and Host sources for a maintained combination only when their recorded paths, ownership, contract and content hashes agree. An explicit unsupported selection or incompatible Host migration requires author action. Sync previews tool and SDK/Kit declaration changes and the locked versions affected by known toolchain security fixes. It raises supported Vite and Electron floors within the App’s existing bounds, leaves an incompatible pin for explicit migration, and relies on pnpm to resolve the lockfile; check rejects a known affected direct resolution. Standalone external Apps retain registry version declarations while development may explicitly resolve selected Nimi packages and Kit-owned native dependencies from complete local npm tarballs through pnpm-workspace overrides, with sync preserving those package choices and check verifying matching lock resolutions and installed package identities and versions without requiring publication; directory, workspace, link, and parent-source overrides remain forbidden, production release preflight requires registry resolutions, and local package testing creates no release or Registry truth; the Nimi Lab workspace validation topology allowed by P-SCAF-002 remains separate and all consumers use the same Kit and Runtime product boundaries; existing-App adoption retains App-owned Host and business code without fabricating fresh scaffold intent or lock, while fresh scaffold upgrades preserve immutable identity and direct feature inputs and recompute glue and other derived projections from the selected tool version for the App's retained SDK and Kit combination, moving to another listed combination only when the App selects it. The submitted app_access declaration is App-authored in both fresh and adopted projects; sync preserves it, check validates the declaration vocabulary and shape, and immutable scaffold feature selection supplies initial defaults rather than permanently fixing the App’s declaration. A changed declaration still requires a new Runtime registration generation and never changes current-session access.
+    statement: nimi-app sync maintains deterministic official launcher glue, managed workflows and package references. NIMI_APP.md, README.md and SECURITY.md are App-owned after creation. Create supplies an accurate starter introduction. The App maintains its actual content. Sync preserves these files and never recreates the introduction. For older managed locks, explicit sync hands the README, security policy and only the identified retired host template paths to the App without rewriting, recreating or deleting them. Check requires that handover. Fresh projects use the default verified SDK and Kit combination. Existing Apps keep their declared ranges, matching native contract and glue for a listed combination. Only an explicit App selection may change combinations. Manifest, lock, glue, build, pack and workflow checks use the same allowlist. An unlisted pairing or incompatible Host migration requires author action. App Tools may run a compatible patch within the App’s tool range and sync its own and nimi-coding’s dependencies independently. Retained SDK-bound Host and renderer files must match their recorded path, ownership, contract and hash. Sync previews changed tool and SDK/Kit declarations and affected locked versions. It raises supported Vite and Electron floors within declared bounds and leaves incompatible pins for explicit migration. Lockfile resolution belongs to pnpm. Check rejects a known affected direct resolution. Standalone Apps declare registry versions. For development, explicit pnpm-workspace overrides may select complete Nimi tarballs and Kit-owned native dependencies. Sync preserves the selection and check verifies installed and locked identities and versions. Directory, workspace, link and parent-source overrides are forbidden. Production preflight requires registry resolutions. Testing locally grants no publication or Registry status. Lab workspace validation follows P-SCAF-002. All consumers use the same Kit and Runtime boundaries. Adoption retains App-owned Host and business code without creating scaffold intent or lock. Fresh scaffold upgrades preserve immutable identity and direct features and regenerate derived glue for the selected tool and retained SDK/Kit combination. In either project, app_access is App-authored. Features supply initial defaults. Sync preserves the declaration, check validates its vocabulary and shape, and changes take effect only with a new Runtime registration generation.
     condition: Whenever launcher glue is synchronized or consumed.
     failure: Reject non-deterministic glue, product-file overwrite, or consumer-specific authority bypass.
     relations:
@@ -1899,11 +1634,6 @@ units:
         target: definition.nimi.platform.app-ecosystem.ecosystem-economy-boundary
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.mod-extension-retirement
-  - id: rule.nimi.platform.app-ecosystem.p-eco-002
-    kind: rule
-    lifecycle: removed
-    title: Retired P-ECO-002 public registry onboarding deferral
-    reason: Removed because the canonical registry onboarding contract is governed by P-ECO-002b; removal does not make registry onboarding, registry admission, or ordinary-user installation available, while pilot publisher GitHub Release availability is governed separately by P-SCAF-009b and P-ECO-002b.
   - id: rule.nimi.platform.app-ecosystem.p-eco-002b
     kind: rule
     title: P-ECO-002 canonical public registry onboarding
@@ -1916,8 +1646,6 @@ units:
         target: definition.nimi.platform.app-ecosystem.catalog-admission
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.registry-row
-      - type: supersedes
-        target: rule.nimi.platform.app-ecosystem.p-eco-002
   - id: rule.nimi.platform.app-ecosystem.p-eco-003
     kind: rule
     title: P-ECO-003 closed trust-tier expansion

@@ -22,18 +22,10 @@ units:
     kind: definition
     title: Desktop error boundary
     meaning: The Desktop error boundary converts Desktop-local bridge and operating-system failures and SDK-projected Runtime ReasonCodes into structured NimiError and explicit localized failure presentation while preserving upstream reason, trace, retry, credential-scrubbing, and fail-closed semantics.
-  - id: definition.nimi.desktop.shell-ui.developer-tools
-    kind: definition
-    lifecycle: removed
-    title: Retired Desktop Developer Tools surface
-    reason: Removed because the pre-release Desktop now single-homes Developer Mode control and local-development operations in Settings > Developer while technical diagnostics remain in Support.
   - id: definition.nimi.desktop.shell-ui.developer-mode-settings
     kind: definition
     title: Desktop Developer Mode settings surface
     meaning: Settings > Developer is the single discoverable Desktop entry for Developer Mode, keeps its enable, disable, and current-state control visible, and presents typed local-development registration, tooling, App Host, and Nimi access facts in the same page only while the mode is enabled without creating a Registered App Subject, protected session, Effective App Access Snapshot, or Runtime authority.
-    relations:
-      - type: supersedes
-        target: definition.nimi.desktop.shell-ui.developer-tools
   - id: definition.nimi.desktop.shell-ui.telemetry
     kind: definition
     title: Desktop renderer telemetry surface
@@ -444,7 +436,7 @@ units:
     kind: rule
     title: Local-app launch remains Desktop verified and renderer safe
     modality: must
-    statement: Desktop launches or focuses the exact App Host selected by the current registered source, for an ordinary verified Windows target completes launch only when Desktop and the exact child are in the same current user and session and both are non-elevated without invoking an elevation path, correlates the connected native peer with that exact launch, and opens or revalidates a fresh Runtime protected App session whose access comes only from the current Registered App Subject, declaration generation, Effective App Access Snapshot, and central App Operation Contract; when exact Host creation does not complete because of an operating-system policy, elevation requirement, unreadable execution context, or another process-start failure, Desktop returns os-policy-blocked only from direct policy evidence, elevation-required only from the corresponding direct result, and otherwise process-start-failed, preserves installed truth, creates no running, launch-witness, session, or App Access truth, and never instructs the user to disable platform protection; for the bounded AgentCenter Resource Pack placement Desktop accepts only a direct-user request to the exact registered Zhiyu App plus a Host-private non-authorizing one-use placement correlation derived without transferring the source Agent handle, returns typed lifecycle readiness or failure, transfers no source session, owner authority, raw identity, candidate bytes, or correlation to either App, and does not claim destination product readiness until the Zhiyu protected session and current Agent target are independently resolved; Desktop and the renderer otherwise expose only typed App-running, Nimi-access, and official-tooling facts plus supported SDK results, and neither a particular Electron or Tauri topology nor a durable access state is required by the product contract.
+    statement: Desktop launches or focuses the exact App Host selected by the current registered source, for an ordinary verified Windows target completes launch only when Desktop and the exact child are in the same current user and session and both are non-elevated without invoking an elevation path, correlates the connected native peer with that exact launch, and opens or revalidates a fresh Runtime protected App session whose access comes only from the current Registered App Subject, declaration generation, Effective App Access Snapshot, and central App Operation Contract; when exact Host creation does not complete because of an operating-system policy, elevation requirement, unreadable execution context, or another process-start failure, Desktop returns os-policy-blocked only from direct policy evidence, elevation-required only from the corresponding direct result, and otherwise process-start-failed, preserves installed truth, creates no running, launch-witness, session, or App Access truth, and never instructs the user to disable platform protection; for the bounded AgentCenter Resource Pack placement Desktop accepts only a direct-user request to the exact registered Zhiyu App plus a Host-private non-authorizing one-use placement correlation derived without transferring the source Agent handle, returns typed lifecycle readiness or failure, transfers no source session, owner authority, raw identity, candidate bytes, or correlation to either App, and does not claim destination product readiness until the Zhiyu protected session and current Agent target are independently resolved; Desktop and the renderer otherwise expose only typed App-running, Nimi-access, and official-tooling facts plus supported SDK results, and neither a particular shell topology nor a durable access state is required by the product contract.
     condition: Whenever Desktop presents or performs local-app launch.
     failure: Reject unverified launch, focus, placement, or protected access; reject target readiness inferred from process existence, source-handle transfer or reuse, an exposed or reusable placement correlation, a generic target-App launcher, an App-private launch bridge, candidate-byte transfer, or destination action before typed ready; preserve exact operating-system or process-start failure and independent installed, running, and Access state; and prevent renderer exposure of account authority, credential, subject, principal, decision, endpoint, launch witness, session, snapshot, or internal operation material without treating access failure as automatic App termination.
     relations:
@@ -662,11 +654,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.home-shell
-  - id: rule.nimi.desktop.shell-ui.r058
-    kind: rule
-    lifecycle: removed
-    title: Self-update UI preserves typed failure distinctions
-    reason: Removed because the pre-release Electron Desktop exposes no authorized self-update UI.
   - id: rule.nimi.desktop.shell-ui.r059
     kind: rule
     title: Nimi Home first screen is usable product control
@@ -751,11 +738,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.menu-bar
-  - id: rule.nimi.desktop.shell-ui.r067
-    kind: rule
-    lifecycle: removed
-    title: Retired Desktop error alias allowlist
-    reason: Removed because the configured Desktop error-alias allowlist and config/desktop-shell-ui-error-codes.yaml were hard-cut; Runtime ReasonCode remains canonical wire truth and admitted Desktop-local mappings are governed by their active rules.
   - id: rule.nimi.desktop.shell-ui.r068
     kind: rule
     title: Local AI aliases preserve failure families
@@ -792,7 +774,7 @@ units:
     modality: must
     statement: Desktop distinguishes preflight_blocked, download_or_init_failed after explicit Download, capability_materialization_failed, and bundle_degraded and identifies Local Speech plus STT, TTS, or voice creation when the failing slice is known, distinguishing a text-description source from a reference-audio source only as source detail rather than separate capabilities or modes.
     condition: Whenever Desktop renders a Local Speech failure.
-    failure: Show the most specific available bundle or capability failure and never imply Desktop or Tauri owns installation truth.
+    failure: Show the most specific available bundle or capability failure and never imply a presentation or shell host owns installation truth.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.error-boundary
@@ -912,11 +894,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.error-boundary
-  - id: rule.nimi.desktop.shell-ui.r083
-    kind: rule
-    lifecycle: removed
-    title: Retired separate Developer Tools navigation
-    reason: Removed because the pre-release Desktop hard-cuts the separate Developer Tools tab and account-menu destination in favor of the single Settings > Developer workflow.
   - id: rule.nimi.desktop.shell-ui.r084
     kind: rule
     title: Developer Mode is single-homed, discoverable, and defaults off
@@ -927,11 +904,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.developer-mode-settings
-  - id: rule.nimi.desktop.shell-ui.r085
-    kind: rule
-    lifecycle: removed
-    title: Retired Developer Tools content composition
-    reason: Removed because local-development activity and registration management now compose directly in Settings > Developer and the obsolete diagnostics handoff item is deleted.
   - id: rule.nimi.desktop.shell-ui.r086
     kind: rule
     title: Direct development carries no protected authority
@@ -970,11 +942,6 @@ units:
         target: definition.nimi.desktop.shell-ui.developer-mode-settings
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.error-boundary
-  - id: rule.nimi.desktop.shell-ui.r089
-    kind: rule
-    lifecycle: removed
-    title: Retired hidden developer surface gate
-    reason: Removed because Settings > Developer remains discoverable by default while only its local-development operational content is gated by Developer Mode.
   - id: rule.nimi.desktop.shell-ui.r090
     kind: rule
     title: Renderer telemetry payload is structured and bounded
@@ -1057,16 +1024,6 @@ units:
         target: definition.nimi.desktop.shell-ui.error-boundary
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.telemetry
-  - id: rule.nimi.desktop.shell-ui.r098
-    kind: rule
-    lifecycle: removed
-    title: World Detail internal section templates are fixed
-    reason: World detail now prioritizes Realm people discovery with bounded previews and an independent full-content reader under r011 through r013; the Dashboard, Core Rules and Extended templates are no longer product sections.
-  - id: rule.nimi.desktop.shell-ui.r099
-    kind: rule
-    lifecycle: removed
-    title: World Detail power and realm cards have fixed source selection
-    reason: The obsolete power-ring and realm-constellation card selection is replaced by a complete world-setting reader under r013, which does not truncate full content.
   - id: rule.nimi.desktop.shell-ui.r100
     kind: rule
     title: Menu-bar header states are closed

@@ -24,21 +24,6 @@ units:
     kind: definition
     title: Runtime endpoint security plane
     meaning: The Runtime endpoint security plane validates each exact remote destination materialized by Remote ExecutionHost from a captured Runtime-managed Connector endpoint plus versioned protocol path or explicitly admitted provider mapping, uses its separately protected credential generation, rejects prohibited resolved addresses and pins the validated dial set while retaining TLS and HTTP hostname authority. Apps, AIConfig target payloads and environment variables cannot override the endpoint; catalog setup metadata initializes a connection only before capture and Driver protocol metadata never independently chooses a live origin.
-  - id: definition.nimi.runtime.security-core.grant-service-plane
-    kind: definition
-    lifecycle: removed
-    title: Retired Runtime permission decision plane
-    reason: Removed because Third-party App access is derived from the current declaration and protected session without per-capability grants, user decisions, requests, revocation, or a durable permission lifecycle.
-  - id: definition.nimi.runtime.security-core.key-routing-plane
-    kind: definition
-    lifecycle: removed
-    title: Retired Runtime key source and routing plane
-    reason: Removed because security and connector custody do not select Local, Cloud, provider, model, or capability routes and inline, configured, anonymous, and connector-driven routing paths are retired.
-  - id: definition.nimi.runtime.security-core.connector-grant-plane
-    kind: definition
-    lifecycle: removed
-    title: Retired Runtime ConnectorGrant plane
-    reason: Removed because Runtime admits only current-account Connector ownership, credential validity, App Capability access, and applicable policy for Cloud execution; any future delegated credential authority requires new authority and a new subject model without compatibility with this retired plane.
   - id: rule.nimi.runtime.security-core.r001
     kind: rule
     title: Authorization metadata has one bearer shape
@@ -381,7 +366,7 @@ units:
     kind: rule
     title: Validated DNS results are pinned without authority rewrite
     modality: must
-    statement: Runtime dials only validated pinned IPs, preserves the original hostname for TLS ServerName and HTTP Host, and permits connection-level failover among all validated safe IPs returned for that hostname.
+    statement: Runtime dials only validated pinned IPs for the actual protocol destination derived from the captured Connector and target. It keeps that destination’s hostname for TLS ServerName and its authority for HTTP Host when dialing a pinned address. Connection-level failover may use any validated safe IP returned for that hostname.
     condition: Whenever Runtime dispatches to a DNS-resolved remote endpoint.
     failure: Reject unpinned dialing, authority rewriting, or failover to an address that was not validated.
     relations:
@@ -391,9 +376,9 @@ units:
     kind: rule
     title: Endpoint validation occurs at execution time
     modality: must
-    statement: Runtime repeats endpoint and resolved-address validation immediately before every actual outbound request rather than relying only on create-time or update-time validation.
-    condition: Whenever Runtime is about to open an outbound provider connection.
-    failure: Stop network dispatch when current validation does not pass.
+    statement: Immediately before every outbound provider request, Runtime validates the actual destination derived from the captured Connector and admitted protocol target, together with that destination’s current address set. For both new and reused connections, use the actual destination hostname for address pinning, HTTPS certificate verification and TLS ServerName, and its authority including any applicable port for HTTP Host. An admitted regional mapping uses the derived regional host for these checks. Reuse is permitted only if the connected peer IP belongs to that host’s currently validated pinned set and the connection satisfies this request’s host identity. Enforce the captured Connector, region, applicable workspace and request-scoped credential boundary on every send, even when requests share a host or peer.
+    condition: Immediately before each outbound provider request, including a request that would reuse an existing connection.
+    failure: Stop dispatch if current destination or address validation fails. Refuse reuse if the peer is validated only for a different host, or if this request’s host identity or Connector, workspace and credential isolation cannot be established. A failed check cannot authorize another destination.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.security-core.endpoint-security-plane
@@ -417,31 +402,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
-  - id: rule.nimi.runtime.security-core.r038
-    kind: rule
-    lifecycle: removed
-    title: Retired App permission posture surface
-    reason: Removed because Third-party Apps receive declaration-derived access rather than permission status, request, approval, revoke, or decision surfaces.
-  - id: rule.nimi.runtime.security-core.r039
-    kind: rule
-    lifecycle: removed
-    title: Retired local-app permission authority classes
-    reason: Removed because App access uses the closed App operation contract, declaration coverage, and owner policy without a parallel permission-class taxonomy.
-  - id: rule.nimi.runtime.security-core.r040
-    kind: rule
-    lifecycle: removed
-    title: Retired durable App permission decision rows
-    reason: Removed because the current product admits no per-capability permission decision, grant, request, revoke, or persistence lifecycle.
-  - id: rule.nimi.runtime.security-core.r041
-    kind: rule
-    lifecycle: removed
-    title: Retired permission truth synthesis prohibition
-    reason: Removed with permission truth; App access now derives directly from verified launch, current registration and declaration generations, protected session facts, and exact owner policy.
-  - id: rule.nimi.runtime.security-core.r042
-    kind: rule
-    lifecycle: removed
-    title: Retired public permission catalog identity
-    reason: Removed because the stable App operation contract and declaration domains replace the permission catalog and no approval or permission-request identity remains.
   - id: rule.nimi.runtime.security-core.r043
     kind: rule
     title: Generic operation and resource grant engines are forbidden
@@ -452,26 +412,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
-  - id: rule.nimi.runtime.security-core.r044
-    kind: rule
-    lifecycle: removed
-    title: Retired atomic permission admission slice
-    reason: Removed because App access has no permission admission workflow, decision UI, revoke path, positive-evidence gate, or permission-specific SDK projection.
-  - id: rule.nimi.runtime.security-core.r045
-    kind: rule
-    lifecycle: removed
-    title: Retired initial public permission operation set
-    reason: Removed because the canonical App operation contract now owns the declaration-derived operation union without agents.interact, agents.configure, ai.text.generate, or any permission lifecycle.
-  - id: rule.nimi.runtime.security-core.r046
-    kind: rule
-    lifecycle: removed
-    title: Retired durable permission owner-selector identity
-    reason: Removed because an Effective App Access Snapshot is derived from current session and declaration facts and contains no durable permission identity or owner-selector grant.
-  - id: rule.nimi.runtime.security-core.r047
-    kind: rule
-    lifecycle: removed
-    title: Retired revocable App permission decision lifecycle
-    reason: Removed because current App access has no durable grant, explicit user decision evidence, revision, revoke, or permission audit lifecycle.
   - id: rule.nimi.runtime.security-core.r048
     kind: rule
     title: Cloud target and Local selection identities are separate
@@ -502,21 +442,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
-  - id: rule.nimi.runtime.security-core.r051
-    kind: rule
-    lifecycle: removed
-    title: Retired inline credential execution path
-    reason: Removed because Cloud execution resolves one exact current-account Connector from committed AIConfig intent and no caller-inline secret or temporary product bypass is admitted.
-  - id: rule.nimi.runtime.security-core.r052
-    kind: rule
-    lifecycle: removed
-    title: Retired managed-versus-inline credential truth table
-    reason: Removed with the inline execution path; ordinary requests accept neither inline credential nor inline endpoint fields.
-  - id: rule.nimi.runtime.security-core.r053
-    kind: rule
-    lifecycle: removed
-    title: Retired key-source metadata execution path
-    reason: Removed because Cloud execution context derives from the canonical AIConfig owner, exact implementation target, Runtime-resolved current-account Connector and Driver, never raw key-source, provider, endpoint, or API-key headers.
   - id: rule.nimi.runtime.security-core.r054
     kind: rule
     title: AI consume evaluation sequence is closed
@@ -571,11 +496,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
-  - id: rule.nimi.runtime.security-core.r059
-    kind: rule
-    lifecycle: removed
-    title: Retired inline provider destination
-    reason: Removed because provider endpoints are CapabilityImplementationDriver configuration validated at execution and never caller-inline destination authority.
   - id: rule.nimi.runtime.security-core.r060
     kind: rule
     title: Connector ownership never routes capability
@@ -586,11 +506,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
-  - id: rule.nimi.runtime.security-core.r061
-    kind: rule
-    lifecycle: removed
-    title: Retired inline provider routing
-    reason: Removed because Cloud execution requires committed AIConfig implementation-target intent and one exact Runtime-resolved current-account Connector.
   - id: rule.nimi.runtime.security-core.r062
     kind: rule
     title: Selected execution routes never fall back
@@ -643,11 +558,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
-  - id: rule.nimi.runtime.security-core.r082
-    kind: rule
-    lifecycle: removed
-    title: Retired local-app authority class meanings
-    reason: Removed with the permission-class taxonomy; Runtime now evaluates exact App operation coverage and owner policy without base_entitlement, user_permission, or one_shot_consent classes.
   - id: rule.nimi.runtime.security-core.r083
     kind: rule
     title: App permission storage stays absent
@@ -690,8 +600,6 @@ units:
         target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
-      - type: supersedes
-        target: rule.nimi.runtime.security-core.r038
   - id: rule.nimi.runtime.security-core.r087
     kind: rule
     title: Runtime consumes one canonical App operation contract
@@ -702,8 +610,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-operation-contract
-      - type: supersedes
-        target: rule.nimi.runtime.security-core.r045
   - id: rule.nimi.runtime.security-core.r088
     kind: rule
     title: Effective App access facts are Runtime derived
@@ -716,8 +622,6 @@ units:
         target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
-      - type: supersedes
-        target: rule.nimi.runtime.security-core.r046
   - id: rule.nimi.runtime.security-core.r089
     kind: rule
     title: Runtime protected App ingress is the sole admission owner
@@ -730,8 +634,6 @@ units:
         target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
-      - type: supersedes
-        target: rule.nimi.runtime.security-core.r044
   - id: rule.nimi.runtime.security-core.r090
     kind: rule
     title: App operation results expose no portable authority material
@@ -754,8 +656,6 @@ units:
         target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
-      - type: supersedes
-        target: rule.nimi.runtime.security-core.r042
   - id: rule.nimi.runtime.security-core.integration-resource-policy
     kind: rule
     title: Integration resource permission is separate from protected access and AI route custody

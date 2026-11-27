@@ -148,12 +148,14 @@ units:
     kind: rule
     title: Deferred continuation and deterministic alarms remain bounded and non-blocking
     modality: must
-    statement: Autonomous Conversation continuation remains optional, Runtime-owned and subject to the Agent-level default-off free-contact switch, shared quiet hours, free-contact frequency cap and background budget; separately, confirmed user alarms (at, delay, 5-field IANA timezone cron) and user-bound revocable App trigger delegations are owned by Runtime deterministic trigger tables in sessions.db, execute via zero-model deterministic templates by default without altering Cognition forgetting, coalesce missed recurring fires on wake to at most one latest delivery, auto-sleep after three consecutive unacknowledged fires, enforce an independent daily background LLM budget cap when language handling is explicitly required, and never block foreground interaction. Optional same-turn self-intentions remain part of the ordinary response.
-    condition: Whenever Runtime-initiated canonical Agent continuation is configured, proposed, triggered or unavailable.
-    failure: Reject an App taking ownership of the Runtime canonical continuation scheduler, hidden Runtime continuation, mock execution or a readiness dependency on that optional path; do not apply this prohibition to independently owned App business scheduling.
+    statement: Runtime owns optional autonomous Conversation continuation. It observes the Agent’s default-off free-contact setting, shared quiet hours, contact cap and background budget. Same-turn self-intentions stay in the ordinary response. Confirmed user alarms (at, delay or five-field cron in an IANA time zone) and revocable, user-bound App trigger delegations use deterministic Runtime tables in sessions.db. By default they use a zero-model template. On wake, deliver at most the latest missed recurring occurrence. Sleep an alarm after three consecutive unacknowledged fires. Before dispatching explicitly requested model work for an alarm, Runtime enforces the account’s independent daily background LLM hard cap by checking and reserving sufficient remaining budget. Zero-model alarm execution consumes none of this budget. Neither path blocks foreground work or changes Cognition forgetting.
+    condition: Whenever Runtime configures or runs autonomous Conversation continuation, a confirmed user alarm or a user-bound revocable App trigger delegation.
+    failure: If an alarm’s model work cannot reserve sufficient daily budget, reject that execution before dispatch and report the budget refusal. Reject hidden Runtime continuation, App ownership of the canonical continuation scheduler, fabricated execution or an ordinary readiness dependency on optional continuation. Independently owned App business scheduling retains its own owner.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.hook-intent-plane
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.multi-session-plane
   - id: rule.nimi.runtime.agent-participation.r012
     kind: rule
     title: Model output becomes product truth only through Runtime
@@ -868,6 +870,22 @@ units:
         target: definition.nimi.platform.core-protocol.agent-session-body-plane
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.multi-session-plane
+  - id: rule.nimi.runtime.agent-participation.named-pc-handoff-recipient
+    kind: rule
+    title: Protect the named Harness brief in delivery, session reads and later use
+    modality: must
+    statement: For the admitted Zhiyu handoff to Nimi Harness (nimi.harness), Runtime derives the sender from its verified connection and resolves the recipient through verified registration in the current account. Before accepting or queuing the handoff, bind the request and approved brief to that account, its verified sending subject and the exact confirmed recipient Registered App Subject. At delivery or redelivery, including after queueing, revalidate current admission in the bound account and match the receiving carrier’s verified subject to that recipient before disclosing any content. A name, caller assertion, device or PC Body lease alone cannot authorize receipt. A different subject registered under the same app_id cannot inherit confirmation. Generic PC work retains its existing carrier selection and lease rules. For every App-facing projection of the resulting work session, Runtime checks the reader’s current verified account, Registered App Subject and access. This includes session lists, detail reads, search results and the initial snapshot and every subsequent update of an overview subscription. In the bound account, the sending Zhiyu subject may read its own submitted content under its existing access and the bound Harness subject may read it while authorized. An App with account overview or session-management access alone may see its otherwise authorized task state in a content-free form. Titles, summaries, previews, events, receipts and other returned fields must not reveal any part of the brief to other readers. Match, sort, paginate and count search results using only the fields visible to that reader. Confirmation covers the named task. Using the brief or its content-bearing derivatives for another task requires separate user authorization for the content, recipient and purpose, even under the same account or LocalAgent. Before including that content in any Local or Cloud model request, Runtime verifies the task, the acting subject’s current access and the execution authorization, including authorization for the actual Cloud destination where applicable.
+    condition: Whenever Runtime accepts, queues, delivers or redelivers a named Zhiyu-to-Harness handoff, projects its work session to an App, or uses its content in Memory, cross-session recall or a model request.
+    failure: Refuse an absent, ambiguous or unverifiable initial recipient without accepting an unbound brief. On subject mismatch or loss of authorization, withhold content and report the actual pending, refused or unconfirmed delivery outcome. A queued handoff can reach only its original confirmed recipient. For an overview-only reader, preserve authorized task status and omit or redact content-bearing fields. Exclude search matches derived from hidden content and never substitute a raw record for a safe list item, detail or subscription update. Withhold protected content from recall and model input when the current purpose or destination lacks authorization.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.runtime-authorization-boundary
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.registered-app-subject
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.agent-session-body-plane
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.multi-session-plane
   - id: rule.nimi.runtime.agent-participation.body-step-symbiosis
     kind: rule
     title: Body step inference preserves ledger integrity and synchronous read-set fences
@@ -882,3 +900,63 @@ units:
         target: definition.nimi.runtime.agent-participation.multi-session-plane
       - type: applies_to
         target: definition.nimi.runtime.memory-world.memory-context-plane
+  - id: definition.nimi.runtime.conversation-message-interaction.quote-text
+    kind: definition
+    title: Stable canonical message quotation text
+    meaning: nimi.quote-text.v1 is the Runtime-derived read-only plain-text representation of one stable committed canonical text message; it is not App-authored history, an execution instruction, a content revision, or a separate writable transcript. A quotation identifies one half-open UTF-8 byte interval in this representation and carries no caller-authored source text, author, permission, or execution context.
+  - id: rule.nimi.runtime.conversation-message-interaction.quote-input
+    kind: rule
+    title: Explicit quotation is validated and committed with its input
+    modality: must
+    statement: A normal protected Conversation send may carry one quote with exactly sourceMessageId, format nimi.quote-text.v1, startByte and endByte in addition to its existing text or artifact parts; a quote alone is not an input, and regeneration accepts only its existing retry reference. Runtime resolves the source within the same currently authorized Agent and canonical Conversation, accepts only a stable committed nonempty publicly visible text body including stable partial text and historic App-role text, allows complete text whose media tail remains active, rejects transient streaming prefixes, and validates scalar-aligned half-open UTF-8 bounds, a nonempty excerpt of at most 4096 Unicode scalars and 16384 UTF-8 bytes, and the exact representation format at its owning admission boundary. The confirmed quote contains sourceMessageId, sourceRole, sourcePartial, format, startByte, endByte and Runtime-derived text; input, quote, request fingerprint and recovery association commit atomically before acceptance or model work. Same requestId with a different quote is rejected, same input recovers the same admission, and regeneration inherits the original confirmed quote without duplicating input. Message IDs remain opaque and request correlation remains scoped to the originating Registered App Subject without partitioning the single canonical Conversation.
+    condition: Whenever a protected Conversation input quotes a canonical message or recovers or regenerates that input.
+    failure: Reject invalid, unavailable, cross-scope, non-text, unstable, empty, malformed, oversized or mismatched references with the existing typed invalid-input or access reason; do not substitute source text, drop the quote, start work before commit, leak cross-scope existence, or use retry or parent continuity as a quotation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.public-conversation-projection-plane
+      - type: applies_to
+        target: definition.nimi.runtime.conversation-message-interaction.quote-text
+  - id: rule.nimi.runtime.conversation-message-interaction.quote-format
+    kind: rule
+    title: Quotation representation has deterministic text semantics
+    modality: must
+    statement: Runtime derives nimi.quote-text.v1 from the safe CommonMark and GFM text meaning, normalizing CRLF and CR to LF, separating blocks by two LF, preserving intra-block line breaks, retaining heading, emphasis, strikethrough, blockquote and link-label text without syntax or hidden link targets, decoding entities and escapes once, separating list items by LF without presentation markers or task checkboxes, separating table cells by TAB and rows by LF, and preserving inline and fenced code characters and internal whitespace without fences, language badges, line numbers or UI controls. Raw HTML is non-executable plain text and image decoration is excluded. Full derived text is bounded to 65536 UTF-8 bytes and read only on demand, never duplicated into every snapshot or event; renderer selection maps to this exact representation and format before submission. Confirmed quotes retain the accepted excerpt and are never reinterpreted using a different representation; mismatch requires reselection instead of guessed offsets, substring-first-match, silent whole-message substitution or a compatibility path.
+    condition: Whenever source quotation text is derived, selected, returned, persisted or rendered.
+    failure: Reject representation mismatch or out-of-bound text, preserve the caller draft, and expose no fabricated quotation; UI-only labels, hidden targets and prior quote cards must not enter the selected source body.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.conversation-message-interaction.quote-text
+  - id: rule.nimi.runtime.conversation-message-interaction.quote-context
+    kind: rule
+    title: Quoted history remains explicit user-supplied reference data
+    modality: must
+    statement: Runtime includes only the validated quoted excerpt as non-instruction reference data attached to the current user input, with its source role and incomplete state, even when the source lies outside the selected implicit history context. This does not restore neighboring history, change the Conversation context selection or summary, grant tools or privileges, or write Memory or Knowledge merely because a quote exists. App code never assembles this execution context; ordinary current-input validation and model budgets apply, and rejection preserves the input instead of silently removing its quote.
+    condition: Whenever Runtime composes or regenerates an input carrying a confirmed quotation.
+    failure: Reject an App-authored context, promoted system or tool instruction, implicit context expansion, quote-specific Memory write or a successful answer after silently discarding a required quote.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
+      - type: applies_to
+        target: definition.nimi.runtime.conversation-message-interaction.quote-text
+  - id: rule.nimi.runtime.conversation-message-interaction.message-read
+    kind: rule
+    title: Authorized message read supplies a bounded navigation window
+    modality: must
+    statement: The exact agent.local operation runtime.agent.conversation.message.read binds ReadLocalAppConversationMessage and accepts only the current agentHandle, conversationAnchorId and messageId. Runtime revalidates current operation coverage, subject, account, Agent and anchor, and returns conversationAnchorId, readWatermark, the canonical message, nullable paired quoteText and quoteFormat, and a window containing messages, turns, actions, voices, truncatedBefore and truncatedAfter. The target belongs to the returned window; only stable committed nonempty text has a quote representation. The window contains at most five complete attempt-turn closures and fifteen messages, with at most ten turn projections to preserve shared original-input linkage and five actions and voices each; selection is bounded around the target and excludes uncommitted prefixes. The result has no live state, activeTurnId or throughSequence, creates no list or replay service, and is not a live-tail hydration snapshot. Consumers never reset or advance the live reducer from this result, never infer deletion from window absence, never overwrite newer live facts with an older readWatermark, and discard results after scope, access or navigation intent changes. Retention is limited to one current history window, the existing bounded live tail and a return-position anchor.
+    condition: Whenever an authorized surface prepares a quote or navigates to one canonical source message.
+    failure: Fail closed with a typed unavailable, invalid or access result rather than scanning App caches, guessing similar text, revealing cross-scope existence, returning an incomplete target closure or creating unbounded App-owned history.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.public-conversation-projection-plane
+      - type: applies_to
+        target: definition.nimi.runtime.conversation-message-interaction.quote-text
+  - id: rule.nimi.runtime.conversation-message-interaction.projection-budget
+    kind: rule
+    title: Quotation budgets cover all public carriers
+    modality: must
+    statement: Conversation contentBytes is the sum of UTF-8 bytes of all text parts plus each confirmed quote text, sourceMessageId and format, with other bounded selector, reason and structural fields retaining their existing limits. Each text part and on-demand quoteText is at most 65536 bytes and each quote excerpt is at most 16384 bytes and 4096 Unicode scalars. Snapshot terminal history retains at most 200 messages and 1048576 contentBytes with whole-turn truncation, while its complete active or recoverable closure has an additional 163840 contentBytes allowance and the total snapshot has at most 203 messages and 1212416 contentBytes. A message-read window is at most 262144 contentBytes, and the full read result including on-demand quoteText is at most 327680 contentBytes, counting the top-level target message only once when also present in its window. Runtime selection and SDK and native carrier validation apply the same content accounting; a required single closure that cannot fit fails explicitly instead of losing quotation fields or failing only after a successful reload.
+    condition: Whenever a quoted input, event, snapshot or bounded message-read result crosses its typed trust boundary.
+    failure: Reject oversized or contradictory shapes, silent reference removal, split-turn history, inconsistent carrier budgets or unrestricted allowance growth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.public-conversation-projection-plane

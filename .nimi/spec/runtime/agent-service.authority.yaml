@@ -128,11 +128,6 @@ units:
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.runtime.agent-service.agent-service-plane
-  - id: rule.nimi.runtime.agent-service.r034
-    kind: rule
-    lifecycle: removed
-    title: Retired Third-party App conversation listing
-    reason: Removed because conversation listing is not in the initial canonical App operation contract; reference listing and the admitted typed Conversation operations do not imply a shadow history or conversation-inventory API.
   - id: rule.nimi.runtime.agent-service.r038
     kind: rule
     title: LocalAgent Conversation is not generic App history
@@ -183,11 +178,6 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
-  - id: rule.nimi.runtime.agent-service.r045
-    kind: rule
-    lifecycle: removed
-    title: Retired scaffolded App LocalAgent materialization
-    reason: Removed because Third-party App LocalAgent materialization is not in the canonical App operation contract and no direct or hidden materialization path is admitted.
   - id: rule.nimi.runtime.agent-service.r046
     kind: rule
     title: App interaction access creates no materialization authority
@@ -242,7 +232,7 @@ units:
     kind: rule
     title: Proactive projection and deterministic alarms remain separated and non-blocking
     modality: must
-    statement: Optional proactive LocalAgent behavior remains Runtime-owned, explicit, interruptible, default-off, and typed when present, and its absence never blocks ordinary LocalAgent conversation, Memory, Knowledge, voice, or readiness. Accepted life frames and new qualified materials may motivate autonomous contact subject to the independent Agent contact control. Confirmed user reminders, scheduled cron checks, and explicit user-bound App trigger delegations live in Runtime's deterministic sessions.db alarm tables rather than Cognition memory or autonomous free-contact loops.
+    statement: Runtime projects optional proactive behavior as explicit, interruptible, default-off and typed. Accepted life frames and new qualified material may motivate contact only under the Agent’s free-contact control. Confirmed reminders, cron checks and user-bound App delegations use the separate deterministic Runtime alarm owner. When proactive behavior is absent, ordinary Conversation, Memory, Knowledge and voice remain available under their own admission and readiness rules.
     condition: Whenever proactive behavior is configured or unavailable.
     failure: Reject hidden scheduling, App-owned proactive execution, and readiness dependency on the optional path.
     relations:

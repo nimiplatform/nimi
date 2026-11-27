@@ -240,7 +240,7 @@ units:
     kind: rule
     title: Host mechanism is not product ontology
     modality: must_not
-    statement: A Tauri command name, Electron channel, transport class, operating-system object, service-manager primitive, fixed framing length, or concrete Runtime method list becomes cross-layer product authority.
+    statement: A shell command name, Electron channel, transport class, operating-system object, service-manager primitive, fixed framing length, or concrete Runtime method list becomes cross-layer product authority.
     condition: Whenever bridge or host semantics are documented.
     failure: Keep only the product outcome and owner boundary in authority.
     relations:
