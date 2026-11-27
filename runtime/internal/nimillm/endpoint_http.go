@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync/atomic"
 
 	"google.golang.org/grpc/codes"
 
@@ -37,14 +38,26 @@ func newSecuredHTTPRequest(ctx context.Context, method string, targetURL string,
 }
 
 func newSecuredHTTPClient(ctx context.Context, targetURL string, allowLoopback bool) (*http.Client, error) {
-	transport, err := securedProviderTransport(ctx, targetURL, allowLoopback)
-	if err != nil {
+	// Fail fast when the configured endpoint itself is forbidden before constructing a request.
+	if err := validateSecuredProviderEndpoint(ctx, targetURL, allowLoopback); err != nil {
 		return nil, err
 	}
-	client := httpClientWithOutboundGate(ctx, &http.Client{Timeout: defaultHTTPTimeout, Transport: transport})
+	client := httpClientWithOutboundGate(ctx, &http.Client{Timeout: defaultHTTPTimeout})
 	origin, _ := url.Parse(strings.TrimSpace(targetURL)) // validated by endpointsec
-	client.Transport = &securedHTTPTransport{origin: origin, initial: client.Transport, allowLoopback: allowLoopback}
+	client.Transport = &securedHTTPTransport{origin: origin, allowLoopback: allowLoopback}
 	return client, nil
+}
+
+func validateSecuredProviderEndpoint(ctx context.Context, targetURL string, allowLoopback bool) error {
+	if err := endpointsec.ValidateEndpoint(ctx, targetURL, allowLoopback); err != nil {
+		return grpcerr.WrapWithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN,
+			err,
+			grpcerr.ReasonOptions{Message: "provider endpoint is not permitted"},
+		)
+	}
+	return nil
 }
 
 func securedProviderTransport(ctx context.Context, targetURL string, allowLoopback bool) (*http.Transport, error) {
@@ -60,29 +73,55 @@ func securedProviderTransport(ctx context.Context, targetURL string, allowLoopba
 	return transport, nil
 }
 
-// Each redirect is a distinct destination. Never combine its Host with the
-// first request's pinned IP/port/SNI. Keep the existing per-handoff Job gate.
+// Every outbound send (initial request, subsequent same-origin send, same-origin
+// GET/HEAD redirect, or cross-origin artifact redirect) validates its actual
+// destination and current address set immediately before sending and uses a
+// fresh pinned one-shot transport without pooled cross-send reuse.
 // @nimi-authority: rule.nimi.runtime.security-core.r034
 // @nimi-authority: rule.nimi.runtime.security-core.r035
 type securedHTTPTransport struct {
-	origin        *url.URL
-	initial       http.RoundTripper
-	allowLoopback bool
+	origin          *url.URL
+	initial         http.RoundTripper
+	allowLoopback   bool
+	initialConsumed atomic.Bool
+	buildTransport  func(ctx context.Context, targetURL string, allowLoopback bool) (*http.Transport, error)
+}
+
+func (t *securedHTTPTransport) newValidatedTransport(ctx context.Context, targetURL string) (*http.Transport, error) {
+	builder := t.buildTransport
+	if builder == nil {
+		builder = securedProviderTransport
+	}
+	transport, err := builder(ctx, targetURL, t.allowLoopback)
+	if err != nil {
+		return nil, err
+	}
+	// Each send owns a fresh connection bound to its just-validated address set.
+	// Use MaxIdleConnsPerHost = -1 so the single connection is never pooled
+	// after completion without forcing a Connection: close request header that
+	// alters server-side streaming body/disconnect handling.
+	transport.MaxIdleConnsPerHost = -1
+	return transport, nil
 }
 
 func (t *securedHTTPTransport) RoundTrip(request *http.Request) (*http.Response, error) {
 	if request.Host != "" && !strings.EqualFold(request.Host, request.URL.Host) {
 		return nil, fmt.Errorf("provider request Host differs from its validated destination")
 	}
-	if sameProviderHTTPOrigin(request.URL, t.origin) {
-		return t.initial.RoundTrip(request)
+	if t.origin != nil && sameProviderHTTPOrigin(request.URL, t.origin) {
+		if t.initial != nil && !t.initialConsumed.Swap(true) {
+			return httpClientWithOutboundGate(request.Context(), &http.Client{Transport: t.initial}).Transport.RoundTrip(request)
+		}
+		transport, err := t.newValidatedTransport(request.Context(), request.URL.String())
+		if err != nil {
+			return nil, err
+		}
+		return httpClientWithOutboundGate(request.Context(), &http.Client{Transport: transport}).Transport.RoundTrip(request)
 	}
-	transport, err := securedProviderTransport(request.Context(), request.URL.String(), t.allowLoopback)
+	transport, err := t.newValidatedTransport(request.Context(), request.URL.String())
 	if err != nil {
 		return nil, err
 	}
-	// Redirect hops are one-shot transfers, not a new pool or endpoint cache.
-	transport.DisableKeepAlives = true
 	next := request.Clone(request.Context())
 	next.Header = make(http.Header)
 	// Connection credentials and provider-specific headers belong to the

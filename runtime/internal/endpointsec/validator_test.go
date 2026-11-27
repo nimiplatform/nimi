@@ -2,11 +2,23 @@ package endpointsec
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"errors"
+	"io"
+	"math/big"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 )
 
 func TestValidateEndpoint_HTTPSRequired(t *testing.T) {
@@ -272,5 +284,194 @@ func TestIsLoopbackHost(t *testing.T) {
 		if got := isLoopbackHost(tt.host); got != tt.expected {
 			t.Errorf("isLoopbackHost(%q) = %v, want %v", tt.host, got, tt.expected)
 		}
+	}
+}
+
+func generateTestTLSLeaf(t *testing.T, dnsName string) (*x509.CertPool, tls.Certificate) {
+	t.Helper()
+	caKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	caTmpl := &x509.Certificate{
+		SerialNumber:          big.NewInt(1),
+		Subject:               pkix.Name{CommonName: "nimi-test-ca"},
+		NotBefore:             time.Now().Add(-time.Hour),
+		NotAfter:              time.Now().Add(time.Hour),
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+	}
+	caDER, err := x509.CreateCertificate(rand.Reader, caTmpl, caTmpl, &caKey.PublicKey, caKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	caCert, err := x509.ParseCertificate(caDER)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	leafKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	leafTmpl := &x509.Certificate{
+		SerialNumber: big.NewInt(2),
+		Subject:      pkix.Name{CommonName: dnsName},
+		DNSNames:     []string{dnsName},
+		NotBefore:    time.Now().Add(-time.Hour),
+		NotAfter:     time.Now().Add(time.Hour),
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+	}
+	leafDER, err := x509.CreateCertificate(rand.Reader, leafTmpl, caCert, &leafKey.PublicKey, caKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pool := x509.NewCertPool()
+	pool.AddCert(caCert)
+	return pool, tls.Certificate{
+		Certificate: [][]byte{leafDER, caDER},
+		PrivateKey:  leafKey,
+	}
+}
+
+func TestPinnedTransportDisjointRegionalAndWorkspaceIPsWithRealTLS(t *testing.T) {
+	const (
+		workspaceHost = "ws-beijing.cn-beijing.maas.aliyuncs.com"
+		regionalHost  = "dashscope.aliyuncs.com"
+	)
+
+	// Start a real TLS server presenting a cert valid ONLY for dashscope.aliyuncs.com.
+	regionalPool, regionalCert := generateTestTLSLeaf(t, regionalHost)
+	var observedMu sync.Mutex
+	var observedSNI, observedHost, observedWorkspace string
+	regionalServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		observedMu.Lock()
+		if r.TLS != nil {
+			observedSNI = r.TLS.ServerName
+		}
+		observedHost = r.Host
+		observedWorkspace = r.Header.Get("X-DashScope-WorkSpace")
+		observedMu.Unlock()
+		_, _ = io.WriteString(w, "regional-tts-ok")
+	}))
+	regionalServer.TLS = &tls.Config{Certificates: []tls.Certificate{regionalCert}}
+	regionalServer.StartTLS()
+	defer regionalServer.Close()
+
+	// Start a second real TLS server presenting a cert valid ONLY for the workspace host.
+	workspacePool, workspaceCert := generateTestTLSLeaf(t, workspaceHost)
+	workspaceServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("regional pinned transport must not complete TLS against workspace-only certificate")
+		w.WriteHeader(http.StatusOK)
+	}))
+	workspaceServer.TLS = &tls.Config{Certificates: []tls.Certificate{workspaceCert}}
+	workspaceServer.StartTLS()
+	defer workspaceServer.Close()
+
+	_, regionalPort, err := net.SplitHostPort(regionalServer.Listener.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, workspacePort, err := net.SplitHostPort(workspaceServer.Listener.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Disjoint DNS mapping: workspaceHost resolves ONLY to 203.0.113.77; regionalHost resolves ONLY to 127.0.0.1.
+	disjointResolver := testResolver{
+		lookup: func(_ context.Context, host string) ([]string, error) {
+			switch strings.ToLower(host) {
+			case regionalHost:
+				return []string{"127.0.0.1"}, nil
+			case workspaceHost:
+				return []string{"203.0.113.77"}, nil
+			default:
+				return nil, errors.New("unexpected host: " + host)
+			}
+		},
+	}
+
+	regionalURL := "https://" + net.JoinHostPort(regionalHost, regionalPort) + "/api/v1/services/aigc/multimodal-generation/generation"
+	parsedRegional, regionalIPs, err := resolveValidatedEndpoint(context.Background(), disjointResolver, regionalURL, true)
+	if err != nil {
+		t.Fatalf("resolveValidatedEndpoint(regional): %v", err)
+	}
+	if len(regionalIPs) != 1 || regionalIPs[0] != "127.0.0.1" {
+		t.Fatalf("unexpected regional IP set: %#v", regionalIPs)
+	}
+
+	var dialedAddrs []string
+	baseDialer := &net.Dialer{Timeout: 5 * time.Second}
+	transport := newPinnedTransport(parsedRegional, regionalIPs, func(ctx context.Context, network, addr string) (net.Conn, error) {
+		dialedAddrs = append(dialedAddrs, addr)
+		return baseDialer.DialContext(ctx, network, addr)
+	})
+	transport.TLSClientConfig.RootCAs = regionalPool
+	defer transport.CloseIdleConnections()
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, regionalURL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("X-DashScope-WorkSpace", "ws-beijing")
+	resp, err := (&http.Client{Transport: transport}).Do(req)
+	if err != nil {
+		t.Fatalf("regional pinned HTTPS request failed: %v", err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	_ = resp.Body.Close()
+
+	if string(body) != "regional-tts-ok" {
+		t.Fatalf("body = %q, want regional-tts-ok", string(body))
+	}
+	wantDial := net.JoinHostPort("127.0.0.1", regionalPort)
+	if len(dialedAddrs) != 1 || dialedAddrs[0] != wantDial {
+		t.Fatalf("dialed addrs = %#v, want [%s]", dialedAddrs, wantDial)
+	}
+	observedMu.Lock()
+	gotSNI, gotHost, gotWS := observedSNI, observedHost, observedWorkspace
+	observedMu.Unlock()
+	if gotSNI != regionalHost {
+		t.Fatalf("TLS SNI = %q, want %q", gotSNI, regionalHost)
+	}
+	if gotHost != net.JoinHostPort(regionalHost, regionalPort) {
+		t.Fatalf("HTTP Host = %q, want %q", gotHost, net.JoinHostPort(regionalHost, regionalPort))
+	}
+	if gotWS != "ws-beijing" {
+		t.Fatalf("workspace header = %q, want ws-beijing", gotWS)
+	}
+
+	// Negative 1: regional target connected to a peer serving ONLY the workspace host certificate fails TLS verification.
+	wrongCertURL := "https://" + net.JoinHostPort(regionalHost, workspacePort) + "/api/v1/services/aigc/multimodal-generation/generation"
+	parsedWrongCert, wrongCertIPs, err := resolveValidatedEndpoint(context.Background(), disjointResolver, wrongCertURL, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wrongCertTransport := newPinnedTransport(parsedWrongCert, wrongCertIPs, baseDialer.DialContext)
+	wrongCertTransport.TLSClientConfig.RootCAs = workspacePool
+	defer wrongCertTransport.CloseIdleConnections()
+	wrongReq, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, wrongCertURL, nil)
+	if wrongResp, wrongErr := (&http.Client{Transport: wrongCertTransport}).Do(wrongReq); wrongErr == nil {
+		_ = wrongResp.Body.Close()
+		t.Fatal("expected TLS verification failure when peer certificate matches workspace host instead of regional host")
+	}
+
+	// Negative 2: if regional host resolves only to link-local IP, validation rejects even when workspace host is public.
+	blockedRegionalResolver := testResolver{
+		lookup: func(_ context.Context, host string) ([]string, error) {
+			switch strings.ToLower(host) {
+			case regionalHost:
+				return []string{"169.254.169.254"}, nil
+			case workspaceHost:
+				return []string{"203.0.113.77"}, nil
+			default:
+				return nil, errors.New("unexpected host: " + host)
+			}
+		},
+	}
+	if _, _, err := resolveValidatedEndpoint(context.Background(), blockedRegionalResolver, regionalURL, true); err == nil {
+		t.Fatal("expected regional host resolving to link-local IP to be rejected")
 	}
 }

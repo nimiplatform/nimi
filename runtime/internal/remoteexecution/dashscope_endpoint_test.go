@@ -64,3 +64,15 @@ func TestDashScopeSpeechEndpointPreservesOtherProtocolsAndDestinations(t *testin
 		})
 	}
 }
+
+func TestDashScopeWorkspaceHeaderIsolationAcrossConnectors(t *testing.T) {
+	target := speechEndpointTarget{"dashscope", "qwen3-tts-flash", "audio.synthesize"}
+	epA, wsA := materializeDashScopeSpeechEndpoint("https://ws-alpha.cn-beijing.maas.aliyuncs.com/compatible-mode/v1", target)
+	epB, wsB := materializeDashScopeSpeechEndpoint("https://ws-beta.cn-beijing.maas.aliyuncs.com/compatible-mode/v1", target)
+	if epA != "https://dashscope.aliyuncs.com/compatible-mode/v1" || epB != epA {
+		t.Fatalf("expected shared regional endpoint, got A=%q B=%q", epA, epB)
+	}
+	if wsA != "ws-alpha" || wsB != "ws-beta" || wsA == wsB {
+		t.Fatalf("workspace labels were not isolated: A=%q B=%q", wsA, wsB)
+	}
+}

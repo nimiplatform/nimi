@@ -44,7 +44,7 @@ func markNativeCreateResponseUnavailable(ctx context.Context, err error) error {
 	}
 	if reason, ok := grpcerr.ExtractReasonCode(err); ok {
 		switch reason {
-		case runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND, runtimev1.ReasonCode_AI_CONNECTOR_DISABLED, runtimev1.ReasonCode_AI_CONNECTOR_INVALID, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED:
+		case runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND, runtimev1.ReasonCode_AI_CONNECTOR_DISABLED, runtimev1.ReasonCode_AI_CONNECTOR_INVALID, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN:
 			return err
 		}
 	}

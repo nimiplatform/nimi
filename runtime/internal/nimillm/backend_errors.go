@@ -240,6 +240,8 @@ func MapProviderRequestError(err error) error {
 		switch reason {
 		case runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND, runtimev1.ReasonCode_AI_CONNECTOR_DISABLED, runtimev1.ReasonCode_AI_CONNECTOR_INVALID, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED:
 			return grpcerr.WrapWithReasonCode(status.Code(err), reason, err, grpcerr.ReasonOptions{Message: "Remote step admission is unavailable"})
+		case runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN:
+			return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, reason, err, grpcerr.ReasonOptions{Message: "provider endpoint is not permitted"})
 		}
 	}
 	if st, ok := status.FromError(err); ok {

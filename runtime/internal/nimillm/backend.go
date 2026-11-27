@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -268,20 +269,34 @@ func NewSecuredBackend(name string, baseURL string, apiKey string, timeout time.
 	return NewSecuredBackendWithHeaders(name, baseURL, apiKey, nil, timeout, allowLoopback)
 }
 
-// NewSecuredBackendWithHeaders creates a secured backend with provider-native request headers.
+// NewSecuredBackendWithHeaders creates a secured backend with provider-native
+// request headers. It fails fast if the configured endpoint is forbidden and
+// validates + pins the current destination address set immediately before each
+// outbound send without pooled cross-send connection reuse.
+// @nimi-authority: rule.nimi.runtime.security-core.r034
+// @nimi-authority: rule.nimi.runtime.security-core.r035
 func NewSecuredBackendWithHeaders(name string, baseURL string, apiKey string, headers map[string]string, timeout time.Duration, allowLoopback bool) *Backend {
 	normalized := normalizeBackendBaseURL(baseURL)
 	if normalized == "" {
 		return nil
 	}
 	started := time.Now()
-	transport, err := endpointsec.NewPinnedTransport(context.Background(), normalized, allowLoopback)
-	if err != nil {
+	if err := endpointsec.ValidateEndpoint(context.Background(), normalized, allowLoopback); err != nil {
 		// Callers report this as an unavailable provider; the class and time
 		// tell a DNS failure or timeout apart from an endpoint the policy refused.
 		slog.Warn("provider endpoint resolution failed", "backend", name,
 			"failure_class", endpointResolutionFailureClass(err), "elapsed_ms", time.Since(started).Milliseconds())
 		return nil
+	}
+	origin, err := url.Parse(normalized)
+	if err != nil {
+		slog.Warn("provider endpoint resolution failed", "backend", name,
+			"failure_class", endpointResolutionFailureClass(err), "elapsed_ms", time.Since(started).Milliseconds())
+		return nil
+	}
+	transport := &securedHTTPTransport{
+		origin:        origin,
+		allowLoopback: allowLoopback,
 	}
 	backend := newBackend(name, normalized, apiKey, headers, timeout, transport, true, allowLoopback)
 	if backend != nil {
@@ -460,8 +475,16 @@ func (b *Backend) Endpoint() string {
 	return b.baseURL
 }
 
+func (b *Backend) usesSecuredTransport() bool {
+	if b == nil || b.client == nil {
+		return false
+	}
+	_, ok := b.client.Transport.(*securedHTTPTransport)
+	return ok
+}
+
 func (b *Backend) newRequest(ctx context.Context, method string, endpoint string, body io.Reader) (*http.Request, error) {
-	if b.enforceEndpointSecurity {
+	if b.enforceEndpointSecurity && !b.usesSecuredTransport() {
 		if err := endpointsec.ValidateEndpoint(ctx, endpoint, b.allowLoopbackEndpoint); err != nil {
 			return nil, grpcerr.WrapWithReasonCode(
 				codes.FailedPrecondition,

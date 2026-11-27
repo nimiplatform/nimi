@@ -95,7 +95,12 @@ func httpClientWithOutboundGate(ctx context.Context, client *http.Client) *http.
 	if transport == nil {
 		transport = http.DefaultTransport
 	}
-	if base, ok := transport.(*http.Transport); ok {
+	if secured, ok := transport.(*securedHTTPTransport); ok {
+		// securedHTTPTransport validates the current destination address set and
+		// builds a fresh pinned *http.Transport immediately before each send,
+		// then applies httpClientWithOutboundGate to that transport.
+		cloned.Transport = secured
+	} else if base, ok := transport.(*http.Transport); ok {
 		// Each admitted Job HTTP request owns a fresh HTTP/1 connection. Go's
 		// HTTP/1 retry path requires a reused connection; without reuse there
 		// is no hidden POST/idempotency replay or unfenced GET retry. Pinned
