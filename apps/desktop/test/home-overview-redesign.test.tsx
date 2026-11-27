@@ -164,7 +164,6 @@ test('HomeAttentionStrip collapses to empty markup when idle and enforces caps o
       ]}
       onOpenActivity={noop}
       onOpenDownloads={noop}
-      onViewAllAttention={noop}
     />,
   );
 
@@ -172,7 +171,7 @@ test('HomeAttentionStrip collapses to empty markup when idle and enforces caps o
   assert.match(html, /data-testid="home-attention-item:att-2"/);
   assert.match(html, /data-testid="home-attention-item:att-3"/);
   assert.doesNotMatch(html, /data-testid="home-attention-item:att-4"/, 'caps attention at 3');
-  assert.match(html, /data-testid="home-attention-view-all"/);
+  assert.match(html, /下一组提醒/);
   assert.match(html, /data-testid="home-active-execution:exec-1"/);
   assert.match(html, /data-testid="home-active-execution:exec-2"/);
   assert.match(html, /data-testid="home-active-download:dl-1"/);

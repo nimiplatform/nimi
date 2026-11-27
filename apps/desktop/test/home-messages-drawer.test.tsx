@@ -128,6 +128,25 @@ test('home messages drawer state toggles cleanly and notifies subscribers', () =
   }
 });
 
+test('Home header signals download-only work and uses singular and plural attention labels', async () => {
+  (globalThis as { React?: typeof React }).React = React;
+  const { initI18n, changeLocale } = await import('../src/shell/renderer/i18n/index.js');
+  const { HomeMessagesDrawerTrigger } = await import('../src/shell/renderer/features/home/home-messages-drawer.js');
+  await initI18n();
+  await changeLocale('en');
+
+  const messages = makeMessages([]);
+  const idle = { attention: [], executions: [], downloads: [] };
+  const render = (activity: React.ComponentProps<typeof HomeMessagesDrawerTrigger>['drawerAttention']) =>
+    renderToStaticMarkup(<HomeMessagesDrawerTrigger messages={messages} drawerAttention={activity} open={false} />);
+  const download = { id: 'dl-1', title: 'Download', bytesReceived: 10, bytesTotal: 100, speedBytesPerSec: 2 };
+  const alert = { id: 'runtime', tone: 'warning' as const, message: 'Runtime offline', actionLabel: 'Review', onAction: noop };
+  assert.equal(render(idle), '');
+  assert.match(render({ ...idle, downloads: [download] }), /Active work · Messages/);
+  assert.match(render({ ...idle, attention: [alert] }), /1 item needs attention/);
+  assert.match(render({ ...idle, attention: [alert, { ...alert, id: 'resource' }] }), /2 items need attention/);
+});
+
 test('HomeMessagesDrawer renders pending items, quick preferences, and closes on View all or Permissions', async () => {
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', {
     url: 'http://localhost',
@@ -179,7 +198,7 @@ test('HomeMessagesDrawer renders pending items, quick preferences, and closes on
   const { AppStoreProvider } = await import('../src/shell/renderer/app-shell/providers/app-store.js');
   const { createAppStore } = await import('../src/shell/renderer/app-shell/providers/app-store-factory.js');
   const { HomeMessagesDrawer } = await import('../src/shell/renderer/features/home/home-messages-drawer.js');
-  const { activityMessage } = await import('../src/shell/renderer/features/home/home-messages-model.js');
+  const { activityMessage, systemMessage } = await import('../src/shell/renderer/features/home/home-messages-model.js');
 
   await initI18n();
   await changeLocale('zh');
@@ -188,7 +207,12 @@ test('HomeMessagesDrawer renders pending items, quick preferences, and closes on
   const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference: noop });
   const bindings = { sdk: { appProduct: () => ({ storage: {} }) } } as never;
   const todoItem = activityMessage(makeRecord(1));
-  const inbox = makeMessages([todoItem]);
+  const download = { id: 'dl-1', title: 'Model download', bytesReceived: 10, bytesTotal: 100, speedBytesPerSec: 2 };
+  const transfer = systemMessage({
+    kind: 'download', id: download.id, title: download.title, detail: '', time: null, app: null,
+    progress: { value: download.bytesReceived, max: download.bytesTotal }, open: noop,
+  });
+  const inbox = makeMessages([todoItem, transfer]);
   const cardContext: HomeMessageCardContext = {
     now: new Date(2026, 10, 21, 10, 0, 0),
     busy: {},
@@ -272,6 +296,10 @@ test('HomeMessagesDrawer renders pending items, quick preferences, and closes on
                         actionLabel: '去确认',
                         onAction: () => actions.push('attention'),
                       },
+                      ...[2, 3, 4].map(n => ({
+                        id: `att-${n}`, tone: 'warning' as const, message: `提醒 ${n}`, actionLabel: '处理',
+                        onAction: () => actions.push(`att-${n}`),
+                      })),
                     ],
                     executions: [
                       {
@@ -286,7 +314,7 @@ test('HomeMessagesDrawer renders pending items, quick preferences, and closes on
                         parentWorkId: '',
                       },
                     ],
-                    downloads: [],
+                    downloads: [download],
                     onOpenActivity: () => actions.push('activity'),
                     onOpenDownloads: () => actions.push('downloads'),
                   }}
@@ -306,13 +334,29 @@ test('HomeMessagesDrawer renders pending items, quick preferences, and closes on
     assert.ok(attentionStrip, 'drawer must render HomeAttentionStrip inside the right-side drawer');
     assert.match(attentionStrip.textContent ?? '', /写入 Q3报销汇总\.xlsx/);
     assert.ok(dom.window.document.querySelector('[data-testid="home-active-execution:exec-drawer-1"]'));
+    assert.equal(dom.window.document.querySelector('[data-testid="home-active-download:dl-1"]'), null);
+    assert.equal(drawer.textContent?.split(download.title).length, 2, 'download appears once in the message timeline');
+
+    const pageButtons = attentionStrip.querySelectorAll<HTMLButtonElement>('nav button');
+    assert.equal(pageButtons.length, 2);
+    const [previousPage, nextPage] = Array.from(pageButtons);
+    assert.ok(previousPage && nextPage);
+    assert.ok(previousPage.disabled);
+    assert.equal(attentionStrip.querySelector('[data-testid="home-attention-action:att-4"]'), null);
+    await act(async () => nextPage.click());
+    assert.match(attentionStrip.textContent ?? '', /第 2 页，共 2 页/);
+    assert.ok(nextPage.disabled);
+    const overflowAction = attentionStrip.querySelector<HTMLButtonElement>('[data-testid="home-attention-action:att-4"]');
+    assert.ok(overflowAction);
+    await act(async () => overflowAction.click());
+    await act(async () => previousPage.click());
 
     const attentionButton = dom.window.document.querySelector<HTMLButtonElement>(
       '[data-testid="home-attention-action:session-attention:att-1"]',
     );
     assert.ok(attentionButton);
     await act(async () => attentionButton.click());
-    assert.deepEqual(actions, ['close', 'viewAll', 'close', 'attention']);
+    assert.deepEqual(actions, ['close', 'viewAll', 'close', 'att-4', 'attention']);
 
     await act(async () => {
       root.render(

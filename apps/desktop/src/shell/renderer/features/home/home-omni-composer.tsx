@@ -875,7 +875,7 @@ export function HomeOmniComposer({
           onDrop={handleDropFiles}
           data-testid="home-quick-start-bar"
           data-drag-over={isDragOver ? 'true' : undefined}
-          className={`relative flex min-w-0 flex-col rounded-[26px] border transition-[background-color,border-color,box-shadow] duration-150 ${
+          className={`relative flex min-w-0 flex-col rounded-[26px] border transition-[background-color,border-color,box-shadow] duration-150 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--nimi-focus-ring-color)] ${
             isDragOver
               ? 'border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,var(--nimi-home-porcelain-card))] shadow-[var(--nimi-home-composer-shadow-focus)]'
               : 'border-[var(--nimi-border-strong)]/80 bg-[var(--nimi-home-porcelain-card)] shadow-[var(--nimi-home-composer-shadow)]'
@@ -1292,7 +1292,7 @@ export function HomeOmniComposer({
                   title={t('runtimeConfig.overview.omni.partnerModeHint')}
                 >
                   <kbd className="rounded border border-[var(--nimi-border-subtle)] bg-[var(--nimi-home-soft-well)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--nimi-text-secondary)]">
-                    Tab
+                    {t('runtimeConfig.overview.omni.tabKey')}
                   </kbd>
                   <span>
                     {effectivePartnerMode === 'harness'

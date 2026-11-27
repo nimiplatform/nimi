@@ -1,5 +1,5 @@
 import { ScrollArea, Tooltip } from '@nimiplatform/kit/ui';
-import { X } from 'lucide-react';
+import { Bell, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -10,9 +10,66 @@ import {
 } from './execution-notices.js';
 import { HomeAttentionStrip, type HomeAttentionStripProps } from './home-attention-strip.js';
 import type { HomeMessageCardContext } from './home-message-card.js';
-import { HomeMessagesColumn } from './home-messages-column.js';
+import { HomeMessagesColumn, pendingSummary } from './home-messages-column.js';
 import type { HomeMessages } from './home-messages-controller.js';
-import type { HomeTimelineQuickFilter } from './home-messages-model.js';
+import { toggleHomeMessagesDrawer } from './home-messages-drawer-state.js';
+import { isUnreadMessage, type HomeTimelineQuickFilter } from './home-messages-model.js';
+
+// @nimi-authority: rule.nimi.desktop.product-surfaces.home-system-activity
+export function HomeMessagesDrawerTrigger({ messages, drawerAttention, open }: {
+  messages: HomeMessages | null;
+  drawerAttention: Pick<HomeAttentionStripProps, 'attention' | 'executions' | 'downloads'>;
+  open: boolean;
+}) {
+  const { t } = useTranslation();
+  const pending = messages ? pendingSummary(messages) : null;
+  const hasPending = Boolean(pending && pending.count > 0);
+  const hasUnread = Boolean(messages?.homeMessages?.some(isUnreadMessage));
+  const hasDrawerAttention = drawerAttention.attention.length > 0;
+  const hasDrawerActiveWork = drawerAttention.executions.length > 0 || drawerAttention.downloads.length > 0;
+  if (!hasPending && !hasUnread && !hasDrawerAttention && !hasDrawerActiveWork) return null;
+  const drawerTriggerLabel = pending && pending.count > 0
+    ? t(
+        pending.more
+          ? 'runtimeConfig.overview.messages.drawerTriggerPendingMore'
+          : 'runtimeConfig.overview.messages.drawerTriggerPending',
+        { count: pending.count },
+      )
+    : hasDrawerAttention
+      ? t('runtimeConfig.overview.messages.drawerTriggerAttention', { count: drawerAttention.attention.length })
+      : hasUnread
+        ? t('runtimeConfig.overview.messages.hasUnread')
+        : t('runtimeConfig.overview.messages.drawerTriggerActiveWork');
+  const drawerTriggerFilter: HomeTimelineQuickFilter = hasPending
+    ? 'pending'
+    : hasUnread && !hasDrawerAttention && !hasDrawerActiveWork
+      ? 'unread'
+      : 'all';
+  const drawerSignalIconClass = drawerAttention.attention.some((item) => item.tone === 'danger')
+    ? 'text-[var(--nimi-status-danger)]'
+    : drawerAttention.attention.some((item) => item.tone === 'warning')
+      ? 'text-[var(--nimi-status-warning)]'
+      : 'text-[var(--nimi-action-primary-bg)]';
+
+  return (
+    <button
+      type="button"
+      aria-expanded={open}
+      onClick={() => toggleHomeMessagesDrawer(drawerTriggerFilter)}
+      data-testid="home-messages-drawer-trigger"
+      className="inline-flex h-[30px] items-center gap-2 rounded-full border border-[var(--nimi-home-whisper-border)] bg-[var(--nimi-home-whisper-surface)] px-3 text-xs font-medium text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)] transition-[transform,opacity,background-color,border-color,color,box-shadow] duration-150 hover:bg-[var(--nimi-home-whisper-surface-hover)] hover:shadow-[var(--nimi-home-porcelain-shadow)] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+    >
+      <span className={`relative inline-flex items-center justify-center ${drawerSignalIconClass}`}>
+        <Bell size={13} aria-hidden="true" />
+        <span
+          className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-current"
+          aria-hidden="true"
+        />
+      </span>
+      <span>{drawerTriggerLabel}</span>
+    </button>
+  );
+}
 
 export type HomeMessagesDrawerProps = {
   open: boolean;
@@ -61,15 +118,18 @@ export function HomeMessagesDrawer({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [open, onClose]);
 
+  // The account timeline already owns downloads once its Home projection is available.
+  const stripDownloads = messages?.homeMessages && context ? [] : (attentionStrip?.downloads ?? []);
   const hasAttentionStripContent = Boolean(
     attentionStrip
     && (attentionStrip.attention.length > 0
       || attentionStrip.executions.length > 0
-      || attentionStrip.downloads.length > 0),
+      || stripDownloads.length > 0),
   );
   const attentionNode = hasAttentionStripContent && attentionStrip ? (
     <HomeAttentionStrip
       {...attentionStrip}
+      downloads={stripDownloads}
       onOpenActivity={() => {
         onClose();
         attentionStrip.onOpenActivity();
@@ -78,10 +138,6 @@ export function HomeMessagesDrawer({
         onClose();
         attentionStrip.onOpenDownloads();
       }}
-      onViewAllAttention={attentionStrip.onViewAllAttention ? () => {
-        onClose();
-        attentionStrip.onViewAllAttention?.();
-      } : undefined}
     />
   ) : null;
 

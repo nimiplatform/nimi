@@ -3,7 +3,6 @@ import { Compass, UsersRound } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   RecentPartnerAvatar,
-  useHomeRecentPartners,
   type HomeAgentCardState,
 } from './home-agent-card.js';
 import {
@@ -232,12 +231,4 @@ export function HomePartnersHeroCardView({
       )}
     </section>
   );
-}
-
-export function HomePartnersHeroCard({ enabled }: { enabled: boolean }) {
-  const { ownerUserId, onManagePartner: _onManagePartner, ...partnerProps } = useHomeRecentPartners(
-    enabled,
-    HOME_PARTNERS_HERO_LIMIT,
-  );
-  return <HomePartnersHeroCardView key={ownerUserId} {...partnerProps} />;
 }

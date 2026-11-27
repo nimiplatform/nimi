@@ -10,6 +10,7 @@ import {
   type HomeAgentCardViewProps,
 } from '../src/shell/renderer/features/home/home-agent-card.js';
 import type { HomeRecentChatPartner } from '../src/shell/renderer/features/home/home-recent-conversations-model.js';
+import { HomePartnersHeroCardView } from '../src/shell/renderer/features/home/home-partners-hero-card.js';
 
 (globalThis as { React?: typeof React }).React = React;
 const noop = () => undefined;
@@ -41,7 +42,7 @@ function render(overrides: Partial<HomeAgentCardViewProps> = {}): string {
   return renderToStaticMarkup(view(overrides));
 }
 
-async function withMountedView(overrides: Partial<HomeAgentCardViewProps>, check: (document: Document) => void) {
+async function withMountedView(element: React.ReactElement, check: (document: Document) => void) {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost' });
   const previous = new Map<string, PropertyDescriptor | undefined>();
   for (const [key, value] of Object.entries({
@@ -57,7 +58,7 @@ async function withMountedView(overrides: Partial<HomeAgentCardViewProps>, check
   const root = createRoot(dom.window.document.getElementById('root')!);
   try {
     await act(async () => {
-      root.render(view(overrides));
+      root.render(element);
     });
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -127,10 +128,10 @@ test('cold-start unchatted partner surfaces icebreaker prompt chips that pass th
 
   const opened: Array<{ id: string; text: string }> = [];
   await withMountedView(
-    {
+    view({
       partners: unchattedOnly,
       onOpenChatWithDraft: (id, text) => opened.push({ id, text }),
-    },
+    }),
     (document) => {
       const promptBtn = document.querySelector<HTMLButtonElement>('[data-testid="home-agent-prompt:story"]');
       assert.ok(promptBtn);
@@ -181,7 +182,7 @@ test('recent chat avatars render Realm-managed images when the runtime URL is ab
       external: { avatarUrl: null, portraitUrl: null, referenceImageUrl: null, profileCoverUrl: null, voiceSampleUrl: null },
       unavailableResourceRefs: [],
     };
-    await withMountedView({ partners: [{ ...PARTNERS[0]!, media }] }, (document) => {
+    await withMountedView(view({ partners: [{ ...PARTNERS[0]!, media }] }), (document) => {
       const image = document.querySelector('[data-testid="home-recent-chat:lumi"] img');
       assert.equal(image?.getAttribute('src'), 'https://media.example/character.webp');
       assert.equal(image?.getAttribute('alt'), 'Lumi');
@@ -193,7 +194,7 @@ test('recent chat avatars render Realm-managed images when the runtime URL is ab
 
 test('external artwork and missing-image initials preserve conversation actions', async () => {
   await initI18n();
-  await withMountedView({}, (document) => {
+  await withMountedView(view(), (document) => {
     assert.equal(document.querySelector('[data-testid="home-recent-chat:bo"] img')?.getAttribute('src'), 'https://example.com/bo.png');
     const row = document.querySelector('[data-testid="home-recent-chat:lumi"]');
     assert.equal(row?.querySelector('img'), null);
@@ -267,14 +268,35 @@ test('Home forwards any saved unsent draft when opening chat and leaves clearing
   const draft = '  Keep this text, including its spacing.  ';
   const opened: Array<{ id: string; text: string }> = [];
   await withMountedView(
-    {
+    view({
       draftByPartner: { aria: draft },
       onOpenChatWithDraft: (id, text) => opened.push({ id, text }),
-    },
+    }),
     (document) => {
       const btn = document.querySelector<HTMLButtonElement>('[data-testid="home-agent-open-chat:aria"]')!;
       act(() => btn.click());
       assert.deepEqual(opened, [{ id: 'aria', text: draft }]);
+    },
+  );
+});
+
+test('Home overview partner shortcuts resume the selected chat and carry only its own saved draft', async () => {
+  await initI18n();
+  const draft = '  Finish the outline  ';
+  const opened: { id: string; text?: string }[] = [];
+  await withMountedView(
+    <HomePartnersHeroCardView state="ready" partners={PARTNERS} partnersPending={false} formatTime={() => ''}
+      draftByPartner={{ aria: draft }}
+      onOpenPartner={id => opened.push({ id })}
+      onOpenChatWithDraft={(id, text) => opened.push({ id, text })}
+      onOpenAll={noop} onExplore={noop} />,
+    document => {
+      const lumi = document.querySelector<HTMLButtonElement>('[data-testid="home-partner-card:lumi"]');
+      const aria = document.querySelector<HTMLButtonElement>('[data-testid="home-partner-card:aria"]');
+      assert.ok(lumi && aria);
+      act(() => lumi.click());
+      act(() => aria.click());
+      assert.deepEqual(opened, [{ id: 'lumi' }, { id: 'aria', text: draft }]);
     },
   );
 });

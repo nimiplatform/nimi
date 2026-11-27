@@ -1,6 +1,7 @@
 import { Button, ProgressIndicator } from '@nimiplatform/kit/ui';
 import { DesktopAIExecutionRoute, type DesktopAIExecution } from '@nimiplatform/sdk/runtime/generated';
 import { Activity, AlertTriangle, Bell, Download, Layers3, SlidersHorizontal } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatBytes, formatTransferRate } from '../../components/download-format.js';
 import { displayRuntimeConfigCapabilityLabel } from '../runtime-config/runtime-config-capability-labels.js';
@@ -25,7 +26,6 @@ export type HomeAttentionStripProps = {
   downloads: readonly HomeActiveDownloadItem[];
   onOpenActivity: () => void;
   onOpenDownloads: () => void;
-  onViewAllAttention?: () => void;
 };
 
 function AttentionIcon({ tone }: { tone: HomeAttentionTone }) {
@@ -53,12 +53,15 @@ export function HomeAttentionStrip({
   downloads,
   onOpenActivity,
   onOpenDownloads,
-  onViewAllAttention,
 }: HomeAttentionStripProps) {
   const { t } = useTranslation();
 
-  const visibleAttention = attention.slice(0, HOME_MAX_ATTENTION_ITEMS);
-  const hiddenAttentionCount = Math.max(0, attention.length - visibleAttention.length);
+  const [selectedPage, setSelectedPage] = useState(1);
+  const pageCount = Math.ceil(attention.length / HOME_MAX_ATTENTION_ITEMS);
+  const page = Math.min(selectedPage, Math.max(1, pageCount));
+  if (selectedPage !== page) setSelectedPage(page);
+  const start = (page - 1) * HOME_MAX_ATTENTION_ITEMS;
+  const visibleAttention = attention.slice(start, start + HOME_MAX_ATTENTION_ITEMS);
   const visibleExecutions = executions.slice(0, HOME_MAX_ACTIVE_WORK_ITEMS);
   const remainingWorkSlots = Math.max(0, HOME_MAX_ACTIVE_WORK_ITEMS - visibleExecutions.length);
   const visibleDownloads = downloads.slice(0, remainingWorkSlots);
@@ -99,17 +102,18 @@ export function HomeAttentionStrip({
           </Button>
         </div>
       ))}
-      {hiddenAttentionCount > 0 && onViewAllAttention ? (
-        <div className="flex justify-end">
-          <Button
-            tone="ghost"
-            size="sm"
-            onClick={onViewAllAttention}
-            data-testid="home-attention-view-all"
-          >
-            {t('runtimeConfig.overview.attention.viewAllPending', { count: attention.length })} →
+      {pageCount > 1 ? (
+        <nav className="flex items-center justify-between gap-2" aria-label={t('runtimeConfig.overview.attention.sectionLabel')}>
+          <Button tone="ghost" size="sm" disabled={page === 1} onClick={() => setSelectedPage(page - 1)}>
+            {t('runtimeConfig.overview.attention.previous')}
           </Button>
-        </div>
+          <span role="status" className="text-xs tabular-nums text-[var(--nimi-text-secondary)]">
+            {t('runtimeConfig.overview.attention.page', { page, pages: pageCount })}
+          </span>
+          <Button tone="ghost" size="sm" disabled={page === pageCount} onClick={() => setSelectedPage(page + 1)}>
+            {t('runtimeConfig.overview.attention.next')}
+          </Button>
+        </nav>
       ) : null}
 
       {visibleExecutions.map((execution) => {

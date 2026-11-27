@@ -2,7 +2,7 @@ import { useHomeNavigation, useHomeDestination } from '../../app-shell/providers
 import { IntegrationsPanel, type IntegrationsPanelIntent } from '../integrations/integrations-panel.js';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Bell, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SHELL_PAGE_WIDTH_CLASS } from '../../app-shell/layouts/shell-chrome-classes.js';
@@ -36,27 +36,24 @@ import { deriveHomeRemoteSummary } from './home-host-status-card.js';
 import { HOME_RESOURCE_WARN_PERCENT, homeRuntimeState } from './home-machine-status.js';
 import type { HomeMessageCardContext } from './home-message-card.js';
 import { HomeMessageCenter } from './home-message-center.js';
-import { pendingSummary } from './home-messages-column.js';
 import { useHomeMessages, type HomeMessages, type HomeSystemListing } from './home-messages-controller.js';
-import { HomeMessagesDrawer } from './home-messages-drawer.js';
+import { HomeMessagesDrawer, HomeMessagesDrawerTrigger } from './home-messages-drawer.js';
 import {
   setHomeMessagesDrawerOpen,
-  toggleHomeMessagesDrawer,
   useHomeMessagesDrawerFilter,
   useHomeMessagesDrawerOpen,
 } from './home-messages-drawer-state.js';
 import {
-  isUnreadMessage,
   systemMessage,
   type HomeMessageFilter,
   type HomeSystemItemMessage,
-  type HomeTimelineQuickFilter,
 } from './home-messages-model.js';
 import type { PendingAttentionRecord, WorkSessionRecord } from '@nimiplatform/sdk/runtime/generated';
 import { createRuntimeAgentAIConfigAdapter } from '../../infra/runtime-agent-ai-config.js';
 import { useHumanChatList } from '../chat/use-human-chat-list.js';
 import { loadHumanContactPage } from '../relationship/human-contact-data.js';
 import { useHomeRecentPartners } from './home-agent-card.js';
+import { HomePartnersHeroCardView } from './home-partners-hero-card.js';
 import { buildHomeQuickJumpItems, HomeQuickJumpModal } from './home-quick-jump-modal.js';
 import { HomeOmniComposer, type OmniHumanContactOption } from './home-omni-composer.js';
 import { projectSessionOverviewAttention } from './home-omni-composer-model.js';
@@ -796,48 +793,13 @@ export function NimiOverview() {
     return {
       attention: attentionItems,
       executions: activeExecutions,
-      downloads: messages ? [] : activeDownloads,
+      downloads: activeDownloads,
       onOpenActivity: () => setView('ai-activity'),
       onOpenDownloads: () => void navigation.push({ id: 'downloads' }),
-      onViewAllAttention: messages ? () => openCenter('pending') : undefined,
     };
   };
 
   const renderOverview = (messages: HomeMessages | null, drawerAttention: HomeAttentionStripProps) => {
-    const pending = messages ? pendingSummary(messages) : null;
-    const hasPending = Boolean(pending && pending.count > 0);
-    const hasUnread = Boolean(messages?.homeMessages?.some(isUnreadMessage));
-    const hasDrawerAttention = drawerAttention.attention.length > 0;
-    const hasDrawerActiveWork = drawerAttention.executions.length > 0 || drawerAttention.downloads.length > 0;
-    const showHeaderMessageSignal = hasPending || hasUnread || hasDrawerAttention || hasDrawerActiveWork;
-    const drawerTriggerLabel = pending && pending.count > 0
-      ? t(
-          pending.more
-            ? 'runtimeConfig.overview.messages.drawerTriggerPendingMore'
-            : 'runtimeConfig.overview.messages.drawerTriggerPending',
-          { count: pending.count },
-        )
-      : hasDrawerAttention
-        ? t('runtimeConfig.overview.messages.drawerTriggerAttention', { count: drawerAttention.attention.length })
-        : hasUnread
-          ? t('runtimeConfig.overview.messages.hasUnread')
-          : t('runtimeConfig.overview.messages.drawerTriggerActiveWork');
-    const drawerTriggerFilter: HomeTimelineQuickFilter = hasPending
-      ? 'pending'
-      : hasUnread && !hasDrawerAttention && !hasDrawerActiveWork
-        ? 'unread'
-        : 'all';
-    const drawerSignalIconClass = drawerAttention.attention.some((item) => item.tone === 'danger')
-      ? 'text-[var(--nimi-status-danger)]'
-      : drawerAttention.attention.some((item) => item.tone === 'warning')
-        ? 'text-[var(--nimi-status-warning)]'
-        : 'text-[var(--nimi-action-primary-bg)]';
-    const drawerSignalDotClass = drawerAttention.attention.some((item) => item.tone === 'danger')
-      ? 'bg-[var(--nimi-status-danger)]'
-      : drawerAttention.attention.some((item) => item.tone === 'warning')
-        ? 'bg-[var(--nimi-status-warning)]'
-        : 'bg-[var(--nimi-action-primary-bg)]';
-
     return (
       <div
         className="flex min-h-full w-full min-w-0 flex-1 flex-col justify-between"
@@ -852,24 +814,7 @@ export function NimiOverview() {
             {i18n.formatDate(now, { month: 'long', day: 'numeric', weekday: 'long' })}
           </span>
 
-          {showHeaderMessageSignal ? (
-            <button
-              type="button"
-              aria-expanded={messagesDrawerOpen}
-              onClick={() => toggleHomeMessagesDrawer(drawerTriggerFilter)}
-              data-testid="home-messages-drawer-trigger"
-              className="inline-flex h-[30px] items-center gap-2 rounded-full border border-[var(--nimi-home-whisper-border)] bg-[var(--nimi-home-whisper-surface)] px-3 text-xs font-medium text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)] transition-[transform,opacity,background-color,border-color,color,box-shadow] duration-150 hover:bg-[var(--nimi-home-whisper-surface-hover)] hover:shadow-[var(--nimi-home-porcelain-shadow)] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
-            >
-              <span className={`relative inline-flex items-center justify-center ${drawerSignalIconClass}`}>
-                <Bell size={13} aria-hidden="true" />
-                <span
-                  className={`absolute -top-0.5 -right-0.5 size-1.5 rounded-full ${drawerSignalDotClass}`}
-                  aria-hidden="true"
-                />
-              </span>
-              <span>{drawerTriggerLabel}</span>
-            </button>
-          ) : null}
+          <HomeMessagesDrawerTrigger messages={messages} drawerAttention={drawerAttention} open={messagesDrawerOpen} />
 
           <button
             type="button"
@@ -918,6 +863,11 @@ export function NimiOverview() {
             onOpenAllPartners={recentPartnersState.onOpenAll}
             onExplorePartners={recentPartnersState.onExplore}
           />
+          {messagesAccountKey && recentPartnersState.state !== 'none' ? (
+            <div className="mt-4 w-full">
+              <HomePartnersHeroCardView {...recentPartnersState} />
+            </div>
+          ) : null}
         </div>
 
         {/* Bottom Calm Periphery: Compact App Micro-Dock + Ambient Status Strip */}
