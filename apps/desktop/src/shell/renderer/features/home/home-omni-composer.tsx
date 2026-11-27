@@ -995,7 +995,7 @@ export function HomeOmniComposer({
           <div className={`px-5 ${hasTopPills ? 'pt-2.5 pb-2' : 'pt-4.5 pb-2.5'}`}>
             <textarea
               ref={inputRef}
-              rows={1}
+              rows={2}
               value={draft}
               disabled={submitting}
               onCompositionStart={() => { isComposingRef.current = true; }}

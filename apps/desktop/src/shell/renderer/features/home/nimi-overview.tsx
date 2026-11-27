@@ -810,7 +810,7 @@ export function NimiOverview() {
           className="relative z-20 flex w-full flex-wrap items-center justify-end gap-2 pt-0.5"
           data-testid="home-hero-header"
         >
-          <span data-testid="home-date" className="mr-1.5 text-xs text-[var(--nimi-text-muted)]">
+          <span data-testid="home-date" className="mr-auto text-xs text-[var(--nimi-text-secondary)]">
             {i18n.formatDate(now, { month: 'long', day: 'numeric', weekday: 'long' })}
           </span>
 
@@ -828,8 +828,7 @@ export function NimiOverview() {
           </button>
         </header>
 
-        {/* Optical Center Gravitational Core: Greeting + Hero Omni-Composer */}
-        <div className="mx-auto flex w-full max-w-[680px] min-w-0 flex-1 flex-col items-center justify-center py-6 pb-16">
+        <div className="mx-auto flex w-full max-w-[720px] min-w-0 flex-1 flex-col items-center justify-center pt-6 pb-8">
           <h1 className="mb-6 min-w-0 text-center text-[1.625rem] font-semibold leading-tight tracking-tight text-[var(--nimi-text-primary)] md:text-[1.75rem]">
             {displayName
               ? t('runtimeConfig.overview.greetingWithName', { greeting: t(greetingKey(now.getHours())), name: displayName })
@@ -863,43 +862,42 @@ export function NimiOverview() {
             onOpenAllPartners={recentPartnersState.onOpenAll}
             onExplorePartners={recentPartnersState.onExplore}
           />
-          {messagesAccountKey && recentPartnersState.state !== 'none' ? (
-            <div className="mt-4 w-full">
-              <HomePartnersHeroCardView {...recentPartnersState} />
-            </div>
-          ) : null}
+          <div className="mt-6 flex w-full min-w-0 flex-wrap items-center justify-center gap-x-7 gap-y-3" data-testid="home-shortcuts-row">
+            {messagesAccountKey && recentPartnersState.state !== 'none' ? (
+              <div className="min-w-0 max-w-full">
+                <HomePartnersHeroCardView {...recentPartnersState} />
+              </div>
+            ) : null}
+
+            <HomeAppsWorkbench
+              focusGeneration={focusGeneration}
+              key={`apps-dock:${messagesAccountKey ?? 'device'}`}
+              accountKey={messagesAccountKey}
+              entries={entries}
+              iconUrls={iconUrls}
+              loading={apps.isPending}
+              unavailable={localAppsUnavailable}
+              onOpenAllApps={() => void navigation.push({ id: 'apps' })}
+              onOpenApp={openApp}
+              onAppsMutated={() => void apps.refetch()}
+            />
+          </div>
         </div>
 
-        {/* Bottom Calm Periphery: Compact App Micro-Dock + Ambient Status Strip */}
-        <div className="mt-auto flex w-full min-w-0 flex-col items-center gap-3.5 pt-4">
-          <HomeAppsWorkbench
-            focusGeneration={focusGeneration}
-            key={`apps-dock:${messagesAccountKey ?? 'device'}`}
-            accountKey={messagesAccountKey}
-            entries={entries}
-            iconUrls={iconUrls}
-            loading={apps.isPending}
-            unavailable={localAppsUnavailable}
-            onOpenAllApps={() => void navigation.push({ id: 'apps' })}
-            onOpenApp={openApp}
-            onAppsMutated={() => void apps.refetch()}
-          />
-
-          <HomeAmbientStatusStrip
-            runtime={runtimeState}
-            capabilitiesLoading={inventory.isPending && !inventory.data}
-            capabilitiesFailed={inventory.isError}
-            readyCapabilityCount={prepared.length}
-            ai={ai}
-            remote={remoteSummary}
-            activeIntegrationCount={activeIntegrationCount}
-            onOpenDiagnostics={openDiagnostics}
-            onOpenCapabilities={() => void navigation.push({ id: 'runtime' })}
-            onOpenUsageDetails={() => setView('ai-activity')}
-            onOpenConnections={() => void navigation.push({ id: 'connections' })}
-            onOpenIntegrations={() => openIntegrations()}
-          />
-        </div>
+        <HomeAmbientStatusStrip
+          runtime={runtimeState}
+          capabilitiesLoading={inventory.isPending && !inventory.data}
+          capabilitiesFailed={inventory.isError}
+          readyCapabilityCount={prepared.length}
+          ai={ai}
+          remote={remoteSummary}
+          activeIntegrationCount={activeIntegrationCount}
+          onOpenDiagnostics={openDiagnostics}
+          onOpenCapabilities={() => void navigation.push({ id: 'runtime' })}
+          onOpenUsageDetails={() => setView('ai-activity')}
+          onOpenConnections={() => void navigation.push({ id: 'connections' })}
+          onOpenIntegrations={() => openIntegrations()}
+        />
 
         <HomeQuickJumpModal
           open={quickJumpOpen}

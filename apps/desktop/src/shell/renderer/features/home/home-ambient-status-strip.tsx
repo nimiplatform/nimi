@@ -155,7 +155,7 @@ export function HomeAmbientStatusStrip({
     <footer
       aria-label={t('runtimeConfig.overview.ambientStrip.sectionLabel')}
       data-testid="home-ambient-status-strip"
-      className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-[11.5px] text-[var(--nimi-text-muted)]"
+      className="mx-auto flex w-full max-w-[780px] flex-wrap items-center justify-center gap-x-1.5 gap-y-1 border-t border-[var(--nimi-border-subtle)]/60 pt-3.5 text-[11.5px] text-[var(--nimi-text-muted)]"
     >
       <button
         type="button"
