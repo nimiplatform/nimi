@@ -14,7 +14,7 @@ $$\text{Realm / Runtime 核心引擎} \longrightarrow \text{SDK 强类型接口}
 |---|---|---|
 | **角色世界资产与社会关系** | **Realm** | 持久化角色设定 (Character)、虚拟世界规则、长期故事演变、生态身份认证与跨应用社交网络关系 |
 | **本地 AI 调度与受保护访问** | **Runtime** | LocalAgent 实例生命周期、本地/云端模型调度中继、会话事件提交、凭据安全托管与受保护 App 访问控制 |
-| **长期记忆与知识沉淀** | **Cognition** | 规范的 Agent 长期记忆、上下文溯源、相关性排序与遗忘管理（杜绝 App 私建混乱的长期记忆库） |
+| **长期记忆与 Agent Source 检索** | **Cognition** | 规范的 LocalAgent 长期记忆与快照绑定的 Agent Source 写入、检索及清理（由 Runtime 进程内受控桥接，不含已退役的 Knowledge 服务，杜绝 App 私建混乱的长期记忆库） |
 | **开发者抽象与通信协议** | **SDK** (`@nimiplatform/sdk`) | 跨进程调用强类型 Client 封装、通信传输中继与面向开发者的工程抽象 |
 | **设计系统与基础组件** | **Kit** (`@nimiplatform/kit`) | 跨 App 统一的可复用 UI 控件、设计 Token、无障碍支持、基础认证与 Shell 桥接 |
 | **业务场景与用户交互** | **App** (生态应用) | 专注具体用户任务的界面视图、本地轻量业务状态与场景工作流编排 |

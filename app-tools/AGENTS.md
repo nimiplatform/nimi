@@ -12,7 +12,7 @@
 - A Lab capability slice may enter generated output only through an explicit catalog entry. Keep its App Access items, package dependencies, source root, target root, and dependency edges in that admission boundary.
 - `templates/default-starter/**` and `templates/default-starter.manifest.json` are committed, hand-authored base sources. They must stay generic and free of Lab-only product code or feature implementations.
 - `templates/app-source/**` and `templates/app-source.manifest.json` are derived build artifacts (gitignored, like `dist/`) containing only admitted capability slices for published packages. They are never committed or hand-edited. In a monorepo checkout, the generator reads those exact slices from `apps/lab` live.
-- Generated app projects must consume platform surfaces through `@nimiplatform/sdk` and `@nimiplatform/kit`; native supervised local development uses the Kit Electron app-host bridge; Web development uses the declared HTTPS source, official Runtime-client login and direct SDK carrier. Independent Tauri shell glue, where present, is bounded OS integration and must not become a second local-development carrier or create local registry/admission truth.
+- Generated app projects must consume platform surfaces through `@nimiplatform/sdk` and `@nimiplatform/kit`; native supervised local development uses the Kit Electron app-host bridge; Web development uses the declared HTTPS source, official Runtime-client login and direct SDK carrier.
 - Platform registry review owns catalog admission and release descriptors; Runtime owns source-qualified installation/update state and access; Desktop owns exact Host process truth.
 - Keep scaffold-managed glue explicit and reviewable in generator-owned code. Do not hide shared Runtime/SDK/Kit/shell behavior inside App-owned Lab product files.
 - Do not add install-time side effects that mutate `.nimi/**`; activation belongs to explicit `nimi-app init`.
@@ -26,7 +26,7 @@
 
 ## Verification Commands
 - Run the focused Node test while iterating. Run `pnpm --filter @nimiplatform/app-tools test` for generator, capability-closure, lifecycle, package, or shared template changes; prose-only guidance edits do not require the full suite.
-- Use `pnpm run sync:app-source -- --apply` only when explicitly materializing the derived admitted-slice snapshot for packaging inspection.
+- Use `pnpm --filter @nimiplatform/app-tools run sync:app-source -- --apply` only when explicitly materializing the derived admitted-slice snapshot for packaging inspection.
 
 ## App introduction
 - Every App owns a root `NIMI_APP.md` for Home: current user tasks, first steps, required configuration, relevant data handling, limitations and help. Keep engineering setup and acceptance logs in README/developer documentation. `metadata.readme` and README fallback are not supported; sync must not overwrite or recreate the introduction.

@@ -8,15 +8,17 @@ Nimi Desktop is the Electron application hosting Nimi Home: the central workstat
 
 ### Prerequisites & Launch
 
-From the repository root, start the local Runtime service in one terminal, then launch Desktop in another:
+From the repository root, launch Desktop directly — `pnpm dev:desktop` automatically starts or reuses the matching source Runtime (defaulting to the official Realm):
 
 ```bash
-# Terminal 1: Start Runtime
-pnpm dev:runtime
-
-# Terminal 2: Start Desktop
+# Start Desktop (starts or reuses the source Runtime automatically)
 pnpm dev:desktop
+
+# Optional: run Runtime in its own terminal when debugging Go foreground logs directly
+pnpm dev:runtime
 ```
+
+Pass `-- --realm local` when developing against a local Realm instead of the default `official` Realm. If you start `pnpm dev:runtime` separately, use the same Realm selection in both terminals.
 
 `pnpm dev:desktop` prepares the workspace SDK/Kit dependencies, builds the Electron main process, starts the renderer dev server on `127.0.0.1:1420`, and enables loopback CDP on port `9333` (customizable via `--cdp-port <port>`, or disable with `--no-cdp`).
 
@@ -52,10 +54,12 @@ pnpm --filter @nimiplatform/desktop run test:quality
 
 ## Configuration
 
-Desktop reads environment settings from the repository root `.env` file (`nimi/.env`):
+Desktop source development resolves its Realm profile through `app-tools/lib/development-environment.mjs` (reading defaults from the repository root `.env` file `nimi/.env`, with shell environment variables and CLI `--realm` taking precedence):
 
-- `NIMI_REALM_URL`: Source development accepts only `http://127.0.0.1:3002` or `http://localhost:3002`, with no extra path, query, credentials, or fragment. The launcher normalizes either value to `http://127.0.0.1:3002`; remote hosts and other ports are rejected.
-- `NIMI_WEB_URL`: Optional web portal base URL used for account management and browser handoffs.
+- **Default Realm (`official`)**: Defaults to the official Realm (`https://realm.nimi.ai` for API/realtime and `https://nimi.ai` for web, environment ID `production`). No `.env` override is required for normal source development.
+- `NIMI_DEV_REALM`: Selects `official` (default) or `local` (overridden by `--realm official|local`).
+- `NIMI_DEV_REALM_URL`, `NIMI_DEV_REALTIME_URL`, `NIMI_DEV_WEB_URL`, `NIMI_DEV_REALM_ENVIRONMENT_ID`: Optional overrides used only when `NIMI_DEV_REALM=local` (defaults: `http://127.0.0.1:3002`, `http://127.0.0.1:3003`, `http://localhost:3000`, `dev`). Origins must be exact HTTPS origins (HTTP is allowed only for `localhost` or `127.0.0.1`).
+- Note: `.env` `NIMI_REALM_URL` (and `NIMI_WEB_URL`) are ignored for development Realm selection; the launcher populates `NIMI_REALM_URL`, `NIMI_REALTIME_URL`, and `NIMI_WEB_URL` from the resolved development Realm profile.
 
 ### AI Configuration Architecture
 

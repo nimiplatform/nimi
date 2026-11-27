@@ -48,8 +48,9 @@ It never determines product availability, nor does it carry truth for configurat
 
 ## Current Consumers
 
-- `desktop`: Planned first-party consumer for agent chat and runtime-driven avatar presentation.
-- `web`: Planned first-party consumer for shared avatar presentation surfaces without desktop-specific shell semantics.
+- `apps/avatar`: Standalone embodiment renderer consuming avatar carrier contracts, VRM/Live2D backends, voice lipsync, and stage shell.
+- `apps/zhiyu`: Companion app consuming avatar launch/presence handoff and companion emotion contracts.
+- `apps/desktop`: Bundled avatar host handoff, agent preview projection, and voice playback capture/runtime helpers.
 
 ## Verification
 

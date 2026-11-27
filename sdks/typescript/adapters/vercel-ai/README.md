@@ -2,7 +2,7 @@
 
 Use this adapter to retain Vercel's model, streaming, and caller-owned tool-loop interfaces while Nimi owns execution configuration and protected access.
 
-- The `0.5.0` source adapter declares SDK `^0.21.0`, AI SDK `^7.0.0`, and Provider `^4.0.0` peers. For a Local App, keep the SDK/Kit/native combination admitted by your App Tools version and matching Runtime; source version declarations alone do not establish npm publication.
+- The current workspace/source candidate (`0.8.0-rc.1` in `package.json`, not a published npm release) declares SDK `^0.24.0-rc.12`, AI SDK `^7.0.0`, and Provider `^4.0.0` peers. For a Local App, keep the published or source SDK/Kit/native combination admitted by your App Tools version and matching Runtime; workspace source version declarations alone do not establish npm publication.
 - The Local App factory accepts an explicit `executionMode` selection; this selects the admitted execution form, not a provider or model.
 - Published component upgrade history remains in the SDK and Kit migration notes.
 

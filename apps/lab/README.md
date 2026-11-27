@@ -163,7 +163,11 @@ Real acceptance on 2026-11-11 used Windows RTX 5090, guarded Desktop startup and
 | SeedVR2 3B / 7B Sharp | 3B image at 4× and video at 2×; 7B Sharp image and video at 2×; experimental |
 | SDXL ControlNet Union ProMax | 1024² Canny with explicit strength 1 and Tile with omitted strength, both producing actual PNGs |
 
-All four upscale video outputs preserved the 22 source frame timestamps and AAC packet bytes; container duration differed by one microsecond. SeedVR2 3B cancellation was observed after native inference started, the process exited, and a new request completed. Visual checks concern the tested samples; HyperFlow audio quality was not assessed. Other ControlNet types, HyperFlow four/eight-step presets, unlisted scales or inputs, remote Web/Android, other platforms and installed distributions remain **NOT-VERIFIED**. Earlier failed runs remain recorded separately from the repaired successful runs.
+All four upscale video outputs preserved the 22 source frame timestamps and AAC packet bytes; container duration differed by one microsecond. SeedVR2 3B cancellation was observed after native inference started, the process exited, and a new request completed. Visual checks concern the tested samples; HyperFlow audio quality was not assessed.
+
+Apple Silicon source-development acceptance has also exercised ControlNet Canny and Tile, plus RelayVSR 2× and 4× image and video upscaling. With the explicitly selected Metal INT8 development archive, small-image and short-video samples passed for H3 Image (text-to-image and single-reference editing), HyperFlow (FL2VA and Ref2VA with Sol-H3-VAE), and SeedVR2 (3B and 7B Sharp, experimental).
+
+Other ControlNet types, HyperFlow four/eight-step presets, unlisted scales or inputs, remote Web/Android, other platforms and installed distributions remain **NOT-VERIFIED**. Earlier failed runs remain recorded separately from the repaired successful runs.
 
 ### Execution Guarantees & Constraints
 

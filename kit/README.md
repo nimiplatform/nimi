@@ -93,6 +93,9 @@ Kit provides shared UI surfaces for core Nimi capabilities:
 | `@nimiplatform/kit/features/model-config` | Multi-model routing preferences and capability binding panels |
 | `@nimiplatform/kit/features/model-picker` | Candidate discovery and selection UI; the owning feature supplies candidates and commits the choice |
 | `@nimiplatform/kit/features/agent-center` | Shared Agent settings and inspection views |
+| `@nimiplatform/kit/features/agent-realtime` | Shared Agent realtime voice/text entry, headless session lifecycle, and browser/Electron media port |
+| `@nimiplatform/kit/features/generation` | Reusable generation panels, modality contracts (transcription, source separation, embeddings), and Job observation/cancellation helpers |
+| `@nimiplatform/kit/features/media` | Realm-managed media delivery components (`MediaImage`, `MediaAvatar`, `MediaVideo`) and headless candidate selection |
 
 ---
 
@@ -104,8 +107,6 @@ Kit provides shared UI surfaces for core Nimi capabilities:
 ---
 
 ## Verification & Contributing
-
-The local **0.24.0-rc.4** Android coordination candidate passed real Presenton idle/reconnect acceptance after a reused HTTP socket produced EOF in the earlier diagnostic candidate. The fix disables idle connection reuse only for the narrow Realm client while keeping automatic retries, cookies, and redirects disabled. Four real HTTP regression tests, Android Java/APK compilation, and the official device journey passed, with all four original App drafts retained. See [Kit Auth's exact scope and checks](auth/README.md#android-coordination-reconnect--local-0240-rc4). This does not publish or overwrite the frozen package archives.
 
 Run the verification suite locally:
 

@@ -71,15 +71,27 @@ validates its `dataRoot.path` and retains only derived verification state.
 
 ## Runtime Surface
 
-Registered public runtime gRPC services currently include:
-- `RuntimeAiService` — local and cloud AI execution, streaming, multimodal
-- `RuntimeAiRealtimeService` — duplex realtime text/audio session surface
-- `RuntimeLocalService` — local model inventory, Loadouts, acquisition, and supervision
-- `RuntimeAgentService` — live agent execution, hook lifecycle, and Runtime-mediated LocalAgent Memory
-- `RuntimeConnectorService` — provider connector lifecycle, credential hosting
-- `RuntimeAuthService` — authentication and token management
-- `RuntimeAppService` — app messaging and registration
-- `RuntimeAuditService` — audit logging and replay
+Registered runtime gRPC services defined in `proto/runtime/v1/` currently include:
+- `RuntimeAiService` — local and cloud AI execution, streaming, multimodal (`ai.proto`)
+- `RuntimeAiRealtimeService` — duplex realtime text/audio session surface (`ai_realtime.proto`)
+- `RuntimeAiVideoSessionService` — realtime video frame session surface (`ai.proto`)
+- `RuntimeLocalService` — local model inventory, Loadouts, acquisition, and supervision (`local_runtime.proto`)
+- `RuntimeAgentService` — live agent execution, hook lifecycle, and Runtime-mediated LocalAgent Memory (`agent_service.proto`)
+- `AgentSessionService` — durable agent session lifecycle and turns (`agent_session.proto`, protected/local-app transports)
+- `RuntimeExternalAgentService` — external agent registration and lifecycle (`external_agent.proto`)
+- `RuntimeConnectorService` — provider connector lifecycle and credential hosting (`connector.proto`)
+- `RuntimeAuthService` — authentication and token management (`auth.proto`)
+- `RuntimeAccountService` — account session and Runtime-mediated account operations (`account.proto`)
+- `RuntimeRealmRealtimeService` — Realm realtime bridge and event subscriptions (`realm_realtime.proto`)
+- `RuntimeAppService` — app messaging, sessions, and registration (`app.proto`)
+- `RuntimeAppPackageService` — installed app package lifecycle (`app.proto`, protected transport)
+- `RuntimeAppActivityService` — app activity publication and handoff (`app_activity.proto`, protected/local-app transports)
+- `RuntimeIntegrationService` — app integration providers, consumers, and snapshots (`integration.proto`, protected/local-app transports)
+- `RuntimeArtifactService` — Runtime-owned artifact custody and reads (`artifact_service.proto`)
+- `RuntimeRemoteAccessService` — remote Runtime peer connection and coordination (`remote_access.proto`)
+- `RuntimeDevelopmentService` — local development registration and tooling hooks (`development.proto`)
+- `RuntimeServiceControlService` — Runtime lifecycle, product control, and maintenance hooks (`runtime_service_control.proto`)
+- `RuntimeAuditService` — audit logging and replay (`audit.proto`)
 
 Notes:
 - Cognition is an in-process owner reached only through typed Runtime-owned bridges;

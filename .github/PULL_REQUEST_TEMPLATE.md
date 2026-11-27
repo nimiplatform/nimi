@@ -28,7 +28,7 @@ Commands used:
 ## Security Impact
 
 - Risk level: [ ] none [ ] low [ ] medium [ ] high
-- Affected domain: [ ] auth [ ] economy [ ] ai [ ] audit [ ] other
+- Affected domain: [ ] auth [ ] ai [ ] audit [ ] other
 - Notes:
 
 ## Rollback Plan

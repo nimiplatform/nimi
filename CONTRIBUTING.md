@@ -10,10 +10,10 @@ Whether you're fixing a bug, adding a new SDK capability, improving documentatio
 
 Ensure your development workstation meets these minimum requirements:
 
-- **Node.js**: `>= 24.0.0`
-- **pnpm**: `>= 10.0.0`
+- **Node.js**: `>= 24.22.3 < 25.0.0`
+- **pnpm**: `>= 10.34.7`
 - **Go**: Required for Runtime and gRPC service development (see `runtime/go.mod`)
-- **Rust**: Required for Kit native addons and Tauri carrier crates
+- **Rust**: Required for Kit native addons (`kit/shell/protected-local*` crates)
 - **Buf CLI**: Required if modifying Protocol Buffer schemas under `proto/`
 
 ---
@@ -30,7 +30,7 @@ cd nimi
 # Install workspace dependencies
 pnpm install
 
-# Build core packages (SDK, Kit, web)
+# Prepare SDK/Kit and build workspace apps (install-gateway, Desktop, Web, Lab)
 pnpm build
 ```
 

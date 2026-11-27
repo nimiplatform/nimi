@@ -1,7 +1,7 @@
 # AGENTS.md - nimi-kit
 ## Scope
 - Applies to `kit/**`; `@nimiplatform/kit` is the single cross-app toolkit package.
-- Active modules plus admitted native carrier boundary: `kit/ui`, `kit/auth`, `kit/core`, `kit/telemetry`, `kit/shell/protected-local`, `kit/shell/renderer`, `kit/shell/electron`, and `kit/features` (`kit/shell/tauri` is retired).
+- Active modules plus admitted native carrier boundary: `kit/ui`, `kit/auth`, `kit/core`, `kit/telemetry`, `kit/preview`, `kit/shell/capabilities`, `kit/shell/protected-local`, `kit/shell/protected-local-node`, `kit/shell/renderer`, `kit/shell/electron`, and `kit/features` (`kit/shell/tauri` is retired).
 ## Hard Boundaries
 - Kit UI is a reusable projection of `.nimi/spec/platform/ui-design-system.authority.yaml`; do not create app-local design truth in `kit/auth` or `kit/features`.
 - Read `kit/README.md` and the target module README when choosing a public entrypoint or reusable owner; use the direct owner contract for the behavior being changed.

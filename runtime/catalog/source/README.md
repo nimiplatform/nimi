@@ -47,8 +47,8 @@ YAML fragments are merged by tooling:
 - `model_workflow_bindings` (optional)
 - `voice_handle_policies` (optional)
 
-Source-provider SSOT covers the 39 source providers only.
-Infrastructure bridge providers such as `nimillm`, `openai_compatible`, and `volcengine_openspeech` are runtime-layer implementation details and are not authored here.
+Source-provider SSOT covers the 47 source providers only.
+Infrastructure bridge providers such as `nimillm` and `openai_compatible` are runtime-layer implementation details and are not authored here.
 
 ## 5. Design Rules
 

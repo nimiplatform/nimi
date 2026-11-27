@@ -34,7 +34,7 @@ pnpm test
 # Typecheck an affected package (for example Desktop)
 pnpm --filter @nimiplatform/desktop typecheck
 
-# Full CI simulation across scripts, proto, and workspace packages
+# Full workspace test suite across all workspace packages and repo script tests (run proto checks separately)
 pnpm test:workspace:full
 ```
 
@@ -45,7 +45,7 @@ pnpm test:workspace:full
 Protocol Buffers govern the wire format between Runtime and client SDKs:
 
 - **`pnpm proto:breaking`**: Runs the configured wire breaking-change checks; see `scripts/proto-breaking.mjs` for the comparison baseline.
-- **`pnpm proto:generate`**: Recompiles protobuf bindings for TypeScript, Go, and Rust.
+- **`pnpm proto:generate`**: Recompiles Go protobuf/gRPC bindings under `runtime/gen/` and syncs `.proto` files into `kit/shell/protected-local/proto/` (TypeScript SDK bindings are generated via `pnpm generate:sdks`; there is no Rust SDK).
 - **Drift Checks**: Generated artifacts must match generator output exactly; hand-edited generated files will fail CI.
 
 ---

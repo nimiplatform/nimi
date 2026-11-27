@@ -147,10 +147,12 @@ macOS 上，在 `pnpm dev:desktop` 的终端按一次 `Ctrl+C`，启动器会让
 
 日常迭代先做与改动相关的工程检查，再在当前 Home 监督的 App 中完成实际任务。根据本次验证的目标选择下列入口。
 
-1. **工程检查**在 App 工程中运行。
+1. **工程检查**：在仓库根目录针对目标包或整个工作区运行（根目录 `package.json` 不提供顶层 `pnpm typecheck`，请通过 `--filter` 调用具体包的 `typecheck` / `test`，或运行工作区级 `pnpm lint` 与 `pnpm test`）。
    ```bash
-   pnpm run typecheck
-   pnpm run test
+   pnpm --filter @nimiplatform/desktop typecheck
+   pnpm --filter @nimiplatform/desktop test
+   pnpm lint
+   pnpm test
    ```
 2. **开发态联调**使用 `pnpm dev`。在 Home 监督的 App 中检查访问就绪、实际调用和状态保存。验证重启恢复时，重新列出登记再恢复原来的 App 数据。
 3. **安装态专项**使用匹配的本地制品和目标平台验证包内容与安装。以下为 Apple Silicon Mac 示例。

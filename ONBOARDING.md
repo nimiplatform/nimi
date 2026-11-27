@@ -13,8 +13,11 @@ Nimi 是一个多组件组成的 Monorepo，核心目录划分如下：
 | 模块 | 目录 | 语言 / 框架 | 职责 |
 |---|---|---|---|
 | **Runtime** | `runtime/` | Go | 本地核心守护进程 (Daemon) 与 CLI，负责模型调度与受保护 App 访问 |
+| **Cognition** | `nimi-cognition/` | Go | Runtime 进程内认知能力实现，负责 LocalAgent 长期记忆与 Agent Source 检索 |
 | **SDK** | `sdks/typescript/` | TypeScript | 面向生态应用的统一开发接口 (`@nimiplatform/sdk`) |
 | **Kit** | `kit/` | TypeScript + React | 跨 App 共享工具包：基础 UI 组件、身份认证、监控与 Feature 模块 |
+| **App Tools** | `app-tools/` | TypeScript / Node.js | 面向第三方 Nimi App 的脚手架、生命周期校验与打包 CLI (`@nimiplatform/app-tools`) |
+| **Gateways** | `gateways/` | TypeScript | 面向外部客户端的协议网关（如本地环回 OpenAI 兼容网关 `gateways/openai-compatible/`） |
 | **Proto** | `proto/` | Protocol Buffers | 核心 gRPC 通信协议契约 |
 | **Authority** | `.nimi/spec/` | YAML + Markdown | 平台产品权威规范 (Canonical Authority) |
 | **Docs** | `docs/` | VitePress | 官方开发者文档站点 |
@@ -25,7 +28,12 @@ Nimi 是一个多组件组成的 Monorepo，核心目录划分如下：
 |---|---|---|---|
 | **Desktop** | `apps/desktop/` | Electron + React | 主桌面宿主 (Nimi Home)，整合 Agent 对话、应用工作区与本地 AI 管理 |
 | **Avatar** | `apps/avatar/` | Electron + React | 桌面浮动角色具身载体，由 Desktop 联动唤起 |
+| **Zhiyu (织羽)** | `apps/zhiyu/` | Electron / Web / Android + React | AI 伙伴对话与多端消费应用 |
+| **Harness** | `apps/harness/` | Electron + React | 持久对话、任务审批与 PC 工作台应用 |
+| **Lab** | `apps/lab/` | Electron / Web + React | 面向开发者的 AI 能力与多模态实验工作台（仅本地开发使用） |
+| **Utopia** | `apps/utopia/` | Electron + React | 安放自治伙伴日常的洞天画卷应用 |
 | **Web** | `apps/web/` | React | 官方展示站与 Web 登录入口 |
+| **Hosted Web** | `apps/hosted-web/` | Cloudflare Worker | 经审核的静态托管 Web App 分发与策略 Worker |
 | **Install Gateway** | `apps/install-gateway/` | Cloudflare Worker | 跨平台安装包分发网关 |
 
 ---
@@ -40,7 +48,7 @@ Nimi 是一个多组件组成的 Monorepo，核心目录划分如下：
 - **Git**
 
 *可选工具（按需安装）：*
-- **Rust toolchain**：涉及 Kit 原生组件、Desktop 原生底层包或 Tauri 实验宿主时需要。
+- **Rust toolchain**：涉及 Kit 原生组件（`kit/shell/protected-local*`）时需要。
 - **Buf CLI**：修改 `proto/` 协议并重新生成代码时使用。
 
 快速验证版本：
@@ -226,17 +234,3 @@ pnpm runtime:cmd -- doctor --json
 ```
 
 祝你开发愉快！如果遇到未涵盖的问题，欢迎在 Discord 或 GitHub Issue 中与团队交流。
-
----
-
-## 附录 · 维护媒体 0.22 历史开发检查点
-
-`media-cdn-preview-2026-10-26` 是配套 Realm 媒体合同的开发检查点，并非生产发布。SDK / Kit 0.22.0、Runtime、原生承载与 Home 必须使用匹配源码重新构建；仅拉取前端代码或修改依赖版本字符串，无法让旧 Runtime 的 broker/protobuf 支持新媒体操作。
-
-两仓独立更新，配套 Realm 代码的 SHA 见该 checkpoint 对应 Nimi 媒体提交中的 `Companion-Realm`。Realm 仓库根目录的 `MEDIA-CHECKPOINT.md` 是跨机数据适配入口，说明了现有数据库保护要求和工具适用边界。仅运行客户端的机器只需配置实际可访问的 Realm 并正常登录，不运行 Realm 数据迁移，也不需要 R2 写凭据。`localhost:3002` 指向本机；没有可访问的共享 Realm 时，不要将它当作远端服务。
-
-自行运行 Realm 的机器需先确认数据库与媒体发布 owner：不同数据库不得直接向同一预览发布空间写入。不要复制用户 token、Runtime 数据目录或整份 `.env`，也不要重置旧数据库；当前一次性媒体工具不是任意机器通用的迁移器。同时采用新介绍合同的独立 App 还需在根目录提供 `NIMI_APP.md`，不支持 README 回退。
-
-2026-10-28 首发准备已将媒体交付切至 policy v2：大幅静态主图提前生成，Runtime 同步修复了写死 v1 的描述与原始语音链接校验。升级时必须重新构建并正常重启匹配的 Runtime，不能只更新 Realm/Worker。最新配套代码、内容 revision 11 与生产变更预览见 Realm 的 `docker/production/MEDIA-LAUNCH.md`。
-
-2026-10-28 经明确批准，Cloudflare 账号已启用 Workers Paid，预览 Worker 单请求 CPU 限额为 1000ms；冷 MISS 主图 p95 为 1.773秒，新的真实页面验收未再观察到非取消的媒体请求失败。该结果仅解除本机/预览的 CPU 配额阻断；Windows、管理员界面、多 POP 和生产目标仍有未验证范围。代码、协议、数据准备与真实产品验收须分别核对，不能将构建通过或本机样本视为生产就绪。

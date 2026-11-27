@@ -24,7 +24,7 @@
 <!-- nimi-app:managed:start -->
 ## Nimi App development
 
-- For auditing adaptation feasibility or cost, creating, adapting, upgrading or releasing this App, read [the lifecycle skill](.agents/skills/nimi-app-lifecycle/SKILL.md) and only the relevant scenario. Audit-only requests do not begin implementation; prior reports remain evidence-dependent.
+- For auditing adaptation feasibility or cost, creating, adapting, upgrading or releasing this App, read [the lifecycle skill](../../app-tools/skills/nimi-app-lifecycle/SKILL.md) and only the relevant scenario. Audit-only requests do not begin implementation; prior reports remain evidence-dependent.
 - For first integration or foundation wiring changes, use the selected app-tools package's generated reference for the same carrier and reuse its renderer, session, App Access, AIConfig and AI call wiring; Host/preload apply only to native Desktop, while Web uses official scoped login and its admitted HTTPS source. Follow the adaptation guide's baseline checks and reuse passing results for ordinary business edits.
 - Keep App-owned product behavior, Host code, business accounts and non-AI services with this repository. Use the SDK/Kit Local App carrier for Nimi AI, configuration, storage and session access.
 - Development may consume complete local npm tarballs through the supported explicit overrides and version matrix; public-release preflight uses registry resolutions. Do not substitute source-workspace or directory links.
