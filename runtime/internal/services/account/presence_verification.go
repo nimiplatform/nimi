@@ -55,10 +55,15 @@ func (s *Service) RequestPresenceVerification(ctx context.Context, req *runtimev
 	}
 	s.mu.RLock()
 	if s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED ||
-		s.accountMaterialExpiredLocked() ||
+		!s.authenticatedRuntimeIdentity ||
+		!s.onlineAccessTokenLiveLocked() ||
 		strings.TrimSpace(s.material.AccountID) == "" {
+		reason := runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE
+		if s.material.OnlineCredentialsCleared {
+			reason = runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS
+		}
 		s.mu.RUnlock()
-		return presenceVerificationUnavailableResponse(purpose, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE), nil
+		return presenceVerificationUnavailableResponse(purpose, reason), nil
 	}
 	accountContext := presenceVerificationAccountContext(s.material)
 	projection := cloneProjection(s.projection)

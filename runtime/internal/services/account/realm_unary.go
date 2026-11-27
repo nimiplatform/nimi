@@ -114,7 +114,7 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 		return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_REALM_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE, "Realm account credential is unavailable", 0)), nil
 	}
 	if !ok {
-		return projectFailure(&runtimev1.InvokeRealmUnaryResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}), nil
+		return projectFailure(&runtimev1.InvokeRealmUnaryResponse{Accepted: false, ReasonCode: commonReason(reason), AccountReasonCode: reason}), nil
 	}
 
 	parsedRequest, err := parseRealmUnaryRequest(req.GetRequestJson())
@@ -182,9 +182,20 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 		s.mu.RLock()
 		refreshedToken := s.material.AccessToken
 		sameOwner := s.accountGeneration == generation
+		tokenLive := s.authenticatedRuntimeIdentity && s.onlineAccessTokenLiveLocked()
+		stateReason := s.stateReason
 		s.mu.RUnlock()
 		if !sameOwner {
 			return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, "Account changed during Realm request", http.StatusUnauthorized)), nil
+		}
+		if !tokenLive {
+			if stateReason == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED {
+				return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_REALM_UNAVAILABLE, stateReason, "Realm credential refresh is deferred", http.StatusUnauthorized)), nil
+			}
+			if stateReason == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS {
+				return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_AUTH_TOKEN_INVALID, stateReason, "Online Realm credentials require fresh re-authentication", http.StatusUnauthorized)), nil
+			}
+			return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_AUTH_TOKEN_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_AUTH_INVALID, "Refreshed Realm access token is expired", http.StatusUnauthorized)), nil
 		}
 		result = s.doRealmUnaryHTTP(operationCtx, client, targetURL, operation, parsedRequest, refreshedToken)
 		if result.err != nil {
@@ -446,17 +457,25 @@ func (s *Service) realmUnaryCredential(ctx context.Context) (string, uint64, run
 	s.identityMutationMu.Lock()
 	defer s.identityMutationMu.Unlock()
 	s.mu.RLock()
+	if s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED &&
+		s.authenticatedRuntimeIdentity &&
+		s.material.OnlineCredentialsCleared {
+		s.mu.RUnlock()
+		return "", 0, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS, false, nil
+	}
 	if (s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED &&
 		s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED &&
-		s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING) || s.material.RefreshToken == "" {
+		s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING) || strings.TrimSpace(s.material.RefreshToken) == "" {
 		s.mu.RUnlock()
 		return "", 0, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, false, nil
 	}
+	expired := s.onlineAccessTokenExpiredLocked()
 	needsRefresh := s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED ||
 		s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING ||
+		expired ||
 		!s.material.AccessTokenExpires.IsZero() && !s.material.AccessTokenExpires.After(s.now().UTC().Add(30*time.Second))
 	cause := accountRefreshNearExpiryAccess
-	if s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED {
+	if s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED || expired {
 		cause = accountRefreshExpiredAccess
 	} else if s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING {
 		cause = accountRefreshPendingAccess
@@ -473,7 +492,9 @@ func (s *Service) realmUnaryCredential(ctx context.Context) (string, uint64, run
 	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	if s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED || strings.TrimSpace(s.material.AccessToken) == "" {
+	if s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED ||
+		!s.authenticatedRuntimeIdentity ||
+		!s.onlineAccessTokenLiveLocked() {
 		return "", 0, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, false, nil
 	}
 	return s.material.AccessToken, s.accountGeneration, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true, nil

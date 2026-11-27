@@ -495,62 +495,134 @@ func (custody *refreshRestartProofCustody) Clear(context.Context, string) error 
 }
 
 func TestFailedRefreshCustodyClearFailureIsUnavailable(t *testing.T) {
-	custody := &refreshRestartProofCustody{
-		material: testMaterial("acct-refresh", "access-old", "refresh-old"),
-		has:      true,
-		clearErr: ErrCustodyUnavailable,
-	}
-	service := New(nil,
-		WithProductionActivation(),
-		WithCustody(custody),
-		WithCustodyPartition("refresh-clear-failure"),
-		WithRefresher(staticRefresher{err: ErrLoginExchangeFailure}),
-	)
-	result, err := service.refreshAccountSessionInternal(context.Background(), true)
-	if err != nil || result.accepted ||
-		result.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE ||
-		result.accountReasonCode != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE {
-		t.Fatalf("clear-failed refresh result = (%+v, %v)", result, err)
-	}
-	if custody.clearCalls != 1 {
-		t.Fatalf("custody clear calls = %d, want 1", custody.clearCalls)
-	}
-	if custody.storeCalls != 1 || !custody.material.RefreshTokenHashes[refreshHash(custody.material.RefreshToken)] {
-		t.Fatalf("failed refresh did not retain a durable in-flight marker: %+v", custody)
-	}
-	if _, _, ok := service.AuthenticatedRuntimeSecurityContext(context.Background()); ok {
-		t.Fatal("custody clear failure retained an authenticated Runtime security context")
-	}
-	restarted := New(nil,
-		WithProductionActivation(),
-		WithCustody(custody),
-		WithCustodyPartition("refresh-clear-failure"),
-	)
-	if restarted.currentState() == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED {
-		t.Fatal("restart recovered marked material after custody clear failure")
-	}
-	if _, _, ok := restarted.AuthenticatedRuntimeSecurityContext(context.Background()); ok {
-		t.Fatal("restart exposed marked material after custody clear failure")
-	}
+	t.Run("delete fails while revocation fence persists", func(t *testing.T) {
+		custody := &refreshRestartProofCustody{
+			material: testMaterial("acct-refresh", "access-old", "refresh-old"),
+			has:      true,
+			clearErr: ErrCustodyUnavailable,
+		}
+		service := New(nil,
+			WithProductionActivation(),
+			WithCustody(custody),
+			WithCustodyPartition("refresh-clear-failure"),
+			WithRefresher(staticRefresher{err: ErrLoginExchangeFailure}),
+		)
+		result, err := service.refreshAccountSessionInternal(context.Background(), true)
+		if err != nil || result.accepted ||
+			result.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE ||
+			result.accountReasonCode != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE {
+			t.Fatalf("clear-failed refresh result = (%+v, %v)", result, err)
+		}
+		if custody.clearCalls != 1 {
+			t.Fatalf("custody clear calls = %d, want 1", custody.clearCalls)
+		}
+		if !custody.material.PendingRevocation || custody.material.AccessToken != "" || custody.material.RefreshToken != "" {
+			t.Fatalf("failed refresh did not fence durable custody as pending revocation: %+v", custody)
+		}
+		if _, _, ok := service.AuthenticatedRuntimeSecurityContext(context.Background()); ok {
+			t.Fatal("custody clear failure retained an authenticated Runtime security context")
+		}
+		restarted := New(nil,
+			WithProductionActivation(),
+			WithCustody(custody),
+			WithCustodyPartition("refresh-clear-failure"),
+		)
+		if restarted.currentState() == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED {
+			t.Fatal("restart recovered revoked material after custody clear failure")
+		}
+		if _, _, ok := restarted.AuthenticatedRuntimeSecurityContext(context.Background()); ok {
+			t.Fatal("restart exposed revoked material after custody clear failure")
+		}
+		// Once delete recovers on a later restart, the revocation fence clears to REAUTH_REQUIRED.
+		custody.clearErr = nil
+		restartedAgain := New(nil,
+			WithProductionActivation(),
+			WithCustody(custody),
+			WithCustodyPartition("refresh-clear-failure"),
+		)
+		if restartedAgain.currentState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED || custody.has {
+			t.Fatalf("recovered revocation fence state=%v custody=%+v, want REAUTH_REQUIRED and cleared", restartedAgain.currentState(), custody)
+		}
+	})
+
+	t.Run("both delete and write fail after pre-refresh marker", func(t *testing.T) {
+		custody := &refreshRestartProofCustody{
+			material: testMaterial("acct-refresh", "access-old", "refresh-old"),
+			has:      true,
+			clearErr: ErrCustodyUnavailable,
+		}
+		service := New(nil,
+			WithProductionActivation(),
+			WithCustody(custody),
+			WithCustodyPartition("refresh-clear-and-store-failure"),
+			WithRefresher(funcAccountRefresher{fn: func(context.Context, AccountMaterial) (AccountMaterial, error) {
+				custody.storeErr = ErrCustodyUnavailable
+				return AccountMaterial{}, newRefreshFailure(refreshFailureTokenInvalid, errors.New("revoked"))
+			}}),
+		)
+		result, err := service.refreshAccountSessionInternal(context.Background(), true)
+		if err != nil || result.accepted ||
+			result.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE ||
+			result.accountReasonCode != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE {
+			t.Fatalf("clear+store-failed refresh result = (%+v, %v)", result, err)
+		}
+		restarted := New(nil,
+			WithProductionActivation(),
+			WithCustody(custody),
+			WithCustodyPartition("refresh-clear-and-store-failure"),
+		)
+		if restarted.currentState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE {
+			t.Fatalf("read-only restart state = %v, want UNAVAILABLE", restarted.currentState())
+		}
+		if _, _, ok := restarted.AuthenticatedRuntimeSecurityContext(context.Background()); ok {
+			t.Fatal("read-only restart authenticated when unable to erase marked tokens")
+		}
+	})
 }
 
 func TestRecoverFromCustodyRejectsInFlightRefreshMarker(t *testing.T) {
 	material := testMaterial("acct-refresh", "access-old", "refresh-old")
 	material.RefreshTokenHashes = map[string]bool{refreshHash(material.RefreshToken): true}
 	custody := &refreshRestartProofCustody{material: material, has: true}
+	var refreshCalls atomic.Int32
 	service := New(nil,
 		WithProductionActivation(),
 		WithCustody(custody),
 		WithCustodyPartition("refresh-crash-marker"),
+		WithRefresher(funcAccountRefresher{fn: func(context.Context, AccountMaterial) (AccountMaterial, error) {
+			refreshCalls.Add(1)
+			return AccountMaterial{}, errors.New("must not replay")
+		}}),
 	)
-	if service.currentState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED {
-		t.Fatalf("marked recovery state = %v", service.currentState())
+	stopAccountRefreshTimer(t, service)
+	if service.currentState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED {
+		t.Fatalf("marked recovery state = %v, want AUTHENTICATED with online credentials cleared", service.currentState())
 	}
-	if custody.clearCalls != 1 || custody.has {
-		t.Fatalf("marked recovery custody = %+v", custody)
+	if !custody.has || custody.storeCalls != 1 || custody.clearCalls != 0 ||
+		!custody.material.OnlineCredentialsCleared ||
+		custody.material.AccessToken != "" || custody.material.RefreshToken != "" ||
+		!custody.material.AccessTokenExpires.IsZero() || len(custody.material.RefreshTokenHashes) != 0 {
+		t.Fatalf("marked recovery did not erase online tokens in custody: %+v", custody)
 	}
-	if _, _, ok := service.AuthenticatedRuntimeSecurityContext(context.Background()); ok {
-		t.Fatal("in-flight refresh marker recovered authenticated identity")
+	proj, gen, ok := service.AuthenticatedRuntimeSecurityContext(context.Background())
+	if !ok || gen == 0 || proj.GetAccountId() != "acct-refresh" {
+		t.Fatalf("unrevoked crash marker did not preserve trusted local identity: proj=%+v gen=%d ok=%v", proj, gen, ok)
+	}
+	service.mu.RLock()
+	snapshot := cloneAccountSessionSnapshot(service.currentSnapshotLocked())
+	timer := service.refreshTimer
+	service.mu.RUnlock()
+	if snapshot.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED ||
+		snapshot.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS ||
+		snapshot.GetAccountProjection().GetAccountId() != "acct-refresh" ||
+		strings.TrimSpace(snapshot.GetAuthorizationRevision()) == "" {
+		t.Fatalf("marked recovery snapshot = %+v, want AUTHENTICATED + REFRESH_OUTCOME_AMBIGUOUS", snapshot)
+	}
+	if result, refreshErr := service.refreshAccountSessionInternal(context.Background(), true); refreshErr != nil || result.accepted || refreshCalls.Load() != 0 {
+		t.Fatalf("marked recovery replayed refresh token: result=%+v err=%v calls=%d", result, refreshErr, refreshCalls.Load())
+	}
+	if timer != nil {
+		t.Fatal("marked recovery with cleared online tokens scheduled a refresh timer")
 	}
 }
 

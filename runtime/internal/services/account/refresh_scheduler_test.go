@@ -25,17 +25,18 @@ func stopAccountRefreshTimer(t *testing.T, service *Service) {
 
 func TestRefreshFailureDispositionControlsCustodyAndAccountState(t *testing.T) {
 	tests := []struct {
-		name          string
-		disposition   refreshFailureDisposition
-		state         runtimev1.AccountSessionState
-		reason        runtimev1.ReasonCode
-		accountReason runtimev1.AccountReasonCode
-		retainsToken  bool
+		name              string
+		disposition       refreshFailureDisposition
+		state             runtimev1.AccountSessionState
+		reason            runtimev1.ReasonCode
+		accountReason     runtimev1.AccountReasonCode
+		retainsToken      bool
+		clearsOnlineOnly  bool
 	}{
-		{name: "not dispatched", disposition: refreshFailurePreDispatch, state: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING, reason: runtimev1.ReasonCode_REALM_UNAVAILABLE, accountReason: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED, retainsToken: true},
+		{name: "not dispatched", disposition: refreshFailurePreDispatch, state: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED, reason: runtimev1.ReasonCode_REALM_UNAVAILABLE, accountReason: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED, retainsToken: true},
 		{name: "token invalid", disposition: refreshFailureTokenInvalid, state: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED, reason: runtimev1.ReasonCode_AUTH_TOKEN_INVALID, accountReason: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_TOKEN_INVALID},
 		{name: "contract invalid", disposition: refreshFailureContractInvalid, state: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED, reason: runtimev1.ReasonCode_AUTH_TOKEN_INVALID, accountReason: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_CONTRACT_INVALID},
-		{name: "outcome ambiguous", disposition: refreshFailureOutcomeAmbiguous, state: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED, reason: runtimev1.ReasonCode_REALM_UNAVAILABLE, accountReason: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS},
+		{name: "outcome ambiguous", disposition: refreshFailureOutcomeAmbiguous, state: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED, reason: runtimev1.ReasonCode_REALM_UNAVAILABLE, accountReason: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS, clearsOnlineOnly: true},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -59,6 +60,21 @@ func TestRefreshFailureDispositionControlsCustodyAndAccountState(t *testing.T) {
 				}
 				return
 			}
+			if test.clearsOnlineOnly {
+				if !custody.has || custody.clearCalls != 0 || custody.storeCalls != 2 ||
+					!custody.material.OnlineCredentialsCleared ||
+					custody.material.AccessToken != "" || custody.material.RefreshToken != "" ||
+					!custody.material.AccessTokenExpires.IsZero() || len(custody.material.RefreshTokenHashes) != 0 {
+					t.Fatalf("ambiguous refresh custody = %+v", custody)
+				}
+				service.mu.RLock()
+				timer := service.refreshTimer
+				service.mu.RUnlock()
+				if timer != nil {
+					t.Fatal("ambiguous refresh left background refresh timer active")
+				}
+				return
+			}
 			if custody.has || custody.clearCalls != 1 || custody.storeCalls != 1 {
 				t.Fatalf("unsafe refresh custody = %+v", custody)
 			}
@@ -66,7 +82,7 @@ func TestRefreshFailureDispositionControlsCustodyAndAccountState(t *testing.T) {
 	}
 }
 
-func TestDeferredRefreshTransitionsToExpiredWhenAccessTokenPassesExpiry(t *testing.T) {
+func TestDeferredRefreshPreservesLocalIdentityWhenAccessTokenPassesExpiry(t *testing.T) {
 	clockNow := time.Date(2026, 7, 20, 12, 0, 0, 0, time.UTC)
 	current := testMaterial("acct-refresh", "access-old", "refresh-old")
 	current.AccessTokenExpires = clockNow.Add(time.Minute)
@@ -83,22 +99,22 @@ func TestDeferredRefreshTransitionsToExpiredWhenAccessTokenPassesExpiry(t *testi
 
 	result, err := service.refreshAccountSessionInternal(context.Background(), true)
 	if err != nil || result.accepted ||
-		result.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED ||
-		result.reasonCode != runtimev1.ReasonCode_AUTH_TOKEN_EXPIRED ||
-		result.accountReasonCode != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE {
-		t.Fatalf("expired refresh result = (%+v, %v)", result, err)
+		result.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED ||
+		result.reasonCode != runtimev1.ReasonCode_REALM_UNAVAILABLE ||
+		result.accountReasonCode != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED {
+		t.Fatalf("offline deferred refresh result = (%+v, %v)", result, err)
 	}
 	if !custody.has || custody.material.RefreshToken != current.RefreshToken ||
 		custody.material.RefreshTokenHashes[refreshHash(current.RefreshToken)] ||
 		custody.clearCalls != 0 || custody.storeCalls != 2 {
-		t.Fatalf("expired refresh custody = %+v", custody)
+		t.Fatalf("offline deferred refresh custody = %+v", custody)
 	}
 	service.mu.RLock()
 	defer service.mu.RUnlock()
-	if service.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED ||
-		service.authenticatedRuntimeIdentity || service.material.RefreshToken != current.RefreshToken ||
-		service.projection == nil || service.refreshTimer != nil || service.refreshRetryAttempt != 0 {
-		t.Fatalf("expired service state=%v authenticated=%v material=%+v projection=%+v timer=%v retry=%d",
+	if service.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED ||
+		!service.authenticatedRuntimeIdentity || service.material.RefreshToken != current.RefreshToken ||
+		service.projection == nil || service.refreshTimer == nil || service.refreshRetryAttempt != 1 {
+		t.Fatalf("offline deferred service state=%v authenticated=%v material=%+v projection=%+v timer=%v retry=%d",
 			service.state,
 			service.authenticatedRuntimeIdentity,
 			service.material,
@@ -108,9 +124,9 @@ func TestDeferredRefreshTransitionsToExpiredWhenAccessTokenPassesExpiry(t *testi
 		)
 	}
 	if len(service.events) < 2 ||
-		service.events[len(service.events)-2].GetEventType() != runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED ||
+		service.events[len(service.events)-2].GetEventType() != runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_DEFERRED ||
 		service.events[len(service.events)-1].GetEventType() != runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS {
-		t.Fatalf("expired refresh events = %+v", service.events)
+		t.Fatalf("offline deferred refresh events = %+v", service.events)
 	}
 }
 

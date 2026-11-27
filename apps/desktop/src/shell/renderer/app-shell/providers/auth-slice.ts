@@ -1,8 +1,15 @@
 import {
+  DEFAULT_CHAT_SETUP_STATE,
   DEFAULT_CHAT_SOURCE_FILTER,
+  DEFAULT_LAST_SELECTED_THREAD_BY_MODE,
   DEFAULT_VIEW_MODE_BY_SOURCE_TARGET,
 } from '../../features/chat/chat-shell-types';
-import type { AppStoreSet, AppStoreState, RuntimeAccountAuthProjection } from './store-types';
+import {
+  INITIAL_RUNTIME_FIELDS,
+  type AppStoreSet,
+  type AppStoreState,
+  type RuntimeAccountAuthProjection,
+} from './store-types';
 
 type AuthSlice = Pick<AppStoreState,
   'auth'
@@ -13,22 +20,87 @@ type AuthSlice = Pick<AppStoreState,
   | 'clearAuthSession'
 >;
 
+type AccountScopedViewStateReset = Pick<AppStoreState,
+  | 'chatSourceFilter'
+  | 'viewModeBySourceTarget'
+  | 'lastSelectedThreadByMode'
+  | 'chatSetupState'
+  | 'runtimeFields'
+  | 'homePartnerDrafts'
+  | 'pendingNimiComposerPrefill'
+  | 'profileDetailOverlayOpen'
+>;
+
+type EstablishedAuthIdentity = {
+  readonly accountId: string;
+  readonly realmEnvironmentId: string;
+  readonly authorizationRevision: string;
+};
+
 function accountIdOf(user: Record<string, unknown> | null): string {
   return typeof user?.id === 'string' ? user.id : '';
 }
 
+function realmEnvironmentIdOf(user: Record<string, unknown> | null): string {
+  return typeof user?.realmEnvironmentId === 'string' ? user.realmEnvironmentId : '';
+}
+
+function isContinuousAuthStatus(status: AppStoreState['auth']['status']): boolean {
+  return status === 'authenticated' || status === 'refresh-pending';
+}
+
+function establishedIdentityOf(
+  auth: Pick<AppStoreState['auth'], 'status' | 'user' | 'authorizationRevision'>,
+): EstablishedAuthIdentity | null {
+  if (!isContinuousAuthStatus(auth.status)) {
+    return null;
+  }
+  const accountId = accountIdOf(auth.user).trim();
+  const realmEnvironmentId = realmEnvironmentIdOf(auth.user).trim();
+  const authorizationRevision = auth.authorizationRevision.trim();
+  if (!accountId || !realmEnvironmentId || !authorizationRevision) {
+    return null;
+  }
+  return { accountId, realmEnvironmentId, authorizationRevision };
+}
+
+function sameEstablishedIdentity(
+  left: EstablishedAuthIdentity | null,
+  right: EstablishedAuthIdentity | null,
+): boolean {
+  return Boolean(left && right)
+    && left!.accountId === right!.accountId
+    && left!.realmEnvironmentId === right!.realmEnvironmentId
+    && left!.authorizationRevision === right!.authorizationRevision;
+}
+
 function preservesProfile(previous: AppStoreState['auth'], next: RuntimeAccountAuthProjection): boolean {
-  const continuous = (status: AppStoreState['auth']['status']) => status === 'authenticated' || status === 'refresh-pending';
-  const accountId = accountIdOf(previous.user);
-  const realmEnvironmentId = previous.user?.realmEnvironmentId;
-  return continuous(previous.status) && continuous(next.status)
-    && Boolean(accountId.trim()) && accountId === accountIdOf(next.user)
-    && typeof realmEnvironmentId === 'string' && Boolean(realmEnvironmentId.trim())
-    && realmEnvironmentId === next.user?.realmEnvironmentId
-    && Boolean(previous.authorizationRevision.trim()) && previous.authorizationRevision === next.authorizationRevision;
+  return sameEstablishedIdentity(establishedIdentityOf(previous), establishedIdentityOf(next));
+}
+
+function createAccountScopedViewStateReset(): AccountScopedViewStateReset {
+  return {
+    chatSourceFilter: DEFAULT_CHAT_SOURCE_FILTER,
+    viewModeBySourceTarget: { ...DEFAULT_VIEW_MODE_BY_SOURCE_TARGET },
+    lastSelectedThreadByMode: { ...DEFAULT_LAST_SELECTED_THREAD_BY_MODE },
+    chatSetupState: { ...DEFAULT_CHAT_SETUP_STATE },
+    runtimeFields: { ...INITIAL_RUNTIME_FIELDS },
+    homePartnerDrafts: {},
+    pendingNimiComposerPrefill: null,
+    profileDetailOverlayOpen: false,
+  };
+}
+
+function endsAccountSession(status: RuntimeAccountAuthProjection['status']): boolean {
+  return status === 'anonymous'
+    || status === 'switching'
+    || status === 'reauth-required'
+    || status === 'expired'
+    || status === 'logging-out';
 }
 
 export function createAuthSlice(set: AppStoreSet): AuthSlice {
+  let lastEstablishedIdentity: EstablishedAuthIdentity | null = null;
   return {
     auth: {
       status: 'bootstrapping',
@@ -38,20 +110,23 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
       accountReasonCode: 0,
       authorizationRevision: '',
     },
-    setAuthBootstrapping: () =>
+    setAuthBootstrapping: () => {
+      lastEstablishedIdentity = null;
       set((state) => ({
         auth: {
           ...state.auth,
           status: 'bootstrapping',
           authorizationRevision: '',
         },
-      })),
+      }));
+    },
     applyRuntimeAccountProjection: (projection) =>
       set((state) => {
         // @nimi-authority: rule.nimi.desktop.shell-runtime.r011
         // Preserve only profile presentation within proven Account continuity.
         // The incoming Runtime identity, state and authorization remain authoritative.
-        const user = preservesProfile(state.auth, projection)
+        const continuous = preservesProfile(state.auth, projection);
+        const user = continuous
           ? { ...state.auth.user, ...projection.user }
           : projection.user;
         const auth = {
@@ -61,19 +136,42 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
           reasonCode: projection.reasonCode,
           accountReasonCode: projection.accountReasonCode,
           deletedOwner: projection.deletedOwner,
-          authorizationRevision: projection.status === 'authenticated' || projection.status === 'refresh-pending'
+          authorizationRevision: isContinuousAuthStatus(projection.status)
             ? projection.authorizationRevision : '',
           ...(projection.status === 'unavailable' && projection.failureDetail
             ? { failureDetail: projection.failureDetail }
             : {}),
         };
-        if (projection.status === 'anonymous' || projection.status === 'switching') {
-          return { auth, pendingNimiComposerPrefill: null, homePartnerDrafts: {} };
+        if (endsAccountSession(projection.status)) {
+          lastEstablishedIdentity = null;
+          return { auth, ...createAccountScopedViewStateReset() };
         }
-        if (projection.status === 'authenticated' && accountIdOf(state.auth.user) && accountIdOf(state.auth.user) !== accountIdOf(projection.user)) {
+        if (projection.status === 'unavailable') {
+          const priorIdentity = establishedIdentityOf(state.auth);
+          if (priorIdentity) {
+            lastEstablishedIdentity = priorIdentity;
+          }
           return { auth, pendingNimiComposerPrefill: null };
         }
-        return { auth, ...(projection.status === 'unavailable' ? { pendingNimiComposerPrefill: null } : {}) };
+        if (isContinuousAuthStatus(projection.status)) {
+          const nextIdentity = establishedIdentityOf(projection);
+          const previousContinuous = isContinuousAuthStatus(state.auth.status);
+          const identityChanged = previousContinuous
+            ? !continuous
+            : state.auth.status === 'unavailable' && lastEstablishedIdentity !== null
+              && !sameEstablishedIdentity(lastEstablishedIdentity, nextIdentity);
+          lastEstablishedIdentity = nextIdentity;
+          if (identityChanged) {
+            return { auth, ...createAccountScopedViewStateReset() };
+          }
+          return { auth };
+        }
+        // login-pending: if we somehow left an established account, clear account-scoped view state.
+        if (isContinuousAuthStatus(state.auth.status) || lastEstablishedIdentity !== null) {
+          lastEstablishedIdentity = null;
+          return { auth, ...createAccountScopedViewStateReset() };
+        }
+        return { auth };
       }),
     applyCurrentUserProfile: (profile, realmEnvironmentId) => set((state) => {
       const current = state.auth.user;
@@ -95,7 +193,8 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
               authorizationRevision: '',
             },
       })),
-    clearAuthSession: () =>
+    clearAuthSession: () => {
+      lastEstablishedIdentity = null;
       set((state) => ({
         auth: {
           status: 'anonymous',
@@ -105,20 +204,8 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
           accountReasonCode: state.auth.accountReasonCode,
           authorizationRevision: '',
         },
-        chatSourceFilter: DEFAULT_CHAT_SOURCE_FILTER,
-        viewModeBySourceTarget: {
-          ...DEFAULT_VIEW_MODE_BY_SOURCE_TARGET,
-        },
-        lastSelectedThreadByMode: {
-          ...state.lastSelectedThreadByMode,
-          human: null,
-        },
-        homePartnerDrafts: {},
-        pendingNimiComposerPrefill: null,
-        chatSetupState: {
-          ...state.chatSetupState,
-          human: null,
-        },
-      })),
+        ...createAccountScopedViewStateReset(),
+      }));
+    },
   };
 }

@@ -11,6 +11,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 )
 
 func New(logger *slog.Logger, opts ...Option) *Service {
@@ -33,6 +34,7 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 		stateReason:                  runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE,
 		loginAttempts:                make(map[string]loginAttemptRecord),
 		subscribers:                  make(map[uint64]subscriber),
+		stateObservers:               make(map[uint64]chan struct{}),
 		accountGenerationInvalidated: make(chan struct{}),
 	}
 	for _, opt := range opts {
@@ -145,6 +147,15 @@ func WithNonProductionHarnessMode() Option {
 func WithProductionActivation() Option {
 	return func(s *Service) {
 		s.productionActivated = true
+	}
+}
+
+// WithPrimaryHostSecrets injects the verified binary secret store and scope
+// used for Primary Runtime host-key custody.
+func WithPrimaryHostSecrets(secrets protectedlocal.BinarySecretStore, keyScope string) Option {
+	return func(s *Service) {
+		s.primarySecrets = secrets
+		s.primaryKeyScope = strings.TrimSpace(keyScope)
 	}
 }
 

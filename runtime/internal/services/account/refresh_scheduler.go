@@ -2,6 +2,7 @@ package account
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -21,6 +22,22 @@ func (s *Service) rebuildRefreshTimerLocked() {
 	replayRealmDeletion := false
 	switch s.state {
 	case runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED:
+		if s.material.OnlineCredentialsCleared || strings.TrimSpace(s.material.RefreshToken) == "" {
+			return
+		}
+		if s.stateReason == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED {
+			if s.refreshRetryAttempt == 0 {
+				delay = 100 * time.Millisecond
+			} else {
+				attempt := s.refreshRetryAttempt
+				if attempt > 5 {
+					attempt = 5
+				}
+				delay = time.Second * time.Duration(1<<attempt)
+			}
+			cause = accountRefreshScheduledRetry
+			break
+		}
 		s.refreshRetryAttempt = 0
 		if s.material.AccessTokenExpires.IsZero() {
 			return
@@ -35,6 +52,9 @@ func (s *Service) rebuildRefreshTimerLocked() {
 			delay = 100 * time.Millisecond
 		}
 	case runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING:
+		if s.material.OnlineCredentialsCleared || strings.TrimSpace(s.material.RefreshToken) == "" {
+			return
+		}
 		if s.stateReason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED {
 			return
 		}

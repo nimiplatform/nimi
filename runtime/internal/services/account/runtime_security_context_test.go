@@ -104,21 +104,40 @@ func TestAuthenticatedRuntimeSecurityContextRefreshIdentityRules(t *testing.T) {
 	svc.mu.Lock()
 	svc.material.AccessTokenExpires = time.Now().UTC().Add(-time.Second)
 	svc.mu.Unlock()
-	if projection, expiredGeneration, ok := svc.AuthenticatedRuntimeSecurityContext(context.Background()); ok || projection != nil || expiredGeneration <= changedGeneration {
-		t.Fatalf("expired security context = (%+v, %d, %v), previous generation %d", projection, expiredGeneration, ok, changedGeneration)
+	if projection, offlineGeneration, ok := svc.AuthenticatedRuntimeSecurityContext(context.Background()); !ok || projection.GetAccountId() != "acct-1" || offlineGeneration != changedGeneration {
+		t.Fatalf("natural access-token expiry must preserve local security context = (%+v, %d, %v), want generation %d", projection, offlineGeneration, ok, changedGeneration)
 	}
-	expiredGeneration := svc.accountGeneration
 
 	next := testMaterial("acct-1", "access-3", "refresh-3")
 	next.RealmEnvironmentID = "realm-next"
 	svc.refresher = staticRefresher{material: next}
 	refresh, err = svc.refreshAccountSessionInternal(context.Background(), true)
 	if err != nil || !refresh.accepted {
-		t.Fatalf("expired-account refresh = (%+v, %v)", refresh, err)
+		t.Fatalf("same-identity refresh after access expiry = (%+v, %v)", refresh, err)
+	}
+	if _, refreshedGeneration, ok := svc.AuthenticatedRuntimeSecurityContext(context.Background()); !ok || refreshedGeneration != changedGeneration {
+		t.Fatalf("same-identity refresh generation = %d, want preserved %d", refreshedGeneration, changedGeneration)
+	}
+
+	svc.mu.Lock()
+	svc.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED
+	svc.invalidateAuthenticatedRuntimeIdentityLocked()
+	svc.mu.Unlock()
+	if projection, expiredGeneration, ok := svc.AuthenticatedRuntimeSecurityContext(context.Background()); ok || projection != nil || expiredGeneration <= changedGeneration {
+		t.Fatalf("explicitly invalidated security context = (%+v, %d, %v), previous generation %d", projection, expiredGeneration, ok, changedGeneration)
+	}
+	expiredGeneration := svc.accountGeneration
+
+	reinstalled := testMaterial("acct-1", "access-4", "refresh-4")
+	reinstalled.RealmEnvironmentID = "realm-next"
+	svc.refresher = staticRefresher{material: reinstalled}
+	refresh, err = svc.refreshAccountSessionInternal(context.Background(), true)
+	if err != nil || !refresh.accepted {
+		t.Fatalf("post-invalidation refresh = (%+v, %v)", refresh, err)
 	}
 	_, refreshedGeneration, ok := svc.AuthenticatedRuntimeSecurityContext(context.Background())
 	if !ok || refreshedGeneration <= expiredGeneration {
-		t.Fatalf("post-expiry refresh generation = %d, want greater than %d", refreshedGeneration, expiredGeneration)
+		t.Fatalf("post-invalidation refresh generation = %d, want greater than %d", refreshedGeneration, expiredGeneration)
 	}
 }
 

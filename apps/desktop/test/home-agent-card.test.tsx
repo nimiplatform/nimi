@@ -304,10 +304,12 @@ test('Home shortcut drafts keep their partner and account through navigation and
     assert.equal(read('account-a', first), '  Original draft  ');
     assert.equal(read('account-a', second), 'Another partner');
     project(null);
-    project('account-b');
-    assert.equal(read('account-b', first), undefined);
     project('account-a');
     assert.equal(read('account-a', first), '  Original draft  ');
+    project('account-b');
+    assert.equal(read('account-b', first), undefined);
+    assert.deepEqual(store.getState().homePartnerDrafts, {});
+    store.getState().setHomePartnerDraft('account-b', first, 'Account B draft');
     store.getState().clearAuthSession();
     assert.deepEqual(store.getState().homePartnerDrafts, {});
   } finally {

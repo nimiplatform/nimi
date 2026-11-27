@@ -1,6 +1,17 @@
 {
   "cloudOfflineTitle": "云端离线 / 离线模式",
   "cloudOfflineBody": "当前使用缓存与本地队列；云端恢复后会自动重放待处理操作。",
+  "onlineReauthTitle": "本机已保持登录 · 在线服务已暂停",
+  "onlineReauthBody": "当前本地工作保持打开。无需退出登录，在浏览器重新登录即可恢复在线服务。",
+  "onlineReauthAction": "重新登录恢复在线",
+  "onlineReauthRetry": "重试登录",
+  "onlineReauthPending": "请在浏览器中完成登录。等待期间本地会话不受影响。",
+  "onlineReauthReopen": "重新打开浏览器",
+  "onlineReauthCancel": "取消等待",
+  "onlineReauthWaitEnded": "已取消等待，本地会话未受影响；随时可重新登录恢复在线。",
+  "onlineReauthTimeout": "等待浏览器登录超时，本地会话未受影响；准备好后可重试。",
+  "onlineReauthOpenFailed": "无法打开系统浏览器，本地会话未受影响；请检查浏览器设置后重试。",
+  "onlineReauthFailed": "暂时无法恢复在线登录，本地会话未受影响；请稍后重试。",
   "runtimeUnavailableTitle": "Runtime 不可用 / 只读模式",
   "runtimeUnavailableBody": "AI 与本地模型写入已暂停；待 Runtime 恢复可用后，客户端将自动重连。"
 }

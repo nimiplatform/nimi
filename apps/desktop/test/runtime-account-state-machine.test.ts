@@ -116,6 +116,30 @@ describe('Desktop Runtime account state machine', () => {
     assert.equal(runtimeAccountConnectivityDisposition('authenticated', 'authenticated'), 'unchanged');
     assert.equal(runtimeAccountConnectivityDisposition('authenticated', 'refresh-pending'), 'reachable');
     assert.equal(runtimeAccountConnectivityDisposition('authenticated', 'login-pending'), 'reachable');
+    assert.equal(
+      runtimeAccountConnectivityDisposition('authenticated', 'bootstrapping', AccountReasonCode.REFRESH_RETRY_DEFERRED, 0),
+      'unreachable',
+    );
+    assert.equal(
+      runtimeAccountConnectivityDisposition('authenticated', 'refresh-pending', AccountReasonCode.REFRESH_RETRY_DEFERRED, AccountReasonCode.ACTION_EXECUTED),
+      'unreachable',
+    );
+    assert.equal(
+      runtimeAccountConnectivityDisposition('authenticated', 'authenticated', AccountReasonCode.ACTION_EXECUTED, AccountReasonCode.REFRESH_RETRY_DEFERRED),
+      'reachable',
+    );
+    assert.equal(
+      runtimeAccountConnectivityDisposition('authenticated', 'bootstrapping', AccountReasonCode.REFRESH_OUTCOME_AMBIGUOUS, 0),
+      'unreachable',
+    );
+    assert.equal(
+      runtimeAccountConnectivityDisposition('authenticated', 'refresh-pending', AccountReasonCode.REFRESH_OUTCOME_AMBIGUOUS, AccountReasonCode.ACTION_EXECUTED),
+      'unreachable',
+    );
+    assert.equal(
+      runtimeAccountConnectivityDisposition('authenticated', 'authenticated', AccountReasonCode.ACTION_EXECUTED, AccountReasonCode.REFRESH_OUTCOME_AMBIGUOUS),
+      'reachable',
+    );
     for (const state of ['anonymous', 'expired', 'reauth-required', 'unavailable'] as const) {
       assert.equal(runtimeAccountConnectivityDisposition(state), 'unknown');
     }
@@ -127,5 +151,24 @@ describe('Desktop Runtime account state machine', () => {
     assert.equal(runtimeAccountClearsAccountMemory('logging-out'), true);
     assert.equal(runtimeAccountClearsAccountMemory('unavailable'), true);
     assert.equal(runtimeAccountClearsAccountMemory('refresh-pending'), false);
+    assert.equal(runtimeAccountClearsAccountMemory('authenticated'), false);
+  });
+
+  test('preserves local authenticated Home identity on REFRESH_OUTCOME_AMBIGUOUS without logging out', () => {
+    const ambiguous: DesktopAccountSessionStatus = {
+      ...status('authenticated', '12'),
+      reasonCode: RuntimeReasonCode.AUTH_TOKEN_INVALID,
+      accountReasonCode: AccountReasonCode.REFRESH_OUTCOME_AMBIGUOUS,
+    };
+    const projection = projectRuntimeAccountAuthState(ambiguous, { id: 'account-1' });
+    assert.equal(projection.status, 'authenticated');
+    assert.equal(projection.accountReasonCode, AccountReasonCode.REFRESH_OUTCOME_AMBIGUOUS);
+    assert.equal(projection.authorizationRevision, 'authorization-a');
+    assert.deepEqual(projection.user, {
+      id: 'account-1',
+      displayName: 'Nimi User',
+      realmEnvironmentId: 'realm-1',
+    });
+    assert.equal(runtimeAccountClearsAccountMemory(projection.status), false);
   });
 });

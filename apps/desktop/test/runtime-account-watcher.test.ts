@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
+import { AccountReasonCode } from '@nimiplatform/kit/core/sdk-contract';
 import type { DesktopAccountSessionEvent, DesktopAccountSessionStatus } from '../src/shell/renderer/bridge/runtime-bridge.js';
 import type { DesktopRendererLifecyclePort } from '../src/shell/renderer/renderer/lifecycle-port.js';
 import * as accountState from '../src/shell/renderer/infra/bootstrap/runtime-account-state-machine.js';
@@ -22,6 +23,7 @@ function watcherFixture() {
   };
   const timers = new Map<number, () => void>();
   let timerId = 0;
+  const reachabilityCalls: string[] = [];
   const imports: Record<string, unknown> = {
     '../../bridge': { desktopBridge: {
       getRuntimeAccountSessionStatus: async () => { statusReads++; return loadStatus(); },
@@ -31,7 +33,7 @@ function watcherFixture() {
         return () => { stream.closed = true; };
       },
     } },
-    '../offline/coordinator': { getOfflineCoordinator: () => ({ markRuntimeReachability() {}, markRealmRestReachability() {} }) },
+    '../offline/coordinator': { getOfflineCoordinator: () => ({ markRuntimeReachability() {}, markRealmRestReachability(next: string) { reachabilityCalls.push(next); } }) },
     '@nimiplatform/kit/telemetry': { logRendererEvent() {} },
     './runtime-account-state-machine': accountState,
   };
@@ -56,7 +58,7 @@ function watcherFixture() {
   };
   const settle = () => new Promise<void>(resolve => setImmediate(resolve));
   return {
-    streams, settle,
+    streams, settle, reachabilityCalls,
     get auth() { return auth; }, get statusReads() { return statusReads; }, get clears() { return clears; }, get resets() { return resets; },
     async start(initial?: DesktopAccountSessionStatus) { watcher.startAuthStateWatcher(lifecycle, initial); await settle(); },
     retry: watcher.retryRuntimeAccountConnectionNow,
@@ -124,5 +126,33 @@ test('manual retry supersedes a stalled initial owner read and installs only its
   assert.equal(f.statusReads, 2);
   assert.equal(f.auth.sequence, '22');
   assert.deepEqual(f.streams.map(stream => stream.after), ['22']);
+  f.stop();
+});
+
+test('keeps Home authenticated on REFRESH_OUTCOME_AMBIGUOUS, marks Realm unreachable, and restores reachable on reauth', async () => {
+  const f = watcherFixture();
+  await f.start(observed);
+  const consumer = f.streams[0]!.handlers;
+  consumer.onEvent(event('18', 'snapshot', 'authenticated'));
+  consumer.onEvent(event('19', 'live', 'refresh-pending'));
+  consumer.onEvent({
+    ...event('20', 'live', 'authenticated'),
+    accountReasonCode: AccountReasonCode.REFRESH_OUTCOME_AMBIGUOUS,
+  });
+  assert.equal(f.auth.status, 'authenticated');
+  assert.equal(f.auth.user?.id, 'account-a');
+  assert.equal(f.auth.authorizationRevision, observed.authorizationRevision);
+  assert.equal(f.auth.accountReasonCode, AccountReasonCode.REFRESH_OUTCOME_AMBIGUOUS);
+  assert.equal(f.clears, 0);
+  assert.equal(f.resets, 0);
+  assert.deepEqual(f.reachabilityCalls, ['unreachable']);
+
+  consumer.onEvent({
+    ...event('21', 'live', 'authenticated'),
+    accountReasonCode: AccountReasonCode.ACTION_EXECUTED,
+  });
+  assert.equal(f.auth.status, 'authenticated');
+  assert.equal(f.auth.accountReasonCode, AccountReasonCode.ACTION_EXECUTED);
+  assert.deepEqual(f.reachabilityCalls, ['unreachable', 'reachable']);
   f.stop();
 });

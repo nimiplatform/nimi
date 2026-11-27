@@ -53,17 +53,14 @@ func (s *Service) CommitAuthenticatedRuntimeGeneration(ctx context.Context, acco
 }
 
 func (s *Service) authenticatedRuntimeGenerationLocked() (*runtimev1.AccountProjection, uint64, <-chan struct{}, bool) {
-	// Refresh is a credential transaction, not an identity replacement. Keep
-	// only a previously authenticated, still-unexpired generation available
-	// while it runs (or safely waits before dispatch). Cold expired custody and
-	// every already-invalidated generation remain unavailable.
+	// Trusted local sign-in identity survives natural expiration of the
+	// short-lived online Realm access token while offline and across routine
+	// refresh attempts. Only explicit logout, account switch, identity
+	// replacement, known revocation/deletion, or custody loss invalidates the
+	// local generation; online Realm and remote calls separately enforce a
+	// live, non-expired online access token.
 	liveState := s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED ||
 		s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING
-	if liveState && s.authenticatedRuntimeIdentity && s.accountMaterialExpiredLocked() {
-		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED
-		s.invalidateAuthenticatedRuntimeIdentityLocked()
-		liveState = false
-	}
 	generation := s.accountGeneration
 	invalidated := s.accountGenerationInvalidated
 	if !liveState ||
@@ -81,19 +78,15 @@ func (s *Service) authenticatedRuntimeGenerationLocked() (*runtimev1.AccountProj
 	return projection, generation, invalidated, true
 }
 
-// projectedAccountAuthorizationLocked reports continuity without advancing a
-// fence or changing the refresh state machine. Sample expiry once so a status
-// read cannot pair authenticated state with an already expired revision.
+// projectedAccountAuthorizationLocked reports local sign-in continuity without
+// advancing a fence or mutating the refresh state machine. Natural expiry of
+// the short-lived online access token does not revoke trusted local sign-in.
 // @nimi-authority: rule.nimi.runtime.protected-session.r031
 func (s *Service) projectedAccountAuthorizationLocked() (runtimev1.AccountSessionState, string) {
 	state := s.state
-	expired := s.accountMaterialExpiredLocked()
-	if state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED && expired {
-		state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED
-	}
 	liveState := state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED ||
 		state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING
-	if !liveState || expired || !s.authenticatedRuntimeIdentity ||
+	if !liveState || !s.authenticatedRuntimeIdentity ||
 		s.accountGeneration == 0 || s.accountGenerationInvalidated == nil || s.projection == nil ||
 		strings.TrimSpace(s.projection.GetAccountId()) == "" || strings.TrimSpace(s.projection.GetRealmEnvironmentId()) == "" {
 		return state, ""
@@ -107,12 +100,6 @@ func (s *Service) installAuthenticatedRuntimeIdentityLocked(material AccountMate
 	if accountID == "" || realmEnvironmentID == "" {
 		s.clearAuthenticatedRuntimeIdentityLocked()
 		return false
-	}
-	// A refresh may finish after the prior authorization expired while no App
-	// was polling. Install the new material without carrying that expired fence
-	// across the gap; the replacement still follows the existing generation path.
-	if s.authenticatedRuntimeIdentity && s.accountMaterialExpiredLocked() {
-		s.invalidateAuthenticatedRuntimeIdentityLocked()
 	}
 
 	sameIdentity := s.authenticatedRuntimeIdentity &&
@@ -164,5 +151,6 @@ func (s *Service) advanceAccountGenerationLocked() bool {
 	// This non-authorizing label is never persisted or accepted as input. A new
 	// Runtime gets a new label even when its numeric generation starts at one.
 	s.authorizationRevision = ulid.Make().String()
+	s.notifyStateObserversLocked()
 	return s.accountGeneration != 0
 }

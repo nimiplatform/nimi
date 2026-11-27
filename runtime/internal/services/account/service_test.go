@@ -794,3 +794,151 @@ func TestLifecycleRPCsRejectUnregisteredCallerWithoutMutation(t *testing.T) {
 		})
 	}
 }
+
+func TestLogoutAndSwitchAccountInvalidatePendingLoginAttempts(t *testing.T) {
+	t.Run("BeginLogin then Logout from LOGIN_PENDING invalidates prior attempt", func(t *testing.T) {
+		custody := &memoryCustody{}
+		svc := newHarnessService(t, custody)
+		begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{
+			Caller:      desktopAccountControlCaller(),
+			RedirectUri: "http://127.0.0.1:46373/oauth/callback",
+		})
+		if err != nil || !begin.GetAccepted() {
+			t.Fatalf("BeginLogin = (%+v, %v)", begin, err)
+		}
+		if svc.currentState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGIN_PENDING {
+			t.Fatalf("state after BeginLogin = %v, want LOGIN_PENDING", svc.currentState())
+		}
+
+		logoutResp, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: desktopAccountControlCaller()})
+		if err != nil || !logoutResp.GetAccepted() || logoutResp.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS {
+			t.Fatalf("Logout = (%+v, %v)", logoutResp, err)
+		}
+
+		lateComplete, err := svc.CompleteLogin(context.Background(), &runtimev1.CompleteLoginRequest{
+			Caller:         desktopAccountControlCaller(),
+			LoginAttemptId: begin.GetLoginAttemptId(),
+			Code:           "auth-code",
+			State:          begin.GetState(),
+			Nonce:          begin.GetNonce(),
+			RedirectUri:    "http://127.0.0.1:46373/oauth/callback",
+		})
+		if err != nil || lateComplete.GetAccepted() ||
+			lateComplete.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_MISMATCHED ||
+			lateComplete.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS {
+			t.Fatalf("late CompleteLogin after Logout = (%+v, %v), want PROOF_MISMATCHED + ANONYMOUS", lateComplete, err)
+		}
+		if svc.currentState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS || custody.has {
+			t.Fatalf("late CompleteLogin mutated session after Logout: state=%v custody=%v", svc.currentState(), custody.has)
+		}
+		if _, _, _, live := svc.BindAuthenticatedRuntimeGeneration(context.Background()); live {
+			t.Fatal("late CompleteLogin after Logout activated authenticated identity")
+		}
+	})
+
+	t.Run("Logout while already ANONYMOUS clears any pending loginAttempts", func(t *testing.T) {
+		custody := &memoryCustody{}
+		svc := newHarnessService(t, custody)
+		begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{
+			Caller:      desktopAccountControlCaller(),
+			RedirectUri: "http://127.0.0.1:46373/oauth/callback",
+		})
+		if err != nil || !begin.GetAccepted() {
+			t.Fatalf("BeginLogin = (%+v, %v)", begin, err)
+		}
+		// Force ANONYMOUS while leaving the recorded loginAttempt intact to test the
+		// early-return ANONYMOUS branch of logout directly.
+		svc.mu.Lock()
+		svc.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS
+		svc.mu.Unlock()
+
+		logoutResp, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: desktopAccountControlCaller()})
+		if err != nil || !logoutResp.GetAccepted() || logoutResp.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS {
+			t.Fatalf("Logout while ANONYMOUS = (%+v, %v)", logoutResp, err)
+		}
+
+		lateComplete, err := svc.CompleteLogin(context.Background(), &runtimev1.CompleteLoginRequest{
+			Caller:         desktopAccountControlCaller(),
+			LoginAttemptId: begin.GetLoginAttemptId(),
+			Code:           "auth-code",
+			State:          begin.GetState(),
+			Nonce:          begin.GetNonce(),
+			RedirectUri:    "http://127.0.0.1:46373/oauth/callback",
+		})
+		if err != nil || lateComplete.GetAccepted() ||
+			lateComplete.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_MISMATCHED ||
+			lateComplete.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS {
+			t.Fatalf("late CompleteLogin after ANONYMOUS Logout = (%+v, %v), want PROOF_MISMATCHED + ANONYMOUS", lateComplete, err)
+		}
+		if svc.currentState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS || custody.has {
+			t.Fatalf("late CompleteLogin mutated session after ANONYMOUS Logout: state=%v custody=%v", svc.currentState(), custody.has)
+		}
+	})
+
+	for _, action := range []string{"logout", "switch"} {
+		t.Run("onlineReauthPending BeginLogin then "+action+" invalidates prior attempt", func(t *testing.T) {
+			cleared := clearOnlineCredentialsFromMaterial(testMaterial("acct-1", "access-1", "refresh-1"))
+			custody := &memoryCustody{material: cleared, has: true}
+			svc := newHarnessService(t, custody)
+			_, _, fence, live := svc.BindAuthenticatedRuntimeGeneration(context.Background())
+			if !live {
+				t.Fatal("expected preserved local identity with OnlineCredentialsCleared")
+			}
+
+			begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{
+				Caller:      desktopAccountControlCaller(),
+				RedirectUri: "http://127.0.0.1:46373/oauth/callback",
+			})
+			if err != nil || !begin.GetAccepted() {
+				t.Fatalf("BeginLogin during onlineReauthPending = (%+v, %v)", begin, err)
+			}
+
+			if action == "logout" {
+				resp, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: desktopAccountControlCaller()})
+				if err != nil || !resp.GetAccepted() || resp.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS {
+					t.Fatalf("Logout = (%+v, %v)", resp, err)
+				}
+			} else {
+				resp, err := svc.SwitchAccount(context.Background(), &runtimev1.SwitchAccountRequest{Caller: desktopAccountControlCaller()})
+				if err != nil || !resp.GetAccepted() || resp.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS {
+					t.Fatalf("SwitchAccount = (%+v, %v)", resp, err)
+				}
+			}
+			select {
+			case <-fence:
+			default:
+				t.Fatalf("%s did not invalidate prior local generation fence", action)
+			}
+
+			lateComplete, err := svc.CompleteLogin(context.Background(), &runtimev1.CompleteLoginRequest{
+				Caller:         desktopAccountControlCaller(),
+				LoginAttemptId: begin.GetLoginAttemptId(),
+				Code:           "auth-code",
+				State:          begin.GetState(),
+				Nonce:          begin.GetNonce(),
+				RedirectUri:    "http://127.0.0.1:46373/oauth/callback",
+			})
+			if err != nil || lateComplete.GetAccepted() ||
+				lateComplete.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_MISMATCHED ||
+				lateComplete.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS {
+				t.Fatalf("late CompleteLogin after %s = (%+v, %v), want PROOF_MISMATCHED + ANONYMOUS", action, lateComplete, err)
+			}
+			if svc.currentState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS || custody.has {
+				t.Fatalf("late CompleteLogin undid %s: state=%v custody=%v", action, svc.currentState(), custody.has)
+			}
+			if _, _, _, afterLive := svc.BindAuthenticatedRuntimeGeneration(context.Background()); afterLive {
+				t.Fatalf("late CompleteLogin after %s resurrected authenticated identity", action)
+			}
+			if action == "switch" {
+				freshBegin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: desktopAccountControlCaller()})
+				if err != nil || !freshBegin.GetAccepted() {
+					t.Fatalf("BeginLogin after SwitchAccount = (%+v, %v)", freshBegin, err)
+				}
+				parsed, err := url.Parse(freshBegin.GetOauthAuthorizationUrl())
+				if err != nil || parsed.Query().Get("prompt") != "login" {
+					t.Fatalf("SwitchAccount lost prompt=login after rejected stale CompleteLogin: %q", freshBegin.GetOauthAuthorizationUrl())
+				}
+			}
+		})
+	}
+}

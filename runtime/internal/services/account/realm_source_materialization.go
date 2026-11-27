@@ -183,14 +183,16 @@ func (s *Service) WithCurrentRealmSourceMaterializationAccount(ctx context.Conte
 	return callback()
 }
 
-// validateRealmSourceMaterializationAccountLocked requires s.mu to be held for
-// writing because expiry may invalidate the current Runtime identity.
+// validateRealmSourceMaterializationAccountLocked requires s.mu to be held.
+// Online Realm source materialization requires a live, unexpired online access
+// token, but natural access-token expiry never revokes local sign-in identity.
 func (s *Service) validateRealmSourceMaterializationAccountLocked(lease RealmSourceMaterializationAccountLease) error {
-	if s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED && s.accountMaterialExpiredLocked() {
-		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED
-		s.invalidateAuthenticatedRuntimeIdentityLocked()
-	}
-	if s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED || !s.authenticatedRuntimeIdentity || s.accountGeneration != lease.Generation || s.projection == nil || strings.TrimSpace(s.projection.GetAccountId()) != lease.AccountID {
+	if s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED ||
+		!s.authenticatedRuntimeIdentity ||
+		!s.onlineAccessTokenLiveLocked() ||
+		s.accountGeneration != lease.Generation ||
+		s.projection == nil ||
+		strings.TrimSpace(s.projection.GetAccountId()) != lease.AccountID {
 		return ErrRealmSourceMaterializationAccountLease
 	}
 	return nil
@@ -201,15 +203,15 @@ func (s *Service) captureRealmSourceMaterializationCredential(ctx context.Contex
 	if s == nil || !s.isActivated() || accountID == "" || accountID != requestedAccountID {
 		return realmSourceMaterializationCredentialLease{}, ErrRealmSourceMaterializationAccountLease
 	}
-	_, _, ok, err := s.realmUnaryAccessToken(ctx, nil)
-	if err != nil {
+	_, reason, ok, err := s.realmUnaryAccessToken(ctx, nil)
+	if err != nil || (!ok && reason == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED) {
 		return realmSourceMaterializationCredentialLease{}, fmt.Errorf("%w: refresh current Realm bearer", ErrRealmSourceMaterializationUnavailable)
 	}
 	if !ok {
 		return realmSourceMaterializationCredentialLease{}, ErrRealmSourceMaterializationAccountLease
 	}
 	s.mu.RLock()
-	if s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED || !s.authenticatedRuntimeIdentity || s.accountGeneration == 0 || s.projection == nil || strings.TrimSpace(s.projection.GetAccountId()) != accountID || strings.TrimSpace(s.material.AccountID) != accountID || strings.TrimSpace(s.material.AccessToken) == "" {
+	if s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED || !s.authenticatedRuntimeIdentity || !s.onlineAccessTokenLiveLocked() || s.accountGeneration == 0 || s.projection == nil || strings.TrimSpace(s.projection.GetAccountId()) != accountID || strings.TrimSpace(s.material.AccountID) != accountID {
 		s.mu.RUnlock()
 		return realmSourceMaterializationCredentialLease{}, ErrRealmSourceMaterializationAccountLease
 	}

@@ -25,7 +25,13 @@ func installRevisionAccountForTest(t *testing.T, service *Service, accountID, re
 	t.Helper()
 	service.mu.Lock()
 	defer service.mu.Unlock()
-	if !service.installAuthenticatedRuntimeIdentityLocked(AccountMaterial{AccountID: accountID, RealmEnvironmentID: realmID, AccessTokenExpires: expires}) {
+	if !service.installAuthenticatedRuntimeIdentityLocked(AccountMaterial{
+		AccountID:          accountID,
+		RealmEnvironmentID: realmID,
+		AccessToken:        "access-revision-test",
+		RefreshToken:       "refresh-revision-test",
+		AccessTokenExpires: expires,
+	}) {
 		t.Fatal("owner identity installation failed")
 	}
 	service.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED
@@ -81,32 +87,42 @@ func TestAccountAuthorizationRevisionPreservesUnexpiredRefreshAndEvents(t *testi
 	}
 }
 
-func TestAccountAuthorizationRevisionExpiresAndChangesAfterUnobservedGap(t *testing.T) {
-	for _, observeExpiry := range []bool{false, true} {
-		now := time.Date(2026, 10, 25, 0, 0, 0, 0, time.UTC)
-		service := revisionAccountForTest(&now)
-		installRevisionAccountForTest(t, service, "account-a", "realm-a", now.Add(time.Minute))
-		before := requireAuthorizationRevisionForTest(t, service.currentSnapshotLocked())
-		generation, fence := service.accountGeneration, service.accountGenerationInvalidated
-		service.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING
-		now = now.Add(2 * time.Minute)
-		if observeExpiry {
-			if authorizationRevisionForTest(service.currentSnapshotLocked()) != "" {
-				t.Fatal("expired pending authorization exposed a live revision")
-			}
-			if service.accountGeneration != generation || service.accountGenerationInvalidated != fence {
-				t.Fatal("read-only revision projection mutated the authorization fence")
-			}
-		}
-		installRevisionAccountForTest(t, service, "account-a", "realm-a", now.Add(time.Hour))
-		if requireAuthorizationRevisionForTest(t, service.currentSnapshotLocked()) == before {
-			t.Fatal("replacement retained an expired authorization revision")
-		}
-		select {
-		case <-fence:
-		default:
-			t.Fatal("existing expiry fence was not closed on replacement")
-		}
+func TestAccountAuthorizationRevisionPreservesLocalIdentityAcrossAccessExpiryAndChangesAfterInvalidation(t *testing.T) {
+	now := time.Date(2026, 10, 25, 0, 0, 0, 0, time.UTC)
+	service := revisionAccountForTest(&now)
+	installRevisionAccountForTest(t, service, "account-a", "realm-a", now.Add(time.Minute))
+	before := requireAuthorizationRevisionForTest(t, service.currentSnapshotLocked())
+	generation, fence := service.accountGeneration, service.accountGenerationInvalidated
+	service.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING
+	now = now.Add(2 * time.Minute)
+	if requireAuthorizationRevisionForTest(t, service.currentSnapshotLocked()) != before {
+		t.Fatal("short-lived access token expiry dropped live local authorization revision")
+	}
+	if service.accountGeneration != generation || service.accountGenerationInvalidated != fence {
+		t.Fatal("read-only revision projection mutated the authorization fence")
+	}
+	installRevisionAccountForTest(t, service, "account-a", "realm-a", now.Add(time.Hour))
+	if requireAuthorizationRevisionForTest(t, service.currentSnapshotLocked()) != before {
+		t.Fatal("same-identity refresh replaced local authorization revision after access expiry")
+	}
+	select {
+	case <-fence:
+		t.Fatal("same-identity refresh closed local execution fence")
+	default:
+	}
+
+	service.invalidateAuthenticatedRuntimeIdentityLocked()
+	if authorizationRevisionForTest(service.currentSnapshotLocked()) != "" {
+		t.Fatal("explicitly invalidated authorization exposed a live revision")
+	}
+	select {
+	case <-fence:
+	default:
+		t.Fatal("explicit invalidation did not close old execution fence")
+	}
+	installRevisionAccountForTest(t, service, "account-a", "realm-a", now.Add(2*time.Hour))
+	if requireAuthorizationRevisionForTest(t, service.currentSnapshotLocked()) == before {
+		t.Fatal("replacement after invalidation retained old authorization revision")
 	}
 }
 
@@ -140,11 +156,11 @@ func TestAccountAuthorizationRevisionIsEmptyWithoutLiveAuthorization(t *testing.
 		t.Fatal("initial pending display projection became authorization")
 	}
 	installRevisionAccountForTest(t, service, "account-a", "realm-a", now.Add(time.Minute))
-	requireAuthorizationRevisionForTest(t, service.currentSnapshotLocked())
+	liveRevision := requireAuthorizationRevisionForTest(t, service.currentSnapshotLocked())
 	generation, fence := service.accountGeneration, service.accountGenerationInvalidated
 	now = now.Add(2 * time.Minute)
-	if snapshot := service.currentSnapshotLocked(); snapshot.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED || authorizationRevisionForTest(snapshot) != "" {
-		t.Fatal("clock-expired authenticated state projected live authorization")
+	if snapshot := service.currentSnapshotLocked(); snapshot.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED || authorizationRevisionForTest(snapshot) != liveRevision {
+		t.Fatal("clock-expired online access token revoked trusted local sign-in projection")
 	}
 	if service.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED || service.accountGeneration != generation || service.accountGenerationInvalidated != fence {
 		t.Fatal("status projection changed the underlying state machine")

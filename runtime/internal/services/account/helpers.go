@@ -96,17 +96,56 @@ func normalizeMaterial(material AccountMaterial) AccountMaterial {
 	material.RealmEnvironmentID = strings.TrimSpace(material.RealmEnvironmentID)
 	material.RealmOrigin = strings.TrimRight(strings.TrimSpace(material.RealmOrigin), "/")
 	material.WorkspaceMemberships = normalizeWorkspaceMemberships(material.WorkspaceMemberships)
-	material.AccessToken = strings.TrimSpace(material.AccessToken)
-	material.RefreshToken = strings.TrimSpace(material.RefreshToken)
-	if material.AccessTokenExpires.IsZero() {
-		material.AccessTokenExpires = time.Now().UTC().Add(5 * time.Minute)
+	if material.PendingRevocation {
+		material.OnlineCredentialsCleared = false
+		material.AccessToken = ""
+		material.RefreshToken = ""
+		material.AccessTokenExpires = time.Time{}
+		material.RefreshTokenHashes = nil
+	} else if material.OnlineCredentialsCleared {
+		material.AccessToken = ""
+		material.RefreshToken = ""
+		material.AccessTokenExpires = time.Time{}
+		material.RefreshTokenHashes = nil
+		material.pendingRealmDeletion = nil
+	} else {
+		material.AccessToken = strings.TrimSpace(material.AccessToken)
+		material.RefreshToken = strings.TrimSpace(material.RefreshToken)
+		if material.AccessTokenExpires.IsZero() {
+			material.AccessTokenExpires = time.Now().UTC().Add(5 * time.Minute)
+		}
+		material.RefreshTokenHashes = copyRefreshHashes(material.RefreshTokenHashes)
 	}
-	material.RefreshTokenHashes = copyRefreshHashes(material.RefreshTokenHashes)
 	if material.pendingRealmDeletion != nil {
 		pending := *material.pendingRealmDeletion
 		material.pendingRealmDeletion = &pending
 	}
 	return material
+}
+
+func clearOnlineCredentialsFromMaterial(current AccountMaterial) AccountMaterial {
+	cleared := current
+	cleared.WorkspaceMemberships = cloneWorkspaceMemberships(current.WorkspaceMemberships)
+	cleared.AccessToken = ""
+	cleared.RefreshToken = ""
+	cleared.AccessTokenExpires = time.Time{}
+	cleared.RefreshTokenHashes = nil
+	cleared.OnlineCredentialsCleared = true
+	cleared.PendingRevocation = false
+	cleared.pendingRealmDeletion = nil
+	return normalizeMaterial(cleared)
+}
+
+func pendingRevocationMaterial(current AccountMaterial) AccountMaterial {
+	revoked := current
+	revoked.WorkspaceMemberships = cloneWorkspaceMemberships(current.WorkspaceMemberships)
+	revoked.AccessToken = ""
+	revoked.RefreshToken = ""
+	revoked.AccessTokenExpires = time.Time{}
+	revoked.RefreshTokenHashes = nil
+	revoked.OnlineCredentialsCleared = false
+	revoked.PendingRevocation = true
+	return normalizeMaterial(revoked)
 }
 
 func projectionFromMaterial(material AccountMaterial) *runtimev1.AccountProjection {

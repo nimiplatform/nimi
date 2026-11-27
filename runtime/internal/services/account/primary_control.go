@@ -53,11 +53,15 @@ func (s *Service) RemoteAccessSettingsOwner() (accountID, realmID string, select
 	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	if s.material.AccountID == "" || s.material.RealmEnvironmentID == "" || s.material.RefreshToken == "" {
+	if !s.authenticatedRuntimeIdentity ||
+		s.material.AccountID == "" ||
+		s.material.RealmEnvironmentID == "" ||
+		!s.onlineAccessTokenLiveLocked() ||
+		strings.TrimSpace(s.material.RefreshToken) == "" {
 		return "", "", false
 	}
 	switch s.state {
-	case runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED, runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED, runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING:
+	case runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED, runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING:
 		return s.material.AccountID, s.material.RealmEnvironmentID, true
 	default:
 		return "", "", false
@@ -84,7 +88,10 @@ func (s *Service) BindPrimaryRuntimeControl(ctx context.Context) (*PrimaryRuntim
 	defer cancel()
 	// Use the existing private credential owner to refresh its current login;
 	// no synthetic Desktop principal or renderer bearer is constructed.
-	if _, _, _, ok, err := s.realmUnaryCredential(ctx); err != nil || !ok {
+	if _, _, reason, ok, err := s.realmUnaryCredential(ctx); err != nil || !ok {
+		if err == nil && reason == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED {
+			return nil, primaryFailure(codes.Unavailable)
+		}
 		return nil, primaryFailure(codes.Unauthenticated)
 	}
 	p, generation, invalidated, ok := s.BindAuthenticatedRuntimeGeneration(ctx)
@@ -154,6 +161,9 @@ func (s *Service) HeartbeatPrimaryRuntimeControl(ctx context.Context, c *Primary
 	case <-c.invalidated:
 		return "", primaryFailure(codes.Unauthenticated)
 	default:
+	}
+	if !s.primaryControlOnlineCredentialsLive(c) {
+		return "", primaryFailure(codes.Unauthenticated)
 	}
 	switch result.Status {
 	case "idle", "sync_required", "register_required":
@@ -263,9 +273,33 @@ func (s *Service) AnswerPrimaryRuntimeConnection(ctx context.Context, c *Primary
 	return nil
 }
 
+// PrimaryControlOnlineCredentialsLive reports whether the bound primary
+// control still matches the live authenticated account generation and retains
+// live, non-expired online credentials for protected remote work.
+func (s *Service) PrimaryControlOnlineCredentialsLive(c *PrimaryRuntimeControl) bool {
+	return s.primaryControlOnlineCredentialsLive(c)
+}
+
+func (s *Service) primaryControlOnlineCredentialsLive(c *PrimaryRuntimeControl) bool {
+	if s == nil || c == nil {
+		return false
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.authenticatedRuntimeIdentity &&
+		s.accountGeneration == c.generation &&
+		s.material.AccountID == c.accountID &&
+		s.material.RealmEnvironmentID == c.realmID &&
+		s.onlineAccessTokenLiveLocked() &&
+		strings.TrimSpace(s.material.RefreshToken) != ""
+}
+
 func (s *Service) signPrimaryControl(ctx context.Context, c *PrimaryRuntimeControl, fields []any) (string, error) {
 	p, generation, ok := s.AuthenticatedRuntimeSecurityContext(ctx)
 	if !ok || generation != c.generation || p.AccountId != c.accountID || p.RealmEnvironmentId != c.realmID {
+		return "", primaryFailure(codes.Unauthenticated)
+	}
+	if !s.primaryControlOnlineCredentialsLive(c) {
 		return "", primaryFailure(codes.Unauthenticated)
 	}
 	s.primaryMu.Lock()

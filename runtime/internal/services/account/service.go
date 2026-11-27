@@ -105,7 +105,10 @@ func (s *Service) BeginLogin(ctx context.Context, req *runtimev1.BeginLoginReque
 	requestRedirectURI := strings.TrimSpace(req.GetRedirectUri())
 	requestCallbackOrigin := strings.TrimSpace(req.GetCallbackOrigin())
 	s.mu.RLock()
-	if s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGIN_PENDING {
+	onlineReauthPending := s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED &&
+		s.authenticatedRuntimeIdentity &&
+		s.material.OnlineCredentialsCleared
+	if s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGIN_PENDING || onlineReauthPending {
 		for _, record := range s.loginAttempts {
 			// A renderer restart may leave an old loopback listener alive while
 			// the new renderer waits on a different port. Reuse only when the
@@ -135,7 +138,7 @@ func (s *Service) BeginLogin(ctx context.Context, req *runtimev1.BeginLoginReque
 		}
 	}
 	if s.material.pendingRealmDeletion != nil ||
-		s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED ||
+		(s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED && !onlineReauthPending) ||
 		s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING ||
 		s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_SWITCHING ||
 		s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGGING_OUT {
@@ -167,7 +170,10 @@ func (s *Service) BeginLogin(ctx context.Context, req *runtimev1.BeginLoginReque
 
 	committed, auditErr := s.commitRecorded(ctx, "account.login.begin", "", map[string]any{"login_attempt_id": attempt.LoginAttemptID}, func() error {
 		s.mu.Lock()
-		if s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGIN_PENDING {
+		reauthOnline := s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED &&
+			s.authenticatedRuntimeIdentity &&
+			s.material.OnlineCredentialsCleared
+		if s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGIN_PENDING || reauthOnline {
 			for id, record := range s.loginAttempts {
 				if record.consumed ||
 					!record.attempt.ExpiresAt.After(now) ||
@@ -180,9 +186,14 @@ func (s *Service) BeginLogin(ctx context.Context, req *runtimev1.BeginLoginReque
 		if attempt.PromptLogin {
 			s.freshAccountSelection = false
 		}
-		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGIN_PENDING
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGIN_STARTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
+		if reauthOnline {
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGIN_STARTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS)
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS)
+		} else {
+			s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGIN_PENDING
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGIN_STARTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
+		}
 		s.mu.Unlock()
 
 		return nil
@@ -287,8 +298,19 @@ func (s *Service) CompleteLogin(ctx context.Context, req *runtimev1.CompleteLogi
 		s.mu.Unlock()
 		return &runtimev1.CompleteLoginResponse{State: s.currentState(), ReasonCode: runtimev1.ReasonCode_AUTH_TOKEN_INVALID, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_CONSUMED}, nil
 	}
+	hadAuthenticatedIdentity := s.authenticatedRuntimeIdentity
+	currentMaterial := s.material
+	onlineReauthPending := s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED &&
+		s.authenticatedRuntimeIdentity &&
+		s.material.OnlineCredentialsCleared
 	if !record.attempt.ExpiresAt.After(s.now().UTC()) {
 		delete(s.loginAttempts, attemptID)
+		if onlineReauthPending {
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGIN_TIMED_OUT, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_EXPIRED)
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS)
+			s.mu.Unlock()
+			return &runtimev1.CompleteLoginResponse{State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED, ReasonCode: runtimev1.ReasonCode_AUTH_TOKEN_EXPIRED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_EXPIRED}, nil
+		}
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS
 		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGIN_TIMED_OUT, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_EXPIRED)
 		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_EXPIRED)
@@ -304,7 +326,14 @@ func (s *Service) CompleteLogin(ctx context.Context, req *runtimev1.CompleteLogi
 	s.mu.Unlock()
 
 	if strings.TrimSpace(req.GetRefreshToken()) != "" {
-		s.transitionToReauthRequired(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED)
+		if s.invalidateAuthenticatedIdentityAfterFailedLogin(ctx, hadAuthenticatedIdentity, currentMaterial, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED) {
+			return &runtimev1.CompleteLoginResponse{
+				Accepted:          false,
+				State:             runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE,
+				ReasonCode:        runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED,
+				AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE,
+			}, nil
+		}
 		return &runtimev1.CompleteLoginResponse{
 			Accepted:          false,
 			State:             s.currentState(),
@@ -319,12 +348,43 @@ func (s *Service) CompleteLogin(ctx context.Context, req *runtimev1.CompleteLogi
 		if errors.Is(err, ErrInertNotActivated) {
 			reason = runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED
 		}
-		s.transitionToReauthRequired(reason)
+		if onlineReauthPending && (isTransientLoginExchangeFailure(err) || isRetryableOAuthGrantFailure(err)) {
+			s.mu.Lock()
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS)
+			s.mu.Unlock()
+			reasonCode := runtimev1.ReasonCode_REALM_UNAVAILABLE
+			if isRetryableOAuthGrantFailure(err) {
+				reasonCode = runtimev1.ReasonCode_AUTH_TOKEN_INVALID
+			}
+			return &runtimev1.CompleteLoginResponse{
+				Accepted:          false,
+				State:             runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED,
+				ReasonCode:        reasonCode,
+				AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE,
+			}, nil
+		}
+		if s.invalidateAuthenticatedIdentityAfterFailedLogin(ctx, hadAuthenticatedIdentity, currentMaterial, reason) {
+			return &runtimev1.CompleteLoginResponse{
+				Accepted:          false,
+				State:             runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE,
+				ReasonCode:        runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED,
+				AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE,
+			}, nil
+		}
 		return &runtimev1.CompleteLoginResponse{Accepted: false, State: s.currentState(), ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}, nil
 	}
+	material.OnlineCredentialsCleared = false
+	material.PendingRevocation = false
 	normalized := normalizeMaterial(material)
 	if normalized.AccountID == "" || normalized.RefreshToken == "" || normalized.AccessToken == "" {
-		s.transitionToReauthRequired(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE)
+		if s.invalidateAuthenticatedIdentityAfterFailedLogin(ctx, hadAuthenticatedIdentity, currentMaterial, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE) {
+			return &runtimev1.CompleteLoginResponse{
+				Accepted:          false,
+				State:             runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE,
+				ReasonCode:        runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED,
+				AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE,
+			}, nil
+		}
 		return &runtimev1.CompleteLoginResponse{Accepted: false, State: s.currentState(), ReasonCode: runtimev1.ReasonCode_AUTH_TOKEN_INVALID, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE}, nil
 	}
 	auditSubjectID = normalized.AccountID
@@ -347,6 +407,7 @@ func (s *Service) CompleteLogin(ctx context.Context, req *runtimev1.CompleteLogi
 			return errors.New("account identity unavailable")
 		}
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED
+		s.refreshRetryAttempt = 0
 		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGIN_COMPLETED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 		projection = cloneProjection(s.projection)
@@ -419,6 +480,7 @@ func (s *Service) SwitchAccount(ctx context.Context, req *runtimev1.SwitchAccoun
 	var failureReason runtimev1.AccountReasonCode
 	committed, auditErr := s.commitRecorded(ctx, "account.switch", accountID, nil, func() error {
 		s.mu.Lock()
+		clear(s.loginAttempts)
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_SWITCHING
 		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_STARTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 		s.mu.Unlock()
@@ -452,11 +514,26 @@ func (s *Service) SwitchAccount(ctx context.Context, req *runtimev1.SwitchAccoun
 	return &runtimev1.SwitchAccountResponse{AuditDiagnostic: auditlog.CommittedDiagnostic(auditErr), Accepted: true, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED}, nil
 }
 
-func (s *Service) accountMaterialExpiredLocked() bool {
+// onlineAccessTokenExpiredLocked reports whether the short-lived online Realm
+// access token has expired or online credentials were cleared. Natural
+// access-token expiry or ambiguous-refresh credential clearing gates online
+// Realm and protected remote operations only; neither revokes a device's
+// trusted local sign-in identity.
+func (s *Service) onlineAccessTokenExpiredLocked() bool {
+	if s.material.OnlineCredentialsCleared {
+		return true
+	}
 	return !s.material.AccessTokenExpires.IsZero() && !s.material.AccessTokenExpires.After(s.now().UTC())
 }
 
+func (s *Service) onlineAccessTokenLiveLocked() bool {
+	return !s.material.OnlineCredentialsCleared &&
+		strings.TrimSpace(s.material.AccessToken) != "" &&
+		!s.onlineAccessTokenExpiredLocked()
+}
+
 // @nimi-authority: rule.nimi.runtime.protected-session.r030
+// @nimi-authority: rule.nimi.runtime.protected-session.r031
 func (s *Service) recoverFromCustody(ctx context.Context) {
 	s.identityMutationMu.Lock()
 	defer s.identityMutationMu.Unlock()
@@ -517,12 +594,50 @@ func (s *Service) recoverFromCustody(ctx context.Context) {
 		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
 		return
 	}
+	if material.PendingRevocation {
+		if err := s.custody.Clear(ctx, s.partition); err != nil {
+			s.mu.Lock()
+			defer s.mu.Unlock()
+			s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE)
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE)
+			return
+		}
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_TOKEN_INVALID)
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_TOKEN_INVALID)
+		return
+	}
 	if s.productionActivated && material.RealmOrigin != strings.TrimRight(strings.TrimSpace(s.realmBaseURL), "/") {
 		_ = s.custody.Clear(ctx, s.partition)
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED
 		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
+		return
+	}
+	if material.OnlineCredentialsCleared {
+		if material.AccountID == "" || material.RealmEnvironmentID == "" {
+			_ = s.custody.Clear(ctx, s.partition)
+			s.mu.Lock()
+			defer s.mu.Unlock()
+			s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
+			return
+		}
+		cleared := clearOnlineCredentialsFromMaterial(material)
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		if !s.installAuthenticatedRuntimeIdentityLocked(cleared) {
+			s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
+			return
+		}
+		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_RECOVERED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS)
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS)
 		return
 	}
 	if material.AccountID == "" || material.RefreshToken == "" || material.AccessToken == "" {
@@ -533,36 +648,60 @@ func (s *Service) recoverFromCustody(ctx context.Context) {
 		return
 	}
 	if material.RefreshTokenHashes[refreshHash(material.RefreshToken)] {
-		// A self-hash is the durable pre-refresh marker. It means the process may
-		// have exited after Realm consumed the token, so this material can never
-		// become authenticated again. Clear is best-effort; its failure does not
-		// weaken the recovery verdict.
-		_ = s.custody.Clear(ctx, s.partition)
+		// An unrevoked pre-refresh self-hash crash fence means the process exited
+		// while a refresh request may have been rotated by Realm. Immediately
+		// erase the potentially rotated online tokens from durable custody so
+		// they are never replayed, while preserving the previously established
+		// trusted local authenticated identity until fresh online re-auth.
+		if material.RealmEnvironmentID == "" {
+			_ = s.custody.Clear(ctx, s.partition)
+			s.mu.Lock()
+			defer s.mu.Unlock()
+			s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED)
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED)
+			return
+		}
+		cleared := clearOnlineCredentialsFromMaterial(material)
+		if err := s.custody.Store(ctx, s.partition, cleared); err != nil {
+			s.mu.Lock()
+			defer s.mu.Unlock()
+			s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE)
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE)
+			return
+		}
 		s.mu.Lock()
-		defer s.mu.Unlock()
-		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED)
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED)
+		if !s.installAuthenticatedRuntimeIdentityLocked(cleared) {
+			s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
+			s.mu.Unlock()
+			return
+		}
+		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS)
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS)
+		s.mu.Unlock()
+		s.emitAudit(ctx, "account.refresh.online_credentials_cleared", auditSubjectID, runtimev1.ReasonCode_ACTION_EXECUTED, nil)
 		return
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if !material.AccessTokenExpires.IsZero() && !material.AccessTokenExpires.After(s.now().UTC()) {
-		// Expired access cannot authenticate this Runtime, but retained refresh
-		// custody must still be revalidated by Realm through the existing owner
-		// refresh loop before requiring another browser authorization.
-		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING
-		s.material = material
-		s.projection = projectionFromMaterial(material)
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED)
-		return
-	}
 	if !s.installAuthenticatedRuntimeIdentityLocked(material) {
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
 		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
 		return
 	}
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED
+	if s.onlineAccessTokenExpiredLocked() {
+		// Trusted local sign-in survives offline restart even after the
+		// short-lived online Realm access token expires. Online Realm and
+		// protected remote entry still require a live refreshed access token,
+		// and the background refresh timer revalidates against Realm once reachable.
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_RECOVERED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED)
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED)
+		return
+	}
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_RECOVERED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 }
@@ -588,6 +727,7 @@ func (s *Service) logout(ctx context.Context, reason runtimev1.AccountReasonCode
 		return &runtimev1.LogoutResponse{Accepted: false, State: state, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE}, nil
 	}
 	if s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS {
+		clear(s.loginAttempts)
 		s.mu.Unlock()
 		return &runtimev1.LogoutResponse{Accepted: true, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED}, nil
 	}
@@ -596,6 +736,7 @@ func (s *Service) logout(ctx context.Context, reason runtimev1.AccountReasonCode
 	var failureReason runtimev1.AccountReasonCode
 	committed, auditErr := s.commitRecorded(ctx, "account.logout", accountID, nil, func() error {
 		s.mu.Lock()
+		clear(s.loginAttempts)
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGGING_OUT
 		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_STARTED, reason)
 		s.mu.Unlock()
@@ -626,6 +767,24 @@ func (s *Service) logout(ctx context.Context, reason runtimev1.AccountReasonCode
 	}
 
 	return &runtimev1.LogoutResponse{AuditDiagnostic: auditlog.CommittedDiagnostic(auditErr), Accepted: true, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: reason}, nil
+}
+
+func (s *Service) invalidateAuthenticatedIdentityAfterFailedLogin(
+	ctx context.Context,
+	hadAuthenticatedIdentity bool,
+	currentMaterial AccountMaterial,
+	reason runtimev1.AccountReasonCode,
+) bool {
+	if hadAuthenticatedIdentity {
+		cleanupCtx := custodyCleanupContext(ctx)
+		if err := s.custody.Clear(cleanupCtx, s.partition); err != nil {
+			_ = s.custody.Store(cleanupCtx, s.partition, pendingRevocationMaterial(currentMaterial))
+			s.markCustodyUnavailable()
+			return true
+		}
+	}
+	s.transitionToReauthRequired(reason)
+	return false
 }
 
 func (s *Service) clearCustody(ctx context.Context) runtimev1.AccountReasonCode {

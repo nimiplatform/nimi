@@ -494,9 +494,16 @@ func TestExpiredSwitchRejectionKeepsKnownAuditSubject(t *testing.T) {
 	stopAccountRefreshTimer(t, s)
 	completeLogin(t, s)
 	now = now.Add(10 * time.Minute)
+	if _, _, _, authenticated := s.BindAuthenticatedRuntimeGeneration(context.Background()); !authenticated || s.currentState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED {
+		t.Fatal("short-lived access token expiry must preserve trusted local sign-in")
+	}
+	s.mu.Lock()
+	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED
+	s.invalidateAuthenticatedRuntimeIdentityLocked()
+	s.mu.Unlock()
 	_, _, _, authenticated := s.BindAuthenticatedRuntimeGeneration(context.Background())
 	if authenticated || s.currentState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED {
-		t.Fatal("did not reach supported expired-account state")
+		t.Fatal("did not reach explicit expired-account state")
 	}
 	result, err := s.SwitchAccount(context.Background(), &runtimev1.SwitchAccountRequest{Caller: desktopAccountControlCaller()})
 	if err != nil || result.GetAccepted() || result.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE {
@@ -515,12 +522,15 @@ func TestRestartMarkerRejectionIsAudited(t *testing.T) {
 	store := auditlog.New(128, 128)
 	s := New(nil, WithProductionActivation(), WithCustody(custody), WithAuditStore(store))
 	stopAccountRefreshTimer(t, s)
-	if s.currentState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED || custody.has {
-		t.Fatal("restart did not reject and clear the in-flight refresh marker")
+	if s.currentState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED ||
+		!custody.has || !custody.material.OnlineCredentialsCleared ||
+		custody.material.AccessToken != "" || custody.material.RefreshToken != "" ||
+		len(custody.material.RefreshTokenHashes) != 0 {
+		t.Fatalf("restart did not erase potentially rotated online tokens while preserving local identity: state=%v custody=%+v", s.currentState(), custody)
 	}
 	events := listAccountAuditEvents(t, store)
-	if len(events) == 0 {
-		t.Fatal("security-relevant restart rejection cleared custody without an audit")
+	if findAccountAuditEvent(events, "account.refresh.online_credentials_cleared") == nil {
+		t.Fatalf("security-relevant restart online-token clearing omitted audit: %+v", events)
 	}
 }
 

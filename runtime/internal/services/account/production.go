@@ -15,6 +15,7 @@ import (
 	"net/http/httptrace"
 	"net/url"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	realmv1 "github.com/nimiplatform/nimi/runtime/gen/realm/v1"
@@ -52,11 +53,13 @@ type custodySnapshot struct {
 	RealmEnvironmentID   string                        `json:"realmEnvironmentId,omitempty"`
 	RealmOrigin          string                        `json:"realmOrigin,omitempty"`
 	WorkspaceMemberships []workspaceMembershipSnapshot `json:"workspaceMemberships,omitempty"`
-	AccessToken          string                        `json:"accessToken"`
-	AccessTokenExpires   string                        `json:"accessTokenExpires"`
-	RefreshToken         string                        `json:"refreshToken"`
-	RefreshTokenHashes   map[string]bool               `json:"refreshTokenHashes,omitempty"`
-	PendingRealmDeletion *realmAccountDeletionSnapshot `json:"pendingRealmDeletion,omitempty"`
+	AccessToken              string                        `json:"accessToken"`
+	AccessTokenExpires       string                        `json:"accessTokenExpires"`
+	RefreshToken             string                        `json:"refreshToken"`
+	RefreshTokenHashes       map[string]bool               `json:"refreshTokenHashes,omitempty"`
+	OnlineCredentialsCleared bool                          `json:"onlineCredentialsCleared,omitempty"`
+	PendingRevocation        bool                          `json:"pendingRevocation,omitempty"`
+	PendingRealmDeletion     *realmAccountDeletionSnapshot `json:"pendingRealmDeletion,omitempty"`
 }
 
 type realmAccountDeletionSnapshot struct {
@@ -86,6 +89,7 @@ type realmOAuthExchanger struct {
 type realmTokenRefresher struct {
 	httpClient *http.Client
 	tokenURL   string
+	now        func() time.Time
 }
 
 const realmRefreshTokenResponseMaxBytes int64 = 1 << 20
@@ -226,7 +230,7 @@ func (r realmOAuthExchanger) exchangeForm(ctx context.Context, carrier realmv1.O
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return AccountMaterial{}, fmt.Errorf("%w: %v", ErrLoginExchangeFailure, err)
+		return AccountMaterial{}, newTransientLoginExchangeFailure(err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 	material, parseErr := materialFromTokenResponse(resp)
@@ -250,9 +254,10 @@ func (r realmTokenRefresher) Refresh(ctx context.Context, material AccountMateri
 		return AccountMaterial{}, newRefreshFailure(refreshFailurePreDispatch, err)
 	}
 	req.Header.Set("content-type", realmv1.RefreshTokenOperation.RequestContentType())
-	wroteRequest := false
+	var dispatched atomic.Bool
 	req = req.WithContext(httptrace.WithClientTrace(req.Context(), &httptrace.ClientTrace{
-		WroteRequest: func(httptrace.WroteRequestInfo) { wroteRequest = true },
+		WroteHeaders: func() { dispatched.Store(true) },
+		WroteRequest: func(httptrace.WroteRequestInfo) { dispatched.Store(true) },
 	}))
 	client := *r.httpClient
 	client.CheckRedirect = func(*http.Request, []*http.Request) error {
@@ -260,17 +265,21 @@ func (r realmTokenRefresher) Refresh(ctx context.Context, material AccountMateri
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		if wroteRequest {
+		if dispatched.Load() {
 			return AccountMaterial{}, newRefreshFailure(refreshFailureOutcomeAmbiguous, err)
 		}
 		return AccountMaterial{}, newRefreshFailure(refreshFailurePreDispatch, err)
 	}
 	defer func() { _ = resp.Body.Close() }()
-	return materialFromRefreshTokenResponse(resp, material)
+	return materialFromRefreshTokenResponseAt(resp, material, r.now)
 }
 
 // @nimi-authority: rule.nimi.runtime.protected-session.r031
 func materialFromRefreshTokenResponse(resp *http.Response, current AccountMaterial) (AccountMaterial, error) {
+	return materialFromRefreshTokenResponseAt(resp, current, time.Now)
+}
+
+func materialFromRefreshTokenResponseAt(resp *http.Response, current AccountMaterial, nowFn func() time.Time) (AccountMaterial, error) {
 	if resp == nil || resp.Body == nil {
 		return AccountMaterial{}, newRefreshFailure(refreshFailureOutcomeAmbiguous, errors.New("refresh response is unavailable"))
 	}
@@ -349,8 +358,11 @@ func materialFromRefreshTokenResponse(resp *http.Response, current AccountMateri
 	next := current
 	next.WorkspaceMemberships = cloneWorkspaceMemberships(current.WorkspaceMemberships)
 	next.RefreshTokenHashes = nil
+	if nowFn == nil {
+		nowFn = time.Now
+	}
 	next.AccessToken = accessToken
-	next.AccessTokenExpires = time.Now().UTC().Add(time.Duration(expiresIn) * time.Second)
+	next.AccessTokenExpires = nowFn().UTC().Add(time.Duration(expiresIn) * time.Second)
 	next.RefreshToken = refreshToken
 	return next, nil
 }
@@ -387,12 +399,58 @@ func realmAccountDeletedRefreshFailureFromOwnerError(ownerError realmv1.AuthErro
 	return newRealmAccountDeletedRefreshFailure(observed), true
 }
 
+func isTransientLoginExchangeHTTPStatus(statusCode int) bool {
+	return statusCode == http.StatusRequestTimeout ||
+		statusCode == http.StatusTooManyRequests ||
+		(statusCode >= http.StatusInternalServerError && statusCode <= 599)
+}
+
+func isRetryableOAuthTokenErrorResponse(resp *http.Response) bool {
+	if resp == nil || resp.Body == nil || resp.StatusCode != http.StatusBadRequest {
+		return false
+	}
+	mediaType, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+	if err != nil || mediaType != "application/json" {
+		return false
+	}
+	payload, err := io.ReadAll(io.LimitReader(resp.Body, realmRefreshTokenResponseMaxBytes+1))
+	if err != nil || int64(len(payload)) > realmRefreshTokenResponseMaxBytes {
+		return false
+	}
+	var oauthErr realmv1.OAuthErrorResponseDto
+	if err := jsonstrict.Decode(payload, &oauthErr); err != nil {
+		return false
+	}
+	if oauthErr.StatusCode != 0 && oauthErr.StatusCode != float64(resp.StatusCode) {
+		return false
+	}
+	if strings.TrimSpace(oauthErr.DeletedAt) != "" || strings.TrimSpace(oauthErr.OperationId) != "" {
+		return false
+	}
+	if oauthErr.Error != "invalid_grant" {
+		return false
+	}
+	switch oauthErr.ReasonCode {
+	case "", "AUTH_INVALID_OAUTH_CREDENTIAL", "AUTH_TOKEN_EXPIRED", "AUTH_INVALID_REQUEST":
+		return true
+	default:
+		return false
+	}
+}
+
 func materialFromTokenResponse(resp *http.Response) (AccountMaterial, error) {
 	if resp == nil || resp.Body == nil {
-		return AccountMaterial{}, fmt.Errorf("%w: token response is unavailable", ErrLoginExchangeFailure)
+		return AccountMaterial{}, newTransientLoginExchangeFailure(errors.New("token response is unavailable"))
 	}
 	if resp.StatusCode != realmv1.OauthTokenOperation.SuccessStatus() {
-		return AccountMaterial{}, fmt.Errorf("%w: http %d", ErrLoginExchangeFailure, resp.StatusCode)
+		statusErr := fmt.Errorf("http %d", resp.StatusCode)
+		if isTransientLoginExchangeHTTPStatus(resp.StatusCode) {
+			return AccountMaterial{}, newTransientLoginExchangeFailure(statusErr)
+		}
+		if isRetryableOAuthTokenErrorResponse(resp) {
+			return AccountMaterial{}, newRetryableOAuthGrantFailure(statusErr)
+		}
+		return AccountMaterial{}, fmt.Errorf("%w: %v", ErrLoginExchangeFailure, statusErr)
 	}
 	mediaType, _, mediaErr := mime.ParseMediaType(resp.Header.Get("Content-Type"))
 	if mediaErr != nil || mediaType != "application/json" {
@@ -400,7 +458,7 @@ func materialFromTokenResponse(resp *http.Response) (AccountMaterial, error) {
 	}
 	payload, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20+1))
 	if err != nil {
-		return AccountMaterial{}, fmt.Errorf("%w: read response", ErrLoginExchangeFailure)
+		return AccountMaterial{}, newTransientLoginExchangeFailure(fmt.Errorf("read response: %w", err))
 	}
 	if len(payload) > 1<<20 {
 		return AccountMaterial{}, fmt.Errorf("%w: invalid token response JSON", ErrLoginExchangeFailure)

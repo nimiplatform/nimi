@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -260,5 +261,264 @@ func TestPrimaryControlAdmitsExactDevelopmentSchemeContext(t *testing.T) {
 		if validRemoteClientContext(control, &item, now) {
 			t.Fatal("invalid development source was admitted")
 		}
+	}
+}
+
+func TestPrimaryControlFailsClosedOnNaturalAccessTokenExpiryAndRecoversOnRefresh(t *testing.T) {
+	clock := newControllableClock(time.Date(2026, 11, 27, 16, 0, 0, 0, time.UTC))
+	public, private, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtimeID := "86ba1c17-84de-4132-bf83-c201b9ef0521"
+	binding := realmv1.PrimaryRuntimeBindingDto{
+		RuntimeId:   runtimeID,
+		BindingId:   "14e92c91-d872-4a0e-9d72-4ea05bbea917",
+		PublicKey:   base64.RawURLEncoding.EncodeToString(public),
+		DisplayName: "PC",
+		ValidAfter:  clock.Now().Format(time.RFC3339Nano),
+	}
+	controlID := "2893d76e-607e-446c-bb9d-52a634ea3514"
+	connectionID := "feb29b08-c6b3-46c4-a1fb-afb0a7344184"
+
+	var (
+		mu                  sync.Mutex
+		tokenExpired        bool
+		refreshOffline      bool
+		lastAuthorizedToken string
+	)
+	var (
+		controlRequests   atomic.Int32
+		heartbeatRequests atomic.Int32
+		refreshRequests   atomic.Int32
+		expiredBearerSeen atomic.Bool
+	)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == realmv1.RefreshTokenOperation.Path() {
+			refreshRequests.Add(1)
+			_, _ = w.Write([]byte(`{"accessToken":"access-2","refreshToken":"refresh-2","tokenType":"Bearer","expiresIn":300}`))
+			return
+		}
+		authHeader := r.Header.Get("Authorization")
+		mu.Lock()
+		expired := tokenExpired
+		if authHeader != "" {
+			lastAuthorizedToken = authHeader
+		}
+		mu.Unlock()
+		if expired && authHeader == "Bearer access-1" {
+			expiredBearerSeen.Store(true)
+		}
+		controlRequests.Add(1)
+		serverTime := time.Now().UTC()
+		switch r.URL.Path {
+		case realmv1.GetMyPrimaryRuntimePath:
+			_ = json.NewEncoder(w).Encode(realmv1.PrimaryRuntimeSnapshotDto{
+				AccountId:  "acct-1",
+				Binding:    &binding,
+				ServerTime: serverTime.Format(time.RFC3339Nano),
+			})
+		case realmv1.RegisterPrimaryRuntimeControlPath:
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(realmv1.RuntimeControlRegisterResultDto{ControlSessionId: controlID})
+		case realmv1.HeartbeatPrimaryRuntimeControlPath:
+			heartbeatRequests.Add(1)
+			if authHeader != "" {
+				t.Errorf("heartbeat must not send an Account bearer, got %q", authHeader)
+			}
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(realmv1.RuntimeControlHeartbeatResultDto{Status: "idle"})
+		case realmv1.SyncPrimaryRuntimeConnectionsPath:
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(realmv1.RuntimeConnectionSyncResultDto{
+				ServerTime:             serverTime.Format(time.RFC3339Nano),
+				AuthorizationExpiresAt: serverTime.Add(time.Minute).Format(time.RFC3339Nano),
+			})
+		case realmv1.AnswerPrimaryRuntimeConnectionPath:
+			var body realmv1.RuntimeConnectionAnswerDto
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(realmv1.RuntimeConnectionStateDto{
+				ConnectionId: body.ConnectionId,
+				BindingId:    binding.BindingId,
+				Status:       "answered",
+				AnswerSdp:    body.AnswerSdp,
+			})
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	baseTransport := server.Client().Transport
+	httpClient := &http.Client{
+		Transport: accountRoundTripFunc(func(req *http.Request) (*http.Response, error) {
+			if req.URL.Path == realmv1.RefreshTokenOperation.Path() {
+				mu.Lock()
+				offline := refreshOffline
+				mu.Unlock()
+				if offline {
+					return nil, errors.New("dial tcp: network unreachable")
+				}
+			}
+			return baseTransport.RoundTrip(req)
+		}),
+	}
+
+	initial := testMaterial("acct-1", "access-1", "refresh-1")
+	initial.RealmOrigin = server.URL
+	initial.AccessTokenExpires = clock.Now().Add(5 * time.Minute)
+	custody := &refreshRestartProofCustody{material: initial, has: true}
+	cfg := resolveProductionConfig(ProductionConfig{RealmBaseURL: server.URL, HTTPClient: httpClient})
+	refresher := newRealmTokenRefresher(cfg)
+	refresher.now = clock.Now
+
+	secrets := newAccountBinarySecretStore()
+	svc := newHarnessService(t, nil,
+		WithProductionActivation(),
+		WithCustody(custody),
+		WithCustodyPartition("primary-control-expiry"),
+		WithRealmBaseURL(server.URL),
+		WithRealmHTTPClient(httpClient),
+		WithRefresher(refresher),
+		WithClock(clock.Now),
+		func(s *Service) {
+			s.primarySecrets, s.primaryKeyScope = secrets, "expiry-test\x00os-user"
+		},
+	)
+	stopAccountRefreshTimer(t, svc)
+
+	ctx := context.Background()
+	_, keyName, err := svc.loadPrimaryAccountKeys(ctx, "acct-1", "realm-local")
+	if err != nil {
+		t.Fatal(err)
+	}
+	encodedKeys, _ := json.Marshal(primaryHostKeys{
+		Version: 1,
+		Active:  &primaryHostKey{RuntimeID: runtimeID, Seed: private.Seed()},
+	})
+	if err := secrets.Store(ctx, keyName, encodedKeys); err != nil {
+		t.Fatal(err)
+	}
+
+	proj, gen, fence, localLive := svc.BindAuthenticatedRuntimeGeneration(ctx)
+	if !localLive || proj.GetAccountId() != "acct-1" {
+		t.Fatalf("baseline local identity = (%+v, %d, %v)", proj, gen, localLive)
+	}
+	control, err := svc.BindPrimaryRuntimeControl(ctx)
+	if err != nil {
+		t.Fatalf("baseline BindPrimaryRuntimeControl: %v", err)
+	}
+	if err := svc.RegisterPrimaryRuntimeControl(ctx, control); err != nil {
+		t.Fatalf("baseline RegisterPrimaryRuntimeControl: %v", err)
+	}
+	if hb, err := svc.HeartbeatPrimaryRuntimeControl(ctx, control, ""); err != nil || hb != "idle" {
+		t.Fatalf("baseline HeartbeatPrimaryRuntimeControl = (%q, %v)", hb, err)
+	}
+	if !svc.primaryControlOnlineCredentialsLive(control) || !svc.PrimaryControlOnlineCredentialsLive(control) {
+		t.Fatal("baseline primaryControlOnlineCredentialsLive must be true")
+	}
+	if _, _, selected := svc.RemoteAccessSettingsOwner(); !selected {
+		t.Fatal("baseline RemoteAccessSettingsOwner must be true")
+	}
+
+	// Advance controlled clock past natural access-token expiry while offline.
+	mu.Lock()
+	tokenExpired = true
+	refreshOffline = true
+	mu.Unlock()
+	clock.Advance(10 * time.Minute)
+
+	// Local login stays live; online bearer and primary control eligibility fail closed.
+	afterProj, afterGen, afterFence, afterLocalLive := svc.BindAuthenticatedRuntimeGeneration(ctx)
+	if !afterLocalLive || afterProj.GetAccountId() != "acct-1" || afterGen != gen || afterFence != fence {
+		t.Fatalf("natural access-token expiry disrupted local login: proj=%+v gen=%d(want %d) live=%v", afterProj, afterGen, gen, afterLocalLive)
+	}
+	select {
+	case <-fence:
+		t.Fatal("natural access-token expiry closed local identity fence")
+	default:
+	}
+	if committed, commitErr := svc.CommitAuthenticatedRuntimeGeneration(ctx, afterProj.GetAccountId(), afterProj.GetRealmEnvironmentId(), afterGen, func() error { return nil }); !committed || commitErr != nil {
+		t.Fatalf("local commit failed after natural access-token expiry: committed=%v err=%v", committed, commitErr)
+	}
+	svc.mu.RLock()
+	onlineBearerLive := svc.onlineAccessTokenLiveLocked()
+	svc.mu.RUnlock()
+	if onlineBearerLive {
+		t.Fatal("online bearer must not be live after AccessTokenExpires")
+	}
+	if svc.primaryControlOnlineCredentialsLive(control) || svc.PrimaryControlOnlineCredentialsLive(control) {
+		t.Fatal("primaryControlOnlineCredentialsLive must be false after AccessTokenExpires")
+	}
+	if _, _, selected := svc.RemoteAccessSettingsOwner(); selected {
+		t.Fatal("RemoteAccessSettingsOwner must be false after AccessTokenExpires")
+	}
+
+	beforeControl := controlRequests.Load()
+	beforeHeartbeats := heartbeatRequests.Load()
+	if _, err := svc.HeartbeatPrimaryRuntimeControl(ctx, control, ""); status.Code(err) != codes.Unauthenticated {
+		t.Fatalf("expired HeartbeatPrimaryRuntimeControl error = %v, want Unauthenticated", err)
+	}
+	if _, err := svc.SyncPrimaryRuntimeConnections(ctx, control, nil); status.Code(err) != codes.Unauthenticated {
+		t.Fatalf("expired SyncPrimaryRuntimeConnections error = %v, want Unauthenticated", err)
+	}
+	if err := svc.AnswerPrimaryRuntimeConnection(ctx, control, connectionID, "v=0\r\ns=answer\r\n", ""); status.Code(err) != codes.Unauthenticated {
+		t.Fatalf("expired AnswerPrimaryRuntimeConnection error = %v, want Unauthenticated", err)
+	}
+	if err := svc.RegisterPrimaryRuntimeControl(ctx, control); status.Code(err) != codes.Unauthenticated {
+		t.Fatalf("expired RegisterPrimaryRuntimeControl error = %v, want Unauthenticated", err)
+	}
+	if controlRequests.Load() != beforeControl || heartbeatRequests.Load() != beforeHeartbeats {
+		t.Fatalf("expired primary control leaked Realm requests: control=%d->%d heartbeats=%d->%d",
+			beforeControl, controlRequests.Load(), beforeHeartbeats, heartbeatRequests.Load())
+	}
+	if _, err := svc.BindPrimaryRuntimeControl(ctx); status.Code(err) != codes.Unavailable {
+		t.Fatalf("offline expired BindPrimaryRuntimeControl error = %v, want Unavailable", err)
+	}
+	if expiredBearerSeen.Load() {
+		t.Fatal("expired access token was sent to Realm")
+	}
+
+	// Bring Realm back online and refresh the online token (same account).
+	mu.Lock()
+	refreshOffline = false
+	mu.Unlock()
+	refreshRes, err := svc.refreshAccountSessionInternal(ctx, true)
+	if err != nil || !refreshRes.accepted {
+		t.Fatalf("refreshAccountSessionInternal = (%+v, %v)", refreshRes, err)
+	}
+	svc.mu.RLock()
+	onlineBearerLive = svc.onlineAccessTokenLiveLocked()
+	svc.mu.RUnlock()
+	if !onlineBearerLive || !svc.primaryControlOnlineCredentialsLive(control) || !svc.PrimaryControlOnlineCredentialsLive(control) {
+		t.Fatal("refreshed online token did not restore primaryControlOnlineCredentialsLive")
+	}
+	if _, _, selected := svc.RemoteAccessSettingsOwner(); !selected {
+		t.Fatal("refreshed online token did not restore RemoteAccessSettingsOwner")
+	}
+	if hb, err := svc.HeartbeatPrimaryRuntimeControl(ctx, control, ""); err != nil || hb != "idle" {
+		t.Fatalf("recovered HeartbeatPrimaryRuntimeControl = (%q, %v)", hb, err)
+	}
+	if _, err := svc.SyncPrimaryRuntimeConnections(ctx, control, nil); err != nil {
+		t.Fatalf("recovered SyncPrimaryRuntimeConnections: %v", err)
+	}
+	if err := svc.AnswerPrimaryRuntimeConnection(ctx, control, connectionID, "v=0\r\ns=recovered\r\n", ""); err != nil {
+		t.Fatalf("recovered AnswerPrimaryRuntimeConnection: %v", err)
+	}
+	mu.Lock()
+	gotBearer := lastAuthorizedToken
+	mu.Unlock()
+	if gotBearer != "Bearer access-2" {
+		t.Fatalf("recovered authorized bearer = %q, want Bearer access-2", gotBearer)
+	}
+	if expiredBearerSeen.Load() {
+		t.Fatal("expired access token was sent to Realm during recovery")
+	}
+	_, finalGen, finalFence, finalLive := svc.BindAuthenticatedRuntimeGeneration(ctx)
+	if !finalLive || finalGen != gen || finalFence != fence {
+		t.Fatalf("same-account refresh disrupted local identity: gen=%d(want %d) live=%v", finalGen, gen, finalLive)
 	}
 }

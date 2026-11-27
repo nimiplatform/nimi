@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
 type RealmRealtimeAccountLease struct {
@@ -27,11 +29,14 @@ func (s *Service) BindRealmRealtimeAccount(ctx context.Context) (RealmRealtimeAc
 	if !ok || projection == nil {
 		return RealmRealtimeAccountLease{}, fmt.Errorf("authenticated Realm account is unavailable")
 	}
-	accessToken, _, accepted, err := s.realmUnaryAccessToken(ctx, nil)
+	accessToken, reason, accepted, err := s.realmUnaryAccessToken(ctx, nil)
 	if err != nil {
 		return RealmRealtimeAccountLease{}, err
 	}
 	if !accepted || strings.TrimSpace(accessToken) == "" {
+		if reason == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED {
+			return RealmRealtimeAccountLease{}, fmt.Errorf("Realm is unavailable")
+		}
 		return RealmRealtimeAccountLease{}, fmt.Errorf("Realm credential is unavailable")
 	}
 	current, currentGeneration, currentInvalidated, currentOK := s.BindAuthenticatedRuntimeGeneration(ctx)

@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -67,6 +69,89 @@ func refreshFailureDispositionOf(err error) refreshFailureDisposition {
 	return refreshFailureUnknown
 }
 
+type transientLoginExchangeFailure struct {
+	err error
+}
+
+func (failure *transientLoginExchangeFailure) Error() string {
+	if failure == nil || failure.err == nil {
+		return ErrLoginExchangeFailure.Error()
+	}
+	return failure.err.Error()
+}
+
+func (failure *transientLoginExchangeFailure) Unwrap() error {
+	if failure == nil {
+		return nil
+	}
+	return failure.err
+}
+
+func newTransientLoginExchangeFailure(err error) error {
+	if err == nil {
+		return &transientLoginExchangeFailure{err: ErrLoginExchangeFailure}
+	}
+	if errors.Is(err, ErrLoginExchangeFailure) {
+		return &transientLoginExchangeFailure{err: err}
+	}
+	return &transientLoginExchangeFailure{err: fmt.Errorf("%w: %w", ErrLoginExchangeFailure, err)}
+}
+
+func isTransientLoginExchangeFailure(err error) bool {
+	if err == nil || errors.Is(err, ErrInertNotActivated) {
+		return false
+	}
+	var transient *transientLoginExchangeFailure
+	if errors.As(err, &transient) {
+		return true
+	}
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+		return true
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) {
+		return true
+	}
+	var urlErr *url.Error
+	return errors.As(err, &urlErr)
+}
+
+type retryableOAuthGrantFailure struct {
+	err error
+}
+
+func (failure *retryableOAuthGrantFailure) Error() string {
+	if failure == nil || failure.err == nil {
+		return ErrLoginExchangeFailure.Error()
+	}
+	return failure.err.Error()
+}
+
+func (failure *retryableOAuthGrantFailure) Unwrap() error {
+	if failure == nil {
+		return nil
+	}
+	return failure.err
+}
+
+func newRetryableOAuthGrantFailure(err error) error {
+	if err == nil {
+		return &retryableOAuthGrantFailure{err: ErrLoginExchangeFailure}
+	}
+	if errors.Is(err, ErrLoginExchangeFailure) {
+		return &retryableOAuthGrantFailure{err: err}
+	}
+	return &retryableOAuthGrantFailure{err: fmt.Errorf("%w: %w", ErrLoginExchangeFailure, err)}
+}
+
+func isRetryableOAuthGrantFailure(err error) bool {
+	if err == nil || errors.Is(err, ErrInertNotActivated) {
+		return false
+	}
+	var grantErr *retryableOAuthGrantFailure
+	return errors.As(err, &grantErr)
+}
+
 type AccountMaterial struct {
 	AccountID            string
 	DisplayName          string
@@ -80,7 +165,17 @@ type AccountMaterial struct {
 	RefreshToken         string
 	// RefreshTokenHashes holds only the in-flight active-token consumption
 	// marker. Completed rotations leave it empty; Realm owns family replay.
-	RefreshTokenHashes   map[string]bool
+	RefreshTokenHashes map[string]bool
+	// OnlineCredentialsCleared marks durable trusted local sign-in custody whose
+	// potentially rotated online Realm tokens were erased after an ambiguous
+	// refresh outcome or unrevoked pre-refresh crash fence. Local identity
+	// remains live while online Realm and remote calls stay blocked until fresh
+	// online re-authentication succeeds.
+	OnlineCredentialsCleared bool
+	// PendingRevocation fences durable custody when custody.Clear failed after a
+	// confirmed revoking or invalidating refresh failure so restart recovery
+	// never resurrects local identity.
+	PendingRevocation    bool
 	pendingRealmDeletion *ObservedRealmAccountDeletedResult
 }
 
@@ -229,6 +324,9 @@ type Service struct {
 	events                    []*runtimev1.AccountSessionEvent
 	nextSubscriberID          uint64
 	subscribers               map[uint64]subscriber
+	nextStateObserverID       uint64
+	stateObservers            map[uint64]chan struct{}
+	primaryHostEpoch          uint64
 	refreshTimer              *time.Timer
 	refreshRetryAttempt       uint8
 	realmDeletionRetryAttempt uint8

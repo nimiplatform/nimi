@@ -3,8 +3,10 @@ import test from 'node:test';
 import React, { act, useEffect } from 'react';
 import { JSDOM } from 'jsdom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { createReadyConversationSetupState } from '@nimiplatform/kit/features/chat/headless';
 import { AppStoreProvider } from '../src/shell/renderer/app-shell/providers/app-store.js';
 import { createAppStore } from '../src/shell/renderer/app-shell/providers/app-store-factory.js';
+import { INITIAL_RUNTIME_FIELDS } from '../src/shell/renderer/app-shell/providers/store-types.js';
 import { DesktopRendererBindingProvider } from '../src/shell/renderer/renderer/binding-context.js';
 import type { DesktopCanonicalRendererBindings } from '../src/shell/renderer/renderer/contract.js';
 import { SupportTroubleshooting } from '../src/shell/renderer/features/support/support-troubleshooting.js';
@@ -190,4 +192,146 @@ test('owner loss and an authorization replacement each retire the established ga
     assert.equal(fixture.handle().status, 'ready');
     assert.deepEqual(fixture.business, ['account-a', 'account-a']);
   } finally { await fixture.close(); }
+});
+
+test('A -> B Runtime projection handover clears queryClient and resets all un-scoped Zustand view state while keeping global state intact', async () => {
+  const fixture = await setup();
+  try {
+    await act(async () => fixture.probes[0]!.resolve(ready));
+    assert.equal(fixture.handle().status, 'ready');
+
+    // Seed global fields (must stay intact across A -> B).
+    const runtimeDefaults = {
+      realm: { realmBaseUrl: 'https://realm.example.test', realtimeUrl: '', accessToken: '', jwksUrl: '', revocationUrl: '', jwtIssuer: '', jwtAudience: '' },
+      runtime: {
+        localProviderEndpoint: '',
+        localProviderModel: '',
+        localOpenAiEndpoint: '',
+        connectorId: '',
+        targetType: 'agent',
+        targetAccountId: 'default-target',
+        agentId: 'default-agent',
+        worldId: 'default-world',
+        provider: '',
+        userConfirmedUpload: false,
+      },
+    };
+    fixture.store.getState().setBootstrapReady(true);
+    fixture.store.getState().setBootstrapError(null);
+    fixture.store.getState().setRuntimeMaintenance(null);
+    fixture.store.getState().setRuntimeDefaults(runtimeDefaults);
+    fixture.store.getState().setOfflineTier('L1');
+    fixture.store.getState().setPrimaryRailVisible(false);
+
+    // Seed every account-bound / un-scoped view and selection field for Account A.
+    fixture.store.getState().setChatSourceFilter('human');
+    fixture.store.getState().setChatViewMode('human', 'peer-a', 'chat');
+    fixture.store.getState().setChatViewMode('ai', 'agent-a', 'stage');
+    fixture.store.getState().setLastSelectedThreadForMode('ai', 'ai-thread-a');
+    fixture.store.getState().setLastSelectedThreadForMode('human', 'human-thread-a');
+    fixture.store.getState().setChatSetupState('ai', createReadyConversationSetupState('ai'));
+    fixture.store.getState().setChatSetupState('human', createReadyConversationSetupState('human'));
+    fixture.store.getState().setRuntimeFields({
+      targetType: 'human',
+      targetAccountId: 'account-a-target',
+      agentId: 'agent-a',
+      targetId: 'target-a',
+      worldId: 'world-a',
+      mode: 'SCENE_TURN',
+      turnIndex: 7,
+      userConfirmedUpload: true,
+    });
+    fixture.store.getState().setHomePartnerDraft('account-a', 'partner-a', 'Secret draft for A');
+    fixture.store.getState().setPendingNimiComposerPrefill('Secret prefill for A');
+    fixture.store.getState().setProfileDetailOverlayOpen(true);
+    fixture.queryClient.setQueryData(['account-a-cache'], { secret: 'from-a' });
+
+    // Direct authenticated switch A -> B through applyRuntimeAccountProjection.
+    await act(async () => {
+      fixture.store.getState().applyRuntimeAccountProjection({
+        status: 'authenticated',
+        sequence: '20',
+        reasonCode: 0,
+        accountReasonCode: 0,
+        authorizationRevision: 'authorization-b',
+        user: { id: 'account-b', displayName: 'User B', realmEnvironmentId: 'realm-a' },
+      });
+    });
+
+    assert.equal(fixture.handle().status, 'checking');
+    assert.equal(fixture.queryClient.getQueryData(['account-a-cache']), undefined);
+
+    const next = fixture.store.getState();
+    assert.equal(next.auth.user?.id, 'account-b');
+    assert.equal(next.chatSourceFilter, 'all');
+    assert.deepEqual(next.viewModeBySourceTarget, {});
+    assert.deepEqual(next.lastSelectedThreadByMode, { ai: null, human: null });
+    assert.deepEqual(next.chatSetupState, { ai: null, human: null });
+    assert.deepEqual(next.runtimeFields, INITIAL_RUNTIME_FIELDS);
+    assert.deepEqual(next.homePartnerDrafts, {});
+    assert.equal(next.pendingNimiComposerPrefill, null);
+    assert.equal(next.profileDetailOverlayOpen, false);
+
+    // Global fields stay intact.
+    assert.equal(next.bootstrapReady, true);
+    assert.equal(next.bootstrapError, null);
+    assert.equal(next.runtimeMaintenance, null);
+    assert.deepEqual(next.runtimeDefaults, runtimeDefaults);
+    assert.equal(next.offlineTier, 'L1');
+    assert.equal(next.primaryRailVisible, false);
+
+    await act(async () => fixture.probes[1]!.resolve(ready));
+    assert.equal(fixture.handle().status, 'ready');
+    assert.deepEqual(fixture.business, ['account-a', 'account-b']);
+  } finally { await fixture.close(); }
+});
+
+test('transition to anonymous, switching, and reauth-required resets all un-scoped Zustand view state', () => {
+  for (const terminalStatus of ['anonymous', 'switching', 'reauth-required'] as const) {
+    const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference: () => {} });
+    store.getState().applyRuntimeAccountProjection({
+      status: 'authenticated',
+      sequence: '1',
+      reasonCode: 0,
+      accountReasonCode: 0,
+      authorizationRevision: 'rev-a',
+      user: { id: 'account-a', realmEnvironmentId: 'realm-a' },
+    });
+    store.getState().setBootstrapReady(true);
+    store.getState().setOfflineTier('L1');
+    store.getState().setPrimaryRailVisible(false);
+    store.getState().setChatSourceFilter('human');
+    store.getState().setChatViewMode('human', 'peer-a', 'chat');
+    store.getState().setLastSelectedThreadForMode('ai', 'ai-thread-a');
+    store.getState().setLastSelectedThreadForMode('human', 'human-thread-a');
+    store.getState().setChatSetupState('ai', createReadyConversationSetupState('ai'));
+    store.getState().setChatSetupState('human', createReadyConversationSetupState('human'));
+    store.getState().setRuntimeField('targetAccountId', 'account-a-target');
+    store.getState().setHomePartnerDraft('account-a', 'partner-a', 'Secret draft');
+    store.getState().setPendingNimiComposerPrefill('Secret prefill');
+    store.getState().setProfileDetailOverlayOpen(true);
+
+    store.getState().applyRuntimeAccountProjection({
+      status: terminalStatus,
+      sequence: '2',
+      reasonCode: 0,
+      accountReasonCode: 0,
+      authorizationRevision: '',
+      user: terminalStatus === 'switching' ? { id: 'account-a', realmEnvironmentId: 'realm-a' } : null,
+    });
+
+    const state = store.getState();
+    assert.equal(state.chatSourceFilter, 'all', terminalStatus);
+    assert.deepEqual(state.viewModeBySourceTarget, {}, terminalStatus);
+    assert.deepEqual(state.lastSelectedThreadByMode, { ai: null, human: null }, terminalStatus);
+    assert.deepEqual(state.chatSetupState, { ai: null, human: null }, terminalStatus);
+    assert.deepEqual(state.runtimeFields, INITIAL_RUNTIME_FIELDS, terminalStatus);
+    assert.deepEqual(state.homePartnerDrafts, {}, terminalStatus);
+    assert.equal(state.pendingNimiComposerPrefill, null, terminalStatus);
+    assert.equal(state.profileDetailOverlayOpen, false, terminalStatus);
+    assert.equal(state.bootstrapReady, true, terminalStatus);
+    assert.equal(state.offlineTier, 'L1', terminalStatus);
+    assert.equal(state.primaryRailVisible, false, terminalStatus);
+    store.navigation.dispose();
+  }
 });

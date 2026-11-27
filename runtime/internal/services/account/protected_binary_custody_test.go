@@ -167,6 +167,82 @@ func TestProtectedBinaryCustodyRejectsIncompleteProductionMaterial(t *testing.T)
 	}
 }
 
+func TestProtectedBinaryCustodyRoundTripsClearedOnlineCredentialsAndRejectsMalformedFlags(t *testing.T) {
+	secrets := newAccountBinarySecretStore()
+	custody, err := NewProtectedBinaryCustody(secrets)
+	if err != nil {
+		t.Fatal(err)
+	}
+	avatarURL := "https://cdn.example/avatar.png"
+	cleared := AccountMaterial{
+		AccountID:                "account-alpha",
+		DisplayName:              "Alpha",
+		CurrentUserHandle:        "alpha",
+		CurrentUserAvatarURL:     &avatarURL,
+		RealmEnvironmentID:       "realm-production",
+		RealmOrigin:              "https://realm.example",
+		OnlineCredentialsCleared: true,
+	}
+	if err := custody.Store(context.Background(), "partition-cleared", cleared); err != nil {
+		t.Fatalf("Store cleared online credentials: %v", err)
+	}
+	loaded, err := custody.Load(context.Background(), "partition-cleared")
+	if err != nil {
+		t.Fatalf("Load cleared online credentials: %v", err)
+	}
+	if !loaded.OnlineCredentialsCleared || loaded.PendingRevocation ||
+		loaded.AccountID != "account-alpha" || loaded.DisplayName != "Alpha" ||
+		loaded.CurrentUserHandle != "alpha" || loaded.AccessToken != "" || loaded.RefreshToken != "" ||
+		!loaded.AccessTokenExpires.IsZero() || len(loaded.RefreshTokenHashes) != 0 {
+		t.Fatalf("cleared online credentials round-trip mismatch: %+v", loaded)
+	}
+
+	revoked := AccountMaterial{
+		AccountID:          "account-alpha",
+		DisplayName:        "Alpha",
+		RealmEnvironmentID: "realm-production",
+		PendingRevocation:  true,
+	}
+	if err := custody.Store(context.Background(), "partition-revoked", revoked); err != nil {
+		t.Fatalf("Store pending revocation: %v", err)
+	}
+	loadedRevoked, err := custody.Load(context.Background(), "partition-revoked")
+	if err != nil || !loadedRevoked.PendingRevocation || loadedRevoked.OnlineCredentialsCleared || loadedRevoked.RefreshToken != "" {
+		t.Fatalf("Load pending revocation = (%+v, %v)", loadedRevoked, err)
+	}
+
+	// Conflicting or token-bearing cleared-online records must fail closed.
+	invalid := []custodySnapshot{
+		{
+			AccountID:                "account-alpha",
+			DisplayName:              "Alpha",
+			RealmEnvironmentID:       "realm-production",
+			OnlineCredentialsCleared: true,
+			PendingRevocation:        true,
+		},
+		{
+			AccountID:                "account-alpha",
+			DisplayName:              "Alpha",
+			RealmEnvironmentID:       "realm-production",
+			OnlineCredentialsCleared: true,
+			RefreshToken:             "leaked-refresh",
+		},
+		{
+			AccountID:                "account-alpha",
+			DisplayName:              "Alpha",
+			RealmEnvironmentID:       "realm-production",
+			OnlineCredentialsCleared: true,
+			AccessTokenExpires:       time.Date(2026, 7, 10, 3, 4, 5, 0, time.UTC).Format(time.RFC3339Nano),
+		},
+	}
+	for index, snapshot := range invalid {
+		secrets.values[protectedAccountSecretName(fmt.Sprintf("invalid-%d", index))] = encodeProtectedAccountSnapshotFixture(t, snapshot)
+		if _, err := custody.Load(context.Background(), fmt.Sprintf("invalid-%d", index)); !errors.Is(err, ErrCustodyUnavailable) {
+			t.Fatalf("invalid cleared snapshot %d loaded unexpectedly: %v", index, err)
+		}
+	}
+}
+
 func encodeProtectedAccountSnapshotFixture(t *testing.T, snapshot custodySnapshot) []byte {
 	t.Helper()
 	payload, err := json.Marshal(snapshot)

@@ -29,7 +29,12 @@ export function applyRuntimeAccountStatusProjection(
   if (status.auditDiagnostic) lifecycle.setStatusBanner({ kind: 'warning', message: lifecycle.translate('Feedback.auditResultUnrecorded') });
 
   const coordinator = getOfflineCoordinator();
-  const connectivity = runtimeAccountConnectivityDisposition(status.state, current.status);
+  const connectivity = runtimeAccountConnectivityDisposition(
+    status.state,
+    current.status,
+    status.accountReasonCode,
+    current.accountReasonCode,
+  );
   if (connectivity !== 'unchanged') {
     coordinator.markRealmRestReachability(connectivity);
   }

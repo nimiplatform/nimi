@@ -1,6 +1,17 @@
 {
   "cloudOfflineTitle": "Cloud offline / Offline mode",
   "cloudOfflineBody": "Cached data and local queues are active. Pending operations will replay when cloud connectivity returns.",
+  "onlineReauthTitle": "Local sign-in active · Online services paused",
+  "onlineReauthBody": "Your local work stays open. Sign in again in your browser to restore online services without logging out.",
+  "onlineReauthAction": "Sign in to restore online",
+  "onlineReauthRetry": "Retry sign-in",
+  "onlineReauthPending": "Complete sign-in in your browser. Your local session stays active while waiting.",
+  "onlineReauthReopen": "Open browser again",
+  "onlineReauthCancel": "Stop waiting",
+  "onlineReauthWaitEnded": "Stopped waiting. Your local session is unchanged; you can sign in again anytime.",
+  "onlineReauthTimeout": "Browser sign-in timed out. Your local session is unchanged; try again when ready.",
+  "onlineReauthOpenFailed": "Couldn't open your browser. Your local session is unchanged; check your browser settings and try again.",
+  "onlineReauthFailed": "Couldn't restore online sign-in. Your local session is unchanged; try again later.",
   "runtimeUnavailableTitle": "Runtime unavailable / Read-only mode",
   "runtimeUnavailableBody": "AI and local model writes are paused. The client will reconnect once Runtime is available."
 }

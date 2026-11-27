@@ -81,6 +81,7 @@ func (s *Service) GetPrimaryRuntimeState(ctx context.Context, _ *runtimev1.GetPr
 		if err = s.savePrimaryKeys(ctx, name, keys); err != nil {
 			return nil, err
 		}
+		s.notifyPrimaryHostIdentityPromoted()
 	}
 	if keys.Active != nil {
 		result.RuntimeId = keys.Active.RuntimeID
@@ -309,8 +310,11 @@ func (s *Service) primaryRealmCall(ctx context.Context, p protectedprincipal.Pri
 }
 
 func (s *Service) primaryAccountCall(ctx context.Context, accountID, realmID string, expectedGeneration uint64, operation realmv1.OperationDescriptor, input, output any) error {
-	token, generation, _, ok, err := s.realmUnaryCredential(ctx)
+	token, generation, reason, ok, err := s.realmUnaryCredential(ctx)
 	if err != nil || !ok || generation != expectedGeneration {
+		if err == nil && !ok && reason == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED {
+			return primaryFailure(codes.Unavailable)
+		}
 		return primaryFailure(codes.Unauthenticated)
 	}
 	if err := s.primaryRequest(ctx, token, operation, input, output); err != nil {

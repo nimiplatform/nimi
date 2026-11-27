@@ -26,9 +26,9 @@ func (r securityContextPendingRefresher) Refresh(ctx context.Context, _ AccountM
 	}
 }
 
-func TestAuthenticatedRuntimeSecurityContextPreservesUnexpiredIdentityDuringRefresh(t *testing.T) {
-	for _, expiry := range []bool{false, true} {
-		t.Run(map[bool]string{false: "same-identity", true: "expires-while-refresh-pending"}[expiry], func(t *testing.T) {
+func TestAuthenticatedRuntimeSecurityContextPreservesTrustedLocalIdentityDuringRefresh(t *testing.T) {
+	for _, accessExpired := range []bool{false, true} {
+		t.Run(map[bool]string{false: "same-identity", true: "access-expires-while-refresh-pending"}[accessExpired], func(t *testing.T) {
 			svc := newHarnessService(t, nil)
 			stopAccountRefreshTimer(t, svc)
 			completeLogin(t, svc)
@@ -41,30 +41,19 @@ func TestAuthenticatedRuntimeSecurityContextPreservesUnexpiredIdentityDuringRefr
 			done := make(chan *refreshAccountSessionResult, 1)
 			go func() { result, _ := svc.refreshAccountSessionInternal(context.Background(), true); done <- result }()
 			<-refresher.entered
-			if expiry {
+			if accessExpired {
 				svc.mu.Lock()
 				svc.material.AccessTokenExpires = time.Now().Add(-time.Second)
 				svc.mu.Unlock()
 			}
 			projection, generation, fence, active := svc.BindAuthenticatedRuntimeGeneration(context.Background())
-			if !expiry {
-				if !active || projection.GetAccountId() != "acct-1" || generation != before || fence != invalidated {
-					t.Errorf("in-flight refresh changed live identity: active=%v generation=%d previous=%d", active, generation, before)
-				}
-				select {
-				case <-invalidated:
-					t.Error("in-flight refresh closed live account fence")
-				default:
-				}
-			} else {
-				if active || projection != nil || generation <= before {
-					t.Errorf("expired material remained usable: active=%v generation=%d previous=%d", active, generation, before)
-				}
-				select {
-				case <-invalidated:
-				default:
-					t.Error("expiry during refresh did not close old account fence")
-				}
+			if !active || projection.GetAccountId() != "acct-1" || generation != before || fence != invalidated {
+				t.Errorf("in-flight refresh changed live local identity: active=%v generation=%d previous=%d", active, generation, before)
+			}
+			select {
+			case <-invalidated:
+				t.Error("in-flight refresh closed live local account fence")
+			default:
 			}
 			close(refresher.release)
 			result := <-done
@@ -75,11 +64,8 @@ func TestAuthenticatedRuntimeSecurityContextPreservesUnexpiredIdentityDuringRefr
 			if !active {
 				t.Fatal("refresh result was not installed")
 			}
-			if !expiry && (after != before || afterFence != invalidated) {
-				t.Fatal("same-identity completed refresh replaced the account fence")
-			}
-			if expiry && (after <= before || afterFence == invalidated) {
-				t.Fatal("refresh revived an already expired account fence")
+			if after != before || afterFence != invalidated {
+				t.Fatal("same-identity completed refresh replaced the local account fence")
 			}
 		})
 	}
@@ -112,7 +98,7 @@ func TestAuthenticatedRuntimeSecurityContextPendingFailureKeepsInvalidation(t *t
 	}
 }
 
-func TestAuthenticatedRuntimeSecurityContextDeferredRefreshNeedsLiveCustody(t *testing.T) {
+func TestAuthenticatedRuntimeSecurityContextDeferredRefreshPreservesTrustedCustody(t *testing.T) {
 	material := testMaterial("acct-1", "access-current", "refresh-current")
 	svc := newProductionHarnessService(t, &memoryCustody{material: material, has: true})
 	stopAccountRefreshTimer(t, svc)
@@ -122,21 +108,36 @@ func TestAuthenticatedRuntimeSecurityContextDeferredRefreshNeedsLiveCustody(t *t
 	}
 	svc.refresher = staticRefresher{err: newRefreshFailure(refreshFailurePreDispatch, errors.New("network not reached"))}
 	result, err := svc.refreshAccountSessionInternal(context.Background(), true)
-	if err != nil || result.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING {
-		t.Fatalf("refresh was not deferred: %v %v", result, err)
+	if err != nil || result.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED ||
+		result.accountReasonCode != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED {
+		t.Fatalf("refresh was not safely deferred: %v %v", result, err)
 	}
 	if _, generation, current, ok := svc.BindAuthenticatedRuntimeGeneration(context.Background()); !ok || generation != before || current != fence {
-		t.Fatal("safe pre-dispatch deferral invalidated unexpired identity")
+		t.Fatal("safe pre-dispatch deferral invalidated trusted local identity")
 	}
 	material.AccessTokenExpires = time.Now().Add(-time.Second)
 	cold := newProductionHarnessService(t, &memoryCustody{material: material, has: true})
 	stopAccountRefreshTimer(t, cold)
-	if projection, generation, _, ok := cold.BindAuthenticatedRuntimeGeneration(context.Background()); ok || projection != nil || generation != 0 {
-		t.Fatal("cold expired custody gained authentication from REFRESH_PENDING")
+	if projection, generation, _, ok := cold.BindAuthenticatedRuntimeGeneration(context.Background()); !ok || projection.GetAccountId() != "acct-1" || generation == 0 {
+		t.Fatalf("cold restart with trusted custody and expired access token lost local identity: proj=%+v gen=%d ok=%v", projection, generation, ok)
+	}
+	marked := material
+	marked.RefreshTokenHashes = map[string]bool{refreshHash(marked.RefreshToken): true}
+	markedCustody := &memoryCustody{material: marked, has: true}
+	crashed := newProductionHarnessService(t, markedCustody)
+	stopAccountRefreshTimer(t, crashed)
+	if projection, generation, _, ok := crashed.BindAuthenticatedRuntimeGeneration(context.Background()); !ok || projection.GetAccountId() != "acct-1" || generation == 0 {
+		t.Fatalf("cold custody with unrevoked in-flight refresh crash fence lost trusted local identity: proj=%+v gen=%d ok=%v", projection, generation, ok)
+	}
+	if !markedCustody.material.OnlineCredentialsCleared || markedCustody.material.AccessToken != "" || markedCustody.material.RefreshToken != "" || len(markedCustody.material.RefreshTokenHashes) != 0 {
+		t.Fatalf("cold custody with in-flight crash fence retained potentially rotated online tokens: %+v", markedCustody.material)
+	}
+	if _, _, _, ok, err := crashed.realmUnaryCredential(context.Background()); err != nil || ok {
+		t.Fatalf("cold custody with cleared online tokens admitted online credential: ok=%v err=%v", ok, err)
 	}
 }
 
-func TestAuthenticatedRuntimeSecurityContextRefreshCompletionCutsUnobservedExpiry(t *testing.T) {
+func TestAuthenticatedRuntimeSecurityContextRefreshCompletionPreservesSameIdentityAndCutsInvalidatedIdentity(t *testing.T) {
 	svc := newHarnessService(t, nil)
 	stopAccountRefreshTimer(t, svc)
 	completeLogin(t, svc)
@@ -149,17 +150,32 @@ func TestAuthenticatedRuntimeSecurityContextRefreshCompletionCutsUnobservedExpir
 	svc.mu.Lock()
 	svc.material.AccessTokenExpires = time.Now().Add(-time.Second)
 	svc.mu.Unlock()
-	// No identity read, App operation, or observer runs during the expired gap.
 	close(refresher.release)
 	if result := <-done; result == nil || !result.accepted {
 		t.Fatalf("refresh did not install replacement: %v", result)
 	}
-	if _, after, _, ok := svc.BindAuthenticatedRuntimeGeneration(context.Background()); !ok || after <= before {
-		t.Fatal("unobserved expiry reused the old account generation")
+	if _, after, afterFence, ok := svc.BindAuthenticatedRuntimeGeneration(context.Background()); !ok || after != before || afterFence != fence {
+		t.Fatal("same-identity refresh after access-token expiry disrupted local account generation")
 	}
 	select {
 	case <-fence:
+		t.Fatal("same-identity refresh closed local execution fence")
 	default:
-		t.Fatal("unobserved expiry left the old execution fence open")
+	}
+
+	svc.mu.Lock()
+	svc.invalidateAuthenticatedRuntimeIdentityLocked()
+	svc.mu.Unlock()
+	select {
+	case <-fence:
+	default:
+		t.Fatal("explicit invalidation left old execution fence open")
+	}
+	svc.refresher = staticRefresher{material: testMaterial("acct-1", "access-rebound", "refresh-rebound")}
+	if result, err := svc.refreshAccountSessionInternal(context.Background(), true); err != nil || result == nil || !result.accepted {
+		t.Fatalf("refresh after explicit invalidation failed: %v %v", result, err)
+	}
+	if _, afterInvalidation, nextFence, ok := svc.BindAuthenticatedRuntimeGeneration(context.Background()); !ok || afterInvalidation <= before || nextFence == fence {
+		t.Fatal("explicit invalidation reused the old account generation or fence")
 	}
 }

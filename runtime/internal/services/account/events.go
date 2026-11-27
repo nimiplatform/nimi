@@ -43,6 +43,61 @@ func (s *Service) removeSubscriber(id uint64) {
 	delete(s.subscribers, id)
 }
 
+// SubscribeStateChange returns a buffered signal channel notified whenever
+// Account session status, runtime generation, or primary host identity changes.
+func (s *Service) SubscribeStateChange() (<-chan struct{}, func()) {
+	if s == nil {
+		return nil, func() {}
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.stateObservers == nil {
+		s.stateObservers = make(map[uint64]chan struct{})
+	}
+	s.nextStateObserverID++
+	id := s.nextStateObserverID
+	ch := make(chan struct{}, 1)
+	s.stateObservers[id] = ch
+	var unsubscribed bool
+	unsubscribe := func() {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		if unsubscribed {
+			return
+		}
+		unsubscribed = true
+		delete(s.stateObservers, id)
+	}
+	return ch, unsubscribe
+}
+
+func (s *Service) notifyStateObserversLocked() {
+	for _, ch := range s.stateObservers {
+		select {
+		case ch <- struct{}{}:
+		default:
+		}
+	}
+}
+
+// PrimaryHostIdentityEpoch advances whenever a confirmed primary host key is
+// promoted to active custody so dependent controllers can wake and rebind.
+func (s *Service) PrimaryHostIdentityEpoch() uint64 {
+	if s == nil {
+		return 0
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.primaryHostEpoch
+}
+
+func (s *Service) notifyPrimaryHostIdentityPromoted() {
+	s.mu.Lock()
+	s.primaryHostEpoch++
+	s.notifyStateObserversLocked()
+	s.mu.Unlock()
+}
+
 func (s *Service) appendEventLocked(eventType runtimev1.AccountEventType, reason runtimev1.AccountReasonCode) *runtimev1.AccountSessionEvent {
 	return s.appendStoredEventLocked(s.newEventLocked(eventType, reason))
 }
@@ -74,6 +129,7 @@ func (s *Service) newEventLocked(eventType runtimev1.AccountEventType, reason ru
 	if eventType == runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS {
 		s.stateReason = reason
 		s.rebuildRefreshTimerLocked()
+		s.notifyStateObserversLocked()
 	}
 	return &runtimev1.AccountSessionEvent{
 		EventId:      ulid.Make().String(),

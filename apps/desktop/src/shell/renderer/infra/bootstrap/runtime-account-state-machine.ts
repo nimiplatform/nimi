@@ -1,3 +1,4 @@
+import { AccountReasonCode } from '@nimiplatform/kit/core/sdk-contract';
 import type {
   DesktopAccountSessionEvent,
   DesktopAccountSessionState,
@@ -77,9 +78,18 @@ export function projectRuntimeAccountAuthState(
 export function runtimeAccountConnectivityDisposition(
   state: DesktopAccountSessionState,
   previousState?: DesktopAccountSessionState | 'bootstrapping',
-): 'reachable' | 'unknown' | 'unchanged' {
+  accountReasonCode?: number,
+  previousAccountReasonCode?: number,
+): 'reachable' | 'unreachable' | 'unknown' | 'unchanged' {
+  if (accountReasonCode === AccountReasonCode.REFRESH_RETRY_DEFERRED
+    || accountReasonCode === AccountReasonCode.REFRESH_OUTCOME_AMBIGUOUS) {
+    return 'unreachable';
+  }
   if (state === 'authenticated'
-    && (previousState === 'refresh-pending' || previousState === 'login-pending')) {
+    && (previousState === 'refresh-pending'
+      || previousState === 'login-pending'
+      || previousAccountReasonCode === AccountReasonCode.REFRESH_RETRY_DEFERRED
+      || previousAccountReasonCode === AccountReasonCode.REFRESH_OUTCOME_AMBIGUOUS)) {
     return 'reachable';
   }
   if (state === 'anonymous'

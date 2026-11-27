@@ -71,9 +71,28 @@ func (s *Service) refreshAccountSessionLocked(ctx context.Context, force bool, r
 	}
 	current := s.material
 	beforeState, beforeRevision = s.projectedAccountAuthorizationLocked()
+	if current.OnlineCredentialsCleared || strings.TrimSpace(current.RefreshToken) == "" {
+		state := s.state
+		projection := cloneProjection(s.projection)
+		reason := runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED
+		accountReason := runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE
+		if current.OnlineCredentialsCleared {
+			reason = runtimev1.ReasonCode_REALM_UNAVAILABLE
+			accountReason = runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS
+		}
+		s.mu.Unlock()
+		return &refreshAccountSessionResult{
+			accepted:          false,
+			state:             state,
+			accountProjection: projection,
+			reasonCode:        reason,
+			accountReasonCode: accountReason,
+		}, nil
+	}
 	if rejected := strings.TrimSpace(rejectedAccessToken); rejected != "" &&
 		s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED &&
-		strings.TrimSpace(current.AccessToken) != "" && strings.TrimSpace(current.AccessToken) != rejected {
+		s.onlineAccessTokenLiveLocked() &&
+		strings.TrimSpace(current.AccessToken) != rejected {
 		projection := cloneProjection(s.projection)
 		s.mu.Unlock()
 		return &refreshAccountSessionResult{
@@ -87,6 +106,11 @@ func (s *Service) refreshAccountSessionLocked(ctx context.Context, force bool, r
 	if !force && s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED &&
 		strings.TrimSpace(current.AccessToken) != "" &&
 		(current.AccessTokenExpires.IsZero() || current.AccessTokenExpires.After(s.now().UTC().Add(30*time.Second))) {
+		if s.stateReason == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED {
+			s.stateReason = runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED
+			s.refreshRetryAttempt = 0
+			s.rebuildRefreshTimerLocked()
+		}
 		projection := cloneProjection(s.projection)
 		s.mu.Unlock()
 		return &refreshAccountSessionResult{
@@ -132,7 +156,7 @@ func (s *Service) refreshAccountSessionLocked(ctx context.Context, force bool, r
 			if observer == nil || observer.ConsumeRealmAccountDeletedResult(ctx, deleted) != nil {
 				return s.failAccountDeletedObservationAndPreserveCustody(ctx, markedCurrent, deleted), nil
 			}
-			result := s.failRefreshAndClearCustody(ctx, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_DELETED)
+			result := s.failRefreshAndClearCustody(ctx, markedCurrent, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_DELETED)
 			if result.accountReasonCode == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_DELETED {
 				s.emitAudit(ctx, "account.realm_account_deleted", deleted.AccountID(), runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
 					"operation_id": deleted.OperationID(),
@@ -143,18 +167,22 @@ func (s *Service) refreshAccountSessionLocked(ctx context.Context, force bool, r
 		switch refreshFailureDispositionOf(err) {
 		case refreshFailurePreDispatch:
 			return s.deferRefreshAndRestoreCustody(ctx, current), nil
+		case refreshFailureOutcomeAmbiguous:
+			return s.clearOnlineCredentialsAfterAmbiguousRefresh(ctx, current, markedCurrent), nil
 		case refreshFailureTokenInvalid:
-			return s.failRefreshAndClearCustody(ctx, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_TOKEN_INVALID), nil
+			return s.failRefreshAndClearCustody(ctx, markedCurrent, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_TOKEN_INVALID), nil
 		case refreshFailureContractInvalid:
-			return s.failRefreshAndClearCustody(ctx, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_CONTRACT_INVALID), nil
+			return s.failRefreshAndClearCustody(ctx, markedCurrent, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_CONTRACT_INVALID), nil
 		default:
-			return s.failRefreshAndClearCustody(ctx, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS), nil
+			return s.failRefreshAndClearCustody(ctx, markedCurrent, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS), nil
 		}
 	}
+	next.OnlineCredentialsCleared = false
+	next.PendingRevocation = false
 	next = normalizeMaterial(next)
 	next.RefreshTokenHashes = nil
 	if next.RefreshToken == "" || next.AccessToken == "" || next.AccountID != current.AccountID {
-		return s.failRefreshAndClearCustody(ctx, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_CONTRACT_INVALID), nil
+		return s.failRefreshAndClearCustody(ctx, markedCurrent, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_CONTRACT_INVALID), nil
 	}
 	if err := s.custody.Store(ctx, s.partition, next); err != nil {
 		s.markCustodyUnavailable()
@@ -190,7 +218,7 @@ func (s *Service) failAccountDeletedObservationAndPreserveCustody(
 	// namespace owner becomes available, while the credential remains unusable.
 	pending := deleted
 	markedCurrent.pendingRealmDeletion = &pending
-	if err := s.custody.Store(ctx, s.partition, markedCurrent); err != nil {
+	if err := s.custody.Store(custodyCleanupContext(ctx), s.partition, markedCurrent); err != nil {
 		s.markCustodyUnavailable()
 		return &refreshAccountSessionResult{
 			accepted: false, state: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE,
@@ -215,7 +243,7 @@ func (s *Service) failAccountDeletedObservationAndPreserveCustody(
 }
 
 func (s *Service) deferRefreshAndRestoreCustody(ctx context.Context, current AccountMaterial) *refreshAccountSessionResult {
-	if err := s.custody.Store(ctx, s.partition, current); err != nil {
+	if err := s.custody.Store(custodyCleanupContext(ctx), s.partition, current); err != nil {
 		s.markCustodyUnavailable()
 		return &refreshAccountSessionResult{
 			accepted:          false,
@@ -226,36 +254,77 @@ func (s *Service) deferRefreshAndRestoreCustody(ctx context.Context, current Acc
 	}
 	s.mu.Lock()
 	s.material = current
-	if !current.AccessTokenExpires.IsZero() && !current.AccessTokenExpires.After(s.now().UTC()) {
-		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED
-		s.refreshRetryAttempt = 0
-		s.invalidateAuthenticatedRuntimeIdentityLocked()
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
-		projection := cloneProjection(s.projection)
-		s.mu.Unlock()
-		return &refreshAccountSessionResult{
-			accepted:          false,
-			state:             runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED,
-			accountProjection: projection,
-			reasonCode:        runtimev1.ReasonCode_AUTH_TOKEN_EXPIRED,
-			accountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE,
-		}
+	// A provably pre-dispatch failure preserves durable refresh custody and any
+	// established trusted local sign-in identity even if the short-lived online
+	// Realm access token has expired. Online Realm and remote operations still
+	// fail closed until refresh succeeds on reconnect.
+	if s.authenticatedRuntimeIdentity {
+		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED
+	} else {
+		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING
 	}
-	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING
 	if s.refreshRetryAttempt < 5 {
 		s.refreshRetryAttempt++
 	}
+	nextState := s.state
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_DEFERRED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED)
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED)
 	projection := cloneProjection(s.projection)
 	s.mu.Unlock()
 	return &refreshAccountSessionResult{
 		accepted:          false,
-		state:             runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING,
+		state:             nextState,
 		accountProjection: projection,
 		reasonCode:        runtimev1.ReasonCode_REALM_UNAVAILABLE,
 		accountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED,
+	}
+}
+
+// clearOnlineCredentialsAfterAmbiguousRefresh runs while identityMutationMu is
+// held. On ambiguous or possibly-rotated refresh outcomes (such as post-dispatch
+// transport drop or Realm 503 verification unavailability), Runtime immediately
+// erases potentially rotated online tokens from memory and durable custody so
+// they are never retained or replayed, while preserving any previously
+// established trusted local authenticated Runtime identity across offline use
+// and cold-start recovery.
+// @nimi-authority: rule.nimi.runtime.protected-session.r031
+func (s *Service) clearOnlineCredentialsAfterAmbiguousRefresh(
+	ctx context.Context,
+	current AccountMaterial,
+	markedCurrent AccountMaterial,
+) *refreshAccountSessionResult {
+	s.mu.RLock()
+	hasTrustedLocalIdentity := s.authenticatedRuntimeIdentity &&
+		strings.TrimSpace(current.AccountID) != "" &&
+		strings.TrimSpace(current.RealmEnvironmentID) != ""
+	s.mu.RUnlock()
+	if !hasTrustedLocalIdentity {
+		return s.failRefreshAndClearCustody(ctx, markedCurrent, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS)
+	}
+	cleared := clearOnlineCredentialsFromMaterial(current)
+	if err := s.custody.Store(custodyCleanupContext(ctx), s.partition, cleared); err != nil {
+		s.markCustodyUnavailable()
+		return &refreshAccountSessionResult{
+			accepted:          false,
+			state:             runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE,
+			reasonCode:        runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED,
+			accountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE,
+		}
+	}
+	s.mu.Lock()
+	s.material = cleared
+	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED
+	s.refreshRetryAttempt = 0
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS)
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS)
+	projection := cloneProjection(s.projection)
+	s.mu.Unlock()
+	return &refreshAccountSessionResult{
+		accepted:          false,
+		state:             runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED,
+		accountProjection: projection,
+		reasonCode:        runtimev1.ReasonCode_REALM_UNAVAILABLE,
+		accountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS,
 	}
 }
 
@@ -266,9 +335,15 @@ func (s *Service) deferRefreshAndRestoreCustody(ctx context.Context, current Acc
 // authority state and must not be reported as an ordinary reauthentication.
 func (s *Service) failRefreshAndClearCustody(
 	ctx context.Context,
+	markedCurrent AccountMaterial,
 	reason runtimev1.AccountReasonCode,
 ) *refreshAccountSessionResult {
-	if err := s.custody.Clear(ctx, s.partition); err != nil {
+	cleanupCtx := custodyCleanupContext(ctx)
+	if err := s.custody.Clear(cleanupCtx, s.partition); err != nil {
+		// Best-effort durable revocation fence when delete fails so restart
+		// recovery never mistakes a confirmed revocation for an unrevoked
+		// in-flight refresh crash fence.
+		_ = s.custody.Store(cleanupCtx, s.partition, pendingRevocationMaterial(markedCurrent))
 		s.markCustodyUnavailable()
 		return &refreshAccountSessionResult{
 			accepted:          false,
@@ -288,4 +363,11 @@ func (s *Service) failRefreshAndClearCustody(
 		reasonCode:        failureReason,
 		accountReasonCode: reason,
 	}
+}
+
+func custodyCleanupContext(ctx context.Context) context.Context {
+	if ctx == nil {
+		return context.Background()
+	}
+	return context.WithoutCancel(ctx)
 }

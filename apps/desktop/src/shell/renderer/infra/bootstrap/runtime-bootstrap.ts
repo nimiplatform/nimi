@@ -1,4 +1,5 @@
 import { isRealmOfflineErrorLike as isRealmOfflineError } from '@nimiplatform/sdk/types';
+import { AccountReasonCode } from '@nimiplatform/kit/core/sdk-contract';
 import { setRuntimeLogger } from '@nimiplatform/kit/telemetry';
 import { desktopBridge, toRendererLogMessage } from '../../bridge';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
@@ -47,8 +48,12 @@ function bindOfflineCoordinator(lifecycle: DesktopRendererLifecyclePort): void {
     coordinator,
     setOfflineTier,
     probeRealmReachability: async () => {
-      const authStatus = lifecycle.auth().status;
-      if (authStatus !== 'authenticated' || !isDesktopNimiClientSessionReady()) {
+      const auth = lifecycle.auth();
+      if (
+        auth.status !== 'authenticated'
+        || auth.accountReasonCode === AccountReasonCode.REFRESH_OUTCOME_AMBIGUOUS
+        || !isDesktopNimiClientSessionReady()
+      ) {
         return false;
       }
       try {

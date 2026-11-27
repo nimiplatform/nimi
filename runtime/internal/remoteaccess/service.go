@@ -40,23 +40,25 @@ type peerWork struct {
 	contextID, clientID string
 }
 type hostRun struct {
-	ctx            context.Context
-	cancel         context.CancelFunc
-	scope          localappkernel.RemoteAccessScope
-	control        *accountservice.PrimaryRuntimeControl
-	state          runtimev1.RemoteAccessConnectionState
-	reason         string
-	blocked        bool
-	presenceUntil  time.Time
-	signalRevision string
-	nextSync       time.Time
-	forceSync      bool
-	registerRetry  controlRetry
-	heartbeatRetry controlRetry
-	syncRetry      controlRetry
-	pending        map[string]pendingOffer
-	working        map[string]peerWork
-	peers          map[string]*Peer
+	ctx               context.Context
+	cancel            context.CancelFunc
+	scope             localappkernel.RemoteAccessScope
+	accountGeneration uint64
+	primaryHostEpoch  uint64
+	control           *accountservice.PrimaryRuntimeControl
+	state            runtimev1.RemoteAccessConnectionState
+	reason           string
+	blocked          bool
+	presenceUntil    time.Time
+	signalRevision   string
+	nextSync         time.Time
+	forceSync        bool
+	registerRetry    controlRetry
+	heartbeatRetry   controlRetry
+	syncRetry        controlRetry
+	pending          map[string]pendingOffer
+	working          map[string]peerWork
+	peers            map[string]*Peer
 }
 
 // The three control operations keep independent retry windows. A successful
@@ -83,25 +85,33 @@ func (r *hostRun) syncDue(now time.Time, active, changed bool) bool {
 
 type Service struct {
 	runtimev1.UnimplementedRuntimeRemoteAccessServiceServer
-	account  *accountservice.Service
-	kernel   *localappkernel.Kernel
-	dispatch Dispatcher
-	logger   *slog.Logger
-	audit    *auditlog.Store
-	instance protectedlocal.Identifier
-	ctx      context.Context
-	cancel   context.CancelFunc
-	wake     chan struct{}
-	mu       sync.Mutex
-	run      *hostRun
-	wg       sync.WaitGroup
-	start    sync.Once
-	close    sync.Once
+	account   *accountservice.Service
+	kernel    *localappkernel.Kernel
+	dispatch  Dispatcher
+	logger    *slog.Logger
+	audit     *auditlog.Store
+	instance  protectedlocal.Identifier
+	ctx       context.Context
+	cancel    context.CancelFunc
+	wake      chan struct{}
+	stepDelay func() time.Duration
+	onStep    func(active bool)
+	mu        sync.Mutex
+	run       *hostRun
+	wg        sync.WaitGroup
+	start     sync.Once
+	close     sync.Once
 }
 
 func New(account *accountservice.Service, kernel *localappkernel.Kernel, instance protectedlocal.Identifier, dispatch Dispatcher, logger *slog.Logger, audit *auditlog.Store) *Service {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Service{account: account, kernel: kernel, instance: instance, dispatch: dispatch, logger: logger, audit: audit, ctx: ctx, cancel: cancel, wake: make(chan struct{}, 1)}
+}
+func (s *Service) nextStepDelay() time.Duration {
+	if s.stepDelay != nil {
+		return s.stepDelay()
+	}
+	return heartbeatInterval + time.Duration(rand.Int64N(int64(time.Second))) - 500*time.Millisecond
 }
 func (s *Service) available() bool {
 	return s != nil && s.ctx.Err() == nil && s.account != nil && s.kernel != nil && s.dispatch != nil && s.instance != (protectedlocal.Identifier{})
@@ -111,21 +121,57 @@ func (s *Service) Start() {
 		return
 	}
 	s.start.Do(func() {
+		var accountWake <-chan struct{}
+		var unsubscribeAccount func()
+		if s.account != nil {
+			accountWake, unsubscribeAccount = s.account.SubscribeStateChange()
+		}
 		s.wg.Add(1)
 		go func() {
 			defer s.wg.Done()
-			timer := time.NewTimer(0)
-			defer timer.Stop()
-			<-timer.C
+			if unsubscribeAccount != nil {
+				defer unsubscribeAccount()
+			}
+			var timer *time.Timer
+			stopTimer := func() {
+				if timer != nil {
+					timer.Stop()
+					timer = nil
+				}
+			}
+			defer stopTimer()
 			for {
-				s.step()
-				timer.Reset(heartbeatInterval + time.Duration(rand.Int64N(int64(time.Second))) - 500*time.Millisecond)
+				active := s.step()
+				if s.onStep != nil {
+					s.onStep(active)
+				}
+				if s.ctx.Err() != nil {
+					return
+				}
+				if !active {
+					stopTimer()
+					select {
+					case <-s.ctx.Done():
+						return
+					case <-s.wake:
+					case <-accountWake:
+					}
+					continue
+				}
+				delay := s.nextStepDelay()
+				if timer == nil {
+					timer = time.NewTimer(delay)
+				} else {
+					timer.Reset(delay)
+				}
 				select {
 				case <-s.ctx.Done():
 					return
 				case <-timer.C:
 				case <-s.wake:
-					timer.Stop()
+					stopTimer()
+				case <-accountWake:
+					stopTimer()
 				}
 			}
 		}()
@@ -149,35 +195,64 @@ func (s *Service) changed() {
 	}
 }
 
+func (s *Service) hostRunInvalidated(run *hostRun) bool {
+	if run == nil {
+		return false
+	}
+	s.mu.Lock()
+	control := run.control
+	s.mu.Unlock()
+	if control == nil {
+		return false
+	}
+	select {
+	case <-control.State().Invalidated:
+		return true
+	default:
+		return false
+	}
+}
+
 // @nimi-authority: rule.nimi.runtime.remote-access.primary-control
-func (s *Service) step() {
+// step returns true while remote access requires periodic control ticks and
+// false when the loop should sleep until remote access or account state changes.
+func (s *Service) step() bool {
 	accountID, realmID, selected := s.account.RemoteAccessSettingsOwner()
 	if !selected || s.ctx.Err() != nil {
 		s.stopRun()
-		return
+		return false
 	}
 	settings, err := s.kernel.RemoteAccess().Settings(s.ctx, realmID, accountID)
-	if err != nil || !settings.Enabled {
+	if err != nil {
 		s.stopRun()
-		return
+		return true
+	}
+	if !settings.Enabled {
+		s.stopRun()
+		return false
 	}
 	scope := localappkernel.RemoteAccessScope{RealmEnvironmentID: realmID, AccountID: accountID, BindingID: settings.BindingID}
+	_, accountGeneration, _, _ := s.account.BindAuthenticatedRuntimeGeneration(s.ctx)
+	primaryHostEpoch := s.account.PrimaryHostIdentityEpoch()
 	s.mu.Lock()
 	current := s.run
 	s.mu.Unlock()
-	if current != nil && current.scope != scope {
+	if current != nil && (current.scope != scope ||
+		current.accountGeneration != accountGeneration ||
+		current.primaryHostEpoch != primaryHostEpoch ||
+		s.hostRunInvalidated(current)) {
 		s.stopRun()
 		current = nil
 	}
 	if current == nil {
 		ctx, cancel := context.WithCancel(s.ctx)
-		current = &hostRun{ctx: ctx, cancel: cancel, scope: scope, state: runtimev1.RemoteAccessConnectionState_REMOTE_ACCESS_CONNECTION_STATE_CONNECTING,
+		current = &hostRun{ctx: ctx, cancel: cancel, scope: scope, accountGeneration: accountGeneration, primaryHostEpoch: primaryHostEpoch, state: runtimev1.RemoteAccessConnectionState_REMOTE_ACCESS_CONNECTION_STATE_CONNECTING,
 			pending: make(map[string]pendingOffer), working: make(map[string]peerWork), peers: make(map[string]*Peer)}
 		s.mu.Lock()
 		if s.ctx.Err() != nil {
 			s.mu.Unlock()
 			cancel()
-			return
+			return false
 		}
 		s.run = current
 		s.mu.Unlock()
@@ -186,11 +261,11 @@ func (s *Service) step() {
 	blocked, control := current.blocked, current.control
 	s.mu.Unlock()
 	if blocked {
-		return
+		return false
 	}
 	if control == nil {
 		if !current.registerRetry.ready(time.Now()) {
-			return
+			return true
 		}
 		control, err = s.account.BindPrimaryRuntimeControl(current.ctx)
 		if err != nil {
@@ -202,9 +277,15 @@ func (s *Service) step() {
 					current.blocked = true
 				}
 				s.mu.Unlock()
+				s.registerFailure(current, err)
+				return false
 			}
 			s.registerFailure(current, err)
-			return
+			if _, _, selected := s.account.RemoteAccessSettingsOwner(); !selected {
+				s.stopRun()
+				return false
+			}
+			return true
 		}
 		bound := control.State()
 		if bound.AccountID != scope.AccountID || bound.RealmEnvironmentID != scope.RealmEnvironmentID || bound.BindingID != scope.BindingID {
@@ -214,16 +295,20 @@ func (s *Service) step() {
 			}
 			s.mu.Unlock()
 			s.controlFailure(current, "PRIMARY_RUNTIME_CHANGED", denied())
-			return
+			return false
 		}
 		if err := s.account.RegisterPrimaryRuntimeControl(current.ctx, control); err != nil {
 			s.registerFailure(current, err)
-			return
+			if _, _, selected := s.account.RemoteAccessSettingsOwner(); !selected {
+				s.stopRun()
+				return false
+			}
+			return true
 		}
 		s.mu.Lock()
 		if s.run != current {
 			s.mu.Unlock()
-			return
+			return true
 		}
 		current.control = control
 		current.registerRetry = controlRetry{}
@@ -241,24 +326,29 @@ func (s *Service) step() {
 	select {
 	case <-bound.Invalidated:
 		s.stopRun()
-		return
+		_, _, selected := s.account.RemoteAccessSettingsOwner()
+		return selected
 	default:
 	}
 	sent := time.Now()
 	if !current.heartbeatRetry.ready(sent) {
-		return
+		return true
 	}
 	heartbeat, err := s.account.HeartbeatPrimaryRuntimeControl(current.ctx, control, current.signalRevision)
 	if err != nil {
 		current.heartbeatRetry.failed(time.Now())
 		s.controlFailure(current, "REALM_UNAVAILABLE", err)
-		return
+		if _, _, selected := s.account.RemoteAccessSettingsOwner(); !selected {
+			s.stopRun()
+			return false
+		}
+		return true
 	}
 	current.heartbeatRetry = controlRetry{}
 	s.mu.Lock()
 	if s.run != current || current.ctx.Err() != nil {
 		s.mu.Unlock()
-		return
+		return true
 	}
 	if heartbeat == "register_required" {
 		current.control = nil
@@ -268,7 +358,7 @@ func (s *Service) step() {
 		}
 		current.state = runtimev1.RemoteAccessConnectionState_REMOTE_ACCESS_CONNECTION_STATE_CONNECTING
 		s.mu.Unlock()
-		return
+		return true
 	}
 	current.presenceUntil = sent.Add(presenceWindow)
 	current.state = runtimev1.RemoteAccessConnectionState_REMOTE_ACCESS_CONNECTION_STATE_LISTENING
@@ -297,7 +387,7 @@ func (s *Service) step() {
 	}
 	s.mu.Unlock()
 	if !due {
-		return
+		return true
 	}
 	current.nextSync = time.Now().Add(activeSyncInterval)
 	contextIDs := make([]string, 0, len(ids))
@@ -309,10 +399,15 @@ func (s *Service) step() {
 	if err != nil {
 		current.syncRetry.failed(time.Now())
 		s.controlFailure(current, "REALM_UNAVAILABLE", err)
-		return
+		if _, _, selected := s.account.RemoteAccessSettingsOwner(); !selected {
+			s.stopRun()
+			return false
+		}
+		return true
 	}
 	current.syncRetry = controlRetry{}
 	s.applySync(current, sync)
+	return true
 }
 
 func (s *Service) registerFailure(run *hostRun, err error) {
@@ -427,7 +522,7 @@ func (s *Service) connect(run *hostRun, ctx context.Context, cancel context.Canc
 	s.mu.Lock()
 	control := run.control
 	s.mu.Unlock()
-	if control == nil {
+	if control == nil || !s.account.PrimaryControlOnlineCredentialsLive(control) {
 		return
 	}
 	bound := control.State()
@@ -598,14 +693,23 @@ func (s *Service) state(ctx context.Context, p protectedprincipal.Principal) (*r
 		rows[source.ClientID] = &runtimev1.RemoteAccessSource{ClientId: source.ClientID, AppId: registration.AppID, DisplayName: registration.DisplayName, Origin: source.Origin,
 			OfficialManager: source.Role == "official_manager", SourceRevision: source.SourceRevision, AppAccess: registration.RawDeclaration, CapabilityContractRefs: source.CapabilityContractRefs, State: state}
 	}
+	_, _, onlineEligible := s.account.RemoteAccessSettingsOwner()
 	s.mu.Lock()
 	run := s.run
+	var runControl *accountservice.PrimaryRuntimeControl
 	if settings.Enabled {
-		result.ConnectionState = runtimev1.RemoteAccessConnectionState_REMOTE_ACCESS_CONNECTION_STATE_CONNECTING
+		if onlineEligible {
+			result.ConnectionState = runtimev1.RemoteAccessConnectionState_REMOTE_ACCESS_CONNECTION_STATE_CONNECTING
+		} else {
+			result.ConnectionState = runtimev1.RemoteAccessConnectionState_REMOTE_ACCESS_CONNECTION_STATE_UNAVAILABLE
+			result.ReasonCode = "PRIMARY_RUNTIME_UNAVAILABLE"
+		}
 	}
 	if run != nil && run.scope == scope {
+		runControl = run.control
 		result.ConnectionState, result.ReasonCode = run.state, run.reason
-		if result.ConnectionState == runtimev1.RemoteAccessConnectionState_REMOTE_ACCESS_CONNECTION_STATE_LISTENING && (run.control == nil || !accountservice.PrimaryRuntimeDeadlineLive(run.presenceUntil)) {
+		if result.ConnectionState == runtimev1.RemoteAccessConnectionState_REMOTE_ACCESS_CONNECTION_STATE_LISTENING &&
+			(runControl == nil || !onlineEligible || !accountservice.PrimaryRuntimeDeadlineLive(run.presenceUntil)) {
 			result.ConnectionState = runtimev1.RemoteAccessConnectionState_REMOTE_ACCESS_CONNECTION_STATE_UNAVAILABLE
 			result.ReasonCode = "PRIMARY_RUNTIME_UNAVAILABLE"
 		}
@@ -631,6 +735,11 @@ func (s *Service) state(ctx context.Context, p protectedprincipal.Principal) (*r
 		}
 	}
 	s.mu.Unlock()
+	if result.ConnectionState == runtimev1.RemoteAccessConnectionState_REMOTE_ACCESS_CONNECTION_STATE_LISTENING &&
+		(runControl == nil || !s.account.PrimaryControlOnlineCredentialsLive(runControl)) {
+		result.ConnectionState = runtimev1.RemoteAccessConnectionState_REMOTE_ACCESS_CONNECTION_STATE_UNAVAILABLE
+		result.ReasonCode = "PRIMARY_RUNTIME_UNAVAILABLE"
+	}
 	for _, row := range rows {
 		result.Sources = append(result.Sources, row)
 	}

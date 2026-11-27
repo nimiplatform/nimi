@@ -115,19 +115,25 @@ func encodeProtectedAccountMaterial(material AccountMaterial) ([]byte, error) {
 			}
 		}
 	}
+	accessTokenExpires := ""
+	if !material.OnlineCredentialsCleared && !material.PendingRevocation {
+		accessTokenExpires = material.AccessTokenExpires.UTC().Format(time.RFC3339Nano)
+	}
 	snapshot := custodySnapshot{
-		AccountID:            material.AccountID,
-		DisplayName:          material.DisplayName,
-		CurrentUserHandle:    material.CurrentUserHandle,
-		CurrentUserAvatarURL: material.CurrentUserAvatarURL,
-		RealmEnvironmentID:   material.RealmEnvironmentID,
-		RealmOrigin:          material.RealmOrigin,
-		WorkspaceMemberships: workspaceMembershipSnapshotsFromProjections(material.WorkspaceMemberships),
-		AccessToken:          material.AccessToken,
-		AccessTokenExpires:   material.AccessTokenExpires.UTC().Format(time.RFC3339Nano),
-		RefreshToken:         material.RefreshToken,
-		RefreshTokenHashes:   material.RefreshTokenHashes,
-		PendingRealmDeletion: realmAccountDeletionSnapshotFromMaterial(material),
+		AccountID:                material.AccountID,
+		DisplayName:              material.DisplayName,
+		CurrentUserHandle:        material.CurrentUserHandle,
+		CurrentUserAvatarURL:     material.CurrentUserAvatarURL,
+		RealmEnvironmentID:       material.RealmEnvironmentID,
+		RealmOrigin:              material.RealmOrigin,
+		WorkspaceMemberships:     workspaceMembershipSnapshotsFromProjections(material.WorkspaceMemberships),
+		AccessToken:              material.AccessToken,
+		AccessTokenExpires:       accessTokenExpires,
+		RefreshToken:             material.RefreshToken,
+		RefreshTokenHashes:       material.RefreshTokenHashes,
+		OnlineCredentialsCleared: material.OnlineCredentialsCleared,
+		PendingRevocation:        material.PendingRevocation,
+		PendingRealmDeletion:     realmAccountDeletionSnapshotFromMaterial(material),
 	}
 	payload, err := json.Marshal(snapshot)
 	if err != nil {
@@ -171,9 +177,20 @@ func decodeProtectedAccountMaterial(encoded []byte) (AccountMaterial, error) {
 	if strings.TrimSpace(snapshot.AccountID) == "" {
 		return AccountMaterial{}, errors.New("account material has empty account id")
 	}
-	expiresAt, err := time.Parse(time.RFC3339Nano, snapshot.AccessTokenExpires)
-	if err != nil {
-		return AccountMaterial{}, fmt.Errorf("parse access token expiry: %w", err)
+	if snapshot.OnlineCredentialsCleared && snapshot.PendingRevocation {
+		return AccountMaterial{}, errors.New("account material custody flags conflict")
+	}
+	var expiresAt time.Time
+	if snapshot.OnlineCredentialsCleared || snapshot.PendingRevocation {
+		if strings.TrimSpace(snapshot.AccessTokenExpires) != "" {
+			return AccountMaterial{}, errors.New("cleared online credentials must not carry access token expiry")
+		}
+	} else {
+		var err error
+		expiresAt, err = time.Parse(time.RFC3339Nano, snapshot.AccessTokenExpires)
+		if err != nil {
+			return AccountMaterial{}, fmt.Errorf("parse access token expiry: %w", err)
+		}
 	}
 	for _, membership := range snapshot.WorkspaceMemberships {
 		if membership.ObservedAt == "" {
@@ -188,17 +205,19 @@ func decodeProtectedAccountMaterial(encoded []byte) (AccountMaterial, error) {
 		}
 	}
 	material := AccountMaterial{
-		AccountID:            snapshot.AccountID,
-		DisplayName:          snapshot.DisplayName,
-		CurrentUserHandle:    snapshot.CurrentUserHandle,
-		CurrentUserAvatarURL: snapshot.CurrentUserAvatarURL,
-		RealmEnvironmentID:   snapshot.RealmEnvironmentID,
-		RealmOrigin:          snapshot.RealmOrigin,
-		WorkspaceMemberships: workspaceMembershipsFromSnapshots(snapshot.WorkspaceMemberships),
-		AccessToken:          snapshot.AccessToken,
-		AccessTokenExpires:   expiresAt,
-		RefreshToken:         snapshot.RefreshToken,
-		RefreshTokenHashes:   snapshot.RefreshTokenHashes,
+		AccountID:                snapshot.AccountID,
+		DisplayName:              snapshot.DisplayName,
+		CurrentUserHandle:        snapshot.CurrentUserHandle,
+		CurrentUserAvatarURL:     snapshot.CurrentUserAvatarURL,
+		RealmEnvironmentID:       snapshot.RealmEnvironmentID,
+		RealmOrigin:              snapshot.RealmOrigin,
+		WorkspaceMemberships:     workspaceMembershipsFromSnapshots(snapshot.WorkspaceMemberships),
+		AccessToken:              snapshot.AccessToken,
+		AccessTokenExpires:       expiresAt,
+		RefreshToken:             snapshot.RefreshToken,
+		RefreshTokenHashes:       snapshot.RefreshTokenHashes,
+		OnlineCredentialsCleared: snapshot.OnlineCredentialsCleared,
+		PendingRevocation:        snapshot.PendingRevocation,
 	}
 	if snapshot.PendingRealmDeletion != nil {
 		deletedAt, parseErr := time.Parse(time.RFC3339Nano, snapshot.PendingRealmDeletion.DeletedAt)
@@ -235,6 +254,9 @@ func realmAccountDeletionSnapshotFromMaterial(material AccountMaterial) *realmAc
 }
 
 func validateProtectedAccountMaterial(material AccountMaterial) error {
+	if material.OnlineCredentialsCleared && material.PendingRevocation {
+		return errors.New("account material custody flags conflict")
+	}
 	required := []struct {
 		name  string
 		value string
@@ -242,12 +264,27 @@ func validateProtectedAccountMaterial(material AccountMaterial) error {
 		{name: "account id", value: material.AccountID},
 		{name: "display name", value: material.DisplayName},
 		{name: "Realm environment id", value: material.RealmEnvironmentID},
-		{name: "access token", value: material.AccessToken},
-		{name: "refresh token", value: material.RefreshToken},
+	}
+	if !material.OnlineCredentialsCleared && !material.PendingRevocation {
+		required = append(required,
+			struct{ name, value string }{name: "access token", value: material.AccessToken},
+			struct{ name, value string }{name: "refresh token", value: material.RefreshToken},
+		)
 	}
 	for _, field := range required {
 		if strings.TrimSpace(field.value) == "" {
 			return fmt.Errorf("%s is empty", field.name)
+		}
+	}
+	if material.OnlineCredentialsCleared || material.PendingRevocation {
+		if strings.TrimSpace(material.AccessToken) != "" ||
+			strings.TrimSpace(material.RefreshToken) != "" ||
+			!material.AccessTokenExpires.IsZero() ||
+			len(material.RefreshTokenHashes) != 0 {
+			return errors.New("cleared online credentials must not retain token material")
+		}
+		if material.OnlineCredentialsCleared && material.pendingRealmDeletion != nil {
+			return errors.New("cleared online credentials cannot coexist with pending Realm deletion")
 		}
 	}
 	if material.CurrentUserHandle != "" {
@@ -262,8 +299,10 @@ func validateProtectedAccountMaterial(material AccountMaterial) error {
 			return errors.New("Current User avatar URL is invalid")
 		}
 	}
-	if material.AccessTokenExpires.IsZero() || material.AccessTokenExpires.Year() < 1 || material.AccessTokenExpires.Year() > 9999 {
-		return errors.New("access token expiry is missing or outside RFC3339 bounds")
+	if !material.OnlineCredentialsCleared && !material.PendingRevocation {
+		if material.AccessTokenExpires.IsZero() || material.AccessTokenExpires.Year() < 1 || material.AccessTokenExpires.Year() > 9999 {
+			return errors.New("access token expiry is missing or outside RFC3339 bounds")
+		}
 	}
 	if pending := material.pendingRealmDeletion; pending != nil &&
 		(!pending.Observed() || pending.AccountID() != material.AccountID || pending.Reason() != RealmAccountDeletedReason) {
