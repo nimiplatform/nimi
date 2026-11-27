@@ -689,3 +689,200 @@ test('the detail page lists what its setup also prepares, and hides the list whe
   // A partial list would understate the setup.
   assert.doesNotMatch(await detail(() => undefined), /model-library-nimi-requirements/);
 });
+
+async function waitForCondition(check: () => boolean, message: string, attempts = 50): Promise<void> {
+  for (let index = 0; index < attempts; index += 1) {
+    if (check()) return;
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    });
+  }
+  assert.ok(check(), message);
+}
+
+test('RecommendPage renders stale snapshot immediately, merges one background refresh into the new feed, and supports explicit refresh', async () => {
+  const i18n = createInstance();
+  await i18n.init({ lng: 'en', fallbackLng: 'en', resources: { en: { translation: {} } } });
+  const calls: Array<{ category: string; pageSize?: number; forceRefresh?: boolean; awaitRefresh?: boolean }> = [];
+  let releaseBackground!: () => void;
+  const backgroundReady = new Promise<void>((resolve) => { releaseBackground = resolve; });
+  let generation: 'A' | 'B' | 'C' = 'A';
+
+  const makeFeed = (gen: 'A' | 'B' | 'C', category: string, refreshInProgress: boolean) => ({
+    source: {
+      availability: 1,
+      freshness: gen === 'A' ? 2 : 1,
+      generation: gen === 'A'
+        ? '11111111-1111-4111-8111-111111111111'
+        : gen === 'B'
+          ? '22222222-2222-4222-8222-222222222222'
+          : '33333333-3333-4333-8333-333333333333',
+      reasonCode: gen === 'A' ? 382 : 0,
+      refreshInProgress,
+    },
+    items: category === 'chat' ? [{
+      offerRef: `offer-${gen}-${category}`,
+      sourceLabel: 'model-index',
+      title: `Model ${gen}`,
+      description: '',
+      categories: [category],
+      modelType: 'chat',
+      variantLabel: `model-${gen}-Q4.gguf`,
+      format: 'gguf',
+      totalSizeBytes: String(GB),
+      downloadSizeBytes: String(GB),
+      license: 'apache-2.0',
+      tags: [],
+      downloads: '10',
+      likes: '2',
+      lastModified: '',
+      verified: false,
+      installed: false,
+      installable: true,
+      editorialReason: '',
+      author: 'community',
+    }] : [],
+  });
+
+  const bindings = {
+    app: { commands: {}, events: { subscribeDocumentMouseDown: () => () => undefined } },
+    sdk: {
+      localEnvironmentRpc: () => ({
+        listFeaturedModelAssets: async (request: { category: string; pageSize?: number; forceRefresh?: boolean; awaitRefresh?: boolean }) => {
+          calls.push(request);
+          if (request.forceRefresh) {
+            generation = 'C';
+            return makeFeed('C', request.category, false);
+          }
+          if (request.awaitRefresh) {
+            await backgroundReady;
+            return makeFeed(generation, request.category, false);
+          }
+          return makeFeed('A', request.category, true);
+        },
+      }),
+      machineProduct: () => { throw new Error('collection queries are pre-seeded'); },
+    },
+  } as unknown as DesktopCanonicalRendererBindings;
+
+  const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, gcTime: Infinity, retry: false } } });
+  queryClient.setQueryData([...RUNTIME_MODEL_LIBRARY_KEY, 'verified'], catalog);
+  queryClient.setQueryData(['model-market', 'collection-recipes'], recipes);
+  queryClient.setQueryData([...RUNTIME_MODEL_LIBRARY_KEY, 'installed'], []);
+  const model = {
+    runtimeWritesDisabled: false,
+    installResolvedModelPlan: async () => { throw new Error('test must not install'); },
+  } as unknown as RuntimeConfigPanelControllerModel;
+
+  await withDom(async (document, mount) => {
+    try {
+      await mount(
+        <I18nextProvider i18n={i18n}>
+          <QueryClientProvider client={queryClient}>
+            <DesktopI18nResourceProvider resource={{ instance: { t: (key: string) => key } } as never}>
+              <DesktopRendererBindingProvider bindings={bindings}>
+                <RecommendPage model={model} context={null} onModelInstalled={async () => {}} onReturnToLoadout={() => {}} onOpenDownloaded={() => {}} />
+              </DesktopRendererBindingProvider>
+            </DesktopI18nResourceProvider>
+          </QueryClientProvider>
+        </I18nextProvider>,
+      );
+      // Let initial snapshot-first queries resolve while background refresh is still pending.
+      await waitForCondition(
+        () => Boolean(document.querySelector('[data-community-candidate="offer-A-chat"]')),
+        'stale snapshot A should render before slow background refresh completes',
+      );
+      assert.match(document.body.textContent ?? '', /Snapshot/);
+      const refreshButton = document.querySelector('[data-testid="model-library-community-refresh"]') as HTMLButtonElement | null;
+      assert.ok(refreshButton?.disabled, 'refresh button reflects active background refresh');
+      assert.deepEqual(
+        calls.filter((call) => !call.awaitRefresh && !call.forceRefresh).map((call) => [call.category, call.pageSize]),
+        [['chat', 80], ['image', 80], ['video', 80]],
+      );
+      await waitForCondition(
+        () => calls.filter((call) => call.awaitRefresh).length === 3,
+        'background refresh await should cover chat, image, and video',
+      );
+
+      // Release background refresh and verify new snapshot B reaches the page.
+      generation = 'B';
+      releaseBackground();
+      await waitForCondition(
+        () => Boolean(document.querySelector('[data-community-candidate="offer-B-chat"]')),
+        'new snapshot B should replace snapshot A automatically',
+      );
+      assert.equal(document.querySelector('[data-community-candidate="offer-A-chat"]'), null);
+      assert.doesNotMatch(document.body.textContent ?? '', /Snapshot/);
+      assert.equal(refreshButton?.disabled, false);
+
+      // Explicit refresh triggers one forceRefresh on chat and awaitRefresh on image/video, delivering C.
+      calls.length = 0;
+      await click(refreshButton);
+      await waitForCondition(
+        () => Boolean(document.querySelector('[data-community-candidate="offer-C-chat"]')),
+        'explicit refresh should deliver snapshot C',
+      );
+      assert.deepEqual(
+        calls.map((call) => [call.category, Boolean(call.forceRefresh), Boolean(call.awaitRefresh)]),
+        [['chat', true, false], ['image', false, true], ['video', false, true]],
+      );
+    } finally {
+      releaseBackground();
+      queryClient.clear();
+    }
+  });
+});
+
+test('RecommendPage shows source unavailable when cache is empty and remote is offline', async () => {
+  const i18n = createInstance();
+  await i18n.init({ lng: 'en', fallbackLng: 'en', resources: { en: { translation: {} } } });
+  const bindings = {
+    app: { commands: {}, events: { subscribeDocumentMouseDown: () => () => undefined } },
+    sdk: {
+      localEnvironmentRpc: () => ({
+        listFeaturedModelAssets: async () => ({
+          source: {
+            availability: 2,
+            freshness: 0,
+            generation: '',
+            reasonCode: 0,
+            refreshInProgress: false,
+          },
+          items: [],
+        }),
+      }),
+      machineProduct: () => { throw new Error('collection queries are pre-seeded'); },
+    },
+  } as unknown as DesktopCanonicalRendererBindings;
+  const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, gcTime: Infinity, retry: false } } });
+  queryClient.setQueryData([...RUNTIME_MODEL_LIBRARY_KEY, 'verified'], catalog);
+  queryClient.setQueryData(['model-market', 'collection-recipes'], recipes);
+  queryClient.setQueryData([...RUNTIME_MODEL_LIBRARY_KEY, 'installed'], []);
+  const model = {
+    runtimeWritesDisabled: false,
+    installResolvedModelPlan: async () => { throw new Error('test must not install'); },
+  } as unknown as RuntimeConfigPanelControllerModel;
+
+  await withDom(async (document, mount) => {
+    try {
+      await mount(
+        <I18nextProvider i18n={i18n}>
+          <QueryClientProvider client={queryClient}>
+            <DesktopI18nResourceProvider resource={{ instance: { t: (key: string) => key } } as never}>
+              <DesktopRendererBindingProvider bindings={bindings}>
+                <RecommendPage model={model} context={null} onModelInstalled={async () => {}} onReturnToLoadout={() => {}} onOpenDownloaded={() => {}} />
+              </DesktopRendererBindingProvider>
+            </DesktopI18nResourceProvider>
+          </QueryClientProvider>
+        </I18nextProvider>,
+      );
+      await waitForCondition(
+        () => (document.body.textContent ?? '').includes('Model recommendations are unavailable'),
+        'empty cache + offline should render recommendations unavailable notice',
+      );
+      assert.equal(document.querySelectorAll('[data-community-candidate]').length, 0);
+    } finally {
+      queryClient.clear();
+    }
+  });
+});

@@ -149,6 +149,7 @@ export function RecommendPage(props: RecommendPageProps) {
     setLicense('all');
   }, [category]);
 
+  const [refreshingFeed, setRefreshingFeed] = useState(false);
   const featuredQuery = useQuery({
     queryKey: ['model-market', 'featured', category],
     queryFn: async () => mergeCommunityFeeds(await Promise.all(
@@ -157,6 +158,61 @@ export function RecommendPage(props: RecommendPageProps) {
     enabled: feedCategories.length > 0,
     refetchOnWindowFocus: false,
   });
+  const featuredRefreshInProgress = Boolean(featuredQuery.data?.source.refreshInProgress);
+  const featuredGeneration = featuredQuery.data?.source.generation ?? '';
+  const feedCategoryKey = feedCategories.join(',');
+  useEffect(() => {
+    if (!featuredRefreshInProgress || feedCategories.length === 0) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const updated = mergeCommunityFeeds(await Promise.all(
+          feedCategories.map((value) => client.listFeaturedModelAssets({ category: value, pageSize: 80, awaitRefresh: true })),
+        ));
+        if (cancelled) return;
+        queryClient.setQueryData(['model-market', 'featured', category], updated);
+        void queryClient.invalidateQueries({
+          queryKey: ['model-market', 'featured'],
+          predicate: (cached) => cached.queryKey[2] !== category,
+          refetchType: 'none',
+        });
+      } catch {
+        if (cancelled) return;
+        // Keep the validated local snapshot visible and clear refresh state if waiting is interrupted.
+        queryClient.setQueryData<NimiRuntimeFeaturedModelAssets | undefined>(
+          ['model-market', 'featured', category],
+          (previous) => (previous?.source.refreshInProgress
+            ? { ...previous, source: { ...previous.source, refreshInProgress: false } }
+            : previous),
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [category, client, feedCategoryKey, featuredGeneration, featuredRefreshInProgress, queryClient]);
+
+  const refreshFeaturedFeed = async () => {
+    const [firstCategory, ...restCategories] = feedCategories;
+    if (!firstCategory || refreshingFeed) return;
+    setRefreshingFeed(true);
+    try {
+      const first = await client.listFeaturedModelAssets({ category: firstCategory, pageSize: 80, forceRefresh: true });
+      const rest = await Promise.all(
+        restCategories.map((value) => client.listFeaturedModelAssets({ category: value, pageSize: 80, awaitRefresh: true })),
+      );
+      queryClient.setQueryData(['model-market', 'featured', category], mergeCommunityFeeds([first, ...rest]));
+      void queryClient.invalidateQueries({
+        queryKey: ['model-market', 'featured'],
+        predicate: (cached) => cached.queryKey[2] !== category,
+        refetchType: 'none',
+      });
+    } catch {
+      // Keep the validated local snapshot or current error state visible on transport failure.
+    } finally {
+      setRefreshingFeed(false);
+    }
+  };
   const searchQuery = useQuery({
     queryKey: ['model-market', 'search', category, normalizedQuery],
     queryFn: () => client.searchCatalog({ query: normalizedQuery, category: searchCategory, pageSize: 50 }),
@@ -395,9 +451,11 @@ export function RecommendPage(props: RecommendPageProps) {
             featured={featured}
             pending={featuredQuery.isPending}
             failed={featuredQuery.isError}
+            refreshing={refreshingFeed || featuredRefreshInProgress}
             rows={rows as readonly NimiRuntimeModelAssetMarketCandidate[]}
             showSource={candidateSourceCount > 1}
             staleSnapshot={showStaleSnapshot}
+            onRefresh={() => { void refreshFeaturedFeed(); }}
             onOpen={setSelectedCandidate}
           />
         </>
@@ -446,10 +504,12 @@ function CommunitySection(props: {
   readonly featured: NimiRuntimeFeaturedModelAssets | undefined;
   readonly pending: boolean;
   readonly failed: boolean;
+  readonly refreshing: boolean;
   /** Candidates after the filter and sort. */
   readonly rows: readonly NimiRuntimeModelAssetMarketCandidate[];
   readonly showSource: boolean;
   readonly staleSnapshot: boolean;
+  readonly onRefresh: () => void;
   readonly onOpen: (candidate: NimiRuntimeModelAssetMarketCandidate) => void;
 }) {
   const { t } = useTranslation();
@@ -463,20 +523,35 @@ function CommunitySection(props: {
         title={t('runtimeConfig.modelLibrary.community.title')}
         count={props.featured ? props.featured.items.length : undefined}
         description={t('runtimeConfig.modelLibrary.community.description')}
-        aside={props.staleSnapshot ? (
-          <Tooltip
-            content={t('runtimeConfig.recommend.staleNotice', { defaultValue: 'Showing the last successful model recommendation snapshot.' })}
-            placement="top"
-            contentClassName="max-w-xs text-left"
-          >
-            <StatusBadge
-              tone="warning"
-              shape="soft"
+        aside={(
+          <div className="flex items-center gap-2">
+            {props.staleSnapshot ? (
+              <Tooltip
+                content={t('runtimeConfig.recommend.staleNotice', { defaultValue: 'Showing the last successful model recommendation snapshot.' })}
+                placement="top"
+                contentClassName="max-w-xs text-left"
+              >
+                <StatusBadge
+                  tone="warning"
+                  shape="soft"
+                >
+                  {t('runtimeConfig.recommend.staleBadge', { defaultValue: 'Snapshot' })}
+                </StatusBadge>
+              </Tooltip>
+            ) : null}
+            <Button
+              size="sm"
+              tone="ghost"
+              data-testid="model-library-community-refresh"
+              disabled={props.pending || props.refreshing}
+              onClick={props.onRefresh}
             >
-              {t('runtimeConfig.recommend.staleBadge', { defaultValue: 'Snapshot' })}
-            </StatusBadge>
-          </Tooltip>
-        ) : null}
+              {props.refreshing
+                ? t('runtimeConfig.recommend.refreshing', { defaultValue: 'Refreshing…' })
+                : t('runtimeConfig.recommend.refresh', { defaultValue: 'Refresh feed' })}
+            </Button>
+          </div>
+        )}
       />
       {props.featured?.source.availability === 'unavailable' ? (
         <InlineAlert tone="warning">

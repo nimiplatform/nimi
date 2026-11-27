@@ -76,10 +76,12 @@ export function mergeCommunityFeeds(feeds: readonly NimiRuntimeFeaturedModelAsse
   const available = feeds.filter((feed) => feed.source.availability === 'available');
   const first = available[0] ?? feeds[0];
   if (!first) return { source: { availability: 'unavailable' }, items };
+  const refreshInProgress = feeds.some((feed) => feed.source.refreshInProgress);
+  const baseSource = available.some((feed) => feed.source.freshness === 'stale')
+    ? { ...first.source, freshness: 'stale' as const }
+    : first.source;
   return {
-    source: available.some((feed) => feed.source.freshness === 'stale')
-      ? { ...first.source, freshness: 'stale' }
-      : first.source,
+    source: refreshInProgress ? { ...baseSource, refreshInProgress: true } : baseSource,
     items,
   };
 }

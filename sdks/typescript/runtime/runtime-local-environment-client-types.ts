@@ -414,6 +414,8 @@ export interface NimiRuntimeLocalEnvironmentClient {
   listFeaturedModelAssets(input: {
     readonly category: string;
     readonly pageSize?: number;
+    readonly forceRefresh?: boolean;
+    readonly awaitRefresh?: boolean;
   }): Promise<NimiRuntimeFeaturedModelAssets>;
   listFactoryProfileRecommendations(input?: {
     readonly capabilityContract?: string;

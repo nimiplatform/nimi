@@ -7,6 +7,7 @@ export interface NimiRuntimeModelAssetSourceObservation {
   readonly freshness?: NimiRuntimeModelAssetSourceFreshness;
   readonly generation?: string;
   readonly reasonCode?: string;
+  readonly refreshInProgress?: boolean;
 }
 
 export interface NimiRuntimeModelAssetCatalogSearchResult {

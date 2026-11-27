@@ -26,9 +26,10 @@ const (
 	modelIndexCacheFile       = "model-index-v3-cache.json"
 	modelIndexDefaultPageSize = 40
 	modelIndexMaxPageSize     = 80
-	modelIndexFetchTimeout    = 5 * time.Second
-	modelIndexFreshWindow     = 24 * time.Hour
-	modelIndexSchemaVersion   = "3.0.0"
+	modelIndexFetchTimeout          = 5 * time.Second
+	modelIndexFreshWindow           = 24 * time.Hour
+	modelIndexRefreshCoalesceWindow = 3 * time.Second
+	modelIndexSchemaVersion         = "3.0.0"
 )
 
 var modelIndexPresentationCategories = map[string]struct{}{
@@ -104,18 +105,29 @@ type modelIndexCacheRecord struct {
 	Stale     bool
 }
 
+type modelIndexRefreshFlight struct {
+	done      chan struct{}
+	index     *remoteModelIndex
+	freshness runtimev1.ModelAssetSourceFreshness
+	reason    runtimev1.ReasonCode
+}
+
 func (s *Service) ListFeaturedModelAssets(ctx context.Context, req *runtimev1.ListFeaturedModelAssetsRequest) (*runtimev1.ListFeaturedModelAssetsResponse, error) {
 	category, err := normalizeModelIndexCategory(req.GetCategory())
 	if err != nil {
 		return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, grpcerr.ReasonOptions{Message: "featured ModelAsset category is invalid"})
 	}
 	pageSize := normalizeModelIndexPageSize(req.GetPageSize())
-	index, freshness, reason := s.resolveModelIndex(ctx)
+	index, freshness, reason, refreshInProgress, err := s.resolveModelIndexForRequest(ctx, req.GetForceRefresh(), req.GetAwaitRefresh())
+	if err != nil {
+		return nil, err
+	}
 	if index == nil {
 		return &runtimev1.ListFeaturedModelAssetsResponse{
 			Source: &runtimev1.ModelAssetFeaturedSourceObservation{
-				Availability: runtimev1.ModelAssetSourceAvailability_MODEL_ASSET_SOURCE_AVAILABILITY_UNAVAILABLE,
-				ReasonCode:   reason,
+				Availability:      runtimev1.ModelAssetSourceAvailability_MODEL_ASSET_SOURCE_AVAILABILITY_UNAVAILABLE,
+				ReasonCode:        reason,
+				RefreshInProgress: refreshInProgress,
 			},
 			Items: []*runtimev1.ModelAssetMarketCandidate{},
 		}, nil
@@ -136,10 +148,11 @@ func (s *Service) ListFeaturedModelAssets(ctx context.Context, req *runtimev1.Li
 	}
 	return &runtimev1.ListFeaturedModelAssetsResponse{
 		Source: &runtimev1.ModelAssetFeaturedSourceObservation{
-			Availability: runtimev1.ModelAssetSourceAvailability_MODEL_ASSET_SOURCE_AVAILABILITY_AVAILABLE,
-			Freshness:    freshness,
-			Generation:   strings.TrimSpace(index.Generation),
-			ReasonCode:   reason,
+			Availability:      runtimev1.ModelAssetSourceAvailability_MODEL_ASSET_SOURCE_AVAILABILITY_AVAILABLE,
+			Freshness:         freshness,
+			Generation:        strings.TrimSpace(index.Generation),
+			ReasonCode:        reason,
+			RefreshInProgress: refreshInProgress,
 		},
 		Items: items,
 	}, nil
@@ -161,6 +174,154 @@ func normalizeModelIndexPageSize(value int32) int {
 		return modelIndexMaxPageSize
 	}
 	return int(value)
+}
+
+func (s *Service) modelIndexRefreshCoalesceDuration() time.Duration {
+	if s != nil && s.modelIndexRefreshWindow > 0 {
+		return s.modelIndexRefreshWindow
+	}
+	return modelIndexRefreshCoalesceWindow
+}
+
+func (s *Service) modelIndexRefreshContext() context.Context {
+	if s == nil {
+		return context.Background()
+	}
+	s.mu.RLock()
+	base := s.jobLifetimeCtx
+	s.mu.RUnlock()
+	if base == nil {
+		return context.Background()
+	}
+	return base
+}
+
+func modelIndexCacheFreshness(cache modelIndexCacheRecord) (runtimev1.ModelAssetSourceFreshness, runtimev1.ReasonCode) {
+	if cache.Index == nil {
+		return runtimev1.ModelAssetSourceFreshness_MODEL_ASSET_SOURCE_FRESHNESS_UNSPECIFIED, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE
+	}
+	if !cache.Stale && modelIndexSnapshotFresh(cache.Index.GeneratedAt) {
+		return runtimev1.ModelAssetSourceFreshness_MODEL_ASSET_SOURCE_FRESHNESS_FRESH, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
+	}
+	return runtimev1.ModelAssetSourceFreshness_MODEL_ASSET_SOURCE_FRESHNESS_STALE, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE
+}
+
+func (s *Service) startOrJoinModelIndexRefreshFlight() *modelIndexRefreshFlight {
+	s.modelIndexStateMu.Lock()
+	if s.modelIndexRefreshFlight != nil {
+		flight := s.modelIndexRefreshFlight
+		s.modelIndexStateMu.Unlock()
+		return flight
+	}
+	flight := &modelIndexRefreshFlight{done: make(chan struct{})}
+	s.modelIndexRefreshFlight = flight
+	s.modelIndexRefreshWG.Add(1)
+	s.modelIndexStateMu.Unlock()
+	go s.runModelIndexRefreshFlight(flight)
+	return flight
+}
+
+func (s *Service) ensureBackgroundModelIndexRefresh() bool {
+	s.modelIndexStateMu.Lock()
+	if s.modelIndexRefreshFlight != nil {
+		s.modelIndexStateMu.Unlock()
+		return true
+	}
+	if !s.modelIndexLastRefreshAt.IsZero() && time.Since(s.modelIndexLastRefreshAt) < s.modelIndexRefreshCoalesceDuration() {
+		s.modelIndexStateMu.Unlock()
+		return false
+	}
+	flight := &modelIndexRefreshFlight{done: make(chan struct{})}
+	s.modelIndexRefreshFlight = flight
+	s.modelIndexRefreshWG.Add(1)
+	s.modelIndexStateMu.Unlock()
+	go s.runModelIndexRefreshFlight(flight)
+	return true
+}
+
+func (s *Service) runModelIndexRefreshFlight(flight *modelIndexRefreshFlight) {
+	defer s.modelIndexRefreshWG.Done()
+	index, freshness, reason := s.resolveModelIndex(s.modelIndexRefreshContext())
+	s.modelIndexStateMu.Lock()
+	flight.index = index
+	flight.freshness = freshness
+	flight.reason = reason
+	s.modelIndexLastRefreshAt = time.Now()
+	s.modelIndexLastRefreshReason = reason
+	s.modelIndexLastRefreshHasSnapshot = index != nil
+	if s.modelIndexRefreshFlight == flight {
+		s.modelIndexRefreshFlight = nil
+	}
+	close(flight.done)
+	s.modelIndexStateMu.Unlock()
+}
+
+func waitModelIndexRefreshFlight(ctx context.Context, flight *modelIndexRefreshFlight) (*remoteModelIndex, runtimev1.ModelAssetSourceFreshness, runtimev1.ReasonCode, error) {
+	select {
+	case <-ctx.Done():
+		return nil, runtimev1.ModelAssetSourceFreshness_MODEL_ASSET_SOURCE_FRESHNESS_UNSPECIFIED, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, ctx.Err()
+	case <-flight.done:
+		return flight.index, flight.freshness, flight.reason, nil
+	}
+}
+
+func (s *Service) resolveSettledOrColdModelIndex(ctx context.Context) (*remoteModelIndex, runtimev1.ModelAssetSourceFreshness, runtimev1.ReasonCode, bool, error) {
+	s.modelIndexStateMu.Lock()
+	flight := s.modelIndexRefreshFlight
+	recent := !s.modelIndexLastRefreshAt.IsZero() && time.Since(s.modelIndexLastRefreshAt) < s.modelIndexRefreshCoalesceDuration()
+	hasSnapshot := s.modelIndexLastRefreshHasSnapshot
+	lastReason := s.modelIndexLastRefreshReason
+	s.modelIndexStateMu.Unlock()
+	if flight != nil {
+		index, freshness, reason, err := waitModelIndexRefreshFlight(ctx, flight)
+		return index, freshness, reason, false, err
+	}
+	if cache := s.loadModelIndexCache(); cache.Index != nil {
+		freshness, reason := modelIndexCacheFreshness(cache)
+		return cache.Index, freshness, reason, false, nil
+	}
+	if recent && !hasSnapshot {
+		if lastReason == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+			lastReason = runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE
+		}
+		return nil, runtimev1.ModelAssetSourceFreshness_MODEL_ASSET_SOURCE_FRESHNESS_UNSPECIFIED, lastReason, false, nil
+	}
+	flight = s.startOrJoinModelIndexRefreshFlight()
+	index, freshness, reason, err := waitModelIndexRefreshFlight(ctx, flight)
+	return index, freshness, reason, false, err
+}
+
+func (s *Service) resolveModelIndexForRequest(
+	ctx context.Context,
+	forceRefresh bool,
+	awaitRefresh bool,
+) (*remoteModelIndex, runtimev1.ModelAssetSourceFreshness, runtimev1.ReasonCode, bool, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, runtimev1.ModelAssetSourceFreshness_MODEL_ASSET_SOURCE_FRESHNESS_UNSPECIFIED, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, false, err
+	}
+	if forceRefresh {
+		flight := s.startOrJoinModelIndexRefreshFlight()
+		index, freshness, reason, err := waitModelIndexRefreshFlight(ctx, flight)
+		return index, freshness, reason, false, err
+	}
+	if awaitRefresh {
+		return s.resolveSettledOrColdModelIndex(ctx)
+	}
+	cache := s.loadModelIndexCache()
+	if cache.Index != nil {
+		refreshInProgress := s.ensureBackgroundModelIndexRefresh()
+		if !refreshInProgress {
+			if updated := s.loadModelIndexCache(); updated.Index != nil {
+				cache = updated
+			}
+		}
+		freshness, reason := modelIndexCacheFreshness(cache)
+		return cache.Index, freshness, reason, refreshInProgress, nil
+	}
+	return s.resolveSettledOrColdModelIndex(ctx)
 }
 
 func (s *Service) resolveModelIndex(ctx context.Context) (*remoteModelIndex, runtimev1.ModelAssetSourceFreshness, runtimev1.ReasonCode) {

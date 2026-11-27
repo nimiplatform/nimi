@@ -35,6 +35,10 @@ export interface ModelAssetFeaturedSourceObservation {
      * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 4
      */
     reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: bool refresh_in_progress = 5
+     */
+    refreshInProgress: boolean;
 }
 /**
  * Browse-only search result. model_locator opens detail or variant listing and
@@ -210,6 +214,14 @@ export interface ListFeaturedModelAssetsRequest {
      * @generated from protobuf field: int32 page_size = 2
      */
     pageSize: number;
+    /**
+     * @generated from protobuf field: bool force_refresh = 3
+     */
+    forceRefresh: boolean;
+    /**
+     * @generated from protobuf field: bool await_refresh = 4
+     */
+    awaitRefresh: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListFeaturedModelAssetsResponse
@@ -337,7 +349,8 @@ class ModelAssetFeaturedSourceObservation$Type extends MessageType<ModelAssetFea
             { no: 1, name: "availability", kind: "enum", T: () => ["nimi.runtime.v1.ModelAssetSourceAvailability", ModelAssetSourceAvailability, "MODEL_ASSET_SOURCE_AVAILABILITY_"] },
             { no: 2, name: "freshness", kind: "enum", T: () => ["nimi.runtime.v1.ModelAssetSourceFreshness", ModelAssetSourceFreshness, "MODEL_ASSET_SOURCE_FRESHNESS_"] },
             { no: 3, name: "generation", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+            { no: 4, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 5, name: "refresh_in_progress", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<ModelAssetFeaturedSourceObservation>): ModelAssetFeaturedSourceObservation {
@@ -346,6 +359,7 @@ class ModelAssetFeaturedSourceObservation$Type extends MessageType<ModelAssetFea
         message.freshness = 0;
         message.generation = "";
         message.reasonCode = 0;
+        message.refreshInProgress = false;
         if (value !== undefined)
             reflectionMergePartial<ModelAssetFeaturedSourceObservation>(this, message, value);
         return message;
@@ -366,6 +380,9 @@ class ModelAssetFeaturedSourceObservation$Type extends MessageType<ModelAssetFea
                     break;
                 case /* nimi.runtime.v1.ReasonCode reason_code */ 4:
                     message.reasonCode = reader.int32();
+                    break;
+                case /* bool refresh_in_progress */ 5:
+                    message.refreshInProgress = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -391,6 +408,9 @@ class ModelAssetFeaturedSourceObservation$Type extends MessageType<ModelAssetFea
         /* nimi.runtime.v1.ReasonCode reason_code = 4; */
         if (message.reasonCode !== 0)
             writer.tag(4, WireType.Varint).int32(message.reasonCode);
+        /* bool refresh_in_progress = 5; */
+        if (message.refreshInProgress !== false)
+            writer.tag(5, WireType.Varint).bool(message.refreshInProgress);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -755,13 +775,17 @@ class ListFeaturedModelAssetsRequest$Type extends MessageType<ListFeaturedModelA
     constructor() {
         super("nimi.runtime.v1.ListFeaturedModelAssetsRequest", [
             { no: 1, name: "category", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+            { no: 2, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 3, name: "force_refresh", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 4, name: "await_refresh", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<ListFeaturedModelAssetsRequest>): ListFeaturedModelAssetsRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.category = "";
         message.pageSize = 0;
+        message.forceRefresh = false;
+        message.awaitRefresh = false;
         if (value !== undefined)
             reflectionMergePartial<ListFeaturedModelAssetsRequest>(this, message, value);
         return message;
@@ -776,6 +800,12 @@ class ListFeaturedModelAssetsRequest$Type extends MessageType<ListFeaturedModelA
                     break;
                 case /* int32 page_size */ 2:
                     message.pageSize = reader.int32();
+                    break;
+                case /* bool force_refresh */ 3:
+                    message.forceRefresh = reader.bool();
+                    break;
+                case /* bool await_refresh */ 4:
+                    message.awaitRefresh = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -795,6 +825,12 @@ class ListFeaturedModelAssetsRequest$Type extends MessageType<ListFeaturedModelA
         /* int32 page_size = 2; */
         if (message.pageSize !== 0)
             writer.tag(2, WireType.Varint).int32(message.pageSize);
+        /* bool force_refresh = 3; */
+        if (message.forceRefresh !== false)
+            writer.tag(3, WireType.Varint).bool(message.forceRefresh);
+        /* bool await_refresh = 4; */
+        if (message.awaitRefresh !== false)
+            writer.tag(4, WireType.Varint).bool(message.awaitRefresh);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

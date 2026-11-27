@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
@@ -321,6 +322,12 @@ func (s *Service) stopProductControlRootBoundWork(ctx context.Context) error {
 	go func() {
 		s.localEnvironmentJobWG.Wait()
 		s.transferWorkerWG.Wait()
+		s.modelIndexRefreshWG.Wait()
+		s.modelIndexStateMu.Lock()
+		s.modelIndexLastRefreshAt = time.Time{}
+		s.modelIndexLastRefreshReason = runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
+		s.modelIndexLastRefreshHasSnapshot = false
+		s.modelIndexStateMu.Unlock()
 		close(done)
 	}()
 	select {

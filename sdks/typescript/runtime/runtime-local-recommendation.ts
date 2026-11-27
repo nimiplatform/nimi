@@ -118,6 +118,7 @@ export function projectNimiRuntimeModelAssetSourceObservation(
       ...(value.reasonCode !== ReasonCode.REASON_CODE_UNSPECIFIED
         ? { reasonCode: ReasonCode[value.reasonCode] || 'REASON_CODE_UNSPECIFIED' }
         : {}),
+      ...(value.refreshInProgress ? { refreshInProgress: true } : {}),
     });
   }
   if (value.availability === ModelAssetSourceAvailability.UNAVAILABLE) {
@@ -126,6 +127,7 @@ export function projectNimiRuntimeModelAssetSourceObservation(
       ...(value.reasonCode !== ReasonCode.REASON_CODE_UNSPECIFIED
         ? { reasonCode: ReasonCode[value.reasonCode] || 'REASON_CODE_UNSPECIFIED' }
         : {}),
+      ...(value.refreshInProgress ? { refreshInProgress: true } : {}),
     });
   }
   throw invalidLocalProjection('Runtime featured source availability is unspecified');

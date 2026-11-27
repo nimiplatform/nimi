@@ -235,6 +235,8 @@ export function createNimiRuntimeLocalEnvironmentClient(
       const response = await resolveLocal().listFeaturedModelAssets({
         category: requireLocalText(input?.category, 'Runtime featured category is required', 'provide_featured_category'),
         pageSize: normalizePageSize(input?.pageSize),
+        forceRefresh: Boolean(input?.forceRefresh),
+        awaitRefresh: Boolean(input?.awaitRefresh),
       }, defaultCallOptions);
       return projectNimiRuntimeFeaturedModelAssets(response);
     },

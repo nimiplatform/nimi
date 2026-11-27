@@ -3,11 +3,14 @@ import test from 'node:test';
 
 import {
   LocalRecommendationApplicability,
+  ModelAssetSourceAvailability,
+  ModelAssetSourceFreshness,
   ReasonCode,
 } from '../core-generated/runtime-typed-client.js';
 import {
   projectNimiRuntimeFactoryProfileRecommendation,
   projectNimiRuntimeModelAssetMarketCandidate,
+  projectNimiRuntimeModelAssetSourceObservation,
   projectNimiRuntimeRecommendationApplicability,
 } from './runtime-local-recommendation.js';
 
@@ -65,4 +68,25 @@ test('Market candidates keep download size separate from the installed total', (
     downloadSizeBytes: '0',
   });
   assert.equal('downloadSizeBytes' in unknown, false);
+});
+
+test('featured source observation preserves refreshInProgress only when active', () => {
+  const refreshing = projectNimiRuntimeModelAssetSourceObservation({
+    availability: ModelAssetSourceAvailability.AVAILABLE,
+    freshness: ModelAssetSourceFreshness.STALE,
+    generation: '11111111-1111-4111-8111-111111111111',
+    reasonCode: ReasonCode.AI_REMOTE_MODEL_CATALOG_STALE,
+    refreshInProgress: true,
+  });
+  assert.equal(refreshing.refreshInProgress, true);
+  assert.equal(refreshing.freshness, 'stale');
+
+  const settled = projectNimiRuntimeModelAssetSourceObservation({
+    availability: ModelAssetSourceAvailability.AVAILABLE,
+    freshness: ModelAssetSourceFreshness.FRESH,
+    generation: '22222222-2222-4222-8222-222222222222',
+    reasonCode: ReasonCode.REASON_CODE_UNSPECIFIED,
+    refreshInProgress: false,
+  });
+  assert.equal('refreshInProgress' in settled, false);
 });

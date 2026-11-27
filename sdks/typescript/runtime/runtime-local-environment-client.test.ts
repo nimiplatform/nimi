@@ -172,6 +172,34 @@ test('Featured source projection distinguishes stale LKG from unavailable', () =
   });
 });
 
+test('listFeaturedModelAssets forwards forceRefresh and awaitRefresh options', async () => {
+  const requests: Record<string, unknown>[] = [];
+  const local = {
+    async listFeaturedModelAssets(request: Record<string, unknown>) {
+      requests.push(request);
+      return {
+        source: {
+          availability: ModelAssetSourceAvailability.AVAILABLE,
+          freshness: ModelAssetSourceFreshness.FRESH,
+          generation: '11111111-1111-4111-8111-111111111111',
+          reasonCode: ReasonCode.REASON_CODE_UNSPECIFIED,
+          refreshInProgress: false,
+        },
+        items: [],
+      };
+    },
+  } as unknown as NimiRuntimeLocalEnvironmentRpc;
+  const client = createNimiRuntimeLocalEnvironmentClient({ local });
+  await client.listFeaturedModelAssets({ category: 'chat', pageSize: 80 });
+  await client.listFeaturedModelAssets({ category: 'image', pageSize: 80, forceRefresh: true });
+  await client.listFeaturedModelAssets({ category: 'video', pageSize: 80, awaitRefresh: true });
+  assert.deepEqual(requests, [
+    { category: 'chat', pageSize: 80, forceRefresh: false, awaitRefresh: false },
+    { category: 'image', pageSize: 80, forceRefresh: true, awaitRefresh: false },
+    { category: 'video', pageSize: 80, forceRefresh: false, awaitRefresh: true },
+  ]);
+});
+
 test('model card reads preserve Runtime content and propagate read failures', async () => {
   const calls: unknown[] = [];
   const response = { markdown: '# Model\n![Architecture](./architecture.png)', sourceUrl: 'https://huggingface.co/org/model/blob/revision/README.md', baseUrl: 'https://huggingface.co/org/model/resolve/revision/' };

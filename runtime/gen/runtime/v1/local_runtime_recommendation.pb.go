@@ -176,13 +176,14 @@ func (ModelAssetSourceFreshness) EnumDescriptor() ([]byte, []int) {
 // Source observation is scoped only to the model-index featured section.
 // generation never participates in offer identity.
 type ModelAssetFeaturedSourceObservation struct {
-	state         protoimpl.MessageState       `protogen:"open.v1"`
-	Availability  ModelAssetSourceAvailability `protobuf:"varint,1,opt,name=availability,proto3,enum=nimi.runtime.v1.ModelAssetSourceAvailability" json:"availability,omitempty"`
-	Freshness     ModelAssetSourceFreshness    `protobuf:"varint,2,opt,name=freshness,proto3,enum=nimi.runtime.v1.ModelAssetSourceFreshness" json:"freshness,omitempty"`
-	Generation    string                       `protobuf:"bytes,3,opt,name=generation,proto3" json:"generation,omitempty"`
-	ReasonCode    ReasonCode                   `protobuf:"varint,4,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState       `protogen:"open.v1"`
+	Availability      ModelAssetSourceAvailability `protobuf:"varint,1,opt,name=availability,proto3,enum=nimi.runtime.v1.ModelAssetSourceAvailability" json:"availability,omitempty"`
+	Freshness         ModelAssetSourceFreshness    `protobuf:"varint,2,opt,name=freshness,proto3,enum=nimi.runtime.v1.ModelAssetSourceFreshness" json:"freshness,omitempty"`
+	Generation        string                       `protobuf:"bytes,3,opt,name=generation,proto3" json:"generation,omitempty"`
+	ReasonCode        ReasonCode                   `protobuf:"varint,4,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	RefreshInProgress bool                         `protobuf:"varint,5,opt,name=refresh_in_progress,json=refreshInProgress,proto3" json:"refresh_in_progress,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ModelAssetFeaturedSourceObservation) Reset() {
@@ -241,6 +242,13 @@ func (x *ModelAssetFeaturedSourceObservation) GetReasonCode() ReasonCode {
 		return x.ReasonCode
 	}
 	return ReasonCode_REASON_CODE_UNSPECIFIED
+}
+
+func (x *ModelAssetFeaturedSourceObservation) GetRefreshInProgress() bool {
+	if x != nil {
+		return x.RefreshInProgress
+	}
+	return false
 }
 
 // Browse-only search result. model_locator opens detail or variant listing and
@@ -602,6 +610,8 @@ type ListFeaturedModelAssetsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Category      string                 `protobuf:"bytes,1,opt,name=category,proto3" json:"category,omitempty"`
 	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	ForceRefresh  bool                   `protobuf:"varint,3,opt,name=force_refresh,json=forceRefresh,proto3" json:"force_refresh,omitempty"`
+	AwaitRefresh  bool                   `protobuf:"varint,4,opt,name=await_refresh,json=awaitRefresh,proto3" json:"await_refresh,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -648,6 +658,20 @@ func (x *ListFeaturedModelAssetsRequest) GetPageSize() int32 {
 		return x.PageSize
 	}
 	return 0
+}
+
+func (x *ListFeaturedModelAssetsRequest) GetForceRefresh() bool {
+	if x != nil {
+		return x.ForceRefresh
+	}
+	return false
+}
+
+func (x *ListFeaturedModelAssetsRequest) GetAwaitRefresh() bool {
+	if x != nil {
+		return x.AwaitRefresh
+	}
+	return false
 }
 
 type ListFeaturedModelAssetsResponse struct {
@@ -906,7 +930,7 @@ var File_runtime_v1_local_runtime_recommendation_proto protoreflect.FileDescript
 
 const file_runtime_v1_local_runtime_recommendation_proto_rawDesc = "" +
 	"\n" +
-	"-runtime/v1/local_runtime_recommendation.proto\x12\x0fnimi.runtime.v1\x1a\x17runtime/v1/common.proto\"\xa0\x02\n" +
+	"-runtime/v1/local_runtime_recommendation.proto\x12\x0fnimi.runtime.v1\x1a\x17runtime/v1/common.proto\"\xd0\x02\n" +
 	"#ModelAssetFeaturedSourceObservation\x12Q\n" +
 	"\favailability\x18\x01 \x01(\x0e2-.nimi.runtime.v1.ModelAssetSourceAvailabilityR\favailability\x12H\n" +
 	"\tfreshness\x18\x02 \x01(\x0e2*.nimi.runtime.v1.ModelAssetSourceFreshnessR\tfreshness\x12\x1e\n" +
@@ -914,7 +938,8 @@ const file_runtime_v1_local_runtime_recommendation_proto_rawDesc = "" +
 	"generation\x18\x03 \x01(\tR\n" +
 	"generation\x12<\n" +
 	"\vreason_code\x18\x04 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\"\x99\x03\n" +
+	"reasonCode\x12.\n" +
+	"\x13refresh_in_progress\x18\x05 \x01(\bR\x11refreshInProgress\"\x99\x03\n" +
 	"\x1dModelAssetCatalogSearchResult\x12#\n" +
 	"\rmodel_locator\x18\x01 \x01(\tR\fmodelLocator\x12!\n" +
 	"\fsource_label\x18\x02 \x01(\tR\vsourceLabel\x12\x14\n" +
@@ -959,10 +984,12 @@ const file_runtime_v1_local_runtime_recommendation_proto_rawDesc = "" +
 	"\x10editorial_reason\x18\x13 \x01(\tR\x0feditorialReason\x12\x16\n" +
 	"\x06author\x18\x14 \x01(\tR\x06author\x12.\n" +
 	"\x13download_size_bytes\x18\x15 \x01(\x03R\x11downloadSizeBytesB\x13\n" +
-	"\x11_featured_ordinal\"Y\n" +
+	"\x11_featured_ordinal\"\xa3\x01\n" +
 	"\x1eListFeaturedModelAssetsRequest\x12\x1a\n" +
 	"\bcategory\x18\x01 \x01(\tR\bcategory\x12\x1b\n" +
-	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\"\xb1\x01\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12#\n" +
+	"\rforce_refresh\x18\x03 \x01(\bR\fforceRefresh\x12#\n" +
+	"\rawait_refresh\x18\x04 \x01(\bR\fawaitRefresh\"\xb1\x01\n" +
 	"\x1fListFeaturedModelAssetsResponse\x12L\n" +
 	"\x06source\x18\x01 \x01(\v24.nimi.runtime.v1.ModelAssetFeaturedSourceObservationR\x06source\x12@\n" +
 	"\x05items\x18\x02 \x03(\v2*.nimi.runtime.v1.ModelAssetMarketCandidateR\x05items\"\xe8\x01\n" +

@@ -34,6 +34,7 @@ message ModelAssetFeaturedSourceObservation {
   ModelAssetSourceFreshness freshness = 2;
   string generation = 3;
   ReasonCode reason_code = 4;
+  bool refresh_in_progress = 5;
 }
 
 // Browse-only search result. model_locator opens detail or variant listing and
@@ -90,6 +91,8 @@ message ModelAssetMarketCandidate {
 message ListFeaturedModelAssetsRequest {
   string category = 1;
   int32 page_size = 2;
+  bool force_refresh = 3;
+  bool await_refresh = 4;
 }
 
 message ListFeaturedModelAssetsResponse {

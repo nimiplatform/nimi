@@ -174,7 +174,14 @@ type Service struct {
 	admissionHolds                map[string]*admissionPayloadHold
 	adoptResolvedModelImports     bool
 	managedPortAvailable          func(int) bool
-	modelIndexRefreshMu           sync.Mutex
+	modelIndexRefreshMu              sync.Mutex
+	modelIndexStateMu                sync.Mutex
+	modelIndexRefreshWG              sync.WaitGroup
+	modelIndexRefreshFlight          *modelIndexRefreshFlight
+	modelIndexLastRefreshAt          time.Time
+	modelIndexLastRefreshReason      runtimev1.ReasonCode
+	modelIndexLastRefreshHasSnapshot bool
+	modelIndexRefreshWindow          time.Duration
 	modelIndexCacheWrite          func(string, []byte) error
 	deviceProfileMu               sync.Mutex
 	deviceProfileCached           *runtimev1.LocalDeviceProfile
@@ -454,6 +461,7 @@ func (s *Service) Close() {
 	}
 	s.localEnvironmentJobWG.Wait()
 	s.transferWorkerWG.Wait()
+	s.modelIndexRefreshWG.Wait()
 
 	s.lockModelAssetMutation()
 	defer s.modelAssetMutationMu.Unlock()

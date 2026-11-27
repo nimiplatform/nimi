@@ -170,7 +170,7 @@ func TestListFeaturedModelAssetsProjectsFreshAndStaleLKG(t *testing.T) {
 	}
 
 	serveOK = false
-	stale, err := svc.ListFeaturedModelAssets(context.Background(), &runtimev1.ListFeaturedModelAssetsRequest{Category: "chat"})
+	stale, err := svc.ListFeaturedModelAssets(context.Background(), &runtimev1.ListFeaturedModelAssetsRequest{Category: "chat", ForceRefresh: true})
 	if err != nil {
 		t.Fatalf("stale featured: %v", err)
 	}
@@ -181,7 +181,7 @@ func TestListFeaturedModelAssetsProjectsFreshAndStaleLKG(t *testing.T) {
 	}
 
 	serveOK = true
-	revalidated, err := svc.ListFeaturedModelAssets(context.Background(), &runtimev1.ListFeaturedModelAssetsRequest{Category: "chat"})
+	revalidated, err := svc.ListFeaturedModelAssets(context.Background(), &runtimev1.ListFeaturedModelAssetsRequest{Category: "chat", ForceRefresh: true})
 	if err != nil {
 		t.Fatalf("same generation refetch: %v", err)
 	}
@@ -369,5 +369,248 @@ func TestConcurrentModelIndexRefreshCannotCommitAnOlderGenerationLast(t *testing
 	adopted := svc.loadModelIndexCache()
 	if adopted.Index == nil || adopted.Index.Generation != generationC.Generation {
 		t.Fatalf("concurrent refresh rolled back final generation: %+v", adopted.Index)
+	}
+}
+
+func TestListFeaturedModelAssetsReturnsSnapshotFirstCoalescesRoundAndUpdates(t *testing.T) {
+	staleSnapshot := decodeModelIndexV3Vector(t)
+	staleSnapshot.GeneratedAt = time.Now().UTC().Add(-26 * time.Hour).Format(time.RFC3339Nano)
+	staleSnapshot.Models[0].Categories = []string{"chat", "image", "video"}
+	ineligible := staleSnapshot.Models[0]
+	ineligible.Repo = "test/missing-hash-model"
+	ineligible.Title = "Missing Hash Model"
+	ineligible.FeaturedOrdinal = nil
+	ineligible.EditorialReason = ""
+	ineligible.Entries = []remoteInstallEntry{{
+		EntryID:        "gguf:no-hash.gguf",
+		Format:         "gguf",
+		Entry:          "no-hash.gguf",
+		TotalSizeBytes: 1024,
+		Files:          []remoteModelFile{{Path: "no-hash.gguf", SizeBytes: 1024, DownloadURL: "https://huggingface.co/test/missing-hash-model/resolve/main/no-hash.gguf"}},
+	}}
+	staleSnapshot.Models = append(staleSnapshot.Models, ineligible)
+	staleSnapshot.ModelCount = len(staleSnapshot.Models)
+
+	generationB := decodeModelIndexV3Vector(t)
+	generationB.Generation = "22222222-2222-4222-8222-222222222222"
+	generationB.GeneratedAt = time.Now().UTC().Add(-2 * time.Minute).Format(time.RFC3339Nano)
+	generationB.Models[0].Categories = []string{"chat", "image", "video"}
+	generationB.Models[0].Title = "Updated Model B"
+	rawB, err := json.Marshal(generationB)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	generationC := decodeModelIndexV3Vector(t)
+	generationC.Generation = "33333333-3333-4333-8333-333333333333"
+	generationC.GeneratedAt = time.Now().UTC().Add(-1 * time.Minute).Format(time.RFC3339Nano)
+	generationC.Models[0].Categories = []string{"chat", "image", "video"}
+	generationC.Models[0].Title = "Explicit Refresh Model C"
+	rawC, err := json.Marshal(generationC)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	remoteStarted := make(chan struct{})
+	releaseRemote := make(chan struct{})
+	var serveGen atomic.Int32
+	serveGen.Store(1)
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/index.json" {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		count := requests.Add(1)
+		if count == 1 {
+			close(remoteStarted)
+			<-releaseRemote
+		}
+		if serveGen.Load() == 1 {
+			_, _ = w.Write(rawB)
+			return
+		}
+		_, _ = w.Write(rawC)
+	}))
+	defer server.Close()
+	t.Setenv(modelIndexBaseURLEnv, server.URL)
+
+	svc := newTestService(t)
+	t.Cleanup(svc.Close)
+	if err := svc.saveModelIndexCache(modelIndexCacheRecord{FetchedAt: nowISO(), Index: staleSnapshot}); err != nil {
+		t.Fatal(err)
+	}
+
+	categories := []string{"chat", "image", "video"}
+	type callResult struct {
+		resp *runtimev1.ListFeaturedModelAssetsResponse
+		err  error
+	}
+	initialResults := make([]callResult, len(categories))
+	initialDone := make(chan struct{}, len(categories))
+	for i, cat := range categories {
+		go func(idx int, category string) {
+			resp, callErr := svc.ListFeaturedModelAssets(context.Background(), &runtimev1.ListFeaturedModelAssetsRequest{Category: category, PageSize: 80})
+			initialResults[idx] = callResult{resp: resp, err: callErr}
+			initialDone <- struct{}{}
+		}(i, cat)
+	}
+	for range categories {
+		select {
+		case <-initialDone:
+		case <-time.After(2 * time.Second):
+			t.Fatal("initial snapshot-first featured calls blocked on slow remote")
+		}
+	}
+
+	// Verify old snapshot returned immediately with accurate stale freshness and ineligible model blocked from install.
+	var ineligibleRef string
+	for i, res := range initialResults {
+		if res.err != nil {
+			t.Fatalf("initial %s: %v", categories[i], res.err)
+		}
+		src := res.resp.GetSource()
+		if src.GetAvailability() != runtimev1.ModelAssetSourceAvailability_MODEL_ASSET_SOURCE_AVAILABILITY_AVAILABLE ||
+			src.GetFreshness() != runtimev1.ModelAssetSourceFreshness_MODEL_ASSET_SOURCE_FRESHNESS_STALE ||
+			src.GetGeneration() != staleSnapshot.Generation ||
+			!src.GetRefreshInProgress() {
+			t.Fatalf("initial %s source=%+v", categories[i], src)
+		}
+		if len(res.resp.GetItems()) != 2 {
+			t.Fatalf("initial %s items=%d, want 2", categories[i], len(res.resp.GetItems()))
+		}
+		for _, item := range res.resp.GetItems() {
+			if item.GetTitle() == "Missing Hash Model" {
+				if item.GetInstallable() {
+					t.Fatal("ineligible missing-hash candidate in stale snapshot reported installable")
+				}
+				ineligibleRef = item.GetOfferRef()
+			}
+		}
+	}
+	if ineligibleRef == "" {
+		t.Fatal("missing-hash candidate not present in stale snapshot")
+	}
+	planResp, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{OfferRef: ineligibleRef})
+	if err == nil && planResp.GetPlan().GetInstallAvailable() {
+		t.Fatalf("ineligible candidate from stale snapshot entered install flow: %+v", planResp.GetPlan())
+	}
+
+	select {
+	case <-remoteStarted:
+	case <-time.After(2 * time.Second):
+		t.Fatal("background remote refresh never started")
+	}
+	if got := requests.Load(); got != 1 {
+		t.Fatalf("remote requests during initial 3-category round = %d, want 1", got)
+	}
+
+	awaitResults := make([]callResult, len(categories))
+	awaitDone := make(chan struct{}, len(categories))
+	for i, cat := range categories {
+		go func(idx int, category string) {
+			resp, callErr := svc.ListFeaturedModelAssets(context.Background(), &runtimev1.ListFeaturedModelAssetsRequest{Category: category, PageSize: 80, AwaitRefresh: true})
+			awaitResults[idx] = callResult{resp: resp, err: callErr}
+			awaitDone <- struct{}{}
+		}(i, cat)
+	}
+	close(releaseRemote)
+	for range categories {
+		<-awaitDone
+	}
+	for i, res := range awaitResults {
+		if res.err != nil {
+			t.Fatalf("await %s: %v", categories[i], res.err)
+		}
+		src := res.resp.GetSource()
+		if src.GetFreshness() != runtimev1.ModelAssetSourceFreshness_MODEL_ASSET_SOURCE_FRESHNESS_FRESH ||
+			src.GetGeneration() != generationB.Generation ||
+			src.GetRefreshInProgress() ||
+			len(res.resp.GetItems()) != 1 ||
+			res.resp.GetItems()[0].GetTitle() != "Updated Model B" {
+			t.Fatalf("await %s got source=%+v items=%+v", categories[i], src, res.resp.GetItems())
+		}
+	}
+	if got := requests.Load(); got != 1 {
+		t.Fatalf("remote requests after awaiting background refresh = %d, want 1", got)
+	}
+
+	// Explicit refresh bypasses the round coalesce window and fetches generation C once for all three categories.
+	serveGen.Store(2)
+	explicitFirst, err := svc.ListFeaturedModelAssets(context.Background(), &runtimev1.ListFeaturedModelAssetsRequest{Category: "chat", PageSize: 80, ForceRefresh: true})
+	if err != nil {
+		t.Fatalf("explicit refresh chat: %v", err)
+	}
+	if explicitFirst.GetSource().GetGeneration() != generationC.Generation || explicitFirst.GetItems()[0].GetTitle() != "Explicit Refresh Model C" {
+		t.Fatalf("explicit refresh chat got %+v", explicitFirst)
+	}
+	for _, cat := range []string{"image", "video"} {
+		follow, err := svc.ListFeaturedModelAssets(context.Background(), &runtimev1.ListFeaturedModelAssetsRequest{Category: cat, PageSize: 80, AwaitRefresh: true})
+		if err != nil || follow.GetSource().GetGeneration() != generationC.Generation {
+			t.Fatalf("explicit refresh follow %s got %+v err=%v", cat, follow, err)
+		}
+	}
+	if got := requests.Load(); got != 2 {
+		t.Fatalf("remote requests after explicit refresh = %d, want 2", got)
+	}
+}
+
+func TestListFeaturedModelAssetsColdUnavailableSharesSingleRemoteFetch(t *testing.T) {
+	started := make(chan struct{})
+	release := make(chan struct{})
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		if requests.Add(1) == 1 {
+			close(started)
+			<-release
+		}
+		http.Error(w, "unavailable", http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+	t.Setenv(modelIndexBaseURLEnv, server.URL)
+
+	svc := newTestService(t)
+	t.Cleanup(svc.Close)
+	categories := []string{"chat", "image", "video"}
+	errs := make(chan error, len(categories))
+	resps := make([]*runtimev1.ListFeaturedModelAssetsResponse, len(categories))
+	for i, cat := range categories {
+		go func(idx int, category string) {
+			resp, err := svc.ListFeaturedModelAssets(context.Background(), &runtimev1.ListFeaturedModelAssetsRequest{Category: category, PageSize: 80})
+			resps[idx] = resp
+			errs <- err
+		}(i, cat)
+	}
+	<-started
+	time.Sleep(30 * time.Millisecond)
+	close(release)
+	for range categories {
+		if err := <-errs; err != nil {
+			t.Fatalf("cold unavailable call error: %v", err)
+		}
+	}
+	if got := requests.Load(); got != 1 {
+		t.Fatalf("cold unavailable requests=%d, want 1", got)
+	}
+	for i, resp := range resps {
+		if resp.GetSource().GetAvailability() != runtimev1.ModelAssetSourceAvailability_MODEL_ASSET_SOURCE_AVAILABILITY_UNAVAILABLE ||
+			len(resp.GetItems()) != 0 {
+			t.Fatalf("cold unavailable %s=%+v", categories[i], resp)
+		}
+	}
+
+	// Explicit refresh while cold+offline also shares a single remote fetch across the three categories.
+	explicitFirst, err := svc.ListFeaturedModelAssets(context.Background(), &runtimev1.ListFeaturedModelAssetsRequest{Category: "chat", PageSize: 80, ForceRefresh: true})
+	if err != nil || explicitFirst.GetSource().GetAvailability() != runtimev1.ModelAssetSourceAvailability_MODEL_ASSET_SOURCE_AVAILABILITY_UNAVAILABLE {
+		t.Fatalf("cold explicit refresh chat=%+v err=%v", explicitFirst, err)
+	}
+	for _, cat := range []string{"image", "video"} {
+		follow, followErr := svc.ListFeaturedModelAssets(context.Background(), &runtimev1.ListFeaturedModelAssetsRequest{Category: cat, PageSize: 80, AwaitRefresh: true})
+		if followErr != nil || follow.GetSource().GetAvailability() != runtimev1.ModelAssetSourceAvailability_MODEL_ASSET_SOURCE_AVAILABILITY_UNAVAILABLE {
+			t.Fatalf("cold explicit refresh follow %s=%+v err=%v", cat, follow, followErr)
+		}
+	}
+	if got := requests.Load(); got != 2 {
+		t.Fatalf("cold unavailable requests after explicit refresh=%d, want 2", got)
 	}
 }
