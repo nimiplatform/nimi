@@ -1,4 +1,5 @@
 app_id: nimi.utopia
+version: 0.1.0
 display_name: NimiUtopia
 metadata:
   icon: assets/app-icon.png
