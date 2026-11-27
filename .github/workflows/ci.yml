@@ -175,7 +175,7 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Setup Go for workflow lint
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version-file: runtime/go.mod
           cache: false
@@ -297,7 +297,7 @@ jobs:
 
       - name: Setup Go
         if: needs.changes.outputs.windows_runtime_changed == 'true'
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version-file: runtime/go.mod
           cache-dependency-path: |
@@ -379,7 +379,7 @@ jobs:
 
       - name: Setup Go
         if: needs.changes.outputs.native_runtime_changed == 'true'
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version-file: runtime/go.mod
           cache-dependency-path: runtime/go.sum
@@ -455,7 +455,7 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Setup Go for deterministic Buf
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version-file: runtime/go.mod
           cache: false
@@ -506,7 +506,7 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Setup Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version-file: runtime/go.mod
           cache-dependency-path: |
@@ -576,7 +576,7 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Setup Go for deterministic Buf
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version-file: runtime/go.mod
           cache: false
