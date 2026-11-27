@@ -246,6 +246,7 @@ class ElectronDesktopOpenIntentHost {
       this.descriptorPath,
       descriptor,
       'desktop-open-presence',
+      { durability: 'ephemeral-liveness' },
     );
   }
 

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, realpath, rm, symlink } from 'node:fs/promises';
+import { mkdir, mkdtemp, open, readdir, readFile, realpath, rm, stat, symlink } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -7,7 +7,12 @@ import test from 'node:test';
 import type { NimiDesktopOpenIntentEnvelope } from '@nimiplatform/kit/core/desktop-open';
 import type { AvatarHostHandoffRequest } from '@nimiplatform/kit/features/avatar/headless';
 import {
+  NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+  NIMI_STANDARD_SHELL_COMMANDS,
+} from '@nimiplatform/kit/shell/capabilities';
+import {
   DESKTOP_AGENT_CENTER_RESOURCE_PACK_PLACEMENT_PATH,
+  openElectronDesktopIntent,
   requestElectronAppActivitySourceLaunch,
 } from '@nimiplatform/kit/shell/electron/main';
 import { createDesktopAppActivitySourceLaunch } from '../src-electron/app-activity-source-launch-host';
@@ -18,6 +23,7 @@ import {
   DESKTOP_OPEN_INTENT_EVENT,
   DESKTOP_ZHIYU_RESOURCE_PACK_REDEEM_PATH,
 } from '../src-electron/desktop-open-intent-host';
+import { writeOwnerPrivateAtomicJson } from '../src-electron/owner-private-atomic-json';
 import type { DesktopAvatarHostHandoffDispatch } from '../src-electron/bundled-avatar-host';
 
 const envelope: NimiDesktopOpenIntentEnvelope = {
@@ -539,6 +545,233 @@ test('open-partner-conversation dispatches directly to bundled Zhiyu without foc
     await rm(home, { recursive: true, force: true });
   }
 });
+
+test('Desktop Open periodic liveness presence skips fsync while preserving default durable fsync and stale/auth/readiness/hidden-Home-reveal semantics', async () => {
+  const home = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-desktop-open-presence-')));
+  const descriptorPath = path.join(home, '.nimi', 'run', 'desktop', 'open-intent', 'presence.v1.json');
+  let now = Date.parse('2026-11-27T10:00:00.000Z');
+  let windowVisible = false;
+  const lifecycleEvents: string[] = [];
+  const emitted: NimiDesktopOpenIntentEnvelope[] = [];
+  const diagnostics: string[] = [];
+
+  try {
+    await withFileHandleSyncCounter(async (getSyncCalls) => {
+      const host = await createDesktopElectronOpenIntentHost({
+        homeDirectory: home,
+        now: () => now,
+        heartbeatIntervalMs: 15,
+        readinessTtlMs: 10_000,
+        writeStderr: (line) => { diagnostics.push(line); },
+        focusMainWindow: async () => {
+          windowVisible = true;
+          lifecycleEvents.push('focus-revealed');
+        },
+        emitIntent: (value) => {
+          lifecycleEvents.push('emit-intent');
+          emitted.push(value);
+        },
+      });
+      try {
+        const initialDescriptor = await readPresenceDescriptor(descriptorPath);
+        assert.equal(initialDescriptor.lastHeartbeatAt, '2026-11-27T10:00:00.000Z');
+        assert.equal(getSyncCalls(), 0, 'Desktop Open initial presence write must not fsync');
+
+        // Advance clock across two real periodic heartbeat intervals.
+        now += 3_000;
+        const firstHeartbeat = await waitForPresenceHeartbeat(descriptorPath, '2026-11-27T10:00:03.000Z');
+        now += 3_000;
+        const secondHeartbeat = await waitForPresenceHeartbeat(descriptorPath, '2026-11-27T10:00:06.000Z');
+
+        assert.equal(firstHeartbeat.bridgeId, initialDescriptor.bridgeId);
+        assert.equal(secondHeartbeat.bridgeId, initialDescriptor.bridgeId);
+        assert.equal(secondHeartbeat.endpoint, initialDescriptor.endpoint);
+        assert.equal(secondHeartbeat.token, initialDescriptor.token);
+        assert.equal(secondHeartbeat.startedAt, initialDescriptor.startedAt);
+        assert.equal(getSyncCalls(), 0, 'Desktop Open periodic liveness heartbeats must skip fsync');
+
+        if (process.platform !== 'win32') {
+          assert.equal((await stat(path.dirname(descriptorPath))).mode & 0o777, 0o700);
+          assert.equal((await stat(descriptorPath)).mode & 0o777, 0o600);
+        }
+
+        // Default durable writers using owner-private-atomic-json still fsync.
+        await writeOwnerPrivateAtomicJson(
+          path.join(home, '.nimi', 'run', 'desktop', 'durable-sentinel.json'),
+          { schema: 'durable-sentinel/v1', ok: true },
+          'durable-sentinel',
+        );
+        assert.equal(getSyncCalls(), 1, 'default owner-private atomic JSON write must remain durable');
+
+        // Kit consumer stale endpoint expiration check rejects stale presence without calling fetch.
+        let staleFetchCalled = false;
+        const staleResult = await openElectronDesktopIntent({
+          appId: 'nimi.zhiyu',
+          command: NIMI_STANDARD_SHELL_COMMANDS['desktop-open.openIntent'],
+          payload: {
+            requestId: 'desktop-open-stale-presence',
+            intent: envelope.intent,
+          },
+          host: {
+            capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+            desktopOpen: {
+              descriptorPath,
+              now: () => now + 10_001,
+              fetch: async () => {
+                staleFetchCalled = true;
+                throw new Error('stale descriptor must not invoke fetch');
+              },
+            },
+          },
+        });
+        assert.deepEqual(staleResult, {
+          status: 'rejected',
+          reasonCode: 'desktop-open-desktop-not-running',
+          actionHint: 'open_desktop_first',
+        });
+        assert.equal(staleFetchCalled, false);
+
+        // Loopback bearer credential protection still rejects invalid token without revealing Home.
+        const unauthorized = await post(secondHeartbeat.endpoint, 'wrong-bearer-token', envelope);
+        assert.equal(unauthorized.status, 401);
+        assert.deepEqual(await unauthorized.json(), {
+          status: 'rejected',
+          bridgeId: secondHeartbeat.bridgeId,
+          reasonCode: 'desktop-open-bridge-auth-failed',
+          actionHint: 'check_desktop_runtime_bridge',
+        });
+        assert.equal(windowVisible, false);
+        assert.deepEqual(emitted, []);
+
+        // Renderer readiness check still rejects before ready without revealing hidden Home.
+        const notReadyResult = await openElectronDesktopIntent({
+          appId: 'nimi.zhiyu',
+          command: NIMI_STANDARD_SHELL_COMMANDS['desktop-open.openIntent'],
+          payload: {
+            requestId: envelope.requestId,
+            intent: envelope.intent,
+          },
+          host: {
+            capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+            desktopOpen: {
+              descriptorPath,
+              now: () => now,
+            },
+          },
+        });
+        assert.deepEqual(notReadyResult, {
+          status: 'rejected',
+          reasonCode: 'desktop-open-desktop-not-ready',
+          actionHint: 'wait_for_desktop_ready',
+        });
+        assert.equal(windowVisible, false);
+        assert.deepEqual(emitted, []);
+
+        // Once renderer is ready, Kit consumer reaches loopback with bearer token, reveals hidden Home before emitting intent.
+        host.commandHandlers.desktop_open_intent_set_ready({
+          command: 'desktop_open_intent_set_ready',
+          payload: { ready: true },
+        });
+        const acceptedResult = await openElectronDesktopIntent({
+          appId: 'nimi.zhiyu',
+          command: NIMI_STANDARD_SHELL_COMMANDS['desktop-open.openIntent'],
+          payload: {
+            requestId: envelope.requestId,
+            intent: envelope.intent,
+          },
+          host: {
+            capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+            desktopOpen: {
+              descriptorPath,
+              now: () => now,
+            },
+          },
+        });
+        assert.deepEqual(acceptedResult, {
+          status: 'accepted',
+          confirmation: 'desktop-accepted',
+          bridgeId: secondHeartbeat.bridgeId,
+          requestId: envelope.requestId,
+          appliedTarget: envelope.intent.kind,
+        });
+        assert.equal(windowVisible, true);
+        assert.deepEqual(lifecycleEvents, ['focus-revealed', 'emit-intent']);
+        assert.deepEqual(emitted, [envelope]);
+        assert.equal(diagnostics.length, 1);
+      } finally {
+        await host.shutdown();
+      }
+      assert.deepEqual(await readdir(path.dirname(descriptorPath)), []);
+    });
+  } finally {
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+type PresenceDescriptorSnapshot = {
+  readonly schemaVersion: number;
+  readonly desktopAppId: string;
+  readonly bridgeId: string;
+  readonly endpoint: string;
+  readonly token: string;
+  readonly startedAt: string;
+  readonly lastHeartbeatAt: string;
+};
+
+async function readPresenceDescriptor(descriptorPath: string): Promise<PresenceDescriptorSnapshot> {
+  return JSON.parse(await readFile(descriptorPath, 'utf8')) as PresenceDescriptorSnapshot;
+}
+
+async function waitForPresenceHeartbeat(
+  descriptorPath: string,
+  expectedHeartbeatAt: string,
+  timeoutMs = 3_000,
+): Promise<PresenceDescriptorSnapshot> {
+  const deadline = Date.now() + timeoutMs;
+  let lastSeen = '';
+  while (Date.now() < deadline) {
+    try {
+      const descriptor = await readPresenceDescriptor(descriptorPath);
+      lastSeen = descriptor.lastHeartbeatAt;
+      if (descriptor.lastHeartbeatAt === expectedHeartbeatAt) {
+        return descriptor;
+      }
+    } catch (error) {
+      const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
+      if (code !== 'ENOENT' && code !== 'EPERM' && code !== 'EBUSY') {
+        throw error;
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error(`Timed out waiting for Desktop Open heartbeat ${expectedHeartbeatAt}; last seen ${lastSeen || '<none>'}`);
+}
+
+async function withFileHandleSyncCounter<T>(
+  run: (getSyncCalls: () => number) => Promise<T>,
+): Promise<T> {
+  const probeDir = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-desktop-open-sync-probe-')));
+  const probeFile = path.join(probeDir, 'probe');
+  let proto: { sync: () => Promise<void> };
+  const handle = await open(probeFile, 'w');
+  try {
+    proto = Object.getPrototypeOf(handle) as { sync: () => Promise<void> };
+  } finally {
+    await handle.close();
+    await rm(probeDir, { recursive: true, force: true });
+  }
+  const originalSync = proto.sync;
+  let syncCalls = 0;
+  proto.sync = async function (this: unknown) {
+    syncCalls += 1;
+    return await originalSync.call(this);
+  };
+  try {
+    return await run(() => syncCalls);
+  } finally {
+    proto.sync = originalSync;
+  }
+}
 
 async function post(
   endpoint: string,

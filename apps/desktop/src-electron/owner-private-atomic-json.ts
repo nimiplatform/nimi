@@ -11,11 +11,19 @@ import {
 } from 'node:fs/promises';
 import path from 'node:path';
 
+export type OwnerPrivateAtomicJsonDurability = 'durable' | 'ephemeral-liveness';
+
+export type WriteOwnerPrivateAtomicJsonOptions = {
+  readonly durability?: OwnerPrivateAtomicJsonDurability;
+};
+
 export async function writeOwnerPrivateAtomicJson(
   targetPath: string,
   value: unknown,
   reasonPrefix: string,
+  options?: WriteOwnerPrivateAtomicJsonOptions,
 ): Promise<void> {
+  const durability: OwnerPrivateAtomicJsonDurability = options?.durability ?? 'durable';
   const parent = path.dirname(targetPath);
   await rejectSymlinkAncestry(parent, reasonPrefix);
   await rejectSymlinkIfExists(targetPath, reasonPrefix);
@@ -37,7 +45,9 @@ export async function writeOwnerPrivateAtomicJson(
   );
   try {
     await handle.writeFile(`${JSON.stringify(value, null, 2)}\n`, 'utf8');
-    await handle.sync();
+    if (durability !== 'ephemeral-liveness') {
+      await handle.sync();
+    }
   } catch (error) {
     await handle.close().catch(() => undefined);
     await rm(tempPath, { force: true }).catch(() => undefined);
