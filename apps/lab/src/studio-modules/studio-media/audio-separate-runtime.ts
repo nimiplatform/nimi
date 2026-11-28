@@ -19,8 +19,7 @@ export async function runAudioSeparate(context: StudioCapabilityRuntimeContext) 
       jobId: recoveredJobId, signal: context.input.observationSignal, cancelSignal: signal, onObservation: context.input.onObservation, abortReason: context.host.abortReason, onJobUpdate: context.input.onJobUpdate });
     const projected = await projectStudioArtifactRunnerResult({ ...context, separationSourceAudio: entry.sourceAudio,
       separationRequest: entry.separationRequest }, result);
-    await saveStudioJobRecoveryResult(client.storage.assets, entry.clientSubmissionId, projected, 'audio.separate');
-    return projected;
+    return saveStudioJobRecoveryResult(client.storage.assets, entry.clientSubmissionId, projected, 'audio.separate');
   }
   const invalid = () => context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate('AudioSeparate.configureInputs'));
   if (!parameters?.sourceRelativePath || !parameters.sourceMimeType) return invalid();
@@ -83,8 +82,7 @@ export async function runAudioSeparate(context: StudioCapabilityRuntimeContext) 
     await cleanupRejectedStudioRecoveryEntry(client.storage.assets, 'audio.separate', clientSubmissionId);
   }
   const projected = await projectStudioArtifactRunnerResult({ ...context, separationSourceAudio: sourceAudio, separationRequest }, result);
-  await saveStudioJobRecoveryResult(client.storage.assets, clientSubmissionId, projected, 'audio.separate');
-  return projected;
+  return saveStudioJobRecoveryResult(client.storage.assets, clientSubmissionId, projected, 'audio.separate');
 }
 
 function resolveRange(startSeconds: number | undefined, endSeconds: number | undefined, info: NimiLocalAppAudioInfo) {

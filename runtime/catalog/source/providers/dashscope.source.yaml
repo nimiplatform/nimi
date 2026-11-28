@@ -1,6 +1,7 @@
 schema_version: 3
 provider: dashscope
-catalog_version: 2026-11-28-dashscope-vision-image
+# Saved Cloud targets bind this version. Keep it for this correction to existing models.
+catalog_version: 2026-11-05-dashscope-current-video
 generated_target: runtime/catalog/providers/dashscope.yaml
 runtime:
   inventory_mode: static_source
@@ -847,6 +848,20 @@ models:
       as_of: 2026-04-18
       notes: Current Qwen 3 vision-language plus route on DashScope.
     source_ids: [dashscope_qwen3_vl_plus_context_doc, dashscope_qwen_vl_doc, dashscope_models_catalog_doc, dashscope_models_pricing_doc]
+
+  - model_id: qwen3-vl-flash
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities: [text.generate]
+    features: [input.image]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Current Qwen 3 vision-language flash route on DashScope.
+    source_ids: [dashscope_qwen_vl_doc, dashscope_models_catalog_doc, dashscope_models_pricing_doc]
 
   - model_id: deepseek-v3.2
     model_type: chat

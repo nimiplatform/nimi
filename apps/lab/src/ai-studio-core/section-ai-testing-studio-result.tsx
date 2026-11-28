@@ -417,7 +417,7 @@ export function StudioResult({
         </div>
         <p>{studioNonSuccessReasonUserMessage(operationAborted.reason, t, capability.id)}</p>
         <p className="studio-result__hint">{studioNonSuccessReasonUserAction(operationAborted.reason, t, capability.id, operationAborted.diagnostics)}</p>
-        <KnownJobNotice jobId={operationAborted.jobId} />
+        <KnownJobNotice jobId={operationAborted.jobId} recoveryCleanupUnconfirmed={operationAborted.recoveryCleanupUnconfirmed} />
       </div>
     );
   } else if (canceled) {
@@ -429,7 +429,7 @@ export function StudioResult({
         </div>
         <p>{studioNonSuccessReasonUserMessage(canceled.reason, t)}</p>
         <p className="studio-result__hint">{studioNonSuccessReasonUserAction(canceled.reason, t)}</p>
-        <KnownJobNotice jobId={canceled.jobId} />
+        <KnownJobNotice jobId={canceled.jobId} recoveryCleanupUnconfirmed={canceled.recoveryCleanupUnconfirmed} />
       </div>
     );
   } else if (timedOut) {
@@ -441,7 +441,7 @@ export function StudioResult({
         </div>
         <p>{studioNonSuccessReasonUserMessage(timedOut.reason, t)}</p>
         <p className="studio-result__hint">{studioNonSuccessReasonUserAction(timedOut.reason, t)}</p>
-        <KnownJobNotice jobId={timedOut.jobId} />
+        <KnownJobNotice jobId={timedOut.jobId} recoveryCleanupUnconfirmed={timedOut.recoveryCleanupUnconfirmed} />
       </div>
     );
   } else if (blocked) {
@@ -465,7 +465,7 @@ export function StudioResult({
             {t('NonSuccess.openAIConfig')}
           </Button>
         ) : null}
-        <KnownJobNotice jobId={blocked.jobId} />
+        <KnownJobNotice jobId={blocked.jobId} recoveryCleanupUnconfirmed={blocked.recoveryCleanupUnconfirmed} />
       </div>
     );
   } else if (ready) {

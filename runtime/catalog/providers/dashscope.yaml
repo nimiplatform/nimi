@@ -1,6 +1,6 @@
 version: 1
 provider: dashscope
-catalog_version: 2026-11-28-dashscope-vision-image
+catalog_version: 2026-11-05-dashscope-current-video
 inventory_mode: static_source
 default_text_model: qwen3.7-plus
 models:
@@ -1006,6 +1006,26 @@ models:
     features:
       - input.image
     context_window_tokens: 262144
+  - model_id: qwen3-vl-flash
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-04-18
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-04-18
+      notes: Current Qwen 3 vision-language flash route on DashScope.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/vision/
+      retrieved_at: 2026-06-06
+      note: Qwen vision-language documentation and current VL model guidance.
+    features:
+      - input.image
+    context_window_tokens: 8192
   - model_id: deepseek-v3.2
     provider: dashscope
     model_type: chat

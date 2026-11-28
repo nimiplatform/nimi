@@ -471,7 +471,8 @@
       "spaceNotRecorded": "This older record did not keep its embedding space."
     },
     "job": {
-      "known": "Job {{jobId}} was issued before this outcome. Runtime keeps a Job only for its retention period; saved App assets are the long-term record."
+      "known": "Job {{jobId}} was issued before this outcome. Runtime keeps a Job only for its retention period; saved App assets are the long-term record.",
+      "recoveryCleanupUnconfirmed": "Removal of the recovery record could not be confirmed. If it is still listed, you can remove it manually."
     },
     "stats": {
       "documents": "Documents",

@@ -33,6 +33,33 @@ func TestResolveExactAccountConnectorBindingUsesCommittedTarget(t *testing.T) {
 	}
 }
 
+func TestDashScopeCatalogKeepsPreviouslySavedModelBindings(t *testing.T) {
+	resolver := newCurrentAccountCatalogResolver(t)
+	store := NewConnectorStoreWithMemorySecrets(t.TempDir())
+	record := createConnectorResolutionRecord(t, store, "connector-current", "account-a", runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE, "valid-current-credential")
+	previousSnapshot := aicatalog.CatalogProviderRecord{
+		Provider: "dashscope", Version: 1, CatalogVersion: "2026-11-05-dashscope-current-video", Source: aicatalog.ProviderSourceBuiltin,
+	}
+	for _, modelID := range []string{"qwen3-vl-flash", "qwen3.7-plus", "z-image-turbo"} {
+		t.Run(modelID, func(t *testing.T) {
+			identity := remoteModelCatalogIdentityForConnector(record, previousSnapshot, aicatalog.CatalogModelRecord{
+				Model: aicatalog.ModelEntry{ModelID: modelID},
+			})
+			ref := RemoteModelCatalogRef{
+				ConnectorID: record.ConnectorID, RemoteModelCatalogID: identity.remoteModelCatalogID,
+				ProviderModelID: modelID, Provider: record.Provider,
+			}
+			_, binding, err := ResolveExactAccountConnectorBinding(store, resolver, "account-a", ref)
+			if err != nil {
+				t.Fatalf("saved binding does not resolve: %v", err)
+			}
+			if binding == nil || binding.ProviderModelID != modelID || binding.RemoteModelCatalogID != ref.RemoteModelCatalogID {
+				t.Fatalf("changed exact model binding: %+v", binding)
+			}
+		})
+	}
+}
+
 func TestResolveExactAccountConnectorBindingFailsClosedWithoutExactTarget(t *testing.T) {
 	store := NewConnectorStoreWithMemorySecrets(t.TempDir())
 	createConnectorResolutionRecord(t, store, "connector-current", "account-a", runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE, "valid-current-credential")

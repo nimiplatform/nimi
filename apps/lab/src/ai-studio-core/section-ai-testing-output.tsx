@@ -105,10 +105,16 @@ export function formatTypedOutput(
 
 // A Job the owner already issued stays locatable after a non-success, but
 // Runtime retains it only for its own retention period.
-export function KnownJobNotice({ jobId }: { readonly jobId?: string }) {
+export function KnownJobNotice({ jobId, recoveryCleanupUnconfirmed }: {
+  readonly jobId?: string;
+  readonly recoveryCleanupUnconfirmed?: true;
+}) {
   const { translate: t } = useAIStudioHost();
   if (!jobId) return null;
-  return <p className="studio-result__hint">{t('StudioResults.job.known', { jobId })}</p>;
+  return <>
+    <p className="studio-result__hint">{t('StudioResults.job.known', { jobId })}</p>
+    {recoveryCleanupUnconfirmed ? <p className="studio-result__hint" role="status">{t('StudioResults.job.recoveryCleanupUnconfirmed')}</p> : null}
+  </>;
 }
 
 export function EmbeddingResultBody({ spaceId, retrieval }: { readonly spaceId?: string; readonly retrieval?: StudioEmbeddingRetrieval }) {

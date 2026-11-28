@@ -5,6 +5,7 @@ import { useAIStudioHost } from './host-context.js';
 import type { StudioCapabilityRunResult } from './runtime-types.js';
 import type { StudioRunHistoryRecord } from './history.js';
 import { forgetStudioJobRecovery, readStudioJobRecovery, type StudioJobRecoveryEntry, type StudioJobRecoveryCapability } from './job-recovery.js';
+import { KnownJobNotice } from './section-ai-testing-output.js';
 
 export function StudioJobRecoveryPanel({ disabled, capability = 'music.generate', history, onSelectHistoryRun }: {
   readonly disabled: boolean;
@@ -83,9 +84,10 @@ export function StudioJobRecoveryPanel({ disabled, capability = 'music.generate'
   const visibleEntries = entries.filter((entry) => !entry.result?.ok || !history?.some((record) => (
     record.result?.ok && 'jobId' in record.result && record.result.jobId === entry.jobId
   )));
-  if (!visibleEntries.length && !error && !busy) return null;
+  const failure = result?.ok === false ? result : null;
+  if (!visibleEntries.length && !error && !busy && !failure) return null;
   const summaryState = busy ? t('Music.recovering')
-    : error || (result && !result.ok) ? t('Music.recoveryNeedsAttention')
+    : error || failure ? t('Music.recoveryNeedsAttention')
     : result?.ok ? t('Music.recovered') : '';
   return <details ref={panel} className="studio-recovery" aria-label={t('Music.recoveryTitle')}>
     <summary>
@@ -106,8 +108,11 @@ export function StudioJobRecoveryPanel({ disabled, capability = 'music.generate'
     </div>
     {busy ? <div className="flex items-center gap-2"><span>{t('Music.recovering')}</span><Button size="sm" tone="secondary" onClick={() => abort.current?.abort()}>{t('Music.cancelJob')}</Button></div> : null}
     {error ? <p role="alert">{error}</p> : null}
-    {result && !result.ok ? <p role="alert">{['NOT_FOUND', 'AI_MEDIA_JOB_NOT_FOUND'].includes(result.diagnostics?.reasonCode ?? '')
-      ? t('Music.recoveryJobNotFound') : result.message}</p> : null}
+    {failure ? <>
+      <p role="alert">{['NOT_FOUND', 'AI_MEDIA_JOB_NOT_FOUND'].includes(failure.diagnostics?.reasonCode ?? '')
+        ? t('Music.recoveryJobNotFound') : failure.message}</p>
+      <KnownJobNotice jobId={failure.jobId} recoveryCleanupUnconfirmed={failure.recoveryCleanupUnconfirmed} />
+    </> : null}
     {observationIssue && busy ? <p role="status">{t('Music.observationIssue')}</p> : null}
     {result?.ok ? <p role="status">{t('Music.recovered')}</p> : null}
     </div>

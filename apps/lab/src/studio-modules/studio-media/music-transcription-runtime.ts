@@ -16,8 +16,7 @@ export async function runMusicTranscribe(context: StudioCapabilityRuntimeContext
     const result = await context.host.runners.musicTranscriptionObserve({ runtime: { ai: createStudioScenarioJobClient(context) },
       jobId: recoveredJobId, signal: context.input.observationSignal, cancelSignal: signal, onObservation: context.input.onObservation, abortReason: context.host.abortReason, onJobUpdate: context.input.onJobUpdate });
     const projected = await projectStudioArtifactRunnerResult({ ...context, musicSourceAudio: entry.sourceAudio }, result);
-    await saveStudioJobRecoveryResult(client.storage.assets, entry.clientSubmissionId, projected, 'music.transcribe');
-    return projected;
+    return saveStudioJobRecoveryResult(client.storage.assets, entry.clientSubmissionId, projected, 'music.transcribe');
   }
   const invalid = () => context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate('Transcription.configureInputs'));
   if (!parameters?.sourceRelativePath || !parameters.sourceMimeType || !parameters.requestedFormats?.length || !parameters.requestedPart) return invalid();
@@ -65,6 +64,5 @@ export async function runMusicTranscribe(context: StudioCapabilityRuntimeContext
     await cleanupRejectedStudioRecoveryEntry(client.storage.assets, 'music.transcribe', clientSubmissionId);
   }
   const projected = await projectStudioArtifactRunnerResult({ ...context, musicSourceAudio: sourceAudio }, result);
-  await saveStudioJobRecoveryResult(client.storage.assets, clientSubmissionId, projected, 'music.transcribe');
-  return projected;
+  return saveStudioJobRecoveryResult(client.storage.assets, clientSubmissionId, projected, 'music.transcribe');
 }

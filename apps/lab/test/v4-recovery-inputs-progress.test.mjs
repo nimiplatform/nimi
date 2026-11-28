@@ -34,9 +34,10 @@ await build({
       export * from './src/ai-studio-core/non-success-presentation.ts';
       export * from './src/ai-studio-core/section-ai-testing-input.ts';
       export * from './src/ai-studio-core/text-media-replay.ts';
-      export { runStudioCapability, createStudioScenarioJobClient, submitStudioLocalJob } from './src/ai-studio-core/runtime.ts';
+      export { runStudioCapability, createStudioScenarioJobClient, projectStudioRunnerNonSuccess, submitStudioLocalJob } from './src/ai-studio-core/runtime.ts';
       export { SectionAITesting } from './src/ai-studio-core/section-ai-testing.tsx';
       export { StudioResult } from './src/ai-studio-core/section-ai-testing-studio-result.tsx';
+      export { StudioJobRecoveryPanel } from './src/ai-studio-core/job-recovery-panel.tsx';
       export { AIStudioHostProvider } from './src/ai-studio-core/host-context.tsx';
       export { StudioCapabilityParameterContext } from './src/ai-studio-core/contexts.tsx';
       export { composeAIStudioModules } from './src/ai-studio-core/module-registration.ts';
@@ -150,6 +151,84 @@ test('only a confirmed unsuccessful terminal for the acknowledged job retires it
   assert.equal((await mod.readStudioJobRecovery(assets, 'image.generate')).length, 1);
   await mod.saveStudioJobRecoveryResult(assets, id, { ...result, reason: 'runtime-canceled', terminalJobFailure: true }, 'image.generate');
   assert.deepEqual(await mod.readStudioJobRecovery(assets, 'image.generate'), []);
+});
+
+for (const failureMode of ['thrown', 'returned']) {
+  test(`a ${failureMode} terminal Job failure survives an unsuccessful recovery cleanup`, async () => {
+    const capabilityId = 'image.generate';
+    const jobId = 'job-1';
+    const failure = Object.assign(new Error('Image provider rejected the request'), {
+      reasonCode: 'AI_CONTENT_FILTER_BLOCKED',
+      details: { jobId, scenarioJobStatus: 'FAILED' },
+    });
+    let cleanupAttempts = 0;
+    const { assets } = createCasAssetFixture({
+      onRemove() {
+        cleanupAttempts++;
+        throw new Error('Recovery storage unavailable');
+      },
+    });
+    const result = await mod.runStudioCapability({ capabilityId, prompt: 'cube' }, {
+      appId: 'nimi.lab',
+      surfaceId: 'lab',
+      abortReason: 'cancel',
+      translate: (key) => key,
+      handlers: {
+        [capabilityId]: async (context) => {
+          await mod.submitStudioLocalJob(context, { type: 'image-generate' }, { scenarioType: mod.ScenarioType.IMAGE_GENERATE });
+          if (failureMode === 'thrown') throw failure;
+          return mod.projectStudioRunnerNonSuccess(context, { ok: false, reason: 'runtime-call-failed', message: failure.message, error: failure });
+        },
+      },
+      resolveCapability: () => ({ id: capabilityId, label: 'Image', missingSurface: capabilityId }),
+      inspectRuntime: async () => ({ status: 'connected', mode: 'electron-local-app', detail: 'ok' }),
+      getClient: () => ({ storage: { assets }, ai: { scenarioJobs: { async submit() { return { job: { jobId } }; } } } }),
+      createScenarioId: () => 'sc-image',
+      nonSuccess: (capability, reason, message, diagnostics) => ({ ok: false, capabilityId: capability.id, reason, message, diagnostics }),
+    });
+
+    assert.equal(result.ok, false);
+    assert.equal(result.diagnostics?.reasonCode, failure.reasonCode);
+    assert.match(result.message, /Image provider rejected the request/u);
+    assert.equal(result.jobId, jobId);
+    assert.equal(result.recoveryCleanupUnconfirmed, true);
+    assert.equal(cleanupAttempts, 1);
+    assert.deepEqual((await mod.readStudioJobRecovery(assets, capabilityId)).map(entry => [entry.state, entry.jobId]), [['acknowledged', jobId]]);
+  });
+}
+
+test('the recovery panel keeps the Job failure visible after the recovery entry disappears', async () => {
+  const capability = 'image.generate';
+  const { assets } = createCasAssetFixture();
+  const submission = await mod.beginStudioJobRecovery(assets, capability);
+  await mod.captureStudioJobRecoveryJobId(assets, submission, 'job-1', capability);
+  const host = {
+    translate: (key, values) => values?.jobId ? `${key} ${values.jobId}` : key,
+    locale: 'en',
+    app: { events: { subscribeAIConfigRefresh: () => () => {} } },
+    sdk: {
+      assets,
+      async runCapability() {
+        await mod.forgetStudioJobRecovery(assets, submission, capability);
+        return { ok: false, message: 'Image provider rejected the request', jobId: 'job-1', recoveryCleanupUnconfirmed: true };
+      },
+    },
+  };
+  const container = document.getElementById('root');
+  const renderer = createRoot(container);
+  try {
+    await act(async () => renderer.render(createElement(mod.AIStudioHostProvider, { value: host },
+      createElement(mod.StudioJobRecoveryPanel, { capability, disabled: false }))));
+    const recover = [...container.querySelectorAll('button')].find(button => button.textContent === 'Music.recover');
+    assert.ok(recover);
+    await act(async () => recover.click());
+    assert.equal(container.querySelector('button'), null);
+    assert.equal(container.querySelector('[role="alert"]').textContent, 'Image provider rejected the request');
+    assert.match(container.textContent, /StudioResults\.job\.known job-1/u);
+    assert.match(container.textContent, /StudioResults\.job\.recoveryCleanupUnconfirmed/u);
+  } finally {
+    await act(async () => renderer.unmount());
+  }
 });
 
 test('a rejected submit checks the original id before removing an unacknowledged action', async () => {
@@ -762,7 +841,7 @@ test('LabReasoningControls strictly validates budget drafts, blocks invalid subm
   }
 });
 
-test('ImageFields posture differentiates slot-missing vs unsupported vs ready, and StudioResult renders 0% of 21 steps accurately', async () => {
+test('ImageFields distinguishes input support and StudioResult presents Job progress and failures', async () => {
   const container = document.getElementById('root');
   const renderer = createRoot(container);
   const composition = mod.composeAIStudioModules([mod.studioMediaModule]);
@@ -885,6 +964,23 @@ test('ImageFields posture differentiates slot-missing vs unsupported vs ready, a
       });
       assert.equal(container.querySelector('[role="progressbar"]'), null);
     }
+
+    await act(async () => {
+      renderer.render(createElement(TooltipProvider, null, createElement(mod.AIStudioHostProvider, { value: host },
+        createElement(mod.StudioResult, {
+          ...baseResultProps,
+          running: false,
+          result: {
+            ok: false, capabilityId: 'image.generate', reason: 'runtime-call-failed', message: 'Provider rejected the request',
+            diagnostics: { reasonCode: 'AI_CONTENT_FILTER_BLOCKED' }, jobId: 'job-1', recoveryCleanupUnconfirmed: true,
+          },
+        }))));
+    });
+    assert.match(container.textContent, /NonSuccess\.message\.contentFilterBlocked/u);
+    assert.match(container.textContent, /StudioResults\.job\.known:\{"jobId":"job-1"\}/u);
+    assert.ok([...container.querySelectorAll('[role="status"]')].some(
+      element => element.textContent === 'StudioResults.job.recoveryCleanupUnconfirmed',
+    ));
   } finally {
     await act(async () => renderer.unmount());
   }

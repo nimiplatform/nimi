@@ -184,6 +184,7 @@ export type StudioNonSuccess = {
   readonly diagnostics?: StudioNonSuccessDiagnostics;
   // Owner-confirmed FAILED, CANCELED or TIMEOUT on this exact Job.
   readonly terminalJobFailure?: true;
+  readonly recoveryCleanupUnconfirmed?: true;
   // Present only when the owner had already issued the Job before it ended.
   readonly jobId?: string;
 };

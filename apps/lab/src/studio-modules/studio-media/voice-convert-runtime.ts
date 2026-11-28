@@ -17,8 +17,7 @@ export async function runVoiceConvert(context: StudioCapabilityRuntimeContext) {
     const result = await context.host.runners.voiceConversionObserve({ runtime: { ai: createStudioScenarioJobClient(context) },
       jobId: recoveredJobId, signal: context.input.observationSignal, cancelSignal: signal, onObservation: context.input.onObservation, abortReason: context.host.abortReason, onJobUpdate: context.input.onJobUpdate });
     const projected = await projectStudioArtifactRunnerResult({ ...context, voiceSourceVocal: entry.sourceAudio, voiceTargetAudio: entry.targetAudio }, result);
-    await saveStudioJobRecoveryResult(client.storage.assets, entry.clientSubmissionId, projected, 'audio.voice.convert');
-    return projected;
+    return saveStudioJobRecoveryResult(client.storage.assets, entry.clientSubmissionId, projected, 'audio.voice.convert');
   }
   const invalid = () => context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate('VoiceConvert.configureInputs'));
   const targetKind = parameters?.targetKind;
@@ -111,8 +110,7 @@ export async function runVoiceConvert(context: StudioCapabilityRuntimeContext) {
     await cleanupRejectedStudioRecoveryEntry(client.storage.assets, 'audio.voice.convert', clientSubmissionId);
   }
   const projected = await projectStudioArtifactRunnerResult({ ...context, voiceSourceVocal: sourceVocal, voiceTargetAudio: targetAudio }, result);
-  await saveStudioJobRecoveryResult(client.storage.assets, clientSubmissionId, projected, 'audio.voice.convert');
-  return projected;
+  return saveStudioJobRecoveryResult(client.storage.assets, clientSubmissionId, projected, 'audio.voice.convert');
 }
 
 function resolveRange(startSeconds: number | undefined, endSeconds: number | undefined, info: NimiLocalAppAudioInfo) {

@@ -471,7 +471,8 @@
       "spaceNotRecorded": "这条较早的记录没有保存向量空间。"
     },
     "job": {
-      "known": "任务 {{jobId}} 在此结果前已发出。Runtime 只在保留期内保存任务，长期回看以已保存的 App 资产为准。"
+      "known": "任务 {{jobId}} 在此结果前已发出。Runtime 只在保留期内保存任务，长期回看以已保存的 App 资产为准。",
+      "recoveryCleanupUnconfirmed": "未能确认恢复记录已清除。若记录仍在恢复列表中，可以手动移除。"
     },
     "stats": {
       "documents": "文档",

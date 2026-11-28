@@ -282,16 +282,20 @@ export async function saveStudioJobRecoveryResult(
   id: string,
   result: StudioCapabilityRunResult,
   capability: StudioJobRecoveryCapability = 'music.generate',
-) {
+): Promise<StudioCapabilityRunResult> {
   if (result.capabilityId !== capability) throw new Error('Saved result belongs to a different capability');
   if (!result.ok) {
     if (result.terminalJobFailure && result.jobId) {
-      const current = await recoveryStore(assets, capability).readVersion(id);
-      if (current?.record.state === 'acknowledged' && current.record.jobId === result.jobId) {
-        await forgetStudioJobRecovery(assets, id, capability);
+      try {
+        const current = await recoveryStore(assets, capability).readVersion(id);
+        if (current?.record.state === 'acknowledged' && current.record.jobId === result.jobId) {
+          await forgetStudioJobRecovery(assets, id, capability);
+        }
+      } catch {
+        return { ...result, recoveryCleanupUnconfirmed: true };
       }
     }
-    return;
+    return result;
   }
   if (['music.generate', 'music.transcribe', 'audio.voice.convert', 'audio.separate'].includes(capability) && result.output.kind !== 'artifacts') {
     throw new Error('Recovery requires the complete adopted result');
@@ -325,6 +329,7 @@ export async function saveStudioJobRecoveryResult(
     throw new Error('Task recovery storage is full; explicitly remove completed recovery entries after verifying their saved history.');
   }
   await store.write(next, current.sha256);
+  return result;
 }
 
 export async function forgetStudioJobRecovery(

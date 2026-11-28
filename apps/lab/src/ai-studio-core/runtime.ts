@@ -185,7 +185,7 @@ export async function runStudioCapability(
       const result = await dispatched;
       if (result.ok) studioJobRecoverySignal(input).throwIfAborted();
       if (context.jobActionId && isStudioJobRecoveryCapability(capability.id)) {
-        await saveStudioJobRecoveryResult(context.host.client.storage.assets, context.jobActionId, result, capability.id);
+        return await saveStudioJobRecoveryResult(context.host.client.storage.assets, context.jobActionId, result, capability.id);
       }
       return result;
     }
@@ -208,7 +208,7 @@ export async function runStudioCapability(
   } catch (error) {
     const result = projectStudioRuntimeError(context, error);
     if (result.terminalJobFailure && context.jobActionId && isStudioJobRecoveryCapability(capability.id)) {
-      await saveStudioJobRecoveryResult(context.host.client.storage.assets, context.jobActionId, result, capability.id);
+      return saveStudioJobRecoveryResult(context.host.client.storage.assets, context.jobActionId, result, capability.id);
     }
     return result;
   }
