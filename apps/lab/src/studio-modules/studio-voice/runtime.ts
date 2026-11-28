@@ -165,16 +165,17 @@ async function runVoiceCreate(context: StudioCapabilityRuntimeContext) {
   }
   const parameters = context.input.parameters as StudioVoiceCreateParameters | undefined;
   const creationSource = parameters?.creationSource ?? 'reference-audio';
-  if (!context.prompt && !parameters?.referenceAudioFile) return inputRequired(context);
+  const uri = parameters?.referenceAudioUri?.trim() ?? '';
+  const audio = parameters?.referenceAudioFile;
+  if (creationSource === 'text-description' && !context.prompt) return inputRequired(context);
   if (creationSource === 'reference-audio') {
-    const audio = parameters?.referenceAudioFile;
-    if (!audio || audio.sizeBytes === 0
+    if (Boolean(uri) === Boolean(audio) || (audio && (audio.sizeBytes === 0
       || audio.sizeBytes > MAX_STUDIO_VOICE_REFERENCE_AUDIO_BYTES
-      || !audio.mimeType.startsWith('audio/')) {
+      || !audio.mimeType.startsWith('audio/')))) {
       return context.host.nonSuccess(
         context.capability,
         'input-invalid',
-        'Reference-audio voice creation requires a non-empty audio file up to 20 MiB with an audio MIME type.',
+        context.host.translate('Studio.parameters.voiceReferenceUnsupported'),
       );
     }
   }
@@ -198,9 +199,9 @@ async function runVoiceCreate(context: StudioCapabilityRuntimeContext) {
                 source: {
                   oneofKind: 'referenceAudio',
                   referenceAudio: {
-                    referenceAudioBytes: parameters!.referenceAudioFile!.bytes,
-                    referenceAudioUri: '',
-                    referenceAudioMime: parameters!.referenceAudioFile!.mimeType,
+                    referenceAudioBytes: audio?.bytes ?? new Uint8Array(),
+                    referenceAudioUri: uri,
+                    referenceAudioMime: audio?.mimeType ?? '',
                     languageHints: commaSeparatedTokens(parameters?.languageHints),
                     preferredName: parameters?.preferredName?.trim() ?? '',
                     text: context.prompt,

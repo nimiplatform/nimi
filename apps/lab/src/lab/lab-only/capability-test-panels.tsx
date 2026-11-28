@@ -19,7 +19,7 @@ import {
   type LabVideoFaceSwapParameters,
 } from './face-swap.js';
 import type { LabTextAnnotateParameters } from './text-annotate.js';
-import type { LabTextExchangeParameters } from './text-exchange.js';
+import { supportsLabTextExchange, type LabTextExchangeParameters } from './text-exchange.js';
 import { LabReasoningControls } from './reasoning-controls.js';
 import { isLabUpscaleSource, type LabUpscaleParameters } from './upscale.js';
 
@@ -271,9 +271,9 @@ export function LabTextExchangeParameterPanel(props: StudioParameterPanelProps) 
           value={scenario}
           disabled={props.disabled}
           options={[
-            { value: 'tool-call', label: t('CapabilityTests.textTools.toolScenario') },
-            { value: 'json-object', label: t('CapabilityTests.textTools.jsonObjectScenario') },
-            { value: 'structured-output', label: t('CapabilityTests.textTools.structuredScenario') },
+            { value: 'tool-call', disabled: !supportsLabTextExchange(props.effectiveSelection, 'tool-call', 'sync') && !supportsLabTextExchange(props.effectiveSelection, 'tool-call', 'stream'), label: t('CapabilityTests.textTools.toolScenario') },
+            { value: 'json-object', disabled: !supportsLabTextExchange(props.effectiveSelection, 'json-object', 'sync') && !supportsLabTextExchange(props.effectiveSelection, 'json-object', 'stream'), label: t('CapabilityTests.textTools.jsonObjectScenario') },
+            { value: 'structured-output', disabled: !supportsLabTextExchange(props.effectiveSelection, 'structured-output', 'sync') && !supportsLabTextExchange(props.effectiveSelection, 'structured-output', 'stream'), label: t('CapabilityTests.textTools.structuredScenario') },
           ]}
           onValueChange={(value) => props.onChange({ ...parameters, scenario: value === 'structured-output' || value === 'json-object' ? value : 'tool-call', delivery })}
         />
@@ -283,8 +283,8 @@ export function LabTextExchangeParameterPanel(props: StudioParameterPanelProps) 
           value={delivery}
           disabled={props.disabled}
           options={[
-            { value: 'sync', label: t('CapabilityTests.textTools.syncDelivery') },
-            { value: 'stream', label: t('CapabilityTests.textTools.streamDelivery') },
+            { value: 'sync', disabled: !supportsLabTextExchange(props.effectiveSelection, scenario, 'sync'), label: t('CapabilityTests.textTools.syncDelivery') },
+            { value: 'stream', disabled: !supportsLabTextExchange(props.effectiveSelection, scenario, 'stream'), label: t('CapabilityTests.textTools.streamDelivery') },
           ]}
           onValueChange={(value) => props.onChange({ ...parameters, scenario, delivery: value === 'stream' ? 'stream' : 'sync' })}
         />

@@ -162,7 +162,9 @@ func (s *Service) projectAppAIConfigEffectiveSelections(
 			facts, factsErr := localTextBehaviorIdentityFacts(option.Implementation, identity.RecipeCustody, identity.PortableConfig, identity.Match)
 			if factsErr == nil {
 				selection.TextReplay = projectTextReplay(s.textBehaviorAdapters, facts)
-				selection.ReasoningInput = projectReasoningInput(s.textBehaviorAdapters, facts)
+				adapter := uniqueTextBehaviorAdapter(s.textBehaviorAdapters, facts)
+				selection.ReasoningInput = projectReasoningInput(adapter)
+				selection.StructuredOutput = projectStructuredOutput(adapter)
 			}
 		}
 		result = append(result, selection)
@@ -234,7 +236,9 @@ func (s *Service) projectCloudEffectiveSelection(
 		}
 		if targetReady {
 			selection.TextReplay = projectTextReplay(s.textBehaviorAdapters, facts)
-			selection.ReasoningInput = projectReasoningInput(s.textBehaviorAdapters, facts)
+			adapter := uniqueTextBehaviorAdapter(s.textBehaviorAdapters, facts)
+			selection.ReasoningInput = projectReasoningInput(adapter)
+			selection.StructuredOutput = projectStructuredOutput(adapter)
 		}
 		textBehaviors = projectCloudTextBehaviors(s.textBehaviorAdapters, facts, targetReady)
 	}

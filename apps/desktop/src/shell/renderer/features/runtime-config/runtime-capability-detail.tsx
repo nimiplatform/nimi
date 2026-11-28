@@ -20,7 +20,6 @@ import {
   ArrowRight,
   Bookmark,
   Check,
-  CheckCircle2,
   ChevronRight,
   CircleAlert,
   CircleHelp,
@@ -129,11 +128,11 @@ export function PendingSetupBanner(props: {
     : props.task.status === 'prepared'
       ? 'prepared'
       : 'attention';
-  const Icon = kind === 'preparing' ? LoaderCircle : kind === 'prepared' ? CheckCircle2 : CircleAlert;
+  const Icon = kind === 'preparing' ? LoaderCircle : kind === 'prepared' ? CircleHelp : CircleAlert;
   const iconClass = kind === 'preparing'
     ? 'animate-spin motion-reduce:animate-none text-[var(--nimi-status-info)]'
     : kind === 'prepared'
-      ? 'text-[var(--nimi-status-success)]'
+      ? 'text-[var(--nimi-text-secondary)]'
       : 'text-[var(--nimi-status-warning)]';
   const action = kind === 'preparing' ? 'viewProgress' : kind === 'prepared' ? 'enable' : 'resolve';
   return (
@@ -514,6 +513,7 @@ function SavedLoadoutCard(props: {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <h4 className="text-sm font-semibold leading-snug text-[var(--nimi-text-primary)]">{title}</h4>
+            {!props.current && props.loadout.validationState !== 'configured' ? <StatusBadge tone="warning">{t('runtimeConfig.capabilities.state.attention')}</StatusBadge> : null}
             {props.current ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-[var(--nimi-action-primary-bg)] px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] font-medium text-[var(--nimi-action-primary-text)]">
                 <Check size={12} strokeWidth={2.5} aria-hidden="true" />
@@ -570,7 +570,7 @@ function SavedLoadoutCard(props: {
             <Button
               tone="secondary"
               size="sm"
-              disabled={props.busy || unsupported}
+              disabled={props.busy || unsupported || props.loadout.validationState !== 'configured'}
               data-testid={`capability-loadout-select:${props.loadout.loadoutId}`}
               onClick={props.onSelect}
             >

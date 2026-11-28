@@ -103,6 +103,9 @@ func ExecuteGeminiImageGenerateContent(
 		return nil, nil, "", err
 	}
 
+	if err := geminiMediaBlock(responsePayload); err != nil {
+		return nil, nil, "", err
+	}
 	artifactBytes, _, artifactURI := geminiFinalInlineImage(ctx, responsePayload["candidates"])
 	if len(artifactBytes) == 0 {
 		slog.Warn("Gemini image output invalid", "stage", "final_image")

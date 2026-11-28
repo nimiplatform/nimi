@@ -283,8 +283,16 @@ export async function saveStudioJobRecoveryResult(
   result: StudioCapabilityRunResult,
   capability: StudioJobRecoveryCapability = 'music.generate',
 ) {
-  if (!result.ok) return;
   if (result.capabilityId !== capability) throw new Error('Saved result belongs to a different capability');
+  if (!result.ok) {
+    if (result.terminalJobFailure && result.jobId) {
+      const current = await recoveryStore(assets, capability).readVersion(id);
+      if (current?.record.state === 'acknowledged' && current.record.jobId === result.jobId) {
+        await forgetStudioJobRecovery(assets, id, capability);
+      }
+    }
+    return;
+  }
   if (['music.generate', 'music.transcribe', 'audio.voice.convert', 'audio.separate'].includes(capability) && result.output.kind !== 'artifacts') {
     throw new Error('Recovery requires the complete adopted result');
   }
@@ -400,6 +408,33 @@ export function isDefiniteStudioPreAdmissionRejection(
   return false;
 }
 
+// Some validation codes also occur after a Job was issued. On the submit
+// boundary, resolve the exact idempotency key before discarding its record.
+export async function reconcileStudioSubmitRejection(
+  client: { readonly ai: Pick<NimiLocalAppClient['ai'], 'scenarioJobs'>; readonly storage: { readonly assets: StudioJobRecoveryAssets } },
+  capability: StudioJobRecoveryCapability,
+  id: string,
+  cause: unknown,
+) {
+  const assets = client.storage.assets;
+  if (isDefiniteStudioPreAdmissionRejection(capability, cause)) {
+    await cleanupRejectedStudioRecoveryEntry(assets, capability, id);
+    return;
+  }
+  const reason = normalizedReasonCode(cause);
+  if (!['AI_MEDIA_OPTION_UNSUPPORTED', 'AI_VOICE_INPUT_INVALID', 'AI_VOICE_TARGET_MODEL_MISMATCH',
+    'AI_VOICE_ASSET_NOT_FOUND', 'AI_VOICE_ASSET_EXPIRED', 'AI_ROUTE_UNSUPPORTED', 'AI_INPUT_INVALID',
+    'AI_INPUT_LIMIT_EXCEEDED', 'AI_MEDIA_SPEC_INVALID', 'AI_LOCAL_EXECUTION_LOAD_FAILED'].includes(reason)) return;
+  let found;
+  try {
+    found = await client.ai.scenarioJobs.lookupSubmission(id);
+  } catch (lookupError) {
+    if (normalizedReasonCode(lookupError) === 'AI_MEDIA_JOB_NOT_FOUND') await cleanupRejectedStudioRecoveryEntry(assets, capability, id);
+    return;
+  }
+  await captureStudioJobRecoveryJobId(assets, id, found.job.jobId, capability);
+}
+
 export function isDefiniteUninvokedRunnerRejection(cause: unknown): boolean {
   return normalizedReasonCode(cause) === 'SDK_LOCAL_APP_INPUT_INVALID';
 }
@@ -497,9 +532,7 @@ export function createRecordedStudioScenarioJobSession(
         try {
           response = await api.scenarioJobs.submit(spec, { ...options, clientSubmissionId });
         } catch (cause) {
-          if (isDefiniteStudioPreAdmissionRejection(capability, cause)) {
-            await cleanupRejectedStudioRecoveryEntry(assets, capability, clientSubmissionId);
-          }
+          await reconcileStudioSubmitRejection(context.host.client, capability, clientSubmissionId, cause);
           throw cause;
         }
         // Post-acknowledgement local persistence failure must never remove the recovery record.

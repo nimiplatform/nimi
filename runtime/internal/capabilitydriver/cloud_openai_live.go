@@ -202,10 +202,14 @@ func (s *openAILiveSession) Normalize(raw []byte) ([]CloudRealtimeEvent, error) 
 		Usage *struct {
 			Seconds *float64 `json:"seconds"`
 		} `json:"usage"`
-		Reason string `json:"reason"`
+		Reason string                     `json:"reason"`
+		Error  cloudRealtimeProviderError `json:"error"`
 	}
 	if len(raw) > 1<<20 || json.Unmarshal(raw, &event) != nil {
 		return invalid()
+	}
+	if event.Type == "error" {
+		return []CloudRealtimeEvent{openAIRealtimeFailure(event.Error)}, nil
 	}
 	if event.Type == "session.started" {
 		if !s.validResource(event.Session, true) || (event.ClientEventID != "" && event.ClientEventID != s.startEventID) {
@@ -273,8 +277,6 @@ func (s *openAILiveSession) Normalize(raw []byte) ([]CloudRealtimeEvent, error) 
 			return invalid()
 		}
 		return []CloudRealtimeEvent{{Kind: CloudRealtimeEventSessionClosed, SessionAudioSeconds: &seconds, SessionCloseReason: event.Reason, SessionClosureConfirmed: true}}, nil
-	case "error":
-		return []CloudRealtimeEvent{{Kind: CloudRealtimeEventFailed, ErrorCode: "live-session-error"}}, nil
 	default:
 		// Responses/Decisions and fixture audio are not admitted in this cell.
 		return invalid()

@@ -37,6 +37,10 @@ import {
 } from './ai-realtime-session.js';
 import { LAB_AI_REALTIME_MAX_RECORDING_BYTES, readLabRealtimeRecording, sendLabRealtimeRecordingFrames } from './ai-realtime-recording.js';
 
+function hasReasonCode(message: string, code: string) {
+  return message.toLowerCase().replaceAll('_', '-').includes(code.toLowerCase().replaceAll('_', '-'));
+}
+
 const LabAiConfigSettingsPanel = lazy(async () => ({
   default: (await import('../workbench/lab-ai-config-settings-panel.js')).LabAiConfigSettingsPanel,
 }));
@@ -290,7 +294,7 @@ function LabAiRealtimeSurface({
         </div>
       </header>
       {runTarget.source === 'local' ? <InlineAlert tone="info">{t('CapabilityTests.aiRealtime.localRouteNote')}</InlineAlert> : null}
-      {!runTarget.canDispatch ? <InlineAlert tone="warning">{runTarget.detail}</InlineAlert> : null}
+      {!runTarget.canDispatch && runTarget.status !== 'checking' ? <InlineAlert tone="warning">{runTarget.detail}</InlineAlert> : null}
 
       {phase === 'interrupted' ? <InlineAlert tone="warning">{t('CapabilityTests.aiRealtime.closeUnconfirmed')}</InlineAlert> : null}
       <section className="lab-realtime__card" aria-label={t('CapabilityTests.aiRealtime.openSection')}>
@@ -361,7 +365,7 @@ function LabAiRealtimeSurface({
             </span>
           ) : null}
         </div>
-        {state.terminalReason ? <p className="lab-realtime__meta">{t('StudioResults.session.terminalReason')}: <code>{state.terminalReason}</code></p> : null}
+        {state.terminalReason && !state.error ? <p className="lab-realtime__meta">{t('StudioResults.session.terminalReason')}: <code>{state.terminalReason}</code></p> : null}
         {state.error ? <InlineAlert tone="danger">{state.error}</InlineAlert> : null}
       </section>
 
@@ -456,7 +460,7 @@ function LabAiRealtimeSurface({
             : !recorded.ok ? (
               <InlineAlert tone="danger">
                 {recorded.message}
-                {recorded.diagnostics?.reasonCode ? <> · <code>{recorded.diagnostics.reasonCode}</code></> : null}
+                {recorded.diagnostics?.reasonCode && !hasReasonCode(recorded.message, recorded.diagnostics.reasonCode) ? <> · <code>{recorded.diagnostics.reasonCode}</code></> : null}
                 <KnownJobNotice jobId={recorded.jobId} />
               </InlineAlert>
             ) : null}
@@ -477,7 +481,7 @@ function LabAiRealtimeSurface({
           {reviewedResult && !reviewedResult.ok ? (
             <InlineAlert tone="danger">
               {reviewedResult.message}
-              {reviewedResult.diagnostics?.reasonCode ? <> · <code>{reviewedResult.diagnostics.reasonCode}</code></> : null}
+              {reviewedResult.diagnostics?.reasonCode && !hasReasonCode(reviewedResult.message, reviewedResult.diagnostics.reasonCode) ? <> · <code>{reviewedResult.diagnostics.reasonCode}</code></> : null}
             </InlineAlert>
           ) : null}
         </section>
@@ -486,6 +490,7 @@ function LabAiRealtimeSurface({
       <OverlayShell
         open={configOpen}
         kind="drawer"
+        closeLabel={t('Common.close')}
         size="M"
         title={t('StudioModelConfig.drawerTitle')}
         panelClassName="flex flex-col"

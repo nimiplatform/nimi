@@ -60,6 +60,7 @@
     "sceneLabel": "可交互的 3D 世界",
     "controlHelp": "拖动环顾 · W A S D 移动 · Q / E 下降 / 上升 · Shift 加速。点击场景后可使用键盘控制。",
     "promptRequired": "请描述你想探索的世界。",
+    "observingJob": "正在查询原世界任务 {{jobId}} 的结果。",
     "generating": "正在生成世界并保存资产，可能需要几分钟…",
     "generationFailed": "世界生成失败。",
     "archiveMissing": "已完成的任务没有返回世界资产包。",

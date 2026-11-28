@@ -140,6 +140,31 @@ function createCasAssetFixture(options = {}) {
   return { entries, removed, put, assets };
 }
 
+test('only a confirmed unsuccessful terminal for the acknowledged job retires its recovery record', async () => {
+  const { assets } = createCasAssetFixture();
+  const id = await mod.beginStudioJobRecovery(assets, 'image.generate');
+  await mod.captureStudioJobRecoveryJobId(assets, id, 'job-1', 'image.generate');
+  const result = { ok: false, reason: 'operation-aborted', capabilityId: 'image.generate', jobId: 'job-1' };
+  await mod.saveStudioJobRecoveryResult(assets, id, result, 'image.generate');
+  await mod.saveStudioJobRecoveryResult(assets, id, { ...result, terminalJobFailure: true, jobId: 'other' }, 'image.generate');
+  assert.equal((await mod.readStudioJobRecovery(assets, 'image.generate')).length, 1);
+  await mod.saveStudioJobRecoveryResult(assets, id, { ...result, reason: 'runtime-canceled', terminalJobFailure: true }, 'image.generate');
+  assert.deepEqual(await mod.readStudioJobRecovery(assets, 'image.generate'), []);
+});
+
+test('a rejected submit checks the original id before removing an unacknowledged action', async () => {
+  const { assets } = createCasAssetFixture();
+  const id = await mod.beginStudioJobRecovery(assets, 'video.generate');
+  const rejected = { reasonCode: 'AI_MEDIA_OPTION_UNSUPPORTED' };
+  const reconcile = async (lookupSubmission) => mod.reconcileStudioSubmitRejection(
+    { storage: { assets }, ai: { scenarioJobs: { lookupSubmission } } }, 'video.generate', id, rejected,
+  );
+  await reconcile(async () => { throw new Error('transport unavailable'); });
+  assert.equal((await mod.readStudioJobRecovery(assets, 'video.generate')).length, 1);
+  await reconcile(async selector => { assert.equal(selector, id); throw { reasonCode: 'AI_MEDIA_JOB_NOT_FOUND' }; });
+  assert.deepEqual(await mod.readStudioJobRecovery(assets, 'video.generate'), []);
+});
+
 test('two-phase CAS interleaving 1: concurrent jobId acknowledgement blocks pending->rejected deletion and preserves inputs', async () => {
   const sourceBytes = Uint8Array.of(1, 2, 3, 4);
   let aReadPause;

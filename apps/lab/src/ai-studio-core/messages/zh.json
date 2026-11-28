@@ -14,6 +14,26 @@
     "assetRevealFailed": "无法显示 {{path}} 所在的文件夹。文件未被修改，请在宿主可用后重试。"
   },
   "History": {
+    "paramLabels": {
+      "tone": "语气",
+      "length": "长度",
+      "attachments": "附件数",
+      "temperature": "温度",
+      "maxTokens": "最大输出 Token 数",
+      "topP": "Top P",
+      "topK": "Top K",
+      "stop": "停止序列",
+      "seed": "随机种子",
+      "presencePenalty": "存在惩罚",
+      "frequencyPenalty": "频率惩罚"
+    },
+    "paramGroups": {
+      "prompt": "提示词设置",
+      "generation": "生成默认值",
+      "response": "回复设置",
+      "advanced": "高级设置",
+      "request": "请求参数"
+    },
     "positionLoading": "正在读取这条已保存的结果…",
     "positionUnavailable": "这条已保存的结果不可用。可以重试读取，或后退到其他页面。",
     "title": "历史",
@@ -192,6 +212,8 @@
       "mediaStorageCleanup": "本任务未能确认已上传参考对象的归属或删除结果。"
     },
     "action": {
+      "verifyStoppedRequest": "请先确认原请求的执行结果，再决定是否重试。如果使用了云服务，请同时核对其用量。",
+      "verifyStoppedLocalRequest": "请先确认本机任务已停止，再决定是否重试。",
       "runtimeUnavailable": "返回 Desktop 确认本地 AI 已连接，然后重试。",
       "inputInvalid": "请检查提示词、必填输入和参数，修改后重新运行。",
       "transcriptionInputInvalid": "重新选择可读取的音频，并检查音频格式与转写参数后再运行。",
@@ -205,6 +227,7 @@
       "contentFilterBlocked": "请尝试移除或脱敏受限内容，或调整所选上下文后重新提交。",
       "inputLimitExceeded": "请缩短输入，或配置可接受更长输入的模型，然后重新运行。",
       "textBehaviorUnsupported": "打开「参数」并重置此模型不支持的设置，或在本 App 的 AI 配置中改选支持该行为的模型，再重新运行。",
+      "voiceInputUnsupported": "检查所选模型接受的创建方式。参考音频可能需要 HTTPS 地址，也可以选择支持文件或文字描述的模型。",
       "mediaOptionUnsupported": "打开「参数」重置不受支持的设置后重新运行，也可以在 App AI 配置中选择支持这些设置的模型。",
       "embeddingPurposeUnsupported": "打开「参数」，按任务选择「待检索内容」（建立索引）或「检索问题」（搜索），再重新运行。如果仍不支持该用途，可在 App AI 配置中选择支持它的模型。",
       "modalityUnsupported": "请先修改输入，或在「参数」中重置不受支持的设置后再运行，也可以选择支持这次请求的配置。",
@@ -260,6 +283,7 @@
     "imagePreviewFailed": "无法打开图片预览，请重试。",
     "mediaPreviewFailed": "未能加载已保存的媒体，请重试读取原结果。",
     "closeImagePreview": "关闭图片预览",
+    "outputLimitReached": "模型达到输出长度上限，未返回可见文本。请调高最大 Token 数或清空此设置，再运行一次。",
     "emptyBody": "（空内容）",
     "emptyTranscript": "（空转写）",
     "contextLabel": "上下文",
@@ -345,6 +369,7 @@
       "intentSummary": "下次运行 · {{intent}}",
       "routeLocal": "本地",
       "routeCloud": "云端",
+      "checkingTarget": "正在检查配置",
       "routeUnknown": "路由未知"
     },
     "parameters": {
@@ -381,6 +406,7 @@
       "admissionLabel": "准入",
       "reasonLabel": "原因",
       "traceLabel": "追踪",
+      "jobStatus": { "queued": "任务排队中", "running": "任务执行中" },
       "jobLabel": "Runtime 任务",
       "verboseConsoleNote": "详细控制台：能力 {{capability}}；{{state}}。",
       "verboseTypedSuccess": "类型化成功",
@@ -430,7 +456,7 @@
       "pendingRuntime": "正在准备并生成……",
       "pendingCancel": "正在向 Runtime 请求取消……",
       "progressLabel": "生成进度",
-      "progressSteps": "第 {{current}} / {{total}} 步",
+      "progressSteps": "当前阶段：第 {{current}} / {{total}} 步",
       "runTimeLabel": "运行 / {{time}}",
       "runtimeChip": "AI 生成",
       "createdFromDescription": "文字描述",
@@ -455,6 +481,10 @@
       "questions": "问题"
     },
     "transcript": {
+      "speaker": "说话人",
+      "speakerIntervals": "说话人区间 · {{count}} 段",
+      "moreIntervals": "显示前 {{count}} 段；完整区间可导出为 JSON。",
+      "noSpeakers": "此录音未检出说话人。",
       "title": "语音转写",
       "detectedLanguage": "识别语言：{{language}}",
       "words": "带时间的词",

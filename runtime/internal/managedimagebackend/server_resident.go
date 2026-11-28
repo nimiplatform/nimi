@@ -16,6 +16,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 )
 
 var managedImageBackendGOOS = runtime.GOOS
@@ -86,8 +88,9 @@ type stableDiffusionCPPResident struct {
 }
 
 type managedImageLogCapture struct {
-	mu      sync.Mutex
-	builder strings.Builder
+	mu          sync.Mutex
+	builder     strings.Builder
+	outOfMemory bool
 }
 
 func streamManagedImageCommandOutput(reader io.ReadCloser, stream string, label string, capture *managedImageLogCapture, wg *sync.WaitGroup) {
@@ -254,10 +257,36 @@ func (c *managedImageLogCapture) Append(line string) {
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if localexecution.IsMemoryAllocationFailure(trimmed) {
+		c.outOfMemory = true
+	}
+	const limit = 4096
+	if len(trimmed) >= limit {
+		trimmed = trimmed[len(trimmed)-limit:]
+	}
+	if c.builder.Len()+len(trimmed)+1 > limit {
+		previous := c.builder.String()
+		keep := limit - len(trimmed) - 1
+		c.builder.Reset()
+		if keep > 0 {
+			c.builder.WriteString(previous[len(previous)-keep:])
+		}
+	}
 	if c.builder.Len() > 0 {
 		c.builder.WriteString("\n")
 	}
 	c.builder.WriteString(trimmed)
+}
+
+func (c *managedImageLogCapture) takeAllocationFailure() bool {
+	if c == nil {
+		return false
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	failed := c.outOfMemory
+	c.outOfMemory = false
+	return failed
 }
 
 func (c *managedImageLogCapture) String() string {

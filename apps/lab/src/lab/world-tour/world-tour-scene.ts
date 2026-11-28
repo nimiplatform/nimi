@@ -21,7 +21,7 @@ export function createWorldTourScene(container: HTMLElement, world: WorldTourArc
   const spark = new SparkRenderer({ renderer }); scene.add(spark);
   const splat = new SplatMesh({ fileBytes: world.splatBytes, fileName: 'world.spz' });
   const calibrated = world.calibrationState === 'calibrated';
-  // Spark 2.1's SPZ reader preserves encoded XYZ. RDF/OpenCV needs one X
+  // The SPZ reader preserves encoded XYZ. RDF/OpenCV needs one X
   // half-turn; the declared native SPZ RUB convention already matches Three.
   splat.rotation.x = world.splatCoordinateSystem === 'opencv' ? Math.PI : 0;
   if (calibrated) { splat.scale.setScalar(world.metricScaleFactor); splat.position.y = world.groundPlaneOffset; }

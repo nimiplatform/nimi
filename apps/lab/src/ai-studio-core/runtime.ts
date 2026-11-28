@@ -3,8 +3,7 @@ import {
   beginStudioJobRecovery,
   StudioRecoveryWriteUnconfirmed,
   captureStudioJobRecoveryJobId,
-  cleanupRejectedStudioRecoveryEntry,
-  isDefiniteStudioPreAdmissionRejection,
+  reconcileStudioSubmitRejection,
   isStudioJobRecoveryCapability,
   readStudioJobRecovery,
   recoverStudioJobId,
@@ -13,6 +12,7 @@ import {
   studioJobRecoverySignal,
   type StudioJobRecoveryDetails,
 } from './job-recovery.js';
+import { getNimiRuntimeScenarioJobTerminalStatusFromError } from '@nimiplatform/sdk/runtime';
 import { ScenarioType } from '@nimiplatform/sdk/runtime/generated';
 import {
   runRuntimeAIConsumeCapability,
@@ -206,7 +206,11 @@ export async function runStudioCapability(
       `No Runtime handler is registered for ${capability.id}.`,
     );
   } catch (error) {
-    return projectStudioRuntimeError(context, error);
+    const result = projectStudioRuntimeError(context, error);
+    if (result.terminalJobFailure && context.jobActionId && isStudioJobRecoveryCapability(capability.id)) {
+      await saveStudioJobRecoveryResult(context.host.client.storage.assets, context.jobActionId, result, capability.id);
+    }
+    return result;
   }
 }
 
@@ -226,8 +230,8 @@ export function createStudioScenarioJobClient(context: StudioCapabilityRuntimeCo
     try {
       response = await client.submitScenarioJob({ ...request, idempotencyKey: id }, options);
     } catch (cause) {
-      if (isStudioJobRecoveryCapability(context.capability.id) && isDefiniteStudioPreAdmissionRejection(context.capability.id, cause)) {
-        await cleanupRejectedStudioRecoveryEntry(context.host.client.storage.assets, context.capability.id, id);
+      if (isStudioJobRecoveryCapability(context.capability.id)) {
+        await reconcileStudioSubmitRejection(context.host.client, context.capability.id, id, cause);
       }
       throw cause;
     }
@@ -277,8 +281,8 @@ export async function submitStudioLocalJob(context: StudioCapabilityRuntimeConte
   try {
     response = await context.host.client.ai.scenarioJobs.submit(spec, { clientSubmissionId: id });
   } catch (cause) {
-    if (isStudioJobRecoveryCapability(context.capability.id) && isDefiniteStudioPreAdmissionRejection(context.capability.id, cause)) {
-      await cleanupRejectedStudioRecoveryEntry(context.host.client.storage.assets, context.capability.id, id);
+    if (isStudioJobRecoveryCapability(context.capability.id)) {
+      await reconcileStudioSubmitRejection(context.host.client, context.capability.id, id, cause);
     }
     throw cause;
   }
@@ -460,7 +464,7 @@ function withStudioKnownJob(result: StudioNonSuccess, error: unknown): StudioNon
     ? record.details as { jobId?: unknown } : null;
   const id = details?.jobId;
   return typeof id === 'string' && /^[A-Za-z0-9_.:-]{1,128}$/u.test(id)
-    ? { ...result, jobId: id }
+    ? { ...result, jobId: id, ...(getNimiRuntimeScenarioJobTerminalStatusFromError(error) !== null ? { terminalJobFailure: true as const } : {}) }
     : result;
 }
 

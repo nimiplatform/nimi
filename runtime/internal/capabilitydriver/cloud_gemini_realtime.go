@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"mime"
 	"strings"
 	"sync"
@@ -181,6 +182,7 @@ func (s *geminiRealtimeSession) Normalize(raw []byte) ([]CloudRealtimeEvent, err
 	}
 	c := message.Content
 	if c == nil {
+		slog.Debug("Gemini Live received a control frame without server content", "frame_bytes", len(raw))
 		return nil, nil
 	}
 	var events []CloudRealtimeEvent
@@ -230,6 +232,9 @@ func (s *geminiRealtimeSession) Normalize(raw []byte) ([]CloudRealtimeEvent, err
 	}
 	if c.TurnComplete {
 		events = append(events, CloudRealtimeEvent{Kind: CloudRealtimeEventAudioDone})
+	}
+	if len(events) == 0 {
+		slog.Debug("Gemini Live server content produced no output", "model_turn", c.ModelTurn != nil, "input_transcription", c.Input != nil, "output_transcription", c.Output != nil)
 	}
 	return events, nil
 }

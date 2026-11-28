@@ -305,6 +305,7 @@ export async function collectNimiTextStream(events: AsyncIterable<NimiRunEvent>)
 }
 
 export * from './config';
+export { projectStructuredOutputCapabilities, type NimiStructuredOutputCapabilities } from './capability-configuration.js';
 export {validateAIConfigEdit, validateAIConfigRecord, type NimiAIConfigQuery, type NimiAIConfigRecord, type NimiAIConfigRecordEdit} from './capability-configuration.js';
 export * from './embeddings';
 export * from './runtime-model';

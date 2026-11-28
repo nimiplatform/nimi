@@ -82,6 +82,9 @@ func ExecuteAlibabaNative(
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
+		if modelResolved == capabilitydriver.DashscopeZImageTurbo {
+			return executeDashscopeZImage(ctx, cfg, baseURL, spec)
+		}
 		if isDashscopeQwen3ImageModel(modelResolved) {
 			if len(scenarioExtensionPayloadForScenario(req)) > 0 {
 				return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
@@ -552,7 +555,7 @@ func buildAlibabaImageSubmitRequest(
 		}
 		return submitPath, queryPathTemplate, payload, dashScopeAsyncTaskHeaders()
 	default:
-		// qwen-image-2.0 / z-image / flux image generation follows the
+		// qwen-image-2.0 / flux image generation follows the
 		// synchronous multimodal contract, while wan stays on async tasks.
 		content := []any{
 			map[string]any{

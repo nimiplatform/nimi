@@ -37,7 +37,7 @@ function TextStudioPromptControlFacts({ facts }: { facts: readonly StudioRunProm
 function TextStudioPromptSettings({ activeRun }: { activeRun: TextStudioActiveRun }) {
   const { translate: t } = useAIStudioHost();
   const runConfig = activeRun.record?.runConfig;
-  const facts = runConfig ? getStudioRunPromptControlFacts(runConfig) : [];
+  const facts = runConfig ? getStudioRunPromptControlFacts(runConfig, t) : [];
   const context = (runConfig?.promptControls.context ?? activeRun.context).trim();
   if (facts.length === 0 && !context) return null;
   return (
@@ -70,9 +70,9 @@ function TextStudioRequestSettings({ record }: { record: StudioRunHistoryRecord 
   const { translate: t } = useAIStudioHost();
   const runConfig = record.runConfig;
   const target = runConfig?.target;
-  const paramGroups = runConfig ? groupParamRows(getStudioRunConfigParamRows(runConfig)) : [];
+  const paramGroups = runConfig ? groupParamRows(getStudioRunConfigParamRows(runConfig, undefined, t)) : [];
   const defaults = runConfig && target?.configuredDefaults
-    ? getStudioRunConfigParamRows(runConfig, target.configuredDefaults) : [];
+    ? getStudioRunConfigParamRows(runConfig, target.configuredDefaults, t) : [];
   const snapshot = record.result;
   const jobId = snapshot && 'jobId' in snapshot ? snapshot.jobId : undefined;
   const traceId = runConfig?.traceId ?? (snapshot?.ok ? snapshot.traceId : snapshot?.diagnostics?.traceId);
@@ -314,7 +314,7 @@ function TextStudioHistorySnapshotBody({ snapshot, recordId, submittedParameters
   if (snapshot.kind === 'text') {
     return <div className="studio-result__rich">
       {snapshot.sourceImage ? <ArtifactMediaPreview artifact={snapshot.sourceImage} fallbackLabel={snapshot.sourceImage.displayName || snapshot.sourceImage.relativePath} /> : null}
-      <TextStudioOutputBody text={snapshot.body} />
+      <TextStudioOutputBody text={snapshot.body} finishReason={snapshot.finishReason} />
     </div>;
   }
   if (snapshot.kind === 'transcript') {
@@ -485,6 +485,7 @@ export function TextStudioResultState({
                 createdAt={activeRun.createdAt}
                 intentLabel={intentLabel}
                 streamingText={streamingText}
+                jobId={activeRun.jobId}
                 jobStatus={activeRun.jobStatus}
                 jobProgress={activeRun.jobProgress}
                 verboseConsole={verboseConsole}

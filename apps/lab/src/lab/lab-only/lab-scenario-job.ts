@@ -68,14 +68,16 @@ export async function observeLabScenarioJob(input: {
     if (!full || full.job.jobId !== input.jobId || full.job.status !== 'completed') throw new Error('Completed Job result is missing');
     return { kind: 'completed', job: full.job, response: full };
   } catch (error) {
+    const terminal = getNimiRuntimeScenarioJobTerminalStatusFromError(error) !== null;
     return {
       kind: 'non-success',
-      terminal: getNimiRuntimeScenarioJobTerminalStatusFromError(error) !== null,
+      terminal,
       result: {
         ...input.nonSuccess(input.capability,
           studioNonSuccessReason(runtimeScenarioJobNonSuccessReasonFromError(error)),
           studioRuntimeErrorMessage(error), studioNonSuccessDiagnostics(error)),
         jobId: input.jobId,
+        ...(terminal ? { terminalJobFailure: true as const } : {}),
       },
     };
   }

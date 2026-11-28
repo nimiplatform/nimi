@@ -4,8 +4,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/nimiplatform/nimi/runtime/internal/agentintent"
+	"log/slog"
+	"regexp"
 	"strings"
+
+	"github.com/nimiplatform/nimi/runtime/internal/agentintent"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -124,6 +127,48 @@ func (openAIRealtimeDriver) MapInterrupt(eventID string, responseID string) ([]b
 	return json.Marshal(map[string]any{"event_id": eventID, "type": "response.cancel", "response_id": responseID})
 }
 
+var realtimeProviderCode = regexp.MustCompile(`^[a-z][a-z0-9_]{0,63}$`)
+
+type cloudRealtimeProviderError struct {
+	Code  string `json:"code"`
+	Type  string `json:"type"`
+	Param string `json:"param"`
+}
+
+// Restrict public diagnostics to recognized provider categories. Native error
+// messages can contain submitted input and do not belong in session events.
+func openAIRealtimeFailure(native cloudRealtimeProviderError) CloudRealtimeEvent {
+	for _, category := range []string{native.Code, native.Type} {
+		var reason runtimev1.ReasonCode
+		switch category {
+		case "invalid_api_key", "expired_secret_key", "authentication_error", "permission_denied", "insufficient_permissions":
+			reason = runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED
+		case "model_not_found":
+			reason = runtimev1.ReasonCode_AI_MODEL_NOT_FOUND
+		case "rate_limit_exceeded", "rate_limit_error", "insufficient_quota":
+			reason = runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED
+		case "invalid_request_error", "invalid_value":
+			reason = runtimev1.ReasonCode_AI_INPUT_INVALID
+		default:
+			continue
+		}
+		field := ""
+		switch native.Param {
+		case "model", "session", "session.type", "session.model", "session.audio", "session.audio.input",
+			"session.audio.input.transcription.model", "session.audio.input.format", "session.audio.input.turn_detection",
+			"session.audio.output.format", "session.audio.output.voice", "session.truncation", "session.output_modalities", "session.tools":
+			field = native.Param
+		}
+		code := ""
+		if realtimeProviderCode.MatchString(native.Code) {
+			code = native.Code
+		}
+		slog.Warn("OpenAI realtime session rejected", "category", category, "code", code, "field", field)
+		return CloudRealtimeEvent{Kind: CloudRealtimeEventFailed, ErrorCode: category, FailureReason: reason}
+	}
+	return CloudRealtimeEvent{Kind: CloudRealtimeEventFailed, ErrorCode: "provider_error", FailureReason: runtimev1.ReasonCode_AI_PROVIDER_INTERNAL}
+}
+
 func (openAIRealtimeDriver) NormalizeEvent(raw []byte, expected CloudRealtimeOpen) ([]CloudRealtimeEvent, error) {
 	var event cloudRealtimeServerEvent
 	invalid := func() ([]CloudRealtimeEvent, error) {
@@ -198,7 +243,7 @@ func (openAIRealtimeDriver) NormalizeEvent(raw []byte, expected CloudRealtimeOpe
 			out.Usage = &runtimev1.UsageStats{InputTokens: *event.Response.Usage.InputTokens, OutputTokens: *event.Response.Usage.OutputTokens}
 		}
 	case "error":
-		out.Kind, out.ErrorCode = CloudRealtimeEventFailed, event.Error.Code
+		out = openAIRealtimeFailure(event.Error)
 	default:
 		return nil, nil
 	}

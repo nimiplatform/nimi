@@ -14,6 +14,17 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
+func TestStructuredOutputProjectionUsesExactGeminiAdapter(t *testing.T) {
+	registration := gemini38FlashSchemaBehaviorRegistration()
+	projection := projectStructuredOutput(&registration)
+	if projection == nil || !projection.StrictJsonSchemaSync || projection.StrictJsonSchemaStream || projection.JsonObjectSync || projection.JsonObjectStream {
+		t.Fatalf("unexpected Gemini structured output projection: %+v", projection)
+	}
+	if projectStructuredOutput(nil) != nil {
+		t.Fatal("unconfirmed adapter published a structured output projection")
+	}
+}
+
 func TestProjectCloudTextBehaviorsMatchesExactReviewedAdapters(t *testing.T) {
 	svc := newTestService(nil)
 

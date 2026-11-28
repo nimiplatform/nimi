@@ -311,7 +311,7 @@ export async function* runtimeScenarioStreamToNimiEvents(
     }
     if (!started) {
       started = true;
-      yield { type: 'start', model };
+      yield { type: 'start', model, ...(event.traceId ? { traceId: event.traceId } : {}) };
     }
     if (event.payload.oneofKind === 'delta') {
       const delta = event.payload.delta.delta;

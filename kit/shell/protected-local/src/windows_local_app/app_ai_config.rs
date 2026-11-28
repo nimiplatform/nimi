@@ -311,6 +311,17 @@ pub(super) fn project_effective_selection(
         }
         projected["textReplay"] = json!({"acceptedCarriers": formats});
     }
+    if let Some(input) = selection.structured_output {
+        if capability_contract != "text.generate" || state != "ready" {
+            return Err(untrusted());
+        }
+        projected["structuredOutput"] = json!({
+            "jsonObjectSync": input.json_object_sync,
+            "jsonObjectStream": input.json_object_stream,
+            "strictJsonSchemaSync": input.strict_json_schema_sync,
+            "strictJsonSchemaStream": input.strict_json_schema_stream,
+        });
+    }
     if let Some(input) = selection.reasoning_input {
         if capability_contract != "text.generate" || state != "ready" || !input.follows_model_default
             || input.efforts.iter().any(|v| !matches!(v.as_str(), "model-default" | "minimal" | "low" | "medium" | "high" | "xhigh" | "maximum"))

@@ -16,6 +16,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/endpointsec"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/codes"
 )
@@ -158,6 +159,10 @@ func realtimeProviderURL(endpoint string, model string, modelQuery bool) (string
 func normalizeRealtimeDialError(err error) error {
 	if err == nil {
 		return nil
+	}
+	var handshake *endpointsec.WebSocketHandshakeError
+	if errors.As(err, &handshake) {
+		return nimillm.MapProviderHTTPError(handshake.StatusCode, nil)
 	}
 	if errors.Is(err, endpointsec.ErrWebSocketEndpoint) {
 		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN, err, grpcerr.ReasonOptions{})

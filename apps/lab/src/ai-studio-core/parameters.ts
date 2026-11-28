@@ -1,3 +1,4 @@
+import type { NimiAIConfigEffectiveSelection } from '@nimiplatform/sdk/ai';
 import type { StudioRunHistoryResultSnapshot } from './history.js';
 
 export type StudioRunTargetSource = 'local' | 'cloud' | 'unknown';
@@ -35,7 +36,7 @@ export type StudioParameterContract = {
   readonly initial: () => StudioParameterValue;
   readonly summarize: (parameters: StudioParameterValue) => Readonly<Record<string, unknown>>;
   readonly hasAlternativeInput: (parameters: StudioParameterValue) => boolean;
-  readonly requiredInputIssue?: (parameters: StudioParameterValue) => string | undefined;
+  readonly requiredInputIssue?: (parameters: StudioParameterValue, selection?: NimiAIConfigEffectiveSelection, prompt?: string) => string | undefined;
   readonly presentation: (source: StudioRunTargetSource) => readonly StudioParameterPresentation[];
   readonly project: (source: StudioRunTargetSource, parameters: StudioParameterValue) => StudioParameterValue;
   readonly recordedInput?: StudioRecordedParameterInput;
@@ -49,7 +50,7 @@ export type TypedStudioParameterContract<TParameters extends object> = {
   readonly initial: () => TParameters;
   readonly summarize?: (parameters: TParameters) => Readonly<Record<string, unknown>>;
   readonly hasAlternativeInput?: (parameters: TParameters) => boolean;
-  readonly requiredInputIssue?: (parameters: TParameters) => string | undefined;
+  readonly requiredInputIssue?: (parameters: TParameters, selection?: NimiAIConfigEffectiveSelection, prompt?: string) => string | undefined;
   readonly routeMatrix: StudioParameterRouteMatrix;
   readonly recordedInput?: {
     readonly encode: (parameters: TParameters) => string;
@@ -99,7 +100,7 @@ export function defineStudioParameters<TParameters extends object>(
     : undefined;
   return Object.freeze({
     initial, summarize, hasAlternativeInput, presentation, project,
-    ...(requiredInputIssue ? { requiredInputIssue: (parameters: StudioParameterValue) => requiredInputIssue(parameters as TParameters) } : {}),
+    ...(requiredInputIssue ? { requiredInputIssue: (parameters: StudioParameterValue, selection?: NimiAIConfigEffectiveSelection, prompt?: string) => requiredInputIssue(parameters as TParameters, selection, prompt) } : {}),
     ...(recordedInput ? { recordedInput } : {}),
     ...(typed.restoreRecordedParameters ? { restoreRecordedParameters: (snapshot: Readonly<Record<string, unknown>> | undefined, result?: StudioRunHistoryResultSnapshot, recordedPrompt?: string) => typed.restoreRecordedParameters!(snapshot, result, recordedPrompt) as StudioParameterValue | null } : {}),
   });

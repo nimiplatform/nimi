@@ -909,8 +909,7 @@ describe('public Model Config contract', () => {
     });
     await flush();
     const dialog = document.body.querySelector('[data-testid="nimi-model-picker-dialog"]') as HTMLElement;
-    const picker = dialog.querySelector('[data-nimi-model-config-cloud-connector-picker="true"]') as HTMLElement;
-    expect(picker.textContent).toContain('Select a configured Connector before choosing a model.');
+    expect(dialog.textContent?.match(/Select a configured Connector before choosing a model\./g)).toHaveLength(1);
     expect(dialog.textContent).not.toContain('No models are available for this capability.');
     expect(listOptions.mock.calls.some(([query]) => query.kind === 'cloud-targets')).toBe(false);
 

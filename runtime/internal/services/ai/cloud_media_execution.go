@@ -360,6 +360,18 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 		return nil, err
 	}
 	if effectiveRequest.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE {
+		// DashScope's native TTS contracts require a voice on the wire. Resolve
+		// the omitted choice on the captured effective request only.
+		if spec := effectiveRequest.GetSpec().GetSpeechSynthesize(); mapped.Adapter() == capabilitydriver.CloudMediaAdapterAlibabaNative && spec.GetVoiceRef() == nil {
+			voices, _, _, err := resolveCatalogVoicesForSubject(ctx, target.ProviderModelID(), safeTarget.ProviderType, s.speechCatalog)
+			if err != nil {
+				return nil, err
+			}
+			spec.VoiceRef = &runtimev1.VoiceReference{
+				Kind:      runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET,
+				Reference: &runtimev1.VoiceReference_PresetVoiceId{PresetVoiceId: voices[0].GetVoiceId()},
+			}
+		}
 		if err := validateConnectorTTSModelSupport(
 			ctx,
 			s.logger,

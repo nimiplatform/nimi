@@ -134,6 +134,7 @@ func (d *stableDiffusionCPPDriver) GenerateImage(ctx context.Context, loaded loa
 	}
 
 	startedAt := time.Now()
+	resident.logCapture.takeAllocationFailure()
 	log.Printf("managed image resident request start endpoint=%s model_path=%s width=%d height=%d step=%d cfg_scale=%g sampler=%s scheduler=%s reused_resident=%t",
 		resident.endpoint,
 		strings.TrimSpace(loaded.ModelPath),
@@ -197,6 +198,9 @@ func (d *stableDiffusionCPPDriver) GenerateImage(ctx context.Context, loaded loa
 			queueWaitMs,
 			err,
 		)
+		if resident.logCapture.takeAllocationFailure() && ctx.Err() == nil {
+			return diag, fmt.Errorf("image generation ran out of memory: %w", err)
+		}
 		return diag, err
 	}
 	if len(payload) == 0 {

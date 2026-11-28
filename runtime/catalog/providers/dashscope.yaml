@@ -1,6 +1,6 @@
 version: 1
 provider: dashscope
-catalog_version: 2026-11-05-dashscope-current-video
+catalog_version: 2026-11-28-dashscope-vision-image
 inventory_mode: static_source
 default_text_model: qwen3.7-plus
 models:
@@ -1006,26 +1006,6 @@ models:
     features:
       - input.image
     context_window_tokens: 262144
-  - model_id: qwen3-vl-flash
-    provider: dashscope
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-04-18
-      notes: Current Qwen 3 vision-language flash route on DashScope.
-    source_ref:
-      url: https://help.aliyun.com/zh/model-studio/vision/
-      retrieved_at: 2026-06-06
-      note: Qwen vision-language documentation and current VL model guidance.
-    features:
-      - input.image
-    context_window_tokens: 8192
   - model_id: deepseek-v3.2
     provider: dashscope
     model_type: chat
@@ -1901,7 +1881,7 @@ models:
   - model_id: z-image-turbo
     provider: dashscope
     model_type: image
-    updated_at: 2026-03-07
+    updated_at: 2026-11-28
     capabilities:
       - image.generate
     pricing:
@@ -1909,28 +1889,24 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-07
-      notes: DashScope image generation pricing varies by quality, resolution, and account tier.
+      as_of: 2026-11-28
+      notes: Billed per successful image. This adapter uses the default with prompt rewriting disabled.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-06-06
-      note: DashScope official model pricing and current model listing overview.
-    features:
-      - input.image
-      - input.mask
+      url: https://help.aliyun.com/zh/model-studio/z-image-api-reference
+      retrieved_at: 2026-11-28
+      note: Single PNG from one text prompt using optional dimensions and seed.
     image_request_options:
       response_formats:
-        - b64_json
         - url
       max_images_per_request: 1
-      supports_negative_prompt: true
-      supports_reference_images: true
-      supports_mask: true
+      supports_negative_prompt: false
+      supports_reference_images: false
+      supports_mask: false
       supports_seed: true
       supports_size: true
-      supports_aspect_ratio: true
-      supports_quality: true
-      supports_style: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
   - model_id: wan2.7-image-pro
     provider: dashscope
     model_type: image

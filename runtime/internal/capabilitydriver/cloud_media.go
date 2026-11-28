@@ -708,6 +708,11 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 			return nil, err
 		}
 	}
+	if d.provider == "dashscope" && target.capabilityContract == "image.generate" && target.providerModelID == DashscopeZImageTurbo {
+		if err := validateDashscopeZImage(mapped); err != nil {
+			return nil, err
+		}
+	}
 	if d.provider == "dashscope" && target.capabilityContract == "image.generate" && isDashscopeQwen3ImageModel(target.providerModelID) {
 		if err := validateDashscopeQwen3ImageRequest(mapped.GetSpec().GetImageGenerate()); err != nil {
 			return nil, err
@@ -1520,6 +1525,10 @@ func (providerCloudMediaDriver) NormalizeReason(target CloudMediaTarget, err err
 			// HTTP class (for example a 400 quota, model, or content rejection).
 			if existing, exists := grpcerr.ExtractReasonCode(err); exists && cloudMediaSpecificTransportReason(statusCode, existing) {
 				reason = existing
+			}
+			if statusCode == http.StatusPaymentRequired && reason == runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED {
+				// The transport already carries the account recovery action for a payment rejection.
+				return err
 			}
 			grpcCode := mediaReasonGRPCCode(reason)
 			return grpcerr.WrapWithReasonCode(grpcCode, reason, err, grpcerr.ReasonOptions{Metadata: map[string]string{"provider_http_status": strconv.Itoa(statusCode)}})

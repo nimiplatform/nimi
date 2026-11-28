@@ -140,7 +140,7 @@ legend.studio-parameters__label{ padding: 0; margin-bottom: 6px;}
 .studio-context-chip[aria-expanded="true"],
 .studio-context-chip--attached{ background: var(--nimi-surface-active);}
 .studio-context-chip svg{ color: inherit;}
-.studio-intent-chip{ gap: 6px; min-height: 32px; max-width: min(420px, 100%); padding-inline: 8px; background: var(--nimi-surface-panel); font-size: var(--nimi-type-caption-size); font-weight: var(--nimi-type-label-weight);}
+.studio-intent-chip{ justify-content: flex-start; text-align: left; gap: 6px; min-height: 32px; max-width: min(420px, 100%); padding-inline: 8px; background: var(--nimi-surface-panel); font-size: var(--nimi-type-caption-size); font-weight: var(--nimi-type-label-weight);}
 .studio-intent-chip--static{ cursor: default; }
 .studio-intent-chip svg{ color: inherit;}
 .studio-intent-chip span{ min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}

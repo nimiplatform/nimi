@@ -41,6 +41,7 @@ export type StudioSpeechTranscribeParameters = {
 export type StudioVoiceCreateParameters = {
   creationSource?: 'reference-audio' | 'text-description';
   referenceAudioFile?: StudioAudioFile;
+  referenceAudioUri?: string;
   languageHints?: string;
   preferredName?: string;
   previewText?: string;
@@ -108,8 +109,8 @@ export const studioSpeechTranscribeParameters = defineStudioParameters<StudioSpe
     mimeType: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
     language: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
     timestamps: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
-    diarization: CLOUD_ONLY_STUDIO_PARAMETER,
-    speakerCount: CLOUD_ONLY_STUDIO_PARAMETER,
+    diarization: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
+    speakerCount: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
     prompt: CLOUD_ONLY_STUDIO_PARAMETER,
     responseFormat: LOCAL_TEXT_CLOUD_CONFIGURABLE,
   },
@@ -122,21 +123,44 @@ export const studioSpeechTranscribeParameters = defineStudioParameters<StudioSpe
   hasAlternativeInput: (parameters) => Boolean(parameters.audioFile),
 });
 
+export function voiceReferenceInput(selection?: import('@nimiplatform/sdk/ai').NimiAIConfigEffectiveSelection) {
+  const resource = selection?.resource;
+  return resource?.oneofKind === 'cloud' ? resource.cloud.target.referenceAudioInput
+    : resource?.oneofKind === 'local' ? resource.local.referenceAudioInput : undefined;
+}
+
 export const studioVoiceCreateParameters = defineStudioParameters<StudioVoiceCreateParameters>({
   initial: () => ({ creationSource: 'text-description' }),
   routeMatrix: {
     creationSource: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
     referenceAudioFile: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
+    referenceAudioUri: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
     languageHints: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
     preferredName: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
     previewText: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
     language: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
   },
-  summarize: (parameters) => ({
+  requiredInputIssue: (parameters, selection, prompt) => {
+    if (parameters.creationSource !== 'reference-audio') return undefined;
+    const support = voiceReferenceInput(selection);
+    if (parameters.referenceAudioUri?.trim()) {
+      if (!support?.supportsUri || parameters.referenceAudioFile) return 'Studio.parameters.voiceReferenceUnsupported';
+      try {
+        const url = new URL(parameters.referenceAudioUri.trim());
+        if (url.protocol !== 'https:' || url.username || url.password) return 'Studio.parameters.voiceReferenceUriInvalid';
+      } catch { return 'Studio.parameters.voiceReferenceUriInvalid'; }
+    } else if (!parameters.referenceAudioFile || !support?.supportsBytes) return 'Studio.parameters.voiceReferenceUnsupported';
+    else if (support.mimeTypes.length && !support.mimeTypes.includes(parameters.referenceAudioFile.mimeType)) return 'Studio.parameters.voiceReferenceMimeUnsupported';
+    if (support?.textMode === 'unsupported' && prompt?.trim()) return 'Studio.parameters.voiceReferenceClearText';
+    if (support?.textMode === 'required' && !prompt?.trim()) return 'Studio.parameters.voiceReferenceNeedsText';
+    return undefined;
+  },
+  summarize: ({ referenceAudioUri, ...parameters }) => ({
     ...parameters,
+    ...(referenceAudioUri ? { referenceAudioSource: 'uri' } : {}),
     ...(parameters.referenceAudioFile ? {
       referenceAudioFile: `${parameters.referenceAudioFile.name} (${parameters.referenceAudioFile.sizeBytes} bytes)`,
     } : {}),
   }),
-  hasAlternativeInput: (parameters) => Boolean(parameters.referenceAudioFile),
+  hasAlternativeInput: (parameters) => parameters.creationSource === 'reference-audio' && Boolean(parameters.referenceAudioFile || parameters.referenceAudioUri?.trim()),
 });

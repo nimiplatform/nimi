@@ -7,7 +7,7 @@ import type {
   NimiLocalAppTextTurnItem,
 } from '@nimiplatform/sdk/app';
 import { isJsonObject } from '@nimiplatform/sdk/types';
-import type { NimiRuntimeAIReasoningOptions } from '@nimiplatform/sdk/ai';
+import type { NimiAIConfigEffectiveSelection, NimiRuntimeAIReasoningOptions } from '@nimiplatform/sdk/ai';
 import {
   LOCAL_AND_CLOUD_STUDIO_PARAMETER,
   defineStudioParameters,
@@ -46,6 +46,26 @@ function hasInvalidReasoningBudget(parameters: LabTextExchangeParameters | undef
   return budget !== undefined && (!Number.isSafeInteger(budget) || budget < 1 || budget > 0xffff_ffff);
 }
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.r121
+export function supportsLabTextExchange(
+  selection: NimiAIConfigEffectiveSelection | undefined,
+  scenario: LabTextExchangeScenario,
+  delivery: LabTextExchangeDelivery,
+): boolean {
+  if (selection?.state !== 'ready') return false;
+  if (scenario === 'tool-call') {
+    const resource = selection.resource;
+    const behaviors = resource?.oneofKind === 'local' ? resource.local.textBehaviors
+      : resource?.oneofKind === 'cloud' ? resource.cloud.target.textBehaviors : undefined;
+    const tool = behaviors?.find(entry => entry.kind === 'tool-use' && entry.configurationState === 'configured')?.configuredToolUse;
+    return Boolean(tool?.supportsToolResultRoundTrip && (delivery === 'sync' ? tool.supportsSync : tool.supportsStream));
+  }
+  const formats = selection.structuredOutput;
+  if (!formats) return false;
+  if (scenario === 'json-object') return delivery === 'sync' ? formats.jsonObjectSync : formats.jsonObjectStream;
+  return delivery === 'sync' ? formats.strictJsonSchemaSync : formats.strictJsonSchemaStream;
+}
+
 export const labTextExchangeParameters = defineStudioParameters<LabTextExchangeParameters>({
   initial: () => ({ scenario: 'tool-call', delivery: 'sync' }),
   routeMatrix: {
@@ -59,9 +79,11 @@ export const labTextExchangeParameters = defineStudioParameters<LabTextExchangeP
     ...(parameters.delivery !== undefined ? { delivery: parameters.delivery } : {}),
     ...(parameters.reasoning !== undefined ? { reasoning: parameters.reasoning } : {}),
   }),
-  requiredInputIssue: (parameters) => (
-    hasInvalidReasoningBudget(parameters) ? 'CapabilityTests.reasoning.budgetInvalid' : undefined
-  ),
+  requiredInputIssue: (parameters, selection) => {
+    if (hasInvalidReasoningBudget(parameters)) return 'CapabilityTests.reasoning.budgetInvalid';
+    return supportsLabTextExchange(selection, parameters.scenario ?? 'tool-call', parameters.delivery ?? 'sync')
+      ? undefined : 'CapabilityTests.textTools.unavailableCombination';
+  },
 });
 
 // One fixed, side-effect-free test tool. The App validates its arguments and

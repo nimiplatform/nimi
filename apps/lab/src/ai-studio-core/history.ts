@@ -934,17 +934,17 @@ function pushFact(out: StudioRunPromptControlFact[], label: string, value: strin
   if (normalized) out.push({ label, value: normalized, code });
 }
 
-export function getStudioRunPromptControlFacts(runConfig: StudioRunConfigSnapshot): StudioRunPromptControlFact[] {
+export function getStudioRunPromptControlFacts(runConfig: StudioRunConfigSnapshot, translate?: (key: string) => string): StudioRunPromptControlFact[] {
   const facts: StudioRunPromptControlFact[] = [];
   if (runConfig.promptControls.toneSelected) {
-    pushFact(facts, 'Tone', runConfig.promptControls.tone);
+    pushFact(facts, translate?.('History.paramLabels.tone') ?? 'Tone', runConfig.promptControls.tone);
   }
   if (runConfig.promptControls.lengthSelected) {
-    pushFact(facts, 'Length', runConfig.promptControls.length);
+    pushFact(facts, translate?.('History.paramLabels.length') ?? 'Length', runConfig.promptControls.length);
   }
   if (runConfig.promptControls.attachmentCount > 0) {
     facts.push({
-      label: 'Attachments',
+      label: translate?.('History.paramLabels.attachments') ?? 'Attachments',
       value: String(runConfig.promptControls.attachmentCount),
       code: true,
     });
@@ -998,16 +998,17 @@ function runConfigParamDefinitions(runConfig: StudioRunConfigSnapshot, params: R
   return definitions;
 }
 
-export function getStudioRunConfigParamRows(runConfig: StudioRunConfigSnapshot, params = runConfig.target.params): StudioRunConfigParamRow[] {
+export function getStudioRunConfigParamRows(runConfig: StudioRunConfigSnapshot, params = runConfig.target.params, translate?: (key: string) => string): StudioRunConfigParamRow[] {
   if (!isJsonObject(params)) return [];
   return runConfigParamDefinitions(runConfig, params).flatMap((definition) => {
     const value = params[definition.key];
     if (!hasRunConfigParam(value)) return [];
     const formatted = formatStudioRunConfigValue(value);
     return [{
-      group: definition.group,
+      group: translate?.(`History.paramGroups.${Object.entries(PARAM_GROUP_LABELS).find(([, label]) => label === definition.group)?.[0] ?? 'request'}`) ?? definition.group,
       key: definition.key,
-      label: definition.label,
+      label: translate && TEXT_REQUEST_PARAM_ORDER.some(item => item.key === definition.key)
+        ? translate(`History.paramLabels.${definition.key}`) : definition.label,
       value: formatted.value,
       code: formatted.code,
     }];

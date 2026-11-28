@@ -229,7 +229,11 @@ func (host *TextDecisionExecutionHost) clock() time.Time {
 }
 
 func (host *TextDecisionExecutionHost) RetireModelAsset(id string) (bool, error) {
-	if host == nil || !host.residentModelAssets.uses(id) {
+	return host.releaseResident(id, time.Time{})
+}
+
+func (host *TextDecisionExecutionHost) releaseResident(id string, idleBefore time.Time) (bool, error) {
+	if host == nil || (idleBefore.IsZero() && !host.residentModelAssets.uses(id)) {
 		return true, nil
 	}
 	release, ok := host.lease.tryAcquireIdle()
@@ -237,7 +241,7 @@ func (host *TextDecisionExecutionHost) RetireModelAsset(id string) (bool, error)
 		return false, nil
 	}
 	defer release()
-	return host.residentModelAssets.retire(id, host.stopWorker)
+	return host.residentModelAssets.retire(id, idleBefore, host.stopWorker)
 }
 
 // textDecisionFailure preserves cancellation and deadline ownership and the

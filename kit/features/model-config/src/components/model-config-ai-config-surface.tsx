@@ -548,7 +548,7 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
           className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] gap-3"
           data-nimi-model-config-model-sources="true"
         >
-          {allowedRoutes.includes('local') ? (
+          {allowedRoutes.includes('local') && (!props.loading || configurationObserved) ? (
             <ModelConfigCurrentMachineLocalAction
               capabilityContracts={props.capabilityContracts}
               ownerKey={currentMachineOwnerKey}
@@ -1095,11 +1095,10 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
             cancelLabel: props.copy.cancelLabel,
             confirmLabel: props.copy.confirmSelectionLabel,
           }}
-          renderSourceControls={({ source, isLoading, clearSelection }) => {
-            if (source !== 'cloud') return null;
+          renderSourceControls={({ source, clearSelection }) => {
+            if (source !== 'cloud' || connectors.length === 0) return null;
             return (
               <div className="space-y-2" data-nimi-model-config-cloud-connector-picker="true">
-                {connectors.length > 0 ? (
                   <label className="grid gap-1.5 text-xs font-semibold text-[var(--nimi-text-primary)]">
                     <span>{props.copy.cloudConnectorPickerLabel}</span>
                     <SelectField
@@ -1107,7 +1106,6 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
                       value={pickerConnectorOffered ? pickerConnectorRef : ''}
                       placeholder={props.copy.cloudConnectorPickerPlaceholder}
                       contentLayer="dialog"
-                      disabled={isLoading && connectors.length === 0}
                       options={connectors.filter((entry) => entry.state === 'ready').map((entry) => ({
                         value: entry.connectorRef,
                         label: `${entry.label} · ${entry.provider}`,
@@ -1119,16 +1117,6 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
                       }}
                     />
                   </label>
-                ) : (
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs text-[var(--nimi-text-muted)]">
-                      {isLoading && !cloudError ? props.copy.modelPickerLoadingLabel : cloudError || props.copy.cloudNoConnectorsLabel}
-                    </span>
-                  </div>
-                )}
-                {connectors.length > 0 && !pickerConnectorOffered ? (
-                  <p className="m-0 text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-text-muted)]">{props.copy.cloudConnectorSelectionRequired}</p>
-                ) : null}
               </div>
             );
           }}

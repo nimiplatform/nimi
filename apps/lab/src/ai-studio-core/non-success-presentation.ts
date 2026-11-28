@@ -105,7 +105,7 @@ export function studioNonSuccessReasonUserMessage(reason: string, translate: Stu
   const storage = capabilityId === 'video.generate' ? mediaStorageKeySegment(diagnostics) : '';
   if (storage) return translate(`NonSuccess.message.${storage}`);
   if (capabilityId === 'audio.synthesize' && diagnostics && UNAVAILABLE_VOICE_REASON_CODES.has(diagnostics.reasonCode)) return translate('NonSuccess.message.voiceUnavailable');
-  if (reason === 'input-invalid' && (capabilityId === 'video.generate' || capabilityId === 'music.generate') && !diagnostics && appInputMessage) return appInputMessage;
+  if (reason === 'input-invalid' && (capabilityId === 'video.generate' || capabilityId === 'music.generate' || capabilityId === 'world.generate') && !diagnostics && appInputMessage) return appInputMessage;
   if (reason === 'input-invalid' && capabilityId === 'audio.transcribe') return translate('NonSuccess.message.transcriptionInputInvalid');
   if (capabilityId === 'audio.synthesize' && diagnostics?.reasonCode === VOICE_INPUT_INVALID_REASON_CODE) return translate('NonSuccess.message.voiceInputRequired');
   if (capabilityId === 'audio.synthesize' && diagnostics?.reasonCode === VOICE_TARGET_MISMATCH_REASON_CODE) return translate('NonSuccess.message.voiceTargetMismatch');
@@ -139,7 +139,11 @@ export function studioNonSuccessReasonUserAction(reason: string, translate: Stud
   if (capabilityId === 'audio.synthesize' && diagnostics?.reasonCode === VOICE_INPUT_INVALID_REASON_CODE) return translate('NonSuccess.action.voiceInputRequired');
   if (capabilityId === 'audio.synthesize' && diagnostics?.reasonCode === VOICE_TARGET_MISMATCH_REASON_CODE) return translate('NonSuccess.action.voiceTargetMismatch');
   if (capabilityId === 'vision.locate' && diagnostics?.reasonCode === 'AI_LOCAL_SELECTION_NOT_FOUND') return translate('VisionLocate.selectModelAction');
-  if (isStoppedDirectCall(reason, capabilityId)) return translate('NonSuccess.action.stoppedDirectCall');
+  if (isStoppedDirectCall(reason, capabilityId)) {
+    if (diagnostics?.actionHint === 'confirm_outcome_and_charges_before_new_request') return translate('NonSuccess.action.verifyStoppedRequest');
+    if (diagnostics?.actionHint === 'confirm_local_execution_before_new_request') return translate('NonSuccess.action.verifyStoppedLocalRequest');
+    return translate('NonSuccess.action.stoppedDirectCall');
+  }
   if (diagnostics?.reasonCode === CONTENT_FILTER_BLOCKED_REASON_CODE) return translate('NonSuccess.action.contentFilterBlocked');
   if (diagnostics?.reasonCode === INPUT_LIMIT_EXCEEDED_REASON_CODE) return translate('NonSuccess.action.inputLimitExceeded');
   if (diagnostics?.reasonCode === TEXT_BEHAVIOR_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.action.textBehaviorUnsupported');
@@ -148,6 +152,7 @@ export function studioNonSuccessReasonUserAction(reason: string, translate: Stud
   if (diagnostics?.reasonCode === LOCAL_CONFIGURATION_MISSING_REASON_CODE) return translate('NonSuccess.action.localConfigurationMissing');
   if (capabilityId === 'vision.locate' && diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('VisionLocate.chooseSupportedGeometry');
   if (capabilityId === 'text.embed' && diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.action.embeddingPurposeUnsupported');
+  if (capabilityId === 'voice.create' && diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.action.voiceInputUnsupported');
   if (diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.action.mediaOptionUnsupported');
   if (diagnostics?.reasonCode === MODALITY_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.action.modalityUnsupported');
   if (diagnostics?.reasonCode === PROVIDER_RATE_LIMITED_REASON_CODE) return translate('NonSuccess.action.providerRateLimited');

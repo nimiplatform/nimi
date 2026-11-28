@@ -310,9 +310,7 @@ type cloudRealtimeServerEvent struct {
 			OutputTokens *int64 `json:"output_tokens"`
 		} `json:"usage"`
 	} `json:"response"`
-	Error struct {
-		Code string `json:"code"`
-	} `json:"error"`
+	Error cloudRealtimeProviderError `json:"error"`
 }
 
 type cloudRealtimeOutputItem struct {

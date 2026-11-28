@@ -12,6 +12,9 @@ import (
 	"sync/atomic"
 	"syscall"
 	"unsafe"
+
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"golang.org/x/sys/windows"
 )
 
 const (
@@ -28,6 +31,9 @@ type stableDiffusionVideoFFI struct {
 	freeContext     *syscall.LazyProc
 	supportsVideo   *syscall.LazyProc
 	generateVideo   *syscall.LazyProc
+	setLog          *syscall.LazyProc
+	logCallback     uintptr
+	outOfMemory     atomic.Bool
 	setProgress     *syscall.LazyProc
 	cancelGenerate  *syscall.LazyProc
 	freeVideoResult *syscall.LazyProc
@@ -77,12 +83,19 @@ func newStableDiffusionVideoEngine(executablePath string, _ videoPackageIdentity
 		freeContext:     dll.NewProc("free_sd_ctx"),
 		supportsVideo:   dll.NewProc("sd_ctx_supports_video_generation"),
 		generateVideo:   dll.NewProc("generate_video"),
+		setLog:          dll.NewProc("sd_set_log_callback"),
 		setProgress:     dll.NewProc("sd_set_progress_callback"),
 		cancelGenerate:  dll.NewProc("sd_cancel_generation"),
 		freeVideoResult: dll.NewProc("free_sd_video_generation_result"),
 		strToSample:     dll.NewProc("str_to_sample_method"),
 		strToScheduler:  dll.NewProc("str_to_scheduler"),
 	}
+	engine.logCallback = syscall.NewCallback(func(level uintptr, message *byte, _ uintptr) uintptr {
+		if level >= 2 && message != nil && localexecution.IsMemoryAllocationFailure(windows.BytePtrToString(message)) {
+			engine.outOfMemory.Store(true)
+		}
+		return 0
+	})
 	engine.progressCallback = syscall.NewCallback(func(step, steps, _time, _data uintptr) uintptr {
 		engine.progressMu.RLock()
 		callback := engine.progress
@@ -102,7 +115,7 @@ func (engine *stableDiffusionVideoFFI) Load(request VideoModelRequest) (bool, er
 	if err := engine.dll.Load(); err != nil {
 		return false, videoError(VideoErrorLoad, fmt.Errorf("load stable-diffusion video DLL: %w", err))
 	}
-	for _, proc := range []*syscall.LazyProc{engine.ctxParamsInit, engine.videoParamsInit, engine.newContext, engine.freeContext, engine.supportsVideo, engine.generateVideo, engine.setProgress, engine.cancelGenerate, engine.freeVideoResult, engine.strToSample, engine.strToScheduler} {
+	for _, proc := range []*syscall.LazyProc{engine.ctxParamsInit, engine.videoParamsInit, engine.newContext, engine.freeContext, engine.supportsVideo, engine.generateVideo, engine.setProgress, engine.setLog, engine.cancelGenerate, engine.freeVideoResult, engine.strToSample, engine.strToScheduler} {
 		if err := proc.Find(); err != nil {
 			return false, videoError(VideoErrorEngineIncompatible, fmt.Errorf("stable-diffusion video export %s unavailable: %w", proc.Name, err))
 		}
@@ -193,9 +206,15 @@ func (engine *stableDiffusionVideoFFI) Load(request VideoModelRequest) (bool, er
 			return false, videoError(VideoErrorLoad, fmt.Errorf("encode CPU params backend: %w", err))
 		}
 	}
+	engine.outOfMemory.Store(false)
+	callVideoVoid(engine.setLog, engine.logCallback, 0)
+	defer callVideoVoid(engine.setLog, 0, 0)
 	contextPointer, _, _ := engine.newContext.Call(uintptr(unsafe.Pointer(&params)))
 	runtime.KeepAlive(stringsToKeep)
 	if contextPointer == 0 {
+		if engine.outOfMemory.Load() {
+			return false, videoError(VideoErrorLoad, fmt.Errorf("video model load ran out of memory"))
+		}
 		return false, videoError(VideoErrorLoad, fmt.Errorf("new_sd_ctx returned null"))
 	}
 	if supported, _, _ := engine.supportsVideo.Call(contextPointer); supported == 0 {
@@ -283,6 +302,9 @@ func (engine *stableDiffusionVideoFFI) Generate(request VideoGenerateRequest, pr
 		defer runtime.KeepAlive(reference)
 	}
 
+	engine.outOfMemory.Store(false)
+	callVideoVoid(engine.setLog, engine.logCallback, 0)
+	defer callVideoVoid(engine.setLog, 0, 0)
 	var resultOut *sdVideoGenerationResult
 	success, _, _ := engine.generateVideo.Call(contextPointer, uintptr(unsafe.Pointer(&params)), uintptr(unsafe.Pointer(&resultOut)))
 	runtime.KeepAlive(prompt)
@@ -295,6 +317,9 @@ func (engine *stableDiffusionVideoFFI) Generate(request VideoGenerateRequest, pr
 	if success == 0 {
 		if engine.canceled.Load() {
 			return VideoCandidate{}, videoError(VideoErrorCanceled, fmt.Errorf("stable-diffusion video generation canceled"))
+		}
+		if engine.outOfMemory.Load() {
+			return VideoCandidate{}, videoError(VideoErrorInference, fmt.Errorf("video generation ran out of memory"))
 		}
 		return VideoCandidate{}, videoError(VideoErrorInference, fmt.Errorf("generate_video returned false"))
 	}

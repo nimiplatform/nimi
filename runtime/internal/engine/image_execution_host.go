@@ -346,6 +346,7 @@ func beginImageExecution(ctx context.Context, onStart localexecution.ImageExecut
 
 func (h *ImageExecutionHost) execute(request *imageExecutionRequest) (localexecution.ImageResult, error) {
 	startedAt := time.Now()
+	h.releaseIdlePeersForCUDA(request.plan.DependencySources())
 	h.residentModelAssets.capture(request.plan.ModelFiles())
 	_, err := h.substrate.Ensure(request.ctx, request.plan, func() error {
 		if err := validateInvocationDependencySources(h.substrate, request.plan.DependencySources()); err != nil {

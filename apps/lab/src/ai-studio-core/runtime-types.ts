@@ -182,6 +182,8 @@ export type StudioNonSuccess = {
   readonly actionHint: string;
   readonly missingSurface?: string;
   readonly diagnostics?: StudioNonSuccessDiagnostics;
+  // Owner-confirmed FAILED, CANCELED or TIMEOUT on this exact Job.
+  readonly terminalJobFailure?: true;
   // Present only when the owner had already issued the Job before it ended.
   readonly jobId?: string;
 };

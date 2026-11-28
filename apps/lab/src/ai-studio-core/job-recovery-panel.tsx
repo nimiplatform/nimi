@@ -75,7 +75,7 @@ export function StudioJobRecoveryPanel({ disabled, capability = 'music.generate'
       if (view.signal.aborted) return;
       const record = cause && typeof cause === 'object' ? cause as { reasonCode?: unknown; code?: unknown } : null;
       const code = String(record?.reasonCode ?? record?.code ?? '').toLowerCase().replaceAll('-', '_');
-      setError(code === 'not_found'
+      setError(code === 'not_found' || code === 'ai_media_job_not_found'
         ? t('Music.recoveryJobNotFound') : cause instanceof Error ? cause.message : String(cause));
     }
     finally { if (observation.current === view) { abort.current = null; observation.current = null; if (!view.signal.aborted) setBusy(false); } }
@@ -106,7 +106,7 @@ export function StudioJobRecoveryPanel({ disabled, capability = 'music.generate'
     </div>
     {busy ? <div className="flex items-center gap-2"><span>{t('Music.recovering')}</span><Button size="sm" tone="secondary" onClick={() => abort.current?.abort()}>{t('Music.cancelJob')}</Button></div> : null}
     {error ? <p role="alert">{error}</p> : null}
-    {result && !result.ok ? <p role="alert">{result.diagnostics?.reasonCode === 'NOT_FOUND'
+    {result && !result.ok ? <p role="alert">{['NOT_FOUND', 'AI_MEDIA_JOB_NOT_FOUND'].includes(result.diagnostics?.reasonCode ?? '')
       ? t('Music.recoveryJobNotFound') : result.message}</p> : null}
     {observationIssue && busy ? <p role="status">{t('Music.observationIssue')}</p> : null}
     {result?.ok ? <p role="status">{t('Music.recovered')}</p> : null}

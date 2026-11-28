@@ -1,6 +1,6 @@
 schema_version: 3
 provider: dashscope
-catalog_version: 2026-11-05-dashscope-current-video
+catalog_version: 2026-11-28-dashscope-vision-image
 generated_target: runtime/catalog/providers/dashscope.yaml
 runtime:
   inventory_mode: static_source
@@ -25,6 +25,10 @@ defaults:
     notes: Official document does not provide stable public pricing in a unified schema.
 
 sources:
+  - source_id: dashscope_z_image_api
+    url: https://help.aliyun.com/zh/model-studio/z-image-api-reference
+    retrieved_at: 2026-11-28
+    note: Single PNG from one text prompt using optional dimensions and seed.
   - source_id: dashscope_wan3_video_api
     url: https://help.aliyun.com/zh/model-studio/wan3-video-generation-api-reference
     retrieved_at: 2026-11-05
@@ -844,20 +848,6 @@ models:
       notes: Current Qwen 3 vision-language plus route on DashScope.
     source_ids: [dashscope_qwen3_vl_plus_context_doc, dashscope_qwen_vl_doc, dashscope_models_catalog_doc, dashscope_models_pricing_doc]
 
-  - model_id: qwen3-vl-flash
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities: [text.generate]
-    features: [input.image]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-04-18
-      notes: Current Qwen 3 vision-language flash route on DashScope.
-    source_ids: [dashscope_qwen_vl_doc, dashscope_models_catalog_doc, dashscope_models_pricing_doc]
-
   - model_id: deepseek-v3.2
     model_type: chat
     updated_at: 2026-03-07
@@ -1365,28 +1355,28 @@ models:
 
   - model_id: z-image-turbo
     model_type: image
-    updated_at: 2026-03-07
+    updated_at: 2026-11-28
     capabilities: [image.generate]
-    features: [input.image, input.mask]
+    features: []
     image_request_options:
-      response_formats: [b64_json, url]
+      response_formats: [url]
       max_images_per_request: 1
-      supports_negative_prompt: true
-      supports_reference_images: true
-      supports_mask: true
+      supports_negative_prompt: false
+      supports_reference_images: false
+      supports_mask: false
       supports_seed: true
       supports_size: true
-      supports_aspect_ratio: true
-      supports_quality: true
-      supports_style: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
     pricing:
       unit: request
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-07
-      notes: DashScope image generation pricing varies by quality, resolution, and account tier.
-    source_ids: [dashscope_models_pricing_doc]
+      as_of: 2026-11-28
+      notes: Billed per successful image. This adapter uses the default with prompt rewriting disabled.
+    source_ids: [dashscope_z_image_api, dashscope_models_pricing_doc]
 
   - model_id: wan2.7-image-pro
     model_type: image

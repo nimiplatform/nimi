@@ -227,8 +227,8 @@ async function runWorldTourAction(input: StudioCapabilityRunInput): Promise<Stud
   const mode = String(parameters.inputMode || 'text') as WorldInputMode;
   const source = mode !== 'text' ? worldSource(parameters) : undefined;
   const prompt = input.prompt.trim();
-  if (mode !== 'text' && !source) throw new Error(t('WorldTour.sourceRequired'));
-  if (mode === 'text' && !prompt) throw new Error(t('WorldTour.promptRequired'));
+  if (mode !== 'text' && !source) return capabilityNonSuccess(labWorldTourDescriptor, 'input-invalid', t('WorldTour.sourceRequired'));
+  if (mode === 'text' && !prompt) return capabilityNonSuccess(labWorldTourDescriptor, 'input-invalid', t('WorldTour.promptRequired'));
   abortIfNeeded(input.signal);
   if (!input.recordedRunConfig) throw new Error(t('WorldTour.originalInputUnknown'));
   const request: WorldPendingRequest = JSON.parse(JSON.stringify({
@@ -299,6 +299,7 @@ async function resumeWorldTourAction(signal: AbortSignal, onPartial: (message: s
     await updateWorldPending(assets, pending, resolved);
     pending = resolved;
   }
+  onPartial(t('WorldTour.observingJob', { jobId: pending.jobId }));
   return finishAndRecord(pending, observationSignal, onPartial, signal);
 }
 
@@ -358,7 +359,7 @@ async function finishWorldTourJob(
     cancelReason: 'user canceled',
     signal,
     cancelSignal,
-    onJob: () => onPartial?.(t('WorldTour.generating')),
+    onJob: () => onPartial?.(t('WorldTour.observingJob', { jobId })),
     onJobUpdate,
   });
   if (outcome.kind === 'non-success') {

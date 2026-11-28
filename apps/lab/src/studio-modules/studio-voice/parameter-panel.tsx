@@ -17,6 +17,7 @@ import { useAIStudioHost } from '../../ai-studio-core/host-context.js';
 import {
   MAX_STUDIO_AUDIO_UPLOAD_BYTES,
   MAX_STUDIO_VOICE_REFERENCE_AUDIO_BYTES,
+  voiceReferenceInput,
   type StudioSpeechSynthesizeParameters,
   type StudioSpeechTranscribeParameters,
   type StudioVoiceCreateParameters,
@@ -211,6 +212,7 @@ function VoiceCreateFields(props: StudioParameterPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileError, setFileError] = useState('');
   const creationSource = parameters.creationSource ?? 'reference-audio';
+  const referenceInput = voiceReferenceInput(props.effectiveSelection);
   async function selectFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0];
     event.currentTarget.value = '';
@@ -227,6 +229,7 @@ function VoiceCreateFields(props: StudioParameterPanelProps) {
     setFileError('');
     update({
       ...parameters,
+      referenceAudioUri: undefined,
       referenceAudioFile: {
         name: file.name,
         mimeType,
@@ -251,7 +254,7 @@ function VoiceCreateFields(props: StudioParameterPanelProps) {
             value={creationSource}
             disabled={props.disabled || routeDisabled}
             options={[
-              { value: 'reference-audio', label: t('Studio.parameters.voiceSourceReferenceAudio') },
+              { value: 'reference-audio', disabled: !referenceInput, label: t('Studio.parameters.voiceSourceReferenceAudio') },
               { value: 'text-description', label: t('Studio.parameters.voiceSourceTextDescription') },
             ]}
             onValueChange={(value) => update({ ...parameters, creationSource: value as StudioVoiceCreateParameters['creationSource'] })}
@@ -260,7 +263,7 @@ function VoiceCreateFields(props: StudioParameterPanelProps) {
       ),
     },
     ...(creationSource === 'reference-audio' ? [
-      {
+      ...(referenceInput?.supportsBytes ? [{
         field: 'referenceAudioFile',
         label: t('Studio.parameters.fields.referenceAudioFile'),
         render: (routeDisabled: boolean) => (
@@ -277,7 +280,14 @@ function VoiceCreateFields(props: StudioParameterPanelProps) {
             {fileError ? <small role="alert">{fileError}</small> : null}
           </fieldset>
         ),
-      },
+      }] : []),
+      ...(referenceInput?.supportsUri ? [{
+        field: 'referenceAudioUri',
+        label: t('Studio.parameters.voiceReferenceUri'),
+        render: (routeDisabled: boolean) => <StudioTextParameter current={parameters} field="referenceAudioUri"
+          label={t('Studio.parameters.voiceReferenceUri')} placeholder="https://…" disabled={props.disabled || routeDisabled}
+          onChange={next => update({ ...next, referenceAudioFile: undefined })} />,
+      }] : []),
       textField('languageHints', t('Studio.parameters.fields.languageHints'), 'zh, en'),
     ] : [
       textField('previewText', t('Studio.parameters.fields.previewText')),

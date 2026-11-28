@@ -373,9 +373,13 @@ export function NimiOverview() {
       unavailable: inventory.isError,
     }).state === 'ready',
   );
-  const failed = inventory.tasks.filter(
-    (task) => task.status === 'failed' || task.status === 'needs-attention',
-  );
+  const failed = inventory.tasks.filter(task => {
+    if (task.supersededBy || (task.status !== 'failed' && task.status !== 'needs-attention')) return false;
+    // An App route save can still need attention after the machine model is ready.
+    if (task.source.kind !== 'runtime' || !inventory.data || inventory.isError) return true;
+    const current = capabilityPreparationState({ capability: task.capabilityContract, inventory: inventory.data, tasks: inventory.tasks });
+    return current.task?.taskId === task.taskId && (current.state !== 'ready' || current.replacement);
+  });
   const activeTransfers = downloads?.transfers.filter((item) => !isDownloadTerminal(item.state)) ?? [];
   const activeDownloads: HomeActiveDownloadItem[] = activeTransfers.map((item) => ({
     id: item.installSessionId,

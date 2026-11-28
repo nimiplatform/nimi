@@ -828,8 +828,7 @@ func executionOutOfMemory(err error, diagnostics ...string) bool {
 	}
 	values = append(values, diagnostics...)
 	for _, value := range values {
-		normalized := strings.ToLower(value)
-		if strings.Contains(normalized, "out of memory") || strings.Contains(normalized, "cuda_error_out_of_memory") {
+		if localexecution.IsMemoryAllocationFailure(value) {
 			return true
 		}
 	}

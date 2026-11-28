@@ -2,7 +2,7 @@ import { useContext, useEffect, useRef, useState } from 'react';
 import { StudioHistoryResultContext } from '../../ai-studio-core/contexts.js';
 import type { StudioParameterPanelProps } from '../../ai-studio-core/parameter-fields.js';
 import { WorldTourInputPanel } from './world-tour-input-panel.js';
-import { Button, InlineAlert } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, ProgressIndicator } from '@nimiplatform/kit/ui';
 import { useTranslation } from '../../shell/i18n/index.js';
 import { useLabRendererHost } from '../../renderer/context.js';
 
@@ -54,6 +54,7 @@ export function WorldTourActions(props: StudioParameterPanelProps) {
     <Button tone="secondary" size="sm" disabled={opening} onClick={() => void open()}>{t('WorldTour.openSaved')}</Button>
     <Button tone="secondary" size="sm" disabled={props.disabled || resuming} onClick={() => void resume()}>{t('WorldTour.resume')}</Button>
     {resuming ? <Button tone="secondary" size="sm" onClick={() => abort.current?.abort()}>{t('WorldTour.cancel')}</Button> : null}
+    {resuming ? <ProgressIndicator indeterminate aria-label={t('Studio.result.progressLabel')} /> : null}
     {message ? <p role="status">{message}</p> : null}
     {error ? <InlineAlert tone="warning">{error}</InlineAlert> : null}
   </div>;

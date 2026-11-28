@@ -85,7 +85,14 @@ function describeError(error: unknown): string {
     return t('CapabilityTests.aiRealtime.inputFormatUnsupported');
   }
   const message = error instanceof Error ? error.message : String(error);
-  return typeof reasonCode === 'string' && reasonCode ? `${message} (${reasonCode})` : message;
+  if (typeof reasonCode !== 'string' || !reasonCode) return message;
+  const normalized = reasonCode.toLowerCase().replaceAll('_', '-');
+  if (normalized === 'ai-media-option-unsupported') return t('CapabilityTests.aiRealtime.modeUnsupported', { code: reasonCode });
+  if (message.toLowerCase().replaceAll('_', '-') === normalized) {
+    if (normalized === 'ai-provider-auth-failed') return `${t('NonSuccess.message.providerAuthFailed')} (${reasonCode})`;
+    if (normalized === 'ai-input-invalid') return `${t('NonSuccess.message.inputInvalid')} (${reasonCode})`;
+  }
+  return message.toLowerCase().replaceAll('_', '-').includes(normalized) ? message : `${message} (${reasonCode})`;
 }
 
 function reasonCodeOf(error: unknown, fallback: string): string {

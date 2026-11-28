@@ -2,7 +2,7 @@ import { validateNimiLocalAppVoiceConvertSpec, validateNimiLocalAppVoiceConversi
 import { validateNimiLocalAppMusicTranscribeSpec, validateNimiLocalAppMusicTranscription, runtimeMusicTranscribeSpec, localMusicTranscribeSpec, localMusicTranscription, runtimeMusicTranscription, type NimiLocalAppMusicTranscribeSpec, type NimiLocalAppMusicTranscription } from './local-app-music-transcription.js';
 import { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicGeneration, runtimeMusicGenerateSpec, localMusicGenerateSpec, localMusicGeneration, runtimeMusicGeneration, type NimiLocalAppMusicGenerateSpec, type NimiLocalAppMusicGeneration } from './local-app-music.js';
 import { validateNimiLocalAppTextAnnotationResult, type NimiLocalAppTextAnnotationResult } from './local-app-text-annotation.js';
-import { validateNimiLocalAppSpeechTranscript, type NimiLocalAppSpeechTranscript } from './local-app-transcription.js';
+import { localTranscriptionFromRuntime, validateNimiLocalAppSpeechTranscript, type NimiLocalAppSpeechTranscript } from './local-app-transcription.js';
 import { validateNimiLocalAppSpeakerEmbedding, type NimiLocalAppSpeakerEmbedding } from './local-app-speaker-embedding.js';
 import { validateNimiLocalAppAudioSeparation, localAudioSeparation, runtimeAudioSeparation, type NimiLocalAppAudioSeparation } from './local-app-audio-separation.js';
 import {
@@ -2911,12 +2911,6 @@ function invalidAIInput(reason: string): never {
 
 function adapterInputError(reason: string): never {
   return localAppError(`Runtime Scenario Job cannot use the Local App carrier: ${reason}.`, 'SDK_LOCAL_APP_INPUT_INVALID', 'use_admitted_local_app_scenario_fields');
-}
-
-function localTranscriptionFromRuntime(value: NonNullable<LocalAppScenarioJob['transcription']>): NimiLocalAppSpeechTranscript {
-  const status = value.status === SpeechTranscriptStatus.TRANSCRIBED ? 'transcribed' : value.status === SpeechTranscriptStatus.NO_SPEECH ? 'no-speech' : '';
-  return validateNimiLocalAppSpeechTranscript({ status, text: value.text, language: value.language, words: value.words.map((word) => ({ ...word })),
-    ...(value.diarization ? {diarization:{status:value.diarization.status===SpeechDiarizationStatus.DIARIZED?'diarized':value.diarization.status===SpeechDiarizationStatus.NO_SPEAKERS?'no-speakers':'',durationSeconds:value.diarization.durationSeconds,intervals:value.diarization.intervals.map((interval)=>({...interval}))}} : {}) });
 }
 
 function runtimeTranscriptionFromLocal(value: NimiLocalAppSpeechTranscript | undefined): LocalAppScenarioJob['transcription'] {

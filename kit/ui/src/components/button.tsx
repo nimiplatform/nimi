@@ -102,7 +102,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       {asChild ? (
         <Slottable>{children}</Slottable>
       ) : (
-        <span className="pointer-events-none inline-flex min-w-0 items-center justify-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap">{children}</span>
+        <span className={cn('pointer-events-none min-w-0 overflow-hidden text-ellipsis whitespace-nowrap',
+          typeof children === 'string' || typeof children === 'number' ? 'block' : 'inline-flex items-center justify-center gap-2')}>
+          {children}
+        </span>
       )}
       {trailingIcon ? <span className="nimi-action__trailing pointer-events-none inline-flex shrink-0 items-center justify-center">{trailingIcon}</span> : null}
     </Comp>

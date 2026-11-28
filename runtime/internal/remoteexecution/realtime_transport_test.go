@@ -15,8 +15,25 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/endpointsec"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
+
+func TestRealtimeHandshakeKeepsProviderStatus(t *testing.T) {
+	for status, want := range map[int]runtimev1.ReasonCode{
+		http.StatusUnauthorized:    runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED,
+		http.StatusForbidden:       runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED,
+		http.StatusTooManyRequests: runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED,
+		http.StatusNotFound:        runtimev1.ReasonCode_AI_MODEL_NOT_FOUND,
+	} {
+		err := normalizeRealtimeDialError(&endpointsec.WebSocketHandshakeError{StatusCode: status})
+		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != want {
+			t.Errorf("handshake HTTP %d: got %v; want %v", status, reason, want)
+		}
+	}
+}
 
 func stalledRealtimeTransport(t *testing.T) *providerRealtimeSession {
 	t.Helper()

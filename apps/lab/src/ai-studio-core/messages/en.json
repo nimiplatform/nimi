@@ -14,6 +14,26 @@
     "assetRevealFailed": "The folder could not be shown for {{path}}. The file has not been changed; try again when the host is available."
   },
   "History": {
+    "paramLabels": {
+      "tone": "Tone",
+      "length": "Length",
+      "attachments": "Attachments",
+      "temperature": "Temperature",
+      "maxTokens": "Max tokens",
+      "topP": "Top P",
+      "topK": "Top K",
+      "stop": "Stop sequences",
+      "seed": "Seed",
+      "presencePenalty": "Presence penalty",
+      "frequencyPenalty": "Frequency penalty"
+    },
+    "paramGroups": {
+      "prompt": "Prompt controls",
+      "generation": "Generation defaults",
+      "response": "Response controls",
+      "advanced": "Advanced settings",
+      "request": "Request parameters"
+    },
     "positionLoading": "Reading this saved result…",
     "positionUnavailable": "This saved result is unavailable. Retry reading it or go back to another page.",
     "title": "History",
@@ -192,6 +212,8 @@
       "mediaStorageCleanup": "The task could not confirm ownership or deletion of an uploaded reference object."
     },
     "action": {
+      "verifyStoppedRequest": "Confirm the original outcome before trying again. If the request used a cloud provider, check its usage as well.",
+      "verifyStoppedLocalRequest": "Confirm that local execution has stopped before trying again.",
       "runtimeUnavailable": "Return to Desktop, confirm Local AI is connected, then try again.",
       "inputInvalid": "Review the prompt, required inputs and parameters, correct them, then run it again.",
       "transcriptionInputInvalid": "Choose a readable audio file and check its format and transcription settings before running again.",
@@ -205,6 +227,7 @@
       "contentFilterBlocked": "Try removing or redacting any restricted content, or adjusting the selected context, then submit your request again.",
       "inputLimitExceeded": "Shorten the input, or configure a model that accepts longer input, then run it again.",
       "textBehaviorUnsupported": "Open Parameters and reset the settings this model does not accept, or choose a model that supports this behavior in this App's AI configuration, then run again.",
+      "voiceInputUnsupported": "Check which input the selected model accepts. Reference audio may require an HTTPS URL. Choose a compatible model to use a file or text description.",
       "mediaOptionUnsupported": "Open Parameters and reset the unsupported settings, then run again. You can also choose a model that supports those settings in App AI configuration.",
       "embeddingPurposeUnsupported": "Open Parameters and choose \"Content to search\" when indexing documents or \"Search query\" when searching them, then run again. If that purpose is still unsupported, choose a model that supports it in App AI configuration.",
       "modalityUnsupported": "Change the request inputs or reset the unsupported options in Parameters before running again. You can also choose a configuration that supports the request.",
@@ -260,6 +283,7 @@
     "imagePreviewFailed": "The image preview could not be opened. Please try again.",
     "mediaPreviewFailed": "The saved media could not be loaded. Retry loading the existing result.",
     "closeImagePreview": "Close image preview",
+    "outputLimitReached": "The model reached its output limit before returning visible text. Increase or clear the maximum token count and run again.",
     "emptyBody": "(empty body)",
     "emptyTranscript": "(empty transcript)",
     "contextLabel": "Context",
@@ -345,6 +369,7 @@
       "intentSummary": "Next run · {{intent}}",
       "routeLocal": "Local",
       "routeCloud": "Cloud",
+      "checkingTarget": "Checking configuration",
       "routeUnknown": "Route unknown"
     },
     "parameters": {
@@ -381,6 +406,7 @@
       "admissionLabel": "Admission",
       "reasonLabel": "Reason",
       "traceLabel": "Trace",
+      "jobStatus": { "queued": "Queued", "running": "Running" },
       "jobLabel": "Runtime job",
       "verboseConsoleNote": "Verbose console: capability {{capability}}; {{state}}.",
       "verboseTypedSuccess": "typed success",
@@ -430,7 +456,7 @@
       "pendingRuntime": "Preparing and generating...",
       "pendingCancel": "Requesting cancellation from Runtime…",
       "progressLabel": "Generation progress",
-      "progressSteps": "Step {{current}} of {{total}}",
+      "progressSteps": "Reported stage: step {{current}} of {{total}}",
       "runTimeLabel": "Run / {{time}}",
       "runtimeChip": "AI generation",
       "createdFromDescription": "Text description",
@@ -455,6 +481,10 @@
       "questions": "Questions"
     },
     "transcript": {
+      "speaker": "Speaker",
+      "speakerIntervals": "Speaker intervals · {{count}} segments",
+      "moreIntervals": "Showing the first {{count}} intervals. Export the JSON for the full list.",
+      "noSpeakers": "No speakers were detected in this recording.",
       "title": "Speech transcription",
       "detectedLanguage": "Detected language: {{language}}",
       "words": "Timed words",

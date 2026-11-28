@@ -78,6 +78,7 @@ export function LabVideoFaceSwapSessionLauncher(props: {
       <OverlayShell
         open={open}
         kind="drawer"
+        closeLabel={t('Common.close')}
         size="L"
         title={t('CapabilityTests.videoSession.title')}
         description={t('CapabilityTests.videoSession.description')}

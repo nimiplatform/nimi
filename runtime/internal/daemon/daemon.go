@@ -738,14 +738,27 @@ func (d *Daemon) stopSupervisedEngines(ctx, forceCtx context.Context, reason str
 func (d *Daemon) sampleRuntimeResource(ctx context.Context) {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
+	previous, cpu := time.Now(), runtimeCPUTime()
+	var vram int64
+	var nextGPU time.Time
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-ticker.C:
+		case now := <-ticker.C:
+			if !now.Before(nextGPU) {
+				vram = runtimeVRAMBytes()
+				nextGPU = now.Add(5 * time.Second)
+			}
+			current := runtimeCPUTime()
+			var milli int64
+			if elapsed := now.Sub(previous); elapsed > 0 && current >= cpu && cpu > 0 {
+				milli = int64(1000 * float64(current-cpu) / float64(elapsed))
+			}
+			previous, cpu = now, current
 			var ms runtime.MemStats
 			runtime.ReadMemStats(&ms)
-			d.state.SetResource(0, int64(ms.Alloc), 0)
+			d.state.SetResource(milli, int64(ms.Alloc), vram)
 		}
 	}
 }
@@ -922,6 +935,7 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 			}
 			svc.SetModelAssetHostRetirers(modelAssetHosts...)
 		}
+		engine.ConfigureResidentRelease(ctx, d.logger, modelAssetHosts)
 		// The dependency owner materializes exact codec supply through an
 		// explicit dependency job; requests only resolve verified supply.
 		aiSvc.SetCanonicalAudioPreparation(audiomedia.NewManaged(svc.ResolveMediaCodecDependency), filepath.Join(filepath.Dir(d.cfg.LocalStatePath), "audio-preparation-staging"))

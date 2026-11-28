@@ -20,14 +20,16 @@ test('Runtime counters preserve reported values without invented device capacity
     status: 3, reason: 'ready', cpuMilli: '2500', memoryBytes: String(32 * 1024 ** 3),
     vramBytes: '0', queueDepth: 20, activeInferenceJobs: 2,
   } as GetRuntimeHealthResponse;
-  const html = renderToStaticMarkup(
+  const renderHealth = (snapshot: GetRuntimeHealthResponse) => renderToStaticMarkup(
     <TooltipProvider><DesktopI18nResourceProvider resource={resource}>
-      <RuntimeHealthSection runtimeHealth={health} loading={false} error={null} streamConnected stale={false} streamError={null} onRefresh={() => undefined} />
+      <RuntimeHealthSection runtimeHealth={snapshot} loading={false} error={null} streamConnected stale={false} streamError={null} onRefresh={() => undefined} />
     </DesktopI18nResourceProvider></TooltipProvider>,
   );
+  const html = renderHealth(health);
   assert.match(html, /2\.5 cores/);
   assert.match(html, /32 GB/);
-  assert.match(html, /0 B/);
+  assert.match(html, /No nonzero sample/);
+  assert.match(renderHealth({ ...health, vramBytes: String(3 * 1024 ** 3) }), /3\.0 GB/);
   assert.match(html, />20<\/p>/);
   assert.match(html, /not this computer/);
   assert.match(html, /counter is not sampled/);

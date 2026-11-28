@@ -60,6 +60,9 @@ func geminiLyriaInlineMP3(response map[string]any) ([]byte, error) {
 		return grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID,
 			grpcerr.ReasonOptions{Message: message, ActionHint: actionHint})
 	}
+	if err := geminiMediaBlock(response); err != nil {
+		return nil, err
+	}
 	parts, ok := geminiCompletedCandidateParts(response["candidates"])
 	if !ok {
 		return nil, invalid("Lyria response did not contain exactly one completed candidate with content parts", "inspect_lyria_candidate_completion")

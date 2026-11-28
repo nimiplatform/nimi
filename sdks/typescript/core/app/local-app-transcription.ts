@@ -1,5 +1,24 @@
 import { asRecord, assertExactProjectionKeys, localAppProjectionError } from './local-app-runtime-platform-validation.js';
 
+import { SpeechTranscriptStatus, SpeechDiarizationStatus, type SpeechTranscript } from '../../core-generated/runtime-protobuf/runtime/v1/ai.js';
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.faster-whisper-sherpa-diarization
+export function localTranscriptionFromRuntime(value: SpeechTranscript): NimiLocalAppSpeechTranscript {
+  const status = value.status === SpeechTranscriptStatus.TRANSCRIBED ? 'transcribed'
+    : value.status === SpeechTranscriptStatus.NO_SPEECH ? 'no-speech' : '';
+  const source = value.diarization;
+  return validateNimiLocalAppSpeechTranscript({
+    status, text: value.text, language: value.language,
+    words: value.words.map(({ text, startSeconds, endSeconds }) => ({ text, startSeconds, endSeconds })),
+    ...(source ? { diarization: {
+      status: source.status === SpeechDiarizationStatus.DIARIZED ? 'diarized'
+        : source.status === SpeechDiarizationStatus.NO_SPEAKERS ? 'no-speakers' : '',
+      durationSeconds: source.durationSeconds,
+      intervals: source.intervals.map(({ speakerId, startSeconds, endSeconds }) => ({ speakerId, startSeconds, endSeconds })),
+    } } : {}),
+  });
+}
+
 const utf8Length = (value: string) => new TextEncoder().encode(value).length;
 
 export type NimiLocalAppSpeechTranscript = {

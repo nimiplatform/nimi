@@ -64,6 +64,23 @@ func TestQwen38RealtimeNestedAudioAndOwnedTurns(t *testing.T) {
 	}
 }
 
+func TestQwen38ManualSessionMayOmitDisabledTurnDetection(t *testing.T) {
+	protocol, _ := qwen38RealtimeFixture(t, runtimev1.AiRealtimeTurnDetectionMode_AI_REALTIME_TURN_DETECTION_MODE_MANUAL)
+	var body map[string]any
+	if err := json.Unmarshal([]byte(qwen38Ready), &body); err != nil {
+		t.Fatal(err)
+	}
+	delete(body["session"].(map[string]any), "turn_detection")
+	wire, err := json.Marshal(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	events, err := protocol.Normalize(wire)
+	if err != nil || len(events) != 1 || events[0].Kind != CloudRealtimeEventReady {
+		t.Fatalf("manual session acknowledgement: %+v, %v", events, err)
+	}
+}
+
 func TestQwen38RealtimeRejectsWrongNativeNegotiation(t *testing.T) {
 	for _, mutation := range []struct {
 		name  string

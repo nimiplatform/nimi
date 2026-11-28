@@ -229,7 +229,6 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
     item => item.capabilityContract === visibleCapability,
   ) ?? [];
   // Every saved configuration keeps its own identity and settings entry.
-  const saved = allCapabilityLoadouts.filter(item => item.validationState === 'configured');
   // Files on this device are a preparation hint, never a readiness claim.
   const downloadedRecipe =
     visibleCapability && status?.state === 'unset'
@@ -806,7 +805,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                   capability={visibleCapability}
                   selected={selected}
                   downloadedRecipe={downloadedRecipe ?? undefined}
-                  loadouts={saved}
+                  loadouts={allCapabilityLoadouts}
                   hasAnyLoadouts={allCapabilityLoadouts.length > 0}
                   recipes={recipes}
                   catalog={library.data?.catalog ?? []}

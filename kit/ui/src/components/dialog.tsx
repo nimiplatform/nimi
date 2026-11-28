@@ -1,5 +1,7 @@
 import React, { createContext, useContext, type CSSProperties, type ReactNode } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { X } from 'lucide-react';
+import { IconButton } from './button.js';
 import { cn } from '../design-tokens.js';
 import {
   AnimatePresence,
@@ -234,6 +236,7 @@ const OVERLAY_SHELL_MAX_WIDTH = 'calc(100vw - 32px)';
 type OverlayShellProps = {
   open: boolean;
   kind?: OverlayShellKind;
+  closeLabel?: string;
   /** Edge axis for `kind="drawer"`. Defaults to `'right'`. */
   side?: 'left' | 'right';
   size?: OverlayShellSize;
@@ -268,6 +271,7 @@ function OverlayShellPresenceLayer({
   backdropMotion,
   description,
   handleCloseAutoFocus,
+  onClose,
   closeOnBackdrop,
   resolvedDataTestId,
   defaultWidthClass,
@@ -285,6 +289,7 @@ function OverlayShellPresenceLayer({
   backdropMotion: NimiOverlayMotionProps;
   description?: ReactNode;
   handleCloseAutoFocus: (event: Event) => void;
+  onClose?: () => void;
   closeOnBackdrop: boolean;
   resolvedDataTestId?: string;
   defaultWidthClass: string;
@@ -319,6 +324,9 @@ function OverlayShellPresenceLayer({
         aria-hidden={!isPresent}
         {...(description ? {} : { 'aria-describedby': undefined })}
         onCloseAutoFocus={handleCloseAutoFocus}
+        onEscapeKeyDown={onClose ? event => {
+          if (event.cancelable) { event.preventDefault(); onClose(); }
+        } : undefined}
         onPointerDownOutside={closeOnBackdrop ? undefined : (e) => e.preventDefault()}
         onInteractOutside={closeOnBackdrop ? undefined : (e) => e.preventDefault()}
         style={exitingPointerStyle}
@@ -353,6 +361,7 @@ function OverlayShellPresenceLayer({
 export function OverlayShell({
   open,
   kind = 'dialog',
+  closeLabel,
   side = 'right',
   size,
   onClose,
@@ -456,8 +465,14 @@ export function OverlayShell({
 
   const hasSidebar = sidebar !== undefined;
 
-  const titleNode = title || description ? (
-    <div className="nimi-overlay-title px-6 pt-6 pb-2">
+  const showClose = Boolean(closeLabel && onClose);
+  const titleNode = title || description || showClose ? (
+    <div className={cn('nimi-overlay-title relative px-6 pt-6 pb-2', showClose && 'pr-16')}>
+      {showClose ? (
+        <DialogPrimitive.Close asChild>
+          <IconButton type="button" size="sm" className="absolute right-4 top-4" aria-label={closeLabel} icon={<X size={16} aria-hidden="true" />} />
+        </DialogPrimitive.Close>
+      ) : null}
       {title ? (
         <DialogPrimitive.Title asChild>
           <div className="text-[length:var(--nimi-type-section-title-size)] font-[var(--nimi-type-section-title-weight)] leading-[var(--nimi-type-section-title-line-height)] tracking-[var(--nimi-type-section-title-letter-spacing)] text-[var(--nimi-text-primary)]">{title}</div>
@@ -510,6 +525,7 @@ export function OverlayShell({
             backdropMotion={backdropMotion}
             description={description}
             handleCloseAutoFocus={handleCloseAutoFocus}
+            onClose={onClose}
             closeOnBackdrop={closeOnBackdrop}
             resolvedDataTestId={dataTestIdKebab ?? dataTestId}
             defaultWidthClass={defaultWidthClass}

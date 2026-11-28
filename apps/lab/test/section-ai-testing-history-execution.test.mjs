@@ -226,7 +226,12 @@ test('streamed tools expose live text before completion and clear it after Stop'
       events: { subscribeAIConfigRefresh: () => () => {} },
       commands: { openAssetMediaUrl: unavailableMedia, savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} },
     },
-    sdk: { aiConfig: { getSnapshot: async () => ({ config: null, effectiveSelections: [] }) }, runCapability(input) {
+    sdk: { aiConfig: { getSnapshot: async () => ({ config: null, effectiveSelections: [{
+      capabilityContract: 'text.generate', state: 'ready',
+      resource: { oneofKind: 'cloud', cloud: { target: { textBehaviors: [{
+        kind: 'tool-use', configurationState: 'configured', configuredToolUse: { supportsToolResultRoundTrip: true, supportsStream: true },
+      }] } } },
+    }] }) }, runCapability(input) {
       const deferred = Promise.withResolvers(); calls.push({ input, ...deferred }); return deferred.promise;
     } },
   };

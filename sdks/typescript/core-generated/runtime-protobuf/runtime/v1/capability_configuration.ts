@@ -1488,6 +1488,33 @@ export interface AIConfigEffectiveSelection {
      * @generated from protobuf field: optional string local_loadout_revision = 10
      */
     localLoadoutRevision?: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.StructuredOutputCapabilityProjection structured_output = 11
+     */
+    structuredOutput?: StructuredOutputCapabilityProjection;
+}
+/**
+ * Primitive format and delivery support of the uniquely selected text adapter.
+ *
+ * @generated from protobuf message nimi.runtime.v1.StructuredOutputCapabilityProjection
+ */
+export interface StructuredOutputCapabilityProjection {
+    /**
+     * @generated from protobuf field: bool json_object_sync = 1
+     */
+    jsonObjectSync: boolean;
+    /**
+     * @generated from protobuf field: bool json_object_stream = 2
+     */
+    jsonObjectStream: boolean;
+    /**
+     * @generated from protobuf field: bool strict_json_schema_sync = 3
+     */
+    strictJsonSchemaSync: boolean;
+    /**
+     * @generated from protobuf field: bool strict_json_schema_stream = 4
+     */
+    strictJsonSchemaStream: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ReasoningInputCapabilities
@@ -6273,7 +6300,8 @@ class AIConfigEffectiveSelection$Type extends MessageType<AIConfigEffectiveSelec
             { no: 7, name: "reasoning_input", kind: "message", T: () => ReasoningInputCapabilities },
             { no: 8, name: "context_window_tokens", kind: "scalar", opt: true, T: 4 /*ScalarType.UINT64*/ },
             { no: 9, name: "request_capacity_floor_tokens", kind: "scalar", opt: true, T: 4 /*ScalarType.UINT64*/ },
-            { no: 10, name: "local_loadout_revision", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+            { no: 10, name: "local_loadout_revision", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "structured_output", kind: "message", T: () => StructuredOutputCapabilityProjection }
         ]);
     }
     create(value?: PartialMessage<AIConfigEffectiveSelection>): AIConfigEffectiveSelection {
@@ -6327,6 +6355,9 @@ class AIConfigEffectiveSelection$Type extends MessageType<AIConfigEffectiveSelec
                 case /* optional string local_loadout_revision */ 10:
                     message.localLoadoutRevision = reader.string();
                     break;
+                case /* nimi.runtime.v1.StructuredOutputCapabilityProjection structured_output */ 11:
+                    message.structuredOutput = StructuredOutputCapabilityProjection.internalBinaryRead(reader, reader.uint32(), options, message.structuredOutput);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -6369,6 +6400,9 @@ class AIConfigEffectiveSelection$Type extends MessageType<AIConfigEffectiveSelec
         /* optional string local_loadout_revision = 10; */
         if (message.localLoadoutRevision !== undefined)
             writer.tag(10, WireType.LengthDelimited).string(message.localLoadoutRevision);
+        /* nimi.runtime.v1.StructuredOutputCapabilityProjection structured_output = 11; */
+        if (message.structuredOutput)
+            StructuredOutputCapabilityProjection.internalBinaryWrite(message.structuredOutput, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -6379,6 +6413,77 @@ class AIConfigEffectiveSelection$Type extends MessageType<AIConfigEffectiveSelec
  * @generated MessageType for protobuf message nimi.runtime.v1.AIConfigEffectiveSelection
  */
 export const AIConfigEffectiveSelection = new AIConfigEffectiveSelection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class StructuredOutputCapabilityProjection$Type extends MessageType<StructuredOutputCapabilityProjection> {
+    constructor() {
+        super("nimi.runtime.v1.StructuredOutputCapabilityProjection", [
+            { no: 1, name: "json_object_sync", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "json_object_stream", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 3, name: "strict_json_schema_sync", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 4, name: "strict_json_schema_stream", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<StructuredOutputCapabilityProjection>): StructuredOutputCapabilityProjection {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.jsonObjectSync = false;
+        message.jsonObjectStream = false;
+        message.strictJsonSchemaSync = false;
+        message.strictJsonSchemaStream = false;
+        if (value !== undefined)
+            reflectionMergePartial<StructuredOutputCapabilityProjection>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: StructuredOutputCapabilityProjection): StructuredOutputCapabilityProjection {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool json_object_sync */ 1:
+                    message.jsonObjectSync = reader.bool();
+                    break;
+                case /* bool json_object_stream */ 2:
+                    message.jsonObjectStream = reader.bool();
+                    break;
+                case /* bool strict_json_schema_sync */ 3:
+                    message.strictJsonSchemaSync = reader.bool();
+                    break;
+                case /* bool strict_json_schema_stream */ 4:
+                    message.strictJsonSchemaStream = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: StructuredOutputCapabilityProjection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool json_object_sync = 1; */
+        if (message.jsonObjectSync !== false)
+            writer.tag(1, WireType.Varint).bool(message.jsonObjectSync);
+        /* bool json_object_stream = 2; */
+        if (message.jsonObjectStream !== false)
+            writer.tag(2, WireType.Varint).bool(message.jsonObjectStream);
+        /* bool strict_json_schema_sync = 3; */
+        if (message.strictJsonSchemaSync !== false)
+            writer.tag(3, WireType.Varint).bool(message.strictJsonSchemaSync);
+        /* bool strict_json_schema_stream = 4; */
+        if (message.strictJsonSchemaStream !== false)
+            writer.tag(4, WireType.Varint).bool(message.strictJsonSchemaStream);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.StructuredOutputCapabilityProjection
+ */
+export const StructuredOutputCapabilityProjection = new StructuredOutputCapabilityProjection$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ReasoningInputCapabilities$Type extends MessageType<ReasoningInputCapabilities> {
     constructor() {

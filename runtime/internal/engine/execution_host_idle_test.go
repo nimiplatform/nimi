@@ -3,6 +3,9 @@ package engine
 import (
 	"context"
 	"io"
+	"log/slog"
+
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -49,6 +52,34 @@ func idleReleaseHostForTest(t *testing.T, after time.Duration, handler http.Hand
 func okCompletion(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"ok"},"finish_reason":"stop"}],"usage":{"prompt_tokens":2,"completion_tokens":1}}`))
+}
+
+func TestCUDAMediaReleasesOnlyIdlePeerWorkers(t *testing.T) {
+	textHost, substrate := idleReleaseHostForTest(t, time.Minute, okCompletion)
+	image := &ImageExecutionHost{}
+	ConfigureResidentRelease(t.Context(), slog.Default(), []localexecution.ModelAssetHostRetirer{textHost, image})
+	textHost.capture([]capabilitydriver.InvocationExactBinding{{ModelAssetID: "text"}})
+	cuda := []capabilitydriver.InvocationExactDependencySource{{DependencyFamily: "accelerator.cuda.runtime", DependencyID: NVIDIACUDAUserSpaceRuntimeDependencyID}}
+	<-textHost.lease
+	image.releaseIdlePeersForCUDA(cuda)
+	textHost.lease <- struct{}{}
+	if substrate.stopCount() != 0 {
+		t.Fatal("active peer stopped")
+	}
+	body := textHost.holdOutput(io.NopCloser(strings.NewReader("unfinished output")))
+	image.releaseIdlePeersForCUDA(cuda)
+	if substrate.stopCount() != 0 {
+		t.Fatal("peer stopped while output was being consumed")
+	}
+	body.Close()
+	image.releaseIdlePeersForCUDA(nil)
+	if substrate.stopCount() != 0 {
+		t.Fatal("non-CUDA request evicted peer")
+	}
+	image.releaseIdlePeersForCUDA(cuda)
+	if substrate.stopCount() != 1 || textHost.uses("text") {
+		t.Fatal("idle resident was not released")
+	}
 }
 
 func TestIdleLlamaWorkerIsReleasedAfterItsLastRequestAndLoadsAgainOnUse(t *testing.T) {

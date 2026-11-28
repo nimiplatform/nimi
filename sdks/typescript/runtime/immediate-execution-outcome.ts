@@ -7,6 +7,7 @@ export const NIMI_CALLER_MAY_RESUBMIT_ACTION_HINT = 'resubmit_request';
 export const NIMI_PRESENTATION_CANCELED_AFTER_COMPLETION_ACTION_HINT = 'presentation_canceled_after_owner_completion';
 export const NIMI_POST_TERMINAL_CLEANUP_ACTION_HINT = 'inspect_stream_cleanup_without_replaying_completed_request';
 export const NIMI_OUTCOME_UNCERTAIN_BILLING_NOTICE = 'Original request outcome is unknown and cloud charges may already have accrued. Confirm outcome and charges before starting a new request, which may incur additional charges.';
+const UNKNOWN_ROUTE_OUTCOME_NOTICE = 'The request outcome is unknown. If a cloud provider handled it, charges may already have accrued. Confirm the outcome before submitting again.';
 export const NIMI_LOCAL_OUTCOME_UNCERTAIN_NOTICE = 'Local request ended without terminal confirmation. Do not assume local execution has already stopped before starting a new request.';
 
 export type ImmediateExecutionRoute = 'local' | 'cloud' | 'unknown';
@@ -67,17 +68,18 @@ export function isImmediateExecutionMethod(methodId: string): boolean {
   return IMMEDIATE_EXECUTION_METHODS.has(String(methodId || '').trim());
 }
 
-export function ensureOutcomeUncertainMessage(message: string): string {
+export function ensureOutcomeUncertainMessage(message: string, route: ImmediateExecutionRoute = 'unknown'): string {
+  const notice = route === 'cloud' ? NIMI_OUTCOME_UNCERTAIN_BILLING_NOTICE : UNKNOWN_ROUTE_OUTCOME_NOTICE;
   const trimmed = String(message || '').trim();
   const lower = trimmed.toLowerCase();
   if ((lower.includes('unknown') || lower.includes('uncertain')) && (lower.includes('charge') || lower.includes('bill'))) {
     return trimmed;
   }
   if (!trimmed) {
-    return NIMI_OUTCOME_UNCERTAIN_BILLING_NOTICE;
+    return notice;
   }
   const normalized = trimmed.endsWith('.') ? trimmed : `${trimmed}.`;
-  return `${normalized} ${NIMI_OUTCOME_UNCERTAIN_BILLING_NOTICE}`;
+  return `${normalized} ${notice}`;
 }
 
 export function ensureLocalOutcomeUnknownMessage(message: string): string {
@@ -243,7 +245,7 @@ export function projectImmediateExecutionFailure(
     if (normalized.interruption.resubmitDisposition === 'caller-may-resubmit') {
       return normalized;
     }
-    if (route === 'local') {
+    if (route === 'local' || normalized.actionHint === NIMI_LOCAL_OUTCOME_UNCERTAIN_ACTION_HINT) {
       return withLocalOutcomeUnknown(normalized, abortLike, cancelReasonText, rawCause);
     }
     return withOutcomeUncertain(normalized, normalized.interruption, route, abortLike, cancelReasonText, rawCause);
@@ -335,7 +337,7 @@ function withOutcomeUncertain(
     ...(cancelReasonText ? { cancelReason: cancelReasonText } : {}),
   };
   return createNimiError({
-    message: ensureOutcomeUncertainMessage(error.message),
+    message: ensureOutcomeUncertainMessage(error.message, route),
     code: error.code,
     reasonCode: error.reasonCode,
     actionHint: NIMI_OUTCOME_UNCERTAIN_ACTION_HINT,
@@ -364,6 +366,7 @@ function withLocalOutcomeUnknown(
   delete details.interruption;
   const cleanedMessage = error.message
     .replace(NIMI_OUTCOME_UNCERTAIN_BILLING_NOTICE, '')
+    .replace(UNKNOWN_ROUTE_OUTCOME_NOTICE, '')
     .trim();
   return createNimiError({
     message: ensureLocalOutcomeUnknownMessage(cleanedMessage || error.reasonCode),

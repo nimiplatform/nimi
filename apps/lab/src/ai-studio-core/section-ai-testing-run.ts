@@ -36,6 +36,7 @@ export type TextStudioActiveRun = {
   replayMedia?: StudioManagedArtifact;
   // Latest submission's session-only input; history never stores these bytes.
   submittedParameters?: StudioParameterValue;
+  jobId?: string;
   jobStatus?: 'queued' | 'running';
   jobProgress?: StudioJobProgress;
   id: string;
@@ -75,9 +76,10 @@ export function textStudioRunTargetIntentSummary(
 }
 
 export function studioConfiguredTargetLabel(
-  target: Pick<StudioRunTargetSummary, 'source' | 'targetLabel'> | undefined,
+  target: (Pick<StudioRunTargetSummary, 'source' | 'targetLabel'> & Partial<Pick<StudioRunTargetSummary, 'status'>>) | undefined,
   translate: StudioTranslate,
 ): string {
+  if (target?.status === 'checking') return translate('Studio.composer.checkingTarget');
   const route = target?.source === 'local' ? translate('Studio.composer.routeLocal')
     : target?.source === 'cloud' ? translate('Studio.composer.routeCloud')
       : translate('Studio.composer.routeUnknown');
@@ -162,15 +164,14 @@ export function useStudioRunTargetSummary(
   }, [scopeKey]);
 
   useEffect(() => {
-    refresh(false);
+    refresh(lastRefresh.current?.scopeKey === scopeKey);
     const unsubscribe = hostRef.current.app.events.subscribeAIConfigRefresh(() => refresh(true));
     return () => {
       inFlightRefreshRef.current?.release();
       inFlightRefreshRef.current = null;
-      lastRefresh.current = null;
       unsubscribe();
     };
-  }, [scopeKey, refresh]);
+  }, [scopeKey, refresh, registration.descriptor.id]);
 
   const waitForTargetRefresh = useCallback(async (verifyLocalSelection: boolean): Promise<StudioTargetRefreshWaitResult> => {
     // A machine selection can change without this App receiving a window-focus event.

@@ -27,6 +27,21 @@ func baseScenarioJobRequest() *runtimev1.SubmitScenarioJobRequest {
 	}
 }
 
+func TestScenarioJobPaymentRequiredIsDistinctFromRateLimit(t *testing.T) {
+	for _, tc := range []struct {
+		statusCode int
+		want       string
+	}{
+		{402, "provider payment required (HTTP 402): check the provider API account billing and credit balance"},
+		{429, "provider rate limit reached"},
+	} {
+		err := nimillm.MapProviderHTTPError(tc.statusCode, map[string]any{"detail": "private provider response"})
+		if got := sanitizeScenarioJobReasonDetail(err, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED); got != tc.want {
+			t.Errorf("HTTP %d: got %q", tc.statusCode, got)
+		}
+	}
+}
+
 func TestScenarioModalFromType(t *testing.T) {
 	cases := map[runtimev1.ScenarioType]runtimev1.Modal{
 		runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:    runtimev1.Modal_MODAL_IMAGE,

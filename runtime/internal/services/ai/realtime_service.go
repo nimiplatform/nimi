@@ -252,6 +252,9 @@ func waitRealtimeProviderReady(ctx context.Context, session interface {
 				if event.Kind == capabilitydriver.CloudRealtimeEventReady {
 					return nil
 				}
+				if event.Kind == capabilitydriver.CloudRealtimeEventFailed && event.FailureReason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+					return grpcerr.WithReasonCode(codes.FailedPrecondition, event.FailureReason)
+				}
 				if event.Kind == capabilitydriver.CloudRealtimeEventFailed || event.Kind == capabilitydriver.CloudRealtimeEventSessionClosed {
 					return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 				}
@@ -868,8 +871,12 @@ func (s *Service) projectRealtimeProviderEvent(record *realtimeSessionRecord, so
 		if s.logger != nil {
 			s.logger.Warn("AI Realtime provider event failed", "provider_error_code", source.ErrorCode)
 		}
-		_ = s.publishRealtimeEvent(record, &runtimev1.AiRealtimeEvent{Event: &runtimev1.AiRealtimeEvent_Failure{Failure: &runtimev1.AiRealtimeFailure{ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_INTERNAL}}})
-		s.terminalizeRealtimeSession(record, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, realtimecore.TerminalOwnerFailed)
+		reason := source.FailureReason
+		if reason == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+			reason = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
+		}
+		_ = s.publishRealtimeEvent(record, &runtimev1.AiRealtimeEvent{Event: &runtimev1.AiRealtimeEvent_Failure{Failure: &runtimev1.AiRealtimeFailure{ReasonCode: reason}}})
+		s.terminalizeRealtimeSession(record, reason, realtimecore.TerminalOwnerFailed)
 		return true
 	}
 	return false

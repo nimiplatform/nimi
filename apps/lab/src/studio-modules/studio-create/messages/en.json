@@ -68,7 +68,7 @@
       "addInput": "Add input",
       "removeInput": "Remove input {{index}}",
       "fields": {
-        "inputs": "Embedding inputs",
+        "inputs": "Additional texts to embed after the prompt",
         "dimensions": "Requested output dimensions",
         "embeddingPurpose": "Retrieval purpose",
         "temperature": "Temperature",

@@ -295,6 +295,7 @@ func beginVideoExecution(ctx context.Context, onStart localexecution.VideoExecut
 
 func (h *VideoExecutionHost) execute(request *videoExecutionRequest) (localexecution.RawAVCandidate, error) {
 	startedAt := time.Now()
+	h.releaseIdlePeersForCUDA(request.plan.DependencySources())
 	h.residentModelAssets.capture(request.plan.ExactBindings())
 	_, err := h.substrate.Ensure(request.ctx, request.plan, func() error {
 		if err := validateInvocationDependencySources(h.substrate, request.plan.DependencySources()); err != nil {
@@ -336,6 +337,9 @@ func (h *VideoExecutionHost) execute(request *videoExecutionRequest) (localexecu
 	}
 	if generated.err != nil {
 		if executionOutOfMemory(generated.err, executionFailureDiagnostic(h.substrate)) {
+			if err := h.substrate.Stop(); err != nil {
+				h.logger.Warn("release video substrate after allocation failure", "error", err)
+			}
 			return localexecution.RawAVCandidate{}, executionFailure(localexecution.FailureOutOfMemory, generated.err)
 		}
 		if !h.substrate.Healthy() {

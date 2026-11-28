@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 )
@@ -13,15 +14,23 @@ import (
 // database. Only typed captured bindings enter it. A failed stop keeps the
 // bindings so file cleanup cannot mistake an unconfirmed process exit for exit.
 type residentModelAssets struct {
-	mu      sync.Mutex
-	ids     map[string]struct{}
-	onIdle  func()
-	outputs int
+	mu              sync.Mutex
+	ids             map[string]struct{}
+	onIdle          func()
+	outputs         int
+	lastUse         time.Time
+	idleTimer       *time.Timer
+	onIdleTimeout   func(time.Time)
+	beforeMediaLoad func()
 }
 
 func (r *residentModelAssets) capture(files []capabilitydriver.InvocationExactBinding) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	r.lastUse = time.Now()
+	if r.idleTimer != nil {
+		r.idleTimer.Stop()
+	}
 	if r.ids == nil {
 		r.ids = make(map[string]struct{})
 	}
@@ -47,6 +56,14 @@ func (r *residentModelAssets) SetModelAssetCleanupCallback(callback func()) {
 
 func (r *residentModelAssets) notifyIdle() {
 	r.mu.Lock()
+	r.lastUse = time.Now()
+	if len(r.ids) > 0 && r.outputs == 0 && r.onIdleTimeout != nil {
+		if r.idleTimer != nil {
+			r.idleTimer.Stop()
+		}
+		idleSince, release := r.lastUse, r.onIdleTimeout
+		r.idleTimer = time.AfterFunc(residentLlamaIdleRelease, func() { release(idleSince) })
+	}
 	callback := r.onIdle
 	r.mu.Unlock()
 	if callback != nil {
@@ -55,10 +72,14 @@ func (r *residentModelAssets) notifyIdle() {
 }
 
 // Caller has acquired the Host's ordinary exclusive execution lease.
-func (r *residentModelAssets) retire(id string, stop func() error) (bool, error) {
+func (r *residentModelAssets) retire(id string, idleBefore time.Time, stop func() error) (bool, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if _, found := r.ids[id]; !found {
+	if !idleBefore.IsZero() {
+		if len(r.ids) == 0 || r.lastUse.After(idleBefore) {
+			return true, nil
+		}
+	} else if _, found := r.ids[id]; !found {
 		return true, nil
 	}
 	if r.outputs > 0 {
@@ -68,6 +89,10 @@ func (r *residentModelAssets) retire(id string, stop func() error) (bool, error)
 		return false, err
 	}
 	r.ids = nil
+	if r.idleTimer != nil {
+		r.idleTimer.Stop()
+		r.idleTimer = nil
+	}
 	return true, nil
 }
 
@@ -108,20 +133,26 @@ func (h *ExecutionHost) invalidateVerifiedModelAsset(id string) {
 }
 
 func (h *ExecutionHost) RetireModelAsset(id string) (bool, error) {
-	if !h.residentModelAssets.uses(id) {
+	return h.releaseResident(id, time.Time{})
+}
+
+func (h *ExecutionHost) releaseResident(id string, idleBefore time.Time) (bool, error) {
+	if idleBefore.IsZero() && !h.residentModelAssets.uses(id) {
 		return true, nil
 	}
 	// Invalidate warm verification immediately even if the Host lease is busy
 	// with an already-captured Job so no subsequent turn skips re-verification
 	// against a retiring asset.
-	h.invalidateVerifiedModelAsset(id)
+	if idleBefore.IsZero() {
+		h.invalidateVerifiedModelAsset(id)
+	}
 	select {
 	case <-h.lease:
 	default:
 		return false, nil
 	}
 	defer func() { h.lease <- struct{}{} }()
-	return h.residentModelAssets.retire(id, func() error {
+	return h.residentModelAssets.retire(id, idleBefore, func() error {
 		stopper, ok := h.substrate.(interface{ Stop() error })
 		if !ok {
 			return fmt.Errorf("llama substrate has no retirement owner")
@@ -158,7 +189,11 @@ func (s *managerLlamaInvocationSubstrate) Stop() error {
 }
 
 func (h *ImageExecutionHost) RetireModelAsset(id string) (bool, error) {
-	if !h.residentModelAssets.uses(id) {
+	return h.releaseResident(id, time.Time{})
+}
+
+func (h *ImageExecutionHost) releaseResident(id string, idleBefore time.Time) (bool, error) {
+	if idleBefore.IsZero() && !h.residentModelAssets.uses(id) {
 		return true, nil
 	}
 	h.mu.Lock()
@@ -166,11 +201,15 @@ func (h *ImageExecutionHost) RetireModelAsset(id string) (bool, error) {
 	if h.active != nil || len(h.queue) > 0 {
 		return false, nil
 	}
-	return h.residentModelAssets.retire(id, h.substrate.Stop)
+	return h.residentModelAssets.retire(id, idleBefore, h.substrate.Stop)
 }
 
 func (h *VideoExecutionHost) RetireModelAsset(id string) (bool, error) {
-	if !h.residentModelAssets.uses(id) {
+	return h.releaseResident(id, time.Time{})
+}
+
+func (h *VideoExecutionHost) releaseResident(id string, idleBefore time.Time) (bool, error) {
+	if idleBefore.IsZero() && !h.residentModelAssets.uses(id) {
 		return true, nil
 	}
 	h.mu.Lock()
@@ -178,7 +217,7 @@ func (h *VideoExecutionHost) RetireModelAsset(id string) (bool, error) {
 	if h.active != nil || len(h.queue) > 0 {
 		return false, nil
 	}
-	return h.residentModelAssets.retire(id, h.substrate.Stop)
+	return h.residentModelAssets.retire(id, idleBefore, h.substrate.Stop)
 }
 
 // Reserve idle capacity without waiting behind or interrupting a captured Job.
@@ -194,7 +233,11 @@ func (lease *speechExecutionLease) tryAcquireIdle() (func(), bool) {
 }
 
 func (host *VisionExecutionHost) RetireModelAsset(id string) (bool, error) {
-	if !host.residentModelAssets.uses(id) {
+	return host.releaseResident(id, time.Time{})
+}
+
+func (host *VisionExecutionHost) releaseResident(id string, idleBefore time.Time) (bool, error) {
+	if idleBefore.IsZero() && !host.residentModelAssets.uses(id) {
 		return true, nil
 	}
 	release, ok := host.lease.tryAcquireIdle()
@@ -202,11 +245,15 @@ func (host *VisionExecutionHost) RetireModelAsset(id string) (bool, error) {
 		return false, nil
 	}
 	defer release()
-	return host.residentModelAssets.retire(id, host.stop)
+	return host.residentModelAssets.retire(id, idleBefore, host.stop)
 }
 
 func (host *TextAnnotationExecutionHost) RetireModelAsset(id string) (bool, error) {
-	if !host.residentModelAssets.uses(id) {
+	return host.releaseResident(id, time.Time{})
+}
+
+func (host *TextAnnotationExecutionHost) releaseResident(id string, idleBefore time.Time) (bool, error) {
+	if idleBefore.IsZero() && !host.residentModelAssets.uses(id) {
 		return true, nil
 	}
 	release, ok := host.lease.tryAcquireIdle()
@@ -214,11 +261,15 @@ func (host *TextAnnotationExecutionHost) RetireModelAsset(id string) (bool, erro
 		return false, nil
 	}
 	defer release()
-	return host.residentModelAssets.retire(id, host.stop)
+	return host.residentModelAssets.retire(id, idleBefore, host.stop)
 }
 
 func (host *SpeakerEmbeddingExecutionHost) RetireModelAsset(id string) (bool, error) {
-	if host == nil || !host.residentModelAssets.uses(id) {
+	return host.releaseResident(id, time.Time{})
+}
+
+func (host *SpeakerEmbeddingExecutionHost) releaseResident(id string, idleBefore time.Time) (bool, error) {
+	if host == nil || (idleBefore.IsZero() && !host.residentModelAssets.uses(id)) {
 		return true, nil
 	}
 	release, ok := host.lease.tryAcquireIdle()
@@ -226,11 +277,15 @@ func (host *SpeakerEmbeddingExecutionHost) RetireModelAsset(id string) (bool, er
 		return false, nil
 	}
 	defer release()
-	return host.residentModelAssets.retire(id, host.stop)
+	return host.residentModelAssets.retire(id, idleBefore, host.stop)
 }
 
 func (host *FaceSwapExecutionHost) RetireModelAsset(id string) (bool, error) {
-	if !host.residentModelAssets.uses(id) {
+	return host.releaseResident(id, time.Time{})
+}
+
+func (host *FaceSwapExecutionHost) releaseResident(id string, idleBefore time.Time) (bool, error) {
+	if idleBefore.IsZero() && !host.residentModelAssets.uses(id) {
 		return true, nil
 	}
 	release, ok := host.lease.tryAcquireIdle()
@@ -238,11 +293,15 @@ func (host *FaceSwapExecutionHost) RetireModelAsset(id string) (bool, error) {
 		return false, nil
 	}
 	defer release()
-	return host.residentModelAssets.retire(id, host.stop)
+	return host.residentModelAssets.retire(id, idleBefore, host.stop)
 }
 
 func (host *SpeechExecutionHost) RetireModelAsset(id string) (bool, error) {
-	if !host.residentModelAssets.uses(id) {
+	return host.releaseResident(id, time.Time{})
+}
+
+func (host *SpeechExecutionHost) releaseResident(id string, idleBefore time.Time) (bool, error) {
+	if idleBefore.IsZero() && !host.residentModelAssets.uses(id) {
 		return true, nil
 	}
 	release, ok := host.lease.tryAcquireIdle()
@@ -250,5 +309,5 @@ func (host *SpeechExecutionHost) RetireModelAsset(id string) (bool, error) {
 		return false, nil
 	}
 	defer release()
-	return host.residentModelAssets.retire(id, host.materializer.StopSpeechExecutionHost)
+	return host.residentModelAssets.retire(id, idleBefore, host.materializer.StopSpeechExecutionHost)
 }

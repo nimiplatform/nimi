@@ -1,10 +1,22 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { ScenarioOutput, SpeechDiarizationStatus, SpeechTranscriptStatus } from '../../core-generated/runtime-protobuf/runtime/v1/ai.js';
 import {
+  extractNimiRuntimeSpeechTranscriptionOutput,
   buildNimiRuntimeScenarioJobHead,
   buildNimiRuntimeScenarioJobIdentity,
 } from './index';
+test('transcription extraction preserves source-local speaker intervals through the generation feature', () => {
+  const intervals = [{ speakerId: 'a', startSeconds: 0, endSeconds: 1 }, { speakerId: 'b', startSeconds: 1, endSeconds: 2 }];
+  const output = ScenarioOutput.create({ output: { oneofKind: 'speechTranscribe', speechTranscribe: {
+    text: 'hello', transcription: { status: SpeechTranscriptStatus.TRANSCRIBED, text: 'hello', language: 'en', words: [],
+      diarization: { status: SpeechDiarizationStatus.DIARIZED, durationSeconds: 2, intervals } },
+  } } });
+  assert.deepEqual(extractNimiRuntimeSpeechTranscriptionOutput(output).transcription?.diarization,
+    { status: 'diarized', durationSeconds: 2, intervals });
+});
+
 test('scenario job identity is stable-prefixed and unique per call', () => {
   const first = buildNimiRuntimeScenarioJobIdentity({
     appId: 'acme.widget',

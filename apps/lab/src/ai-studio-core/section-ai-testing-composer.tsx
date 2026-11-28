@@ -110,15 +110,15 @@ export function TextStudioComposer({
     && (!profile.requiresParameterInput || hasAlternativeInput)
     && (!isVisionLocate || (attachments.length === 1 && attachments[0]?.kind === 'image'));
   const intentConfigAction = Boolean(onOpenIntentConfig) && !canDispatch && canConfigureIntent;
-  const generateDisabled = isVisionLocate
-    ? running || (!intentConfigAction && (!promptReady || !canDispatch))
-    : running || !promptReady || Boolean(attachmentWarning) || (!canDispatch && !intentConfigAction);
+  const generateDisabled = running || (!intentConfigAction && (
+    !promptReady || !canDispatch || (!isVisionLocate && Boolean(attachmentWarning))
+  ));
   const generateLabel = running
     ? t(profile.primaryRunningLabelKey)
     : intentConfigAction
       ? t('Studio.composer.configureIntent')
       : t(profile.primaryLabelKey);
-  const visibleInputIssue = running ? undefined : inputIssue ?? (!promptReady ? t('Studio.composer.inputRequired') : undefined);
+  const visibleInputIssue = running || intentConfigAction ? undefined : inputIssue ?? (!promptReady ? t('Studio.composer.inputRequired') : undefined);
   const hasPromptField = !isReadOnlyComposer && promptEnabled;
   const hasAttachmentControls = profile.supportsAttachments && !isVisionLocate;
   const canRunFromPrompt = hasPromptField && !intentConfigAction && !generateDisabled;

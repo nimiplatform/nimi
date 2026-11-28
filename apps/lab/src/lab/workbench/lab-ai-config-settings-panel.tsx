@@ -34,6 +34,39 @@ function useLabModelConfigCopy(): ModelConfigCopy {
   const { t } = useTranslation();
   return useMemo(() => ({
     title: t('ModelConfig.title'),
+    description: t('ModelConfig.description'),
+    configuredSummary: t('ModelConfig.configuredSummary'),
+    emptySummary: t('ModelConfig.emptySummary'),
+    routeLabel: t('ModelConfig.routeLabel'),
+    advancedLabel: t('ModelConfig.advancedLabel'),
+    advancedHint: t('ModelConfig.advancedHint'),
+    requiredFeaturesLabel: t('ModelConfig.requiredFeaturesLabel'),
+    requiredFeaturesPlaceholder: t('ModelConfig.requiredFeaturesPlaceholder'),
+    defaultsLabel: t('ModelConfig.defaultsLabel'),
+    defaultsPlaceholder: t('ModelConfig.defaultsPlaceholder'),
+    defaultsUnsetLabel: t('ModelConfig.defaultsUnsetLabel'),
+    defaultsTrueLabel: t('ModelConfig.defaultsTrueLabel'),
+    defaultsFalseLabel: t('ModelConfig.defaultsFalseLabel'),
+    defaultsListPlaceholder: t('ModelConfig.defaultsListPlaceholder'),
+    defaultsLocalEffectivePlaceholder: (value: string) => t('ModelConfig.defaultsLocalEffectivePlaceholder', { value }),
+    defaultsCloudEffectivePlaceholder: t('ModelConfig.defaultsCloudEffectivePlaceholder'),
+    defaultsRandomValue: t('ModelConfig.defaultsRandomValue'),
+    openMachineLabel: t('ModelConfig.openMachineLabel'),
+    cloudConnectorPickerLabel: t('ModelConfig.cloudConnectorPickerLabel'),
+    cloudConnectorPickerPlaceholder: t('ModelConfig.cloudConnectorPickerPlaceholder'),
+    cloudConnectorSelectionRequired: t('ModelConfig.cloudConnectorSelectionRequired'),
+    cloudNoConnectorsLabel: t('ModelConfig.cloudNoConnectorsLabel'),
+    cloudImplementationLabel: t('ModelConfig.cloudImplementationLabel'),
+    cloudImplementationPlaceholder: t('ModelConfig.cloudImplementationPlaceholder'),
+    cloudTargetLabel: t('ModelConfig.cloudTargetLabel'),
+    cloudTargetPlaceholder: t('ModelConfig.cloudTargetPlaceholder'),
+    cloudTargetDialogTitle: t('ModelConfig.cloudTargetDialogTitle'),
+    cloudTargetDialogDescription: t('ModelConfig.cloudTargetDialogDescription'),
+    cloudNoticeLabel: t('ModelConfig.cloudNoticeLabel'),
+    cloudNoticeDescription: t('ModelConfig.cloudNoticeDescription'),
+    cloudConnectorLabel: t('ModelConfig.cloudConnectorLabel'),
+    cloudConnectorPlaceholder: t('ModelConfig.cloudConnectorPlaceholder'),
+    cloudLoadFailed: t('ModelConfig.cloudLoadFailed'),
     backLabel: t('ModelConfig.backLabel'),
     detailTitle: (capabilityLabel: string) => t('ModelConfig.detailTitle', { capability: capabilityLabel }),
     activeModelLabel: t('ModelConfig.activeModelLabel'),
@@ -154,6 +187,7 @@ export function LabAiConfigSettingsPanel({
     <section className="flex h-full min-h-0 flex-col" aria-label={t('ModelConfig.drawerDescription')}>
       <div className="min-h-0 flex-1 overflow-y-auto p-5">
         <ModelConfigAIConfigSurface
+          key={capabilityId}
           context={{ owner: 'app-ai-config', appId }}
           capabilityContracts={labModelConfigCapabilityContracts}
           initialCapabilityContract={capabilityId}

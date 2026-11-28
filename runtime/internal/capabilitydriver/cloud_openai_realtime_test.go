@@ -21,6 +21,13 @@ func openAIRealtimeFixture(t *testing.T) (openAIRealtimeDriver, CloudRealtimeTar
 	return driver.(openAIRealtimeDriver), target
 }
 
+func TestOpenAIRealtimeExpiredKeyPrecedesGenericInvalidRequest(t *testing.T) {
+	events, err := (openAIRealtimeDriver{}).NormalizeEvent([]byte(`{"type":"error","error":{"type":"invalid_request_error","code":"expired_secret_key"}}`), CloudRealtimeOpen{})
+	if err != nil || len(events) != 1 || events[0].Kind != CloudRealtimeEventFailed || events[0].FailureReason != runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED {
+		t.Fatalf("expected credential failure, got %+v (%v)", events, err)
+	}
+}
+
 func TestOpenAIRealtimeGAOpenUsesExactPCMAndOwnerControlledVAD(t *testing.T) {
 	driver, target := openAIRealtimeFixture(t)
 	input := CloudRealtimeOpen{InputAudio: &runtimev1.AiRealtimeAudioFormat{Codec: runtimev1.AiRealtimeAudioCodec_AI_REALTIME_AUDIO_CODEC_PCM_S16LE, SampleRateHz: 24000, ChannelCount: 1, FrameDurationMs: 20, MaximumFrameBytes: 960}, AudioOutput: true, TurnDetection: runtimev1.AiRealtimeTurnDetectionMode_AI_REALTIME_TURN_DETECTION_MODE_SERVER_VAD, InitialInstruction: "Keep whitespace  "}

@@ -414,7 +414,7 @@ export { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicGenerat
 
 export { projectMusicInputCapabilities, type NimiMusicInputCapabilities, type NimiMusicGenerationInputProfile, type NimiMusicTranscriptionInputProfile, type NimiVoiceConvertInputProfile } from '@nimiplatform/sdk/app';
 export { projectSpeechInputCapabilities, type NimiSpeechInputCapabilities } from '@nimiplatform/sdk/ai';
-export { projectReasoningInputCapabilities } from '@nimiplatform/sdk/ai';
+export { projectReasoningInputCapabilities, projectStructuredOutputCapabilities } from '@nimiplatform/sdk/ai';
 export { validateNimiLocalAppMusicTranscribeSpec, validateNimiLocalAppMusicTranscription, type NimiLocalAppMusicTranscribeSpec, type NimiLocalAppMusicTranscription } from '@nimiplatform/sdk/app';
 export { validateNimiLocalAppVoiceConvertSpec, validateNimiLocalAppVoiceConversion, type NimiLocalAppVoiceConvertSpec, type NimiLocalAppVoiceConversion, type NimiLocalAppVoiceConvertTargetVoice, type NimiLocalAppVoiceConvertSource, type NimiVoiceConvertSourceKind, type NimiVoiceConvertTargetKind, type NimiVoiceConversionLengthRelation } from '@nimiplatform/sdk/app';
 export {

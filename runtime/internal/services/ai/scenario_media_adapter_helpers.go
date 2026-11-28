@@ -86,6 +86,11 @@ func reasonCodeFromMediaError(err error) runtimev1.ReasonCode {
 }
 
 func sanitizeScenarioJobReasonDetail(err error, reasonCode runtimev1.ReasonCode) string {
+	if reasonCode == runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED {
+		if metadata, ok := grpcerr.ExtractReasonMetadata(err); ok && metadata["provider_http_status"] == "402" {
+			return "provider payment required (HTTP 402): check the provider API account billing and credit balance"
+		}
+	}
 	if detail := stableScenarioJobReasonDetail(reasonCode); detail != "" {
 		return detail
 	}

@@ -197,7 +197,7 @@ async function runTextEmbed(context: StudioCapabilityRuntimeContext) {
     parameters,
   );
   if (!context.prompt && embeddingInputs.length === 0) return inputRequired(context);
-  const documents = embeddingInputs.length > 0 ? embeddingInputs : [context.prompt];
+  const documents = context.prompt ? [context.prompt, ...embeddingInputs] : embeddingInputs;
   const query = parameters?.retrievalQuery?.trim();
   const signal = studioRequestSignal(context);
   if (signal?.aborted) throw studioAbortError();
@@ -355,7 +355,6 @@ async function* streamLocalAppTextEvents(
   signal?.addEventListener('abort', cancel, { once: true });
   try {
     if (signal?.aborted) throw studioAbortError();
-    let started = false;
     let textItemOpened = false;
     for await (const event of subscription) {
       if (signal?.aborted) throw studioAbortError();
@@ -363,18 +362,6 @@ async function* streamLocalAppTextEvents(
       if (event.type === 'reasoning-continuity') continue;
       if (event.type === 'reasoning-summary') {
         throw Object.assign(new Error('The text-only Studio request received an unrequested reasoning summary.'), { reasonCode: 'SDK_AI_RUNTIME_OUTPUT_INVALID' });
-      }
-      if (!started) {
-        started = true;
-        yield {
-          eventType: 1,
-          sequence: event.sequence,
-          traceId: event.traceId,
-          payload: {
-            oneofKind: 'started',
-            started: { modelResolved: '', routeDecision: 0, voiceOutputMode: 0 },
-          },
-        };
       }
       if (event.type === 'delta') {
         textItemOpened = true;

@@ -597,6 +597,15 @@ message AIConfigEffectiveSelection {
   optional uint64 request_capacity_floor_tokens = 9;
   // Stable guard for the exact selected Local Loadout, including its committed revision.
   optional string local_loadout_revision = 10;
+  StructuredOutputCapabilityProjection structured_output = 11;
+}
+
+// Primitive format and delivery support of the uniquely selected text adapter.
+message StructuredOutputCapabilityProjection {
+  bool json_object_sync = 1;
+  bool json_object_stream = 2;
+  bool strict_json_schema_sync = 3;
+  bool strict_json_schema_stream = 4;
 }
 
 message ReasoningInputCapabilities {

@@ -60,6 +60,7 @@
     "sceneLabel": "Interactive 3D world",
     "controlHelp": "Drag to look · W A S D to move · Q / E down / up · Shift to move faster. Click the scene to use keyboard controls.",
     "promptRequired": "Describe the world you want to explore.",
+    "observingJob": "Waiting for the result of world job {{jobId}}.",
     "generating": "Generating the world and saving its assets. This may take a few minutes…",
     "generationFailed": "World generation failed.",
     "archiveMissing": "The completed job did not return a world archive.",

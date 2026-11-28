@@ -850,9 +850,9 @@ export function CapabilityRunHistory({
         <div className="grid min-w-0 gap-4 sm:grid-cols-2">
           {comparisonRecords.map(record => {
             const snapshot = record.result;
-            const params = record.runConfig ? getStudioRunConfigParamRows(record.runConfig) : [];
+            const params = record.runConfig ? getStudioRunConfigParamRows(record.runConfig, undefined, t) : [];
             const defaults = record.runConfig?.target.configuredDefaults
-              ? getStudioRunConfigParamRows(record.runConfig, record.runConfig.target.configuredDefaults) : [];
+              ? getStudioRunConfigParamRows(record.runConfig, record.runConfig.target.configuredDefaults, t) : [];
             const jobId = snapshot && 'jobId' in snapshot ? snapshot.jobId : undefined;
             const traceId = record.runConfig?.traceId ?? (snapshot?.ok ? snapshot.traceId : snapshot?.diagnostics?.traceId);
             const output = snapshot?.ok && (snapshot.kind === 'text' || snapshot.kind === 'transcript')

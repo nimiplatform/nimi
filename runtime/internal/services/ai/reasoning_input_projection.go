@@ -2,10 +2,7 @@ package ai
 
 import runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 
-// @nimi-authority: rule.nimi.runtime.ai-provider.r088
-// Primitive controls come from the unique selected adapter. They are not
-// promises about combinations, positive token usage, or other model targets.
-func projectReasoningInput(registrations []textBehaviorAdapterRegistration, facts textBehaviorAdapterResolutionFacts) *runtimev1.ReasoningInputCapabilities {
+func uniqueTextBehaviorAdapter(registrations []textBehaviorAdapterRegistration, facts textBehaviorAdapterResolutionFacts) *textBehaviorAdapterRegistration {
 	if !validTextBehaviorResolutionFacts(facts) {
 		return nil
 	}
@@ -19,6 +16,11 @@ func projectReasoningInput(registrations []textBehaviorAdapterRegistration, fact
 			match = registration
 		}
 	}
+	return match
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.r088
+func projectReasoningInput(match *textBehaviorAdapterRegistration) *runtimev1.ReasoningInputCapabilities {
 	if match == nil {
 		return nil
 	}

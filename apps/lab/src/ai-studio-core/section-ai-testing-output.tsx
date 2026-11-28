@@ -398,8 +398,9 @@ function splitSubjectLine(text: string): { subject: string; body: string } | nul
   };
 }
 
-export function TextStudioOutputBody({ text }: { text: string }) {
+export function TextStudioOutputBody({ text, finishReason }: { text: string; finishReason?: string }) {
   const { translate: t } = useAIStudioHost();
+  if (!text.trim() && finishReason?.toLowerCase() === 'length') return <p className="studio-result__hint">{t('StudioShell.outputLimitReached')}</p>;
   const emptyBody = t('StudioShell.emptyBody');
   const value = text || emptyBody;
   const subject = splitSubjectLine(value);

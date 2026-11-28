@@ -7,7 +7,7 @@ import { validateNimiLocalAppSpeechAlignment } from '@nimiplatform/kit/core/sdk-
 import type { NimiLocalAppAgentWorkShell, NimiLocalAppIntegrationShell, NimiLocalAppUtopiaShell } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppMusicTranscribeSpec, validateNimiLocalAppMusicTranscription, type NimiLocalAppMusicTranscribeSpec, type NimiLocalAppMusicTranscription } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppVoiceConvertSpec, validateNimiLocalAppVoiceConversion, type NimiLocalAppVoiceConvertSpec, type NimiLocalAppVoiceConversion } from '@nimiplatform/kit/core/sdk-contract';
-import { projectMusicInputCapabilities, projectSpeechInputCapabilities, projectReasoningInputCapabilities } from '@nimiplatform/kit/core/sdk-contract';
+import { projectMusicInputCapabilities, projectSpeechInputCapabilities, projectReasoningInputCapabilities, projectStructuredOutputCapabilities } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicGeneration, type NimiLocalAppMusicGenerateSpec, type NimiLocalAppMusicGeneration } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppTextAnnotationResult, type NimiLocalAppTextAnnotationResult } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppSpeechTranscript, type NimiLocalAppSpeechTranscript } from '@nimiplatform/kit/core/sdk-contract';
@@ -4014,7 +4014,7 @@ function requiredVoiceOptionText(value: unknown, field: string, command: string,
 
 function parseEffectiveSelection(value: unknown, command: string): void {
   const selection = assertRecord(value, `${command}: effective selection is invalid`);
-  assertProjectionKeys(selection, ['capabilityContract', 'state', 'resource', 'reasons', ...(Object.hasOwn(selection, 'localLoadoutRevision') ? ['localLoadoutRevision'] : []), ...(Object.hasOwn(selection, 'textReplay') ? ['textReplay'] : []), ...(Object.hasOwn(selection, 'reasoningInput') ? ['reasoningInput'] : []), ...(Object.hasOwn(selection, 'contextWindowTokens') ? ['contextWindowTokens'] : []), ...(Object.hasOwn(selection, 'requestCapacityFloorTokens') ? ['requestCapacityFloorTokens'] : [])], command, 'effective selection');
+  assertProjectionKeys(selection, ['capabilityContract', 'state', 'resource', 'reasons', ...(Object.hasOwn(selection, 'localLoadoutRevision') ? ['localLoadoutRevision'] : []), ...(Object.hasOwn(selection, 'textReplay') ? ['textReplay'] : []), ...(Object.hasOwn(selection, 'structuredOutput') ? ['structuredOutput'] : []), ...(Object.hasOwn(selection, 'reasoningInput') ? ['reasoningInput'] : []), ...(Object.hasOwn(selection, 'contextWindowTokens') ? ['contextWindowTokens'] : []), ...(Object.hasOwn(selection, 'requestCapacityFloorTokens') ? ['requestCapacityFloorTokens'] : [])], command, 'effective selection');
   for (const [key, route] of [['contextWindowTokens', 'local'], ['requestCapacityFloorTokens', 'cloud']] as const) {
     if (!Object.hasOwn(selection, key)) continue;
     const capacity = selection[key];
@@ -4023,6 +4023,10 @@ function parseEffectiveSelection(value: unknown, command: string): void {
       || typeof capacity !== 'number' || !Number.isSafeInteger(capacity) || capacity < 1) {
       throw new Error(`${command}: text context capacity is invalid`);
     }
+  }
+  if (Object.hasOwn(selection, 'structuredOutput')) {
+    if (selection.capabilityContract !== 'text.generate' || selection.state !== 'ready') throw new Error(`${command}: structured output selection is invalid`);
+    projectStructuredOutputCapabilities(selection.structuredOutput, (detail) => { throw new Error(`${command}: ${detail}`); });
   }
   if (Object.hasOwn(selection, 'reasoningInput')) {
     if (selection.capabilityContract !== 'text.generate' || selection.state !== 'ready') throw new Error(`${command}: reasoning input selection is invalid`);

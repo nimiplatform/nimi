@@ -16,6 +16,10 @@ test('unknown progress never reports a fabricated percentage or numeric value', 
   const html = renderToStaticMarkup(<ProgressIndicator aria-label="App download" showValue />);
   expect(html).not.toContain('aria-valuenow');
   expect(html).not.toMatch(/>\d+%</);
+  const waiting = renderToStaticMarkup(<ProgressIndicator indeterminate aria-label="Running job" />);
+  expect(waiting).toContain('data-state="indeterminate"');
+  expect(waiting).not.toContain('sr-only');
+  expect(waiting).not.toContain('aria-valuenow');
   const invalidTotal = renderToStaticMarkup(<ProgressIndicator value={0} max={0} />);
   expect(invalidTotal).not.toContain('NaN');
   expect(invalidTotal).not.toContain('aria-valuenow');

@@ -32,7 +32,7 @@ function ReadyBody({ result }: { result: StudioCapabilityRunResult & { ok: true 
   if (output.kind === 'text') {
     return <div className="studio-result__rich">
       {output.sourceImage ? <ArtifactMediaPreview artifact={output.sourceImage} fallbackLabel={output.sourceImage.displayName || output.sourceImage.relativePath} /> : null}
-      <TextStudioOutputBody text={output.text} />
+      <TextStudioOutputBody text={output.text} finishReason={output.finishReason} />
     </div>;
   }
   if (output.kind === 'transcript') {
@@ -208,6 +208,7 @@ export function StudioResult({
   intentLabel,
   requestSettings,
   streamingText,
+  jobId,
   jobStatus,
   jobProgress,
   verboseConsole,
@@ -227,6 +228,7 @@ export function StudioResult({
   intentLabel?: string;
   requestSettings?: ReactNode;
   streamingText?: string | null;
+  jobId?: string;
   jobStatus?: 'queued' | 'running';
   jobProgress?: StudioJobProgress;
   verboseConsole: boolean;
@@ -375,14 +377,16 @@ export function StudioResult({
           <Loader2 size={15} aria-hidden="true" className="studio-spin" />
           <span>{cancelRequested
             ? t('Studio.result.pendingCancel')
+            : jobStatus ? t(`Studio.result.jobStatus.${jobStatus}`)
             : capability.id === 'music.transcribe' ? t('Transcription.running')
             : capability.id === 'audio.voice.convert' ? t('VoiceConvert.running')
             : capability.id === 'audio.separate' ? t('AudioSeparate.running')
-            : capability.id === 'vision.locate' && jobStatus ? t(`VisionLocate.${jobStatus}`)
             : profile.pendingLabelKey
             ? t(profile.pendingLabelKey)
             : hasStream ? t('Studio.result.pendingStreaming') : t('Studio.result.pendingRuntime')}</span>
         </div>
+        {jobId ? <p>{t('Studio.result.jobLabel')} <code>{jobId}</code></p> : null}
+        {jobId && !hasKnownProgress && !hasStream ? <ProgressIndicator indeterminate data-testid="studio-job-progress" aria-label={t('Studio.result.progressLabel')} /> : null}
         {hasKnownProgress && jobProgress ? (
           <div className="studio-result__progress" data-testid="studio-job-progress">
             <ProgressIndicator
@@ -412,7 +416,7 @@ export function StudioResult({
           <span>{statusTitle}</span>
         </div>
         <p>{studioNonSuccessReasonUserMessage(operationAborted.reason, t, capability.id)}</p>
-        <p className="studio-result__hint">{studioNonSuccessReasonUserAction(operationAborted.reason, t, capability.id)}</p>
+        <p className="studio-result__hint">{studioNonSuccessReasonUserAction(operationAborted.reason, t, capability.id, operationAborted.diagnostics)}</p>
         <KnownJobNotice jobId={operationAborted.jobId} />
       </div>
     );

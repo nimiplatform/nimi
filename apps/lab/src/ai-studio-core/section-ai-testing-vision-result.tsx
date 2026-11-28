@@ -34,7 +34,7 @@ export function VisionLocateResultView({ output }: { output: Extract<StudioTyped
           {location.type === 'box' ? <rect x={location.x1*width} y={location.y1*height} width={(location.x2-location.x1)*width} height={(location.y2-location.y1)*height} vectorEffect="non-scaling-stroke" /> : <circle cx={location.x*width} cy={location.y*height} r={Math.max(width,height)*0.007} vectorEffect="non-scaling-stroke" />}
         </g>)}
       </svg>
-    </div> : <p>{t('VisionLocate.previewUnavailable')}</p>}
+    </div> : <p role="status">{t(source && !imageFailed ? 'Common.loading' : 'VisionLocate.previewUnavailable')}</p>}
     <figcaption>{t(locations.length ? 'VisionLocate.found' : 'VisionLocate.noMatch', { count: locations.length })}</figcaption>
     <details><summary>{t('VisionLocate.coordinates')}</summary><pre>{JSON.stringify({ imageArtifactId, width, height, locations }, null, 2)}</pre></details>
   </figure>;

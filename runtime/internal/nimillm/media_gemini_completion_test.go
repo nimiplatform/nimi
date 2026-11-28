@@ -4,7 +4,22 @@ import (
 	"context"
 	"encoding/base64"
 	"testing"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
+
+func TestGeminiMusicPromptAndCandidateBlocks(t *testing.T) {
+	for _, payload := range []map[string]any{
+		{"promptFeedback": map[string]any{"blockReason": "SAFETY"}},
+		{"candidates": []any{map[string]any{"finishReason": "AUDIO_RECITATION"}}},
+	} {
+		_, err := geminiLyriaInlineMP3(payload)
+		if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED {
+			t.Fatalf("expected typed content block, got %v", err)
+		}
+	}
+}
 
 func TestGeminiMediaRequiresCompletedCandidate(t *testing.T) {
 	for _, finish := range []string{"", "MAX_TOKENS", "SAFETY", "OTHER", "STOP"} {

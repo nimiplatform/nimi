@@ -160,7 +160,7 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
         {notices.filter((notice) => notice.type !== 'context-reset').map((notice) => (
           <InlineAlert key={notice.type} tone="warning">{noticeText(notice)}</InlineAlert>
         ))}
-        <LabConversationExport document={conversation} disabled={busy || !!loadError} filename="lab-text-conversation.json" />
+        <LabConversationExport key={messages[0]?.id ?? 'empty'} document={conversation} disabled={busy || !!loadError} filename="lab-text-conversation.json" />
       </section>
 
       <details className="lab-realtime__card">
@@ -179,6 +179,7 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
       <OverlayShell
         open={configOpen}
         kind="drawer"
+        closeLabel={t('Common.close')}
         size="M"
         title={t('StudioModelConfig.drawerTitle')}
         panelClassName="flex flex-col"
@@ -192,7 +193,7 @@ function LabTextConversationSurface({ runtime }: { readonly runtime: StudioRunti
           {configOpen ? (
             <LabAiConfigSettingsPanel
               runtime={runtime}
-              capabilityId="text.conversation"
+              capabilityId="text.generate"
               onCommitted={() => notifyStudioAIConfigChanged(rootRef.current ?? window)}
             />
           ) : null}

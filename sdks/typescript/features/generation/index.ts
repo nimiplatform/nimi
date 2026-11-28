@@ -1,9 +1,8 @@
-import { validateNimiLocalAppSpeechTranscript, type NimiLocalAppSpeechTranscript } from '../../core/app/local-app-transcription.js';
+import { localTranscriptionFromRuntime, type NimiLocalAppSpeechTranscript } from '../../core/app/local-app-transcription.js';
 import {
   RoutePolicy,
   ScenarioJobEventType,
   ScenarioJobStatus,
-  SpeechTranscriptStatus,
   type CancelScenarioJobRequest,
   type CancelScenarioJobResponse,
   type GetScenarioArtifactsRequest,
@@ -562,7 +561,7 @@ export function extractNimiRuntimeSpeechTranscriptionOutput(
   }
   const text = normalizeText(variant.speechTranscribe.text);
   const source = variant.speechTranscribe.transcription;
-  const transcription = source ? validateNimiLocalAppSpeechTranscript({ status: source.status === SpeechTranscriptStatus.TRANSCRIBED ? 'transcribed' : source.status === SpeechTranscriptStatus.NO_SPEECH ? 'no-speech' : '', text: source.text, language: source.language, words: source.words.map((word) => ({ ...word })) }) : undefined;
+  const transcription = source ? localTranscriptionFromRuntime(source) : undefined;
   if (transcription && transcription.text !== text) throw generationError('SDK_RUNTIME_RESPONSE_DECODE_FAILED', 'Runtime transcription texts disagree', 'inspect_speech_transcription_result');
   if (!text && transcription?.status !== 'no-speech') {
     throw createNimiError({

@@ -481,7 +481,7 @@ export function SetupTaskPlanReview(props: {
   ) : null;
   const environmentUnavailable = props.plan.environmentUnavailable ? (
     <InlineAlert tone="warning" data-testid="runtime-setup-environment-unavailable">
-      <div>{t('runtimeConfig.setupTask.environmentUnavailable', { defaultValue: "This model has no managed runtime environment on this device, so it can't be prepared here. Nothing will be downloaded and the current model stays unchanged." })}</div>
+      <div>{props.plan.environmentUnavailable.reasonCode === 'AI_LOADOUT_DRIVER_UNAVAILABLE' ? t('runtimeConfig.setupTask.driverUnavailable') : t('runtimeConfig.setupTask.environmentUnavailable', { defaultValue: "This model has no managed runtime environment on this device, so it can't be prepared here. Nothing will be downloaded and the current model stays unchanged." })}</div>
     </InlineAlert>
   ) : null;
   const unavailable = props.plan.unavailable.length > 0 ? (

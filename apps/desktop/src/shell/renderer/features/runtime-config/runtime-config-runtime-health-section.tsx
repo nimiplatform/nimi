@@ -103,7 +103,7 @@ export function RuntimeHealthSection({
           />
           <VitalCard
             label={t('runtimeConfig.runtime.reportedVram')}
-            value={formatBytes(health.vramBytes)}
+            value={Number(health.vramBytes) > 0 ? formatBytes(health.vramBytes) : t('runtimeConfig.runtime.noVramSample')}
           />
           <VitalCard
             label={t('runtimeConfig.runtime.queue', { defaultValue: 'Queue' })}

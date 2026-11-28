@@ -1,6 +1,8 @@
 package ai
 
 import (
+	"slices"
+
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/protobuf/proto"
 )
@@ -55,6 +57,35 @@ func projectCloudTextBehaviors(
 		}
 	}
 	return result
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.r121
+func projectStructuredOutput(adapter *textBehaviorAdapterRegistration) *runtimev1.StructuredOutputCapabilityProjection {
+	if adapter == nil {
+		return nil
+	}
+	projection := &runtimev1.StructuredOutputCapabilityProjection{}
+	formats := adapter.Support.StructuredOutput
+	if formats == nil {
+		return projection
+	}
+	var sync, stream bool
+	for _, combination := range adapter.Support.Combinations {
+		if combination.StructuredOutput {
+			sync = sync || slices.Contains(combination.Modes, runtimev1.ExecutionMode_EXECUTION_MODE_SYNC)
+			stream = stream || slices.Contains(combination.Modes, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM)
+		}
+	}
+	for _, kind := range formats.Kinds {
+		switch kind {
+		case runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT:
+			projection.JsonObjectSync, projection.JsonObjectStream = sync, stream
+		case runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA:
+			projection.StrictJsonSchemaSync = sync && formats.SupportsStrictJSONSchema
+			projection.StrictJsonSchemaStream = stream && formats.SupportsStrictJSONSchema
+		}
+	}
+	return projection
 }
 
 func projectAdapterToolUseCapability(support textBehaviorSupport) *runtimev1.ToolUseCapabilityProjection {

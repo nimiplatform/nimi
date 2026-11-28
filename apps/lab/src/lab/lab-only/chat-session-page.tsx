@@ -276,7 +276,7 @@ function LabChatSessionSurface({ runtime }: { readonly runtime: StudioRuntimeIns
         {notices.filter((notice) => notice.type !== 'context-reset').map((notice) => (
           <InlineAlert key={notice.type} tone="warning">{noticeText(notice)}</InlineAlert>
         ))}
-        <LabConversationExport document={loaded && !busy ? toLabChatSessionDocument(session.messages, contextStartRef.current) : null}
+        <LabConversationExport key={session.messages[0]?.id ?? 'empty'} document={loaded && !busy ? toLabChatSessionDocument(session.messages, contextStartRef.current) : null}
           disabled={busy || blocked} filename="lab-chat-session.json" />
       </section>
 
@@ -295,6 +295,7 @@ function LabChatSessionSurface({ runtime }: { readonly runtime: StudioRuntimeIns
       <OverlayShell
         open={configOpen}
         kind="drawer"
+        closeLabel={t('Common.close')}
         size="M"
         title={t('StudioModelConfig.drawerTitle')}
         panelClassName="flex flex-col"
@@ -308,7 +309,7 @@ function LabChatSessionSurface({ runtime }: { readonly runtime: StudioRuntimeIns
           {configOpen ? (
             <LabAiConfigSettingsPanel
               runtime={runtime}
-              capabilityId="text.chat-session"
+              capabilityId="text.generate"
               onCommitted={() => notifyStudioAIConfigChanged(rootRef.current ?? window)}
             />
           ) : null}

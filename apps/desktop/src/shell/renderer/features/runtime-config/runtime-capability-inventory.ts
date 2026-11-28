@@ -167,8 +167,12 @@ export function useCapabilityInventory(options: { readonly enabled?: boolean; re
   const plansKey = useMemo(() => [...CAPABILITY_INVENTORY_KEY, 'plans', targets] as const, [targets]);
   const includePreparation = enabled && options.includePreparation !== false && targets.length > 0;
   const observePlans = includePreparation && !query.isError && !query.isFetching;
-  const plans = useQuery({
+  const plans = useQuery<CapabilityInventory['environments']>({
     queryKey: plansKey,
+    placeholderData: previous => previous && Object.fromEntries(targets.flatMap(target => {
+      const plan = previous[target.capabilityContract];
+      return plan && matchesLoadoutEnvironment(plan, target) ? [[target.capabilityContract, plan]] : [];
+    })),
     enabled: observePlans,
     staleTime: 15_000,
     queryFn: async ({ signal }): Promise<CapabilityInventory['environments']> => {

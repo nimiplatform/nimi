@@ -123,6 +123,7 @@ export type NimiAIConfigEffectiveSelection = {
   readonly localLoadoutRevision?: string;
   readonly contextWindowTokens?: number;
   readonly requestCapacityFloorTokens?: number;
+  readonly structuredOutput?: NimiStructuredOutputCapabilities;
   readonly reasoningInput?: import('./reasoning').NimiReasoningInputCapabilities;
   readonly textReplay?: NimiTextReplayCompatibility;
   readonly capabilityContract: string;
@@ -461,6 +462,23 @@ function createAppAIConfigOperations(
   });
 }
 
+export type NimiStructuredOutputCapabilities = {
+  readonly jsonObjectSync: boolean;
+  readonly jsonObjectStream: boolean;
+  readonly strictJsonSchemaSync: boolean;
+  readonly strictJsonSchemaStream: boolean;
+};
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.r121
+export function projectStructuredOutputCapabilities(value: unknown, fail: (detail: string) => never): NimiStructuredOutputCapabilities {
+  const fields = ['jsonObjectSync', 'jsonObjectStream', 'strictJsonSchemaSync', 'strictJsonSchemaStream'] as const;
+  const record = value as Record<string, unknown> | null;
+  if (!record || typeof record !== 'object' || Object.keys(record).length !== fields.length || fields.some(field => !Object.hasOwn(record, field) || typeof record[field] !== 'boolean')) {
+    return fail('Invalid structured output projection');
+  }
+  return Object.freeze({ ...record }) as NimiStructuredOutputCapabilities;
+}
+
 function projectEffectiveSelection(value: GetAppAIConfigResponse['effectiveSelections'][number]): NimiAIConfigEffectiveSelection {
   const state = projectEffectiveState(value.state);
   const tokenCount = (raw: string | undefined, route: 'local' | 'cloud') => {
@@ -471,6 +489,7 @@ function projectEffectiveSelection(value: GetAppAIConfigResponse['effectiveSelec
   };
   const capacity = tokenCount(value.contextWindowTokens, 'local');
   const floor = tokenCount(value.requestCapacityFloorTokens, 'cloud');
+  if (value.structuredOutput && (value.capabilityContract !== 'text.generate' || state !== 'ready')) return invalidConfiguration('Structured output selection is invalid');
   if (value.reasoningInput && (value.capabilityContract !== 'text.generate' || state !== 'ready')) return invalidConfiguration('Reasoning input selection is invalid');
   if (value.textReplay && (value.capabilityContract !== 'text.generate' || state !== 'ready' || value.textReplay.acceptedCarriers.length > 16)) return invalidConfiguration('Text replay selection is invalid');
   const replayIdentities = new Set<string>();
@@ -501,6 +520,7 @@ function projectEffectiveSelection(value: GetAppAIConfigResponse['effectiveSelec
     ...(value.localLoadoutRevision ? {localLoadoutRevision:value.localLoadoutRevision} : {}),
     ...(capacity === undefined ? {} : { contextWindowTokens: capacity }),
     ...(floor === undefined ? {} : { requestCapacityFloorTokens: floor }),
+    ...(value.structuredOutput ? { structuredOutput: projectStructuredOutputCapabilities(value.structuredOutput, invalidConfiguration) } : {}),
     ...(value.reasoningInput ? { reasoningInput: projectReasoningInputCapabilities(value.reasoningInput, invalidConfiguration) } : {}),
     ...(value.textReplay ? { textReplay: {
       acceptedCarriers: value.textReplay.acceptedCarriers.map((format) => ({

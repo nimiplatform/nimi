@@ -33,7 +33,7 @@ func TestReasoningDefaultAndExactOffAdmissionAreDistinct(t *testing.T) {
 	for _, model := range []string{"gpt-6-astra", "gpt-6.1-sol", "gpt-6-luna"} {
 		registration := openAIResponsesTextBehaviorRegistration(model)
 		facts := textBehaviorAdapterResolutionFacts{ImplementationID: "openai", DriverID: "nimillm", DriverDialect: "openai", CloudTarget: &textBehaviorCloudTarget{Provider: "openai", ProviderModelID: model}}
-		capabilities := projectReasoningInput([]textBehaviorAdapterRegistration{registration}, facts)
+		capabilities := projectReasoningInput(uniqueTextBehaviorAdapter([]textBehaviorAdapterRegistration{registration}, facts))
 		if capabilities == nil || !capabilities.FollowsModelDefault || !capabilities.SupportsRequired || capabilities.SupportsDisabled != (model == "gpt-6-luna") || len(capabilities.Efforts) != 5 {
 			t.Fatalf("exact projection = %+v", capabilities)
 		}

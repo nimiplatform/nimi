@@ -158,7 +158,7 @@ function TextStudioShell({
   const parameterSummary = registration.parameters.summarize(effectiveCapabilityParameters);
   const hasAlternativeInput = registration.parameters.hasAlternativeInput(effectiveCapabilityParameters);
   const promptEnabled = profile.inputKind !== 'url' || runtime?.mode !== 'remote-app';
-  const inputIssueKey = registration.parameters.requiredInputIssue?.(effectiveCapabilityParameters);
+  const inputIssueKey = registration.parameters.requiredInputIssue?.(effectiveCapabilityParameters, runTarget.effectiveSelection, prompt);
   const recordedInput = registration.parameters.recordedInput;
   const displayedRunPrompt = displayedRun?.prompt;
   // A parameter-owned input reruns the displayed run's recorded request, which
@@ -287,7 +287,7 @@ function TextStudioShell({
     const runEffectiveParameters = replay && registration.parameters.restoreRecordedParameters
       ? runParameters
       : registration.parameters.project(runTarget.source, runParameters);
-    if (registration.parameters.requiredInputIssue?.(runEffectiveParameters)) return;
+    if (registration.parameters.requiredInputIssue?.(runEffectiveParameters, runTarget.effectiveSelection, nextPrompt)) return;
     const runHasAlternativeInput = registration.parameters.hasAlternativeInput(runEffectiveParameters);
     // Raw document inputs retain their original whitespace so annotation
     // offsets refer to the exact text the user entered. A parameter-owned input
@@ -318,6 +318,8 @@ function TextStudioShell({
             (item) => item.capabilityContract === runTarget.capabilityContract,
           );
           if (!refreshedSelection || refreshedSelection.state !== 'ready') return;
+          const issue = registration.parameters.requiredInputIssue?.(runEffectiveParameters, refreshedSelection, nextPrompt);
+          if (issue) { setDraftError(t(issue)); return; }
           const refreshedResource = refreshedSelection.resource;
           const refreshedSource = refreshedResource?.oneofKind === 'local'
             ? 'local'
@@ -393,6 +395,9 @@ function TextStudioShell({
           || (capability.id === 'text.tools' && submittedParameters.delivery === 'stream');
         if (isStreaming) setStreamingText('');
         const directive = textStudioDirectiveForTarget(runTarget, profile);
+        const emptyMediaPrompt = (capability.id === 'world.generate' || capability.id === 'video.generate')
+          && runHasAlternativeInput && !displayPrompt && !nextContext.trim();
+        const plainDocument = capability.id === 'text.embed' && !nextContext.trim();
         if (capability.id === 'text.generate' && runAttachments.length > 0 &&
             !textStudioMediaInputAvailable(await rendererHost.sdk.aiConfig.getSnapshot(), runAttachments[0]?.mimeType)) {
           result = {
@@ -406,7 +411,7 @@ function TextStudioShell({
           recordedRunConfig: runConfig,
           recordedCreatedAt: pendingRun.createdAt,
           recordedPrompt: displayPrompt,
-          prompt: ((capability.id === 'world.generate' || capability.id === 'video.generate') && runHasAlternativeInput && !displayPrompt && !nextContext.trim()) || usesVerbatimStudioPrompt(capability.id) || profile.rawPrompt || recordedInput
+          prompt: emptyMediaPrompt || plainDocument || usesVerbatimStudioPrompt(capability.id) || profile.rawPrompt || recordedInput
             ? displayPrompt
             : textStudioRuntimePrompt(displayPrompt, nextContext, directive),
           scenarioId: preset.id,
@@ -427,10 +432,11 @@ function TextStudioShell({
             const currentStep = Number.isFinite(job.progressCurrentStep) && job.progressCurrentStep >= 0 ? Math.trunc(job.progressCurrentStep) : 0;
             const percent = Number.isFinite(job.progressPercent) ? Math.max(0, Math.min(100, Math.round(job.progressPercent))) : 0;
             const jobProgress = totalSteps > 0 ? { percent, currentStep, totalSteps } : undefined;
-            if (jobStatus || jobProgress) {
+            if (job.jobId || jobStatus || jobProgress) {
               setExecutingRun(current => current?.id === pendingRun.id
                 ? {
                     ...current,
+                    ...(job.jobId ? { jobId: job.jobId } : {}),
                     ...(jobStatus ? { jobStatus } : {}),
                     jobProgress,
                   }
@@ -851,6 +857,7 @@ export function SectionAITesting({
       {renderAIConfigPanel ? <OverlayShell
         open={configOpen}
         kind="drawer"
+        closeLabel={t('Common.close')}
         size="M"
         title={t('StudioModelConfig.drawerTitle')}
         description={t('StudioModelConfig.drawerDescription', { appTitle })}

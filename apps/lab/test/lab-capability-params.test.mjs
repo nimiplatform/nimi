@@ -29,6 +29,19 @@ test.after(async () => {
   await rm(buildDir, { recursive: true, force: true });
 });
 
+test('URI-only voice clones require HTTPS and preserve the selected model transcript policy', () => {
+  const parameters = labStudioComposition.getCapability('voice.create').parameters;
+  const selection = { resource: { oneofKind: 'cloud', cloud: { target: { referenceAudioInput: {
+    supportsUri: true, supportsBytes: false, textMode: 'unsupported', mimeTypes: [],
+  } } } } };
+  const input = { creationSource: 'reference-audio', referenceAudioUri: 'https://media.example/test.wav?token=example' };
+  assert.equal(parameters.requiredInputIssue(input, selection, ''), undefined);
+  assert.equal(parameters.requiredInputIssue(input, selection, 'stale description'), 'Studio.parameters.voiceReferenceClearText');
+  assert.equal(parameters.requiredInputIssue({ ...input, referenceAudioUri: 'file:///tmp/sample.wav' }, selection, ''), 'Studio.parameters.voiceReferenceUriInvalid');
+  assert.equal(parameters.requiredInputIssue({ creationSource: 'reference-audio', referenceAudioFile: { mimeType: 'audio/wav' } }, selection, ''), 'Studio.parameters.voiceReferenceUnsupported');
+  assert.equal(JSON.stringify(parameters.summarize(input)).includes('token=example'), false);
+});
+
 function states(capabilityId, source) {
   return new Map(
     labStudioComposition.getCapability(capabilityId).parameters.presentation(source)
@@ -101,13 +114,11 @@ test('Local synthesis preserves supported carrier controls and voice assets', ()
 
 test('Local transcription admits its supported inputs and drops unsupported options', () => {
   const local = states('audio.transcribe', 'local');
-  for (const field of ['audioFile', 'mimeType', 'language', 'timestamps']) {
+  for (const field of ['audioFile', 'mimeType', 'language', 'timestamps', 'diarization', 'speakerCount']) {
     assert.equal(local.get(field)?.state, 'enabled', `audio.transcribe.${field}`);
   }
   assert.deepEqual(local.get('responseFormat'), { field: 'responseFormat', state: 'fixed', fixedValue: 'text' });
-  for (const field of ['diarization', 'speakerCount', 'prompt']) {
-    assert.equal(local.get(field)?.state, 'disabled', `audio.transcribe.${field}`);
-  }
+  assert.equal(local.get('prompt')?.state, 'disabled');
   assert.deepEqual(project('audio.transcribe', 'local', {
     audioFile: { name: 'sample.wav' },
     mimeType: 'audio/wav',

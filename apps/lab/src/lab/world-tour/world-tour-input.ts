@@ -10,6 +10,7 @@ export type WorldInputMode = 'text' | 'ordinary' | 'equirectangular-360';
 export const worldTourParameters = defineStudioParameters({
   initial: () => ({ inputMode: 'text' as WorldInputMode }),
   routeMatrix: {},
+  requiredInputIssue: (p: StudioParameterValue) => p.inputMode && p.inputMode !== 'text' && !worldSource(p) ? 'WorldTour.sourceRequired' : undefined,
   hasAlternativeInput: (p: StudioParameterValue) => p.inputMode !== 'text' && Boolean(worldSource(p)),
   restoreRecordedParameters: (p: StudioParameterValue | undefined) => {
     if (!p) return null;

@@ -3,6 +3,7 @@ package capabilitydriver
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"slices"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -101,42 +102,69 @@ func (d dashScope38RealtimeMapper) NormalizeEvent(raw []byte, expected CloudReal
 			} `json:"tools"`
 		} `json:"session"`
 	}
-	invalid := func() ([]CloudRealtimeEvent, error) {
-		return nil, cloudInvocationError(CloudInvocationFailureResponse, fmt.Errorf("Qwen3.8 Realtime session differs from the requested configuration"))
+	invalid := func(field string) ([]CloudRealtimeEvent, error) {
+		slog.Warn("Qwen3.8 Realtime session echo mismatch", "field", field)
+		return nil, cloudInvocationError(CloudInvocationFailureResponse, fmt.Errorf("Qwen3.8 Realtime session echo mismatch: %s", field))
 	}
 	if json.Unmarshal(raw, &event) != nil {
-		return invalid()
+		return invalid("event")
 	}
 	if event.Type != "session.updated" {
-		return d.dashScopeRealtimeDriver.NormalizeEvent(raw, expected)
+		events, err := d.dashScopeRealtimeDriver.NormalizeEvent(raw, expected)
+		if err != nil {
+			slog.Warn("Qwen3.8 Realtime event rejected", "session_update", false)
+		}
+		return events, err
 	}
 	s := event.Session
-	if s == nil || s.Model != dashScope38RealtimeModel || s.Search || s.Transcription.Model != "qwen3-asr-flash-realtime" {
-		return invalid()
+	if s == nil {
+		return invalid("session")
+	}
+	if s.Model != dashScope38RealtimeModel {
+		return invalid("session.model")
+	}
+	if s.Search {
+		return invalid("session.enable_search")
+	}
+	if s.Transcription.Model != "qwen3-asr-flash-realtime" {
+		return invalid("session.input_audio_transcription.model")
 	}
 	if len(s.Modalities) != 1+boolInt(expected.AudioOutput) || !slices.Contains(s.Modalities, "text") || slices.Contains(s.Modalities, "audio") != expected.AudioOutput {
-		return invalid()
+		return invalid("modalities")
 	}
 	in, out := s.Audio.Input.Format, s.Audio.Output.Format
 	if in.Type != "pcm" || in.SampleRate != 16000 || in.SampleFormat != "s16le" || in.Channels != 1 || in.Packing != "interleaved" || in.Layout != "mono" || out.Type != "pcm" || out.SampleRate != 24000 {
-		return invalid()
+		return invalid("audio format")
 	}
 	// The native session schema can echo the effective voice at either of its
 	// documented locations. If both are returned they must agree.
 	if s.Voice != "" && s.Voice != "Tina" || s.Audio.Output.Voice != "" && s.Audio.Output.Voice != "Tina" || s.Voice == "" && s.Audio.Output.Voice == "" {
-		return invalid()
+		return invalid("voice")
 	}
 	if !expected.SelfIntention && len(s.Tools) != 0 {
-		return invalid()
+		return invalid("unexpected tools")
 	}
 	for _, tool := range s.Tools {
 		if tool.Type != "function" {
-			return invalid()
+			return invalid("tool type")
 		}
 	}
 	if expected.TurnDetection == runtimev1.AiRealtimeTurnDetectionMode_AI_REALTIME_TURN_DETECTION_MODE_MANUAL {
-		if string(s.Detection) != "null" {
-			return invalid()
+		// session.updated acknowledges our explicit null. Manual sessions can omit
+		// the disabled detector from the echo; an active detector is a mismatch.
+		if len(s.Detection) != 0 && string(s.Detection) != "null" {
+			var detector struct {
+				Type string `json:"type"`
+			}
+			if json.Unmarshal(s.Detection, &detector) == nil {
+				switch detector.Type {
+				case "server_vad", "semantic_vad", "semantic_vad_ec":
+					return invalid("manual turn detection echoed active VAD")
+				case "":
+					return invalid("manual turn detection echoed an object without a type")
+				}
+			}
+			return invalid("manual turn detection")
 		}
 	} else {
 		var detection struct {
@@ -145,7 +173,7 @@ func (d dashScope38RealtimeMapper) NormalizeEvent(raw []byte, expected CloudReal
 			Interrupt *bool  `json:"interrupt_response"`
 		}
 		if expected.TurnDetection != runtimev1.AiRealtimeTurnDetectionMode_AI_REALTIME_TURN_DETECTION_MODE_SERVER_VAD || json.Unmarshal(s.Detection, &detection) != nil || detection.Type != "server_vad" || detection.Create == nil || *detection.Create || detection.Interrupt == nil || *detection.Interrupt {
-			return invalid()
+			return invalid("server turn detection")
 		}
 	}
 	return []CloudRealtimeEvent{{Kind: CloudRealtimeEventReady}}, nil
