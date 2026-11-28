@@ -409,6 +409,8 @@ loadout_recipes:
           - local.chat.gemma-4-e2b-it.q5-k-m
           - local.chat.gemma-4-e2b-it.q6-k
           - local.chat.gemma-4-e2b-it.q8-0
+          - local.chat.domyn-edge-sft.q4-k-m.cuda
+          - local.chat.raon-1-mini-preview.q4-k-m.cuda
         model_contract:
           format: gguf
           artifact_role: llm

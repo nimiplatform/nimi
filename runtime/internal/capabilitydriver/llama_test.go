@@ -802,12 +802,12 @@ func TestLlamaTextTurnItemsDoNotGuessUnsupportedBehavior(t *testing.T) {
 func TestLlamaArchitectureTableAndProjectorCompatibility(t *testing.T) {
 	for _, phantom := range []string{"falcon3", "glm5", "kimi-k2", "mistral", "bert", "clip"} {
 		if contains(llamaSupportedTextArchitectures, phantom) {
-			t.Fatalf("phantom or non-generative arch %q present in b12648 allowlist", phantom)
+			t.Fatalf("phantom or non-generative arch %q present in b12823 allowlist", phantom)
 		}
 	}
-	for _, real := range []string{"phimoe", "gptneox", "glm5-next", "falcon-h1", "kimi-linear", "kimi-k31", "mistral-large4", "inkling2_loop", "gemma4", "qwen35"} {
+	for _, real := range []string{"phimoe", "gptneox", "glm5-next", "falcon-h1", "kimi-linear", "kimi-k31", "mistral-large4", "inkling2_loop", "gemma4", "qwen35", "domynedge", "raon1", "zaya1"} {
 		if !contains(llamaSupportedTextArchitectures, real) {
-			t.Fatalf("supported b12648 arch %q missing from allowlist", real)
+			t.Fatalf("supported b12823 arch %q missing from allowlist", real)
 		}
 	}
 	// Unproven projector family must fail closed (no permissive default fallback).

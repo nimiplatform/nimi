@@ -82,6 +82,24 @@ func TestContextFitReducesToLargestRunnableStepForTheChosenVariant(t *testing.T)
 	}
 }
 
+func TestDomynAndRaonContextFitUsesTheirOwnKVCache(t *testing.T) {
+	local := mustLoadLocal(t)
+	for _, tc := range []struct {
+		variant string
+		vramGiB int64
+		want    uint64
+	}{
+		{"local.chat.domyn-edge-sft.q4-k-m.cuda", 8, 16384},
+		{"local.chat.raon-1-mini-preview.q4-k-m.cuda", 30, 204800},
+		{"local.chat.raon-1-mini-preview.q4-k-m.cuda", 32, 262144},
+	} {
+		fit, ok := local.ContextFitForHost(tc.variant, cudaHost(64, tc.vramGiB))
+		if !ok || fit.AuthoredContextSize != 262144 || fit.RecommendedContextSize != tc.want {
+			t.Errorf("%s on %d GiB: fit = %+v/%v, want %d of 262144", tc.variant, tc.vramGiB, fit, ok, tc.want)
+		}
+	}
+}
+
 func TestContextFitFloorsAtTheReferenceContext(t *testing.T) {
 	local := mustLoadLocal(t)
 	// 36/42.5 GiB is runnable at the reference; the next step, 40960, is not.

@@ -265,6 +265,66 @@ models:
       authored_context_length: 262144
       kv_cache_bytes_per_token: 16384
 
+  - model_id: domyn-edge-sft-local
+    model_type: chat
+    family: domynedge
+    updated_at: 2026-11-28
+    capabilities: [text.generate]
+    source_ids: [domyn_edge_sft_author, domyn_edge_sft_gguf]
+    install:
+      repo: prithivMLmods/Domyn-Edge-SFT-GGUF
+      revision: 85f795a5501b1c30e82dbccd4a59c4a4eb8bfdc2 # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      license: Apache-2.0
+      entry: Domyn-Edge-SFT.Q4_K_M.gguf
+      artifact_roles: [llm]
+      preferred_engine: llama
+    variants:
+      - variant_id: local.chat.domyn-edge-sft.q4-k-m.cuda
+        quant: Q4_K_M
+        files: [Domyn-Edge-SFT.Q4_K_M.gguf]
+        hashes:
+          Domyn-Edge-SFT.Q4_K_M.gguf: sha256:6355c85546e261c3fb093ce32b3b61bc3238b4f19e8be6837cd46ba6b621466c
+        total_size_bytes: 2423095616
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 6442450944
+    fitness:
+      param_count: 3928787968
+      context_length: 8192
+      authored_context_length: 262144
+      kv_cache_bytes_per_token: 98304
+  - model_id: raon-1-mini-preview-local
+    model_type: chat
+    family: raon1
+    updated_at: 2026-11-28
+    capabilities: [text.generate]
+    source_ids: [raon_1_mini_preview_gguf]
+    install:
+      repo: KRAFTON/Raon-1-mini-preview-gguf
+      revision: 6a239aaedecf281277b7aed87c17a6c5e9128e81 # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      license: Apache-2.0
+      entry: raon-1-mini-preview-Q4_K_M.gguf
+      artifact_roles: [llm]
+      preferred_engine: llama
+    variants:
+      - variant_id: local.chat.raon-1-mini-preview.q4-k-m.cuda
+        quant: Q4_K_M
+        files: [raon-1-mini-preview-Q4_K_M.gguf]
+        hashes:
+          raon-1-mini-preview-Q4_K_M.gguf: sha256:ba56ad4bd6d15f8c4255876ff252890143074a5d3835fccfc656cee915999ee8
+        total_size_bytes: 19686434240
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
+    fitness:
+      param_count: 28783218602
+      context_length: 8192
+      authored_context_length: 262144
+      kv_cache_bytes_per_token: 8064
   - model_id: inkling-2-mini-local
     model_type: chat
     family: inkling2_loop

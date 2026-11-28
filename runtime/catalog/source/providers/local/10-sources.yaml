@@ -1,4 +1,13 @@
 sources:
+  - source_id: domyn_edge_sft_author
+    url: https://huggingface.co/domyn/Domyn-Edge-SFT
+    retrieved_at: 2026-11-28
+  - source_id: domyn_edge_sft_gguf
+    url: https://huggingface.co/prithivMLmods/Domyn-Edge-SFT-GGUF/tree/85f795a5501b1c30e82dbccd4a59c4a4eb8bfdc2
+    retrieved_at: 2026-11-28
+  - source_id: raon_1_mini_preview_gguf
+    url: https://huggingface.co/KRAFTON/Raon-1-mini-preview-gguf/tree/6a239aaedecf281277b7aed87c17a6c5e9128e81
+    retrieved_at: 2026-11-28
   - source_id: sdxl_base_official
     url: https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/tree/462165984030d82259a11f4367a4eed129e94a7b
     retrieved_at: 2026-11-11

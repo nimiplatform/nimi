@@ -337,6 +337,7 @@ var llamaSupportedTextArchitectures = []string{
 	"qwen3vl",
 	"qwen3vlmoe",
 	"qwen4exp",
+	"raon1",
 	"refact",
 	"ricursive",
 	"rwkv6",
