@@ -6,6 +6,7 @@ import (
 	"errors"
 	"image"
 	"image/color"
+	"image/jpeg"
 	"image/png"
 	"os"
 	"path/filepath"
@@ -28,14 +29,22 @@ func TestUpscaleWithNativeModels(t *testing.T) {
 		t.Fatal("managed sd.cpp package unavailable")
 	}
 	cli := upscaleCLI{executable: executable, directory: filepath.Dir(executable), release: spec.ReleaseTag}
-	var source bytes.Buffer
+	var rgbaPNG, grayPNG, grayJPEG bytes.Buffer
 	img := image.NewNRGBA(image.Rect(0, 0, 64, 48))
 	img.Set(16, 24, color.NRGBA{R: 255, A: 255})
-	if err := png.Encode(&source, img); err != nil {
+	if err := png.Encode(&rgbaPNG, img); err != nil {
+		t.Fatal(err)
+	}
+	gray := image.NewGray(img.Bounds())
+	gray.SetGray(16, 24, color.Gray{Y: 200})
+	if err := png.Encode(&grayPNG, gray); err != nil {
+		t.Fatal(err)
+	}
+	if err := jpeg.Encode(&grayJPEG, gray, nil); err != nil {
 		t.Fatal(err)
 	}
 	plan := &capabilitydriver.UpscaleInvocationPlan{
-		Family: family, Seed: 42, Scale: 2, Source: source.Bytes(), MIMEType: "image/png",
+		Family: family, Seed: 42, Scale: 2,
 		Bindings: []capabilitydriver.InvocationExactBinding{
 			{AbsolutePath: os.Getenv("NIMI_UPSCALE_TEST_MODEL")}, {AbsolutePath: os.Getenv("NIMI_UPSCALE_TEST_VAE")},
 		},
@@ -43,18 +52,30 @@ func TestUpscaleWithNativeModels(t *testing.T) {
 	if os.Getenv("NIMI_UPSCALE_TEST_SCALE") == "4" {
 		plan.Scale = 4
 	}
-	still, err := upscaleStill(t.Context(), plan, t.TempDir(), cli)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := still.Body.Close(); err != nil {
-		t.Fatal(err)
+	for _, tc := range []struct {
+		name, mime string
+		data       []byte
+	}{
+		{"rgba_png", "image/png", rgbaPNG.Bytes()},
+		{"gray_png", "image/png", grayPNG.Bytes()},
+		{"gray_jpeg", "image/jpeg", grayJPEG.Bytes()},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			plan.Source, plan.MIMEType = tc.data, tc.mime
+			still, err := upscaleStill(t.Context(), plan, t.TempDir(), cli)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := still.Body.Close(); err != nil {
+				t.Fatal(err)
+			}
+		})
 	}
 	ffprobe, sourceMP4 := os.Getenv("NIMI_UPSCALE_TEST_FFPROBE"), os.Getenv("NIMI_UPSCALE_TEST_SOURCE")
 	if ffprobe == "" || sourceMP4 == "" {
 		return
 	}
-	plan.Source, err = os.ReadFile(sourceMP4)
+	input, err := os.ReadFile(sourceMP4)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +84,7 @@ func TestUpscaleWithNativeModels(t *testing.T) {
 		t.Fatal(err)
 	}
 	ffmpeg := filepath.Join(filepath.Dir(ffprobe), "ffmpeg"+codec.suffix)
-	plan.Video, plan.MIMEType = true, "video/mp4"
+	plan.Video, plan.MIMEType, plan.Source = true, "video/mp4", input
 	plan.Dependencies = []capabilitydriver.InvocationExactDependencySource{{
 		DependencyFamily: "native-tool.media-codec", DependencyID: MediaCodecDependencyID, Version: codec.version,
 		CanonicalRoot: filepath.Dir(filepath.Dir(ffprobe)), VerifiedArtifacts: []string{ffmpeg, ffprobe}, Hashes: codec.hashes,

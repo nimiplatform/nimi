@@ -82,7 +82,8 @@ func upscaleDGL(plan *capabilitydriver.UpscaleInvocationPlan, input, output stri
 	if plan.Video {
 		fmt.Fprintf(&program, "    clip = video::load(%s, fps_num = %d)\n    frames = clip.video.frames\n", pathLiteral(input), fps)
 	} else {
-		fmt.Fprintf(&program, "    frames = tensor::unsqueeze(image::load(%s)[0:3, :, :], axis = 3)\n", pathLiteral(input))
+		fmt.Fprintf(&program, "    image = image::load(%s)\n", pathLiteral(input))
+		program.WriteString("    rgb = image::to_u8(image::to_f32(image, channels = 3))\n    frames = tensor::unsqueeze(rgb, axis = 3)\n")
 	}
 	fmt.Fprintf(&program, "    pixels = enhance_frames(frames, dit, vae, make_rng(\"cuda\", seed = %d), %d)\n", plan.Seed, plan.Scale)
 	paths := []string{output}
