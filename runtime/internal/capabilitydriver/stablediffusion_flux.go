@@ -70,6 +70,14 @@ func stableDiffusionSafetensorsContractFamily(contract string, probe []byte) (st
 // @nimi-authority: rule.nimi.runtime.ai-provider.flux3-local-image
 func stableDiffusionGGUFTensorContractValid(contract string, summary ggufmeta.Summary) bool {
 	switch contract {
+	case "qwen-image-21-diffusion":
+		// Upstream identifies Qwen Image 2.1 by its text normalization tensor.
+		return slices.Equal(summary.TensorShapes["txt_in.text_norm.weight"], []uint64{4096}) &&
+			slices.Equal(summary.TensorShapes["img_in.weight"], []uint64{64, 4096})
+	case "qwen3-vl-8b-encoder":
+		return ggufmeta.LLMDetectedArchitecture(summary) == "qwen3vl" &&
+			slices.Equal(summary.TensorShapes["token_embd.weight"], []uint64{4096, 151936}) &&
+			slices.Equal(summary.TensorShapes["output_norm.weight"], []uint64{4096})
 	case "minimax-h3-qwen3-vl-encoder":
 		return stableDiffusionMiniMaxH3EncoderValid(summary)
 	case "flux3-klein":

@@ -863,11 +863,13 @@ func TestResolveManagedImageBackendPackageSpecForHostUnknownSourceFailsClosed(t 
 	}
 }
 
-func TestFlux3KleinHasExactWindowsPackageAdmission(t *testing.T) {
-	if err := admitManagedImageRecipeForHost("flux3", "", "windows", "amd64", "nvidia", true); err != nil {
-		t.Fatal("reviewed Windows family rejected before native execution", err)
-	}
-	if err := admitManagedImageRecipeForHost("flux3", "", "darwin", "arm64", "apple", false); err == nil {
-		t.Fatal("unadmitted Mac FLUX3 route accepted")
+func TestWindowsOnlyImageFamiliesHaveExactPackageAdmission(t *testing.T) {
+	for _, family := range []string{"flux3", "qwen-image-21"} {
+		if err := admitManagedImageRecipeForHost(family, "", "windows", "amd64", "nvidia", true); err != nil {
+			t.Fatalf("reviewed Windows family %q rejected before native execution: %v", family, err)
+		}
+		if err := admitManagedImageRecipeForHost(family, "", "darwin", "arm64", "apple", false); err == nil {
+			t.Fatalf("unadmitted Mac family %q accepted", family)
+		}
 	}
 }

@@ -1,6 +1,46 @@
 # Independent passive ModelAsset offers. Recipe slot metadata may recommend
 # their variant IDs; no row has a parent model, inherited binding, or download claim.
 models:
+  - model_id: asset-image-vae-qwen-image-21
+    model_type: vae
+    family: qwen-image-21-vae
+    updated_at: 2026-11-28
+    capabilities: []
+    source_ids: [qwen_image_21_vae]
+    install:
+      repo: Comfy-Org/Qwen-Image-2.1
+      revision: aacf31a6d48e707f352ecba714cee0680da3479b # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      entry: vae/qwen_image_2.1_vae_bf16.safetensors
+      artifact_roles: [vae]
+    variants:
+      - variant_id: local.image-vae.qwen-image-21.bf16.cuda
+        quant: BF16
+        files: [vae/qwen_image_2.1_vae_bf16.safetensors]
+        hashes:
+          vae/qwen_image_2.1_vae_bf16.safetensors: sha256:bb21f7473051e1ac368515dd3f2e15cd44d7a11748ee8823e1ddca3e4876b7c9
+        total_size_bytes: 675509688
+        host_requirement: {accelerator: cuda}
+  - model_id: asset-image-textenc-qwen3-vl-8b
+    model_type: auxiliary
+    family: qwen-vl
+    updated_at: 2026-11-28
+    capabilities: []
+    source_ids: [qwen3_vl_8b_encoder_gguf]
+    install:
+      repo: Qwen/Qwen3-VL-8B-Instruct-GGUF
+      revision: f982a07559d4a2f6c8744d840bf6fccab30eea96 # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      entry: Qwen3VL-8B-Instruct-Q4_K_M.gguf
+      artifact_roles: [text_encoder]
+    variants:
+      - variant_id: local.image-textenc.qwen3-vl-8b.q4-k-m.cuda
+        quant: Q4_K_M
+        files: [Qwen3VL-8B-Instruct-Q4_K_M.gguf]
+        hashes:
+          Qwen3VL-8B-Instruct-Q4_K_M.gguf: sha256:67d1659bfe71b89d50b45a4ad1a9e5b997e5bb16ce5da66a6a6167abd569e9e2
+        total_size_bytes: 5027784800
+        host_requirement: {accelerator: cuda}
   - model_id: asset-sdxl-controlnet-union-promax
     model_type: auxiliary
     family: sdxl-controlnet-union-promax

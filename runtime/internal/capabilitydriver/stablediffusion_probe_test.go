@@ -162,6 +162,30 @@ func TestStableDiffusionProbeKeepsActualRequirementAndBindingChecks(t *testing.T
 	}
 }
 
+func TestStableDiffusionQwenImage21BindsDiffusionWithoutArchitectureMetadata(t *testing.T) {
+	driver := StableDiffusionImageDriver{}
+	raw := fluxGGUFForTest("", nil, map[string][]uint64{
+		"txt_in.text_norm.weight": {4096},
+		"img_in.weight":           {64, 4096},
+	})
+	input := sdProbeInputForTest(t, driver, StableDiffusionQwenImage21RecipeID, StableDiffusionMainRequirementID, "gguf", int64(len(raw)))
+	probe, err := driver.ProbeModelAsset(ModelAssetFormatProbeInput{
+		RecipeID: input.RecipeID, RequirementID: input.Requirement.GetRequirementId(), RelativePath: input.Entry.RelativePath, Entry: true,
+	}, bytes.NewReader(raw), int64(len(raw)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input.Entry.FormatProbe = probe
+	projection, reason := driver.ProjectModelAssetBinding(input)
+	if reason != success || projection.Descriptor.Family != StableDiffusionQwenImage21RecipeID {
+		t.Fatalf("Qwen Image 2.1 binding: family=%q reason=%v", projection.Descriptor.Family, reason)
+	}
+	delete(input.Requirement.CompatibilityConstraints.Fields, "tensor_contract")
+	if _, reason := driver.ProjectModelAssetBinding(input); reason == success {
+		t.Fatal("diffusion binding accepted without the required tensor contract")
+	}
+}
+
 func TestStableDiffusionProbesKeepCancellationAndShortSourceFailures(t *testing.T) {
 	for _, tc := range []struct {
 		driver               RecipeDriver

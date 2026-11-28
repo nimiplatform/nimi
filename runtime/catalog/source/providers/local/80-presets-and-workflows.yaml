@@ -1054,6 +1054,28 @@ loadout_recipes:
           format: gguf-bundle
           model_family: minimax-music3
           artifact_role: music_model
+  - recipe_id: qwen-image-21
+    revision: "1"
+    title: Qwen Image 2.1 generation
+    capability_contract: image.generate
+    implementation_id: local.image.generate.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp
+    driver_dialect: stable-diffusion.cpp/image-generate/v5
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: main.diffusion
+        display_label: Diffusion model
+        recommended_variant_ids: [local.image.qwen-image-21.q4-k.cuda]
+        model_contract: {format: gguf, tensor_contract: qwen-image-21-diffusion, artifact_role: diffusion_model}
+      - slot_id: companion.text-encoder
+        display_label: Qwen3-VL 8B text encoder
+        recommended_variant_ids: [local.image-textenc.qwen3-vl-8b.q4-k-m.cuda]
+        model_contract: {format: gguf, gguf_architectures: [qwen3vl], tensor_contract: qwen3-vl-8b-encoder, artifact_role: text_encoder}
+      - slot_id: companion.vae
+        display_label: Qwen Image 2.1 VAE
+        recommended_variant_ids: [local.image-vae.qwen-image-21.bf16.cuda]
+        model_contract: {format: safetensors, tensor_contract: qwen-image-21-vae}
   - recipe_id: qwen-image
     revision: "1"
     title: Qwen Image generation

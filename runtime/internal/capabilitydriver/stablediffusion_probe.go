@@ -18,9 +18,9 @@ const sdImageGGUFProbeSchema = "sd-image-gguf-probe/v1"
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.flux3-local-image
 func (StableDiffusionImageDriver) ModelAssetFormatProbeBytes(input ModelAssetFormatProbeInput) int64 {
-	// Qwen3-VL4B's reviewed tokenizer metadata places the tensor table beyond
-	// the generic four MiB window. Only this exact encoder contract needs more.
-	if input.Entry && input.RecipeID == StableDiffusionFlux3KleinRecipeID && input.RequirementID == StableDiffusionTextEncoderRequirementID {
+	// These Qwen3-VL encoders have a tensor table after the tokenizer metadata.
+	if input.Entry && input.RequirementID == StableDiffusionTextEncoderRequirementID &&
+		(input.RecipeID == StableDiffusionFlux3KleinRecipeID || input.RecipeID == StableDiffusionQwenImage21RecipeID) {
 		return 8 << 20
 	}
 	return MaxAssetFormatProbeBytes

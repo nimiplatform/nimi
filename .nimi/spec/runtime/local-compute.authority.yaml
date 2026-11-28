@@ -1264,6 +1264,16 @@ units:
         target: definition.nimi.runtime.ai-provider.voice-conversion
       - type: applies_to
         target: definition.nimi.runtime.local-compute.runtime-environment-plane
+  - id: rule.nimi.runtime.local-compute.sdcpp-qwen-image-21
+    kind: rule
+    title: Qwen Image 2.1 local text-to-image
+    modality: must
+    statement: The windows amd64 NVIDIA stable-diffusion.cpp package admits the qwen-image-21 image.generate recipe with Qwen Image 2.1 diffusion weights, Qwen3-VL 8B text encoder weights and its dedicated 64-channel VAE as independently verified ModelAssets. The Driver validates the diffusion and encoder tensor contracts and the VAE shape before activation, uses the native resolution-dependent flow schedule and produces one PNG with requested dimensions divisible by 32. Supported request controls include prompt, negative prompt, seed and size. This recipe accepts text inputs only.
+    condition: Local image.generate selects qwen-image-21.
+    failure: Reject incompatible assets, host tuples or request options before native generation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.runtime-environment-plane
   - id: rule.nimi.runtime.local-compute.audio-cpp-voxmel
     kind: rule
     title: VoxMel local speech synthesis

@@ -5042,6 +5042,76 @@ models:
         total_size_bytes: 934349912
         host_requirement:
           accelerator: cuda
+  - model_id: asset-image-vae-qwen-image-21
+    provider: local
+    model_type: vae
+    updated_at: 2026-11-28
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Comfy-Org/Qwen-Image-2.1/tree/aacf31a6d48e707f352ecba714cee0680da3479b/vae
+      retrieved_at: 2026-11-28
+      note: ""
+    family: qwen-image-21-vae
+    install:
+      repo: Comfy-Org/Qwen-Image-2.1
+      revision: aacf31a6d48e707f352ecba714cee0680da3479b
+      install_kind: weights
+      entry: vae/qwen_image_2.1_vae_bf16.safetensors
+      artifact_roles:
+        - vae
+    variants:
+      - variant_id: local.image-vae.qwen-image-21.bf16.cuda
+        quant: BF16
+        entry: vae/qwen_image_2.1_vae_bf16.safetensors
+        files:
+          - vae/qwen_image_2.1_vae_bf16.safetensors
+        hashes:
+          vae/qwen_image_2.1_vae_bf16.safetensors: sha256:bb21f7473051e1ac368515dd3f2e15cd44d7a11748ee8823e1ddca3e4876b7c9
+        total_size_bytes: 675509688
+        host_requirement:
+          accelerator: cuda
+  - model_id: asset-image-textenc-qwen3-vl-8b
+    provider: local
+    model_type: auxiliary
+    updated_at: 2026-11-28
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct-GGUF/tree/f982a07559d4a2f6c8744d840bf6fccab30eea96
+      retrieved_at: 2026-11-28
+      note: ""
+    family: qwen-vl
+    install:
+      repo: Qwen/Qwen3-VL-8B-Instruct-GGUF
+      revision: f982a07559d4a2f6c8744d840bf6fccab30eea96
+      install_kind: weights
+      entry: Qwen3VL-8B-Instruct-Q4_K_M.gguf
+      artifact_roles:
+        - text_encoder
+    variants:
+      - variant_id: local.image-textenc.qwen3-vl-8b.q4-k-m.cuda
+        quant: Q4_K_M
+        entry: Qwen3VL-8B-Instruct-Q4_K_M.gguf
+        files:
+          - Qwen3VL-8B-Instruct-Q4_K_M.gguf
+        hashes:
+          Qwen3VL-8B-Instruct-Q4_K_M.gguf: sha256:67d1659bfe71b89d50b45a4ad1a9e5b997e5bb16ce5da66a6a6167abd569e9e2
+        total_size_bytes: 5027784800
+        host_requirement:
+          accelerator: cuda
   - model_id: asset-sdxl-controlnet-union-promax
     provider: local
     model_type: auxiliary
@@ -7282,6 +7352,59 @@ models:
         host_requirement:
           accelerator: cpu
           min_ram_bytes: 8589934592
+  - model_id: qwen-image-21-local
+    provider: local
+    model_type: image
+    updated_at: 2026-11-28
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/leejet/stable-diffusion.cpp/blob/3b0426f7faf6256d1dbfa2046330cb2dc0c25861/docs/models/qwen_image_2.1.md
+      retrieved_at: 2026-11-28
+      note: ""
+    family: qwen-image-21
+    image_request_options:
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+    install:
+      repo: leejet/Qwen-Image-2.1-GGUF
+      revision: 0bca76da6edd8a18211e9717454615c1bbaaf6ed
+      install_kind: weights
+      entry: qwen_image_2.1-Q4_K.gguf
+      artifact_roles:
+        - diffusion_model
+      preferred_engine: media
+    variants:
+      - variant_id: local.image.qwen-image-21.q4-k.cuda
+        quant: Q4_K
+        entry: qwen_image_2.1-Q4_K.gguf
+        files:
+          - qwen_image_2.1-Q4_K.gguf
+        hashes:
+          qwen_image_2.1-Q4_K.gguf: sha256:29f9c83c249ff0292fb2943fceddfa2319b446601866c82a4f8be062abea72c2
+        total_size_bytes: 4197494816
+        host_requirement:
+          accelerator: cuda
+    fitness:
+      param_count: 7115124736
+      context_length: 0
   - model_id: sdxl-base-1.0-local
     provider: local
     model_type: image
@@ -13497,6 +13620,47 @@ loadout_recipes:
           format: gguf-bundle
           model_family: minimax-music3
           artifact_role: music_model
+  - recipe_id: qwen-image-21
+    revision: "1"
+    title: Qwen Image 2.1 generation
+    capability_contract: image.generate
+    implementation_id: local.image.generate.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp
+    driver_dialect: stable-diffusion.cpp/image-generate/v5
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: main.diffusion
+        display_label: Diffusion model
+        recommended_variant_ids:
+          - local.image.qwen-image-21.q4-k.cuda
+        recommended_content_ids:
+          - sha256:29f9c83c249ff0292fb2943fceddfa2319b446601866c82a4f8be062abea72c2
+        model_contract:
+          format: gguf
+          tensor_contract: qwen-image-21-diffusion
+          artifact_role: diffusion_model
+      - slot_id: companion.text-encoder
+        display_label: Qwen3-VL 8B text encoder
+        recommended_variant_ids:
+          - local.image-textenc.qwen3-vl-8b.q4-k-m.cuda
+        recommended_content_ids:
+          - sha256:67d1659bfe71b89d50b45a4ad1a9e5b997e5bb16ce5da66a6a6167abd569e9e2
+        model_contract:
+          format: gguf
+          gguf_architectures:
+            - qwen3vl
+          tensor_contract: qwen3-vl-8b-encoder
+          artifact_role: text_encoder
+      - slot_id: companion.vae
+        display_label: Qwen Image 2.1 VAE
+        recommended_variant_ids:
+          - local.image-vae.qwen-image-21.bf16.cuda
+        recommended_content_ids:
+          - sha256:bb21f7473051e1ac368515dd3f2e15cd44d7a11748ee8823e1ddca3e4876b7c9
+        model_contract:
+          format: safetensors
+          tensor_contract: qwen-image-21-vae
   - recipe_id: qwen-image
     revision: "1"
     title: Qwen Image generation

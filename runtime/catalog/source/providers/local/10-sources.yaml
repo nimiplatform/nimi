@@ -1,4 +1,16 @@
 sources:
+  - source_id: sdcpp_qwen_image_21_guide
+    url: https://github.com/leejet/stable-diffusion.cpp/blob/3b0426f7faf6256d1dbfa2046330cb2dc0c25861/docs/models/qwen_image_2.1.md
+    retrieved_at: 2026-11-28
+  - source_id: sdcpp_qwen_image_21_gguf
+    url: https://huggingface.co/leejet/Qwen-Image-2.1-GGUF/tree/0bca76da6edd8a18211e9717454615c1bbaaf6ed
+    retrieved_at: 2026-11-28
+  - source_id: qwen_image_21_vae
+    url: https://huggingface.co/Comfy-Org/Qwen-Image-2.1/tree/aacf31a6d48e707f352ecba714cee0680da3479b/vae
+    retrieved_at: 2026-11-28
+  - source_id: qwen3_vl_8b_encoder_gguf
+    url: https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct-GGUF/tree/f982a07559d4a2f6c8744d840bf6fccab30eea96
+    retrieved_at: 2026-11-28
   - source_id: domyn_edge_sft_author
     url: https://huggingface.co/domyn/Domyn-Edge-SFT
     retrieved_at: 2026-11-28

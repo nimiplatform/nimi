@@ -37,6 +37,7 @@ const (
 	StableDiffusionControlNetRequirementID      = "companion.controlnet"
 
 	StableDiffusionQwenImageRecipeID      = "qwen-image"
+	StableDiffusionQwenImage21RecipeID    = "qwen-image-21"
 	StableDiffusionQwenImageEditRecipeID  = "qwen-image-edit-2511"
 	StableDiffusionFluxSchnellRecipeID    = "flux1-schnell"
 	StableDiffusionFlux3KleinRecipeID     = "flux3-klein"
@@ -153,6 +154,14 @@ func stableDiffusionFamily(value string) (stableDiffusionFamilySpec, bool) {
 			compatibleTextEncoders: []string{"qwen-vl"}, textEncoderGGUFArchitectures: []string{"qwen2vl"},
 			compatibleVAEs: []string{"qwen-image-vae"}, vaeTensorContract: "qwen-image-vae-3d",
 		}, true
+	// @nimi-authority: rule.nimi.runtime.local-compute.sdcpp-qwen-image-21
+	case StableDiffusionQwenImage21RecipeID:
+		return stableDiffusionFamilySpec{
+			name: value, mainArtifactRole: "diffusion_model", mainTensorContract: "qwen-image-21-diffusion",
+			compatibleTextEncoders: []string{"qwen-vl"}, textEncoderGGUFArchitectures: []string{"qwen3vl"},
+			textEncoderTensorContract: "qwen3-vl-8b-encoder",
+			compatibleVAEs:            []string{"qwen-image-21-vae"}, vaeTensorContract: "qwen-image-21-vae",
+		}, true
 	case StableDiffusionSDXLRecipeID:
 		return stableDiffusionFamilySpec{
 			name: value, isCheckpoint: true, mainArtifactRole: "diffusion_model", mainTensorContract: "sdxl-base-checkpoint",
@@ -189,7 +198,7 @@ func stableDiffusionRecipe(family stableDiffusionFamilySpec, recipeID string) (s
 		return family, family.name == "flux3", false
 	case StableDiffusionFluxSchnellRecipeID:
 		return family, family.name == "flux", false
-	case "z-image", StableDiffusionMiniMaxH3ImageRecipeID:
+	case "z-image", StableDiffusionMiniMaxH3ImageRecipeID, StableDiffusionQwenImage21RecipeID:
 		return family, family.name == recipeID, false
 	case "ideogram4":
 		return family, family.name == "ideogram4", false
@@ -379,7 +388,7 @@ func (driver StableDiffusionImageDriver) ProjectRecipe(recipeID string, options 
 func (driver StableDiffusionImageDriver) ProjectRecipeForHost(recipeID string, options *structpb.Struct, supportedFeatures []string, platformTuple string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
 	platform := strings.ToLower(strings.TrimSpace(platformTuple))
 	switch strings.TrimSpace(recipeID) {
-	case StableDiffusionFlux3KleinRecipeID:
+	case StableDiffusionFlux3KleinRecipeID, StableDiffusionQwenImage21RecipeID:
 		if platform != "windows/amd64" {
 			return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
 		}
@@ -459,6 +468,12 @@ func stableDiffusionVAETensorContractFamily(contract string, probe []byte) (stri
 		return "", false
 	}
 	switch contract {
+	case "qwen-image-21-vae":
+		decoder := tensors["decoder.conv1.weight"].Shape
+		output := tensors["decoder.head.2.weight"].Shape
+		if len(decoder) == 5 && decoder[1] == 64 && len(output) == 5 && output[0] == 4 {
+			return contract, true
+		}
 	case "qwen-image-vae-3d":
 		decoder, decoderOK := tensors["decoder.conv1.weight"]
 		output, outputOK := tensors["decoder.head.2.weight"]
@@ -822,10 +837,20 @@ func stableDiffusionConstraintKeysValid(requirement *runtimev1.LocalCapabilityRe
 		for _, key := range []string{"model_family", "recipe_id", "artifact_role", "format"} {
 			required[key] = struct{}{}
 		}
-		expectedCount = 6
-		if fields["tensor_contract"] != nil && fields["format"].GetStringValue() == "gguf" {
-			expectedCount++
+		family, ok := stableDiffusionFamily(fields["model_family"].GetStringValue())
+		if !ok {
+			return false
 		}
+		if len(family.mainGGUFArchitectures) > 0 {
+			required["gguf_architectures"] = struct{}{}
+		}
+		if len(family.mainGGUFFamilies) > 0 {
+			required["gguf_families"] = struct{}{}
+		}
+		if family.mainTensorContract != "" {
+			required["tensor_contract"] = struct{}{}
+		}
+		expectedCount = len(required)
 	case StableDiffusionTextEncoderRequirementID:
 		allowed["artifact_role"] = struct{}{}
 		allowed["compatible_families"] = struct{}{}
@@ -1451,6 +1476,9 @@ func normalizeStableDiffusionImageRequest(
 	if portable.recipeID == StableDiffusionMiniMaxH3ImageRecipeID && (width%32 != 0 || height%32 != 0) {
 		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidOption, fmt.Errorf("MiniMax-H3-Image requires width and height divisible by 32"))
 	}
+	if portable.recipeID == StableDiffusionQwenImage21RecipeID && (width%32 != 0 || height%32 != 0 || imageCount != 1) {
+		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidOption, fmt.Errorf("Qwen Image 2.1 requires one output with width and height divisible by 32"))
+	}
 	kind := stableDiffusionRequestTextToImage
 	sourceImage := ImageResolvedInput{}
 	controlImage := ImageResolvedInput{}
@@ -1507,7 +1535,7 @@ func normalizeStableDiffusionImageRequest(
 		}
 		sourceImage = cloneImageResolvedInput(sourceInputs[0])
 		kind = stableDiffusionRequestInstructionEdit
-	case "z-image", "ideogram4", "qwen-image", StableDiffusionFluxSchnellRecipeID:
+	case "z-image", "ideogram4", "qwen-image", StableDiffusionFluxSchnellRecipeID, StableDiffusionQwenImage21RecipeID:
 		if len(sourceInputs) != 0 {
 			return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("selected text-to-image recipe does not admit input.image"))
 		}
@@ -1641,6 +1669,11 @@ func parseStableDiffusionPortableConfig(recipeID string, value *structpb.Struct)
 		result.execution.flowShift = 3
 		result.execution.diffusionFlashAttention = true
 		result.execution.offloadParamsToCPU = true
+	case StableDiffusionQwenImage21RecipeID:
+		result.execution.cfgScale = 6
+		result.execution.sampler = "euler"
+		result.execution.diffusionFlashAttention = true
+		result.execution.offloadParamsToCPU = true
 	case StableDiffusionSDXLRecipeID:
 		result.execution.steps = 20
 		result.execution.cfgScale = 7
@@ -1659,6 +1692,9 @@ func parseStableDiffusionPortableConfig(recipeID string, value *structpb.Struct)
 			options.width%32 != 0 || options.height%32 != 0 {
 			return stableDiffusionPortableConfig{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
 		}
+	}
+	if recipeID == StableDiffusionQwenImage21RecipeID && (result.execution.width%32 != 0 || result.execution.height%32 != 0) {
+		return stableDiffusionPortableConfig{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
 	}
 	return result, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }

@@ -278,6 +278,42 @@ func TestStableDiffusionQwenGeneratePlansExactThreeSlotTopology(t *testing.T) {
 	}
 }
 
+func TestQwenImage21PlansOneTextImageWithNativeFlowSchedule(t *testing.T) {
+	root := t.TempDir()
+	input := ImageInvocationInput{
+		RecipeID: StableDiffusionQwenImage21RecipeID,
+		ExactBindings: []InvocationExactBinding{
+			stableDiffusionInvocationBindingForTest(StableDiffusionMainRequirementID, "main", filepath.Join(root, "main.gguf"), 'a'),
+			stableDiffusionInvocationBindingForTest(StableDiffusionTextEncoderRequirementID, "encoder", filepath.Join(root, "encoder.gguf"), 'b'),
+			stableDiffusionInvocationBindingForTest(StableDiffusionVAERequirementID, "vae", filepath.Join(root, "vae.safetensors"), 'c'),
+		},
+		Request: &runtimev1.ImageGenerateScenarioSpec{Prompt: "A lighthouse", NegativePrompt: "fog", Size: "512x384"},
+	}
+	driver := StableDiffusionImageDriver{}
+	plan, err := driver.PlanImageInvocation(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if load := plan.LoadPlan().(StableDiffusionCPPLoadPlan); load.FlowShift() != 0 || plan.RequestPlan().NegativePrompt() != "fog" {
+		t.Fatal("the request must preserve the native flow schedule and the negative prompt")
+	}
+	input.Request.Size = "520x384"
+	if _, err := driver.PlanImageInvocation(input); err == nil {
+		t.Fatal("accepted a width that is not divisible by 32")
+	}
+	input.Request.Size = "512x384"
+	two := int32(2)
+	input.Request.N = &two
+	if _, err := driver.PlanImageInvocation(input); err == nil {
+		t.Fatal("accepted a batch of two images")
+	}
+	input.Request.N = nil
+	input.Inputs = []ImageResolvedInput{{Role: ImageResolvedInputRoleSource, SourceIdentity: "owned-image", ImageBytes: []byte("image")}}
+	if _, err := driver.PlanImageInvocation(input); err == nil {
+		t.Fatal("text-to-image recipe accepted a reference image")
+	}
+}
+
 func TestStableDiffusionQwenRecipesProjectSubstitutableModelContractSlots(t *testing.T) {
 	driver := StableDiffusionImageDriver{}
 	for _, test := range []struct {

@@ -1707,8 +1707,8 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 
 	all := list("")
-	if len(all) != 131 {
-		t.Fatalf("all Loadout recipes = %d, want 131", len(all))
+	if len(all) != 132 {
+		t.Fatalf("all Loadout recipes = %d, want 132", len(all))
 	}
 	byID := make(map[string]*runtimev1.LoadoutRecipeDescriptor, len(all))
 	for _, recipe := range all {
@@ -1716,6 +1716,10 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 	if recipe := byID[capabilitydriver.StableDiffusionFlux3KleinRecipeID]; recipe == nil || recipe.GetCapabilityContract() != "image.generate" || len(recipe.GetSlots()) != 3 {
 		t.Fatal("FLUX3 Klein independent main, encoder and VAE slots missing")
+	}
+	if recipe := byID[capabilitydriver.StableDiffusionQwenImage21RecipeID]; recipe == nil ||
+		len(recipe.GetSlots()) != 3 || recipe.GetApplicability() != runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED {
+		t.Fatalf("Windows-only Qwen Image 2.1 must expose three slots and report unsupported on macOS: %+v", recipe)
 	}
 	if recipe := byID[capabilitydriver.SherpaSpeakerEmbedRecipeID]; recipe == nil || recipe.GetCapabilityContract() != capabilitydriver.SpeakerEmbedContract || len(recipe.GetSlots()) != 1 || recipe.GetImplementation().GetDriverId() != capabilitydriver.SherpaSpeakerEmbedDriverID {
 		t.Fatal("speaker representation recipe lost its exact single encoder projection")
