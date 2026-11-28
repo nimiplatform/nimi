@@ -1707,8 +1707,8 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 
 	all := list("")
-	if len(all) != 129 {
-		t.Fatalf("all Loadout recipes = %d, want 129", len(all))
+	if len(all) != 131 {
+		t.Fatalf("all Loadout recipes = %d, want 131", len(all))
 	}
 	byID := make(map[string]*runtimev1.LoadoutRecipeDescriptor, len(all))
 	for _, recipe := range all {
@@ -1864,8 +1864,8 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	synthesize := list(capabilitydriver.AudioSynthesizeContract)
 	transcribe := list(capabilitydriver.AudioTranscribeContract)
 	voiceCreate := list(capabilitydriver.VoiceCreateContract)
-	if len(synthesize) != 32 || len(transcribe) != 16 || len(voiceCreate) != 26 {
-		t.Fatalf("speech capability filters = synthesize:%d transcribe:%d voice.create:%d, want 32/16/26", len(synthesize), len(transcribe), len(voiceCreate))
+	if len(synthesize) != 33 || len(transcribe) != 16 || len(voiceCreate) != 27 {
+		t.Fatalf("speech capability filters = synthesize:%d transcribe:%d voice.create:%d, want 33/16/27", len(synthesize), len(transcribe), len(voiceCreate))
 	}
 	for _, registration := range append(capabilitydriver.AudioCppSpeechRegistrations(), capabilitydriver.AudioCppReferenceVoiceRegistrations()...) {
 		recipe := byID[registration.RecipeID]

@@ -62,14 +62,14 @@ func TestAudioCppSpeechProductionRegistryHasExactReleaseFamilies(t *testing.T) {
 			t.Fatalf("unexpected contract %q", registration.CapabilityContract)
 		}
 	}
-	if ttsCount != 27 || asrCount != 11 {
+	if ttsCount != 28 || asrCount != 11 {
 		t.Fatalf("release family counts tts=%d asr=%d", ttsCount, asrCount)
 	}
 	qwenBase := audioCppRegistrationForTest(t, AudioSynthesizeContract, "qwen3_tts")
 	if qwenBase.Identity.ImplementationID != AudioCppQwen3TTSBaseImplementationID || qwenBase.Identity.ImplementationID == Qwen3TTSAudioCppImplementationID {
 		t.Fatalf("Qwen3-TTS Base implementation_id=%q, existing CustomVoice=%q", qwenBase.Identity.ImplementationID, Qwen3TTSAudioCppImplementationID)
 	}
-	if references := AudioCppReferenceVoiceRegistrations(); len(references) != 23 {
+	if references := AudioCppReferenceVoiceRegistrations(); len(references) != 24 {
 		t.Fatalf("reference voice registrations=%d", len(references))
 	} else {
 		for _, registration := range references {
@@ -114,6 +114,41 @@ func TestAudioCppPocketTTSPlanUsesClosedPresetAndCLI(t *testing.T) {
 	voices, err := driver.ListPresetVoices([]InvocationExactBinding{binding})
 	if err != nil || len(voices) != 1 || voices[0].VoiceID != "alba" {
 		t.Fatalf("PocketTTS voices=%+v err=%v", voices, err)
+	}
+}
+
+func TestAudioCppVoxMelSwitchesNativeTaskForOwnedReference(t *testing.T) {
+	registration := audioCppRegistrationForTest(t, AudioSynthesizeContract, "voxmel_tts")
+	resolved, _ := NewProductionRegistry().Resolve(registration.CapabilityContract, registration.Identity)
+	driver := resolved.(AudioCppTTSSynthesizeInvocationDriver)
+	root := t.TempDir()
+	input := AudioCppTTSSynthesizeInvocationInput{
+		LoadoutID: "voxmel", RecipeID: registration.RecipeID,
+		ExactBindings:  []InvocationExactBinding{audioCppBindingForTest(root, AudioCppTTSModelRequirementID, "voxmel_tts")},
+		Runtime:        audioCppRuntimeForTest(root),
+		Request:        &runtimev1.SpeechSynthesizeScenarioSpec{Text: "Hello from Nimi.", Language: "en"},
+		StagingWAVPath: filepath.Join(root, "speech.wav"),
+	}
+	plain, err := driver.PlanAudioCppTTSSynthesis(input)
+	if err != nil || !audioCppArgsContainPair(plain.CLIArgs(), "--task", "tts") || contains(plain.CLIArgs(), "--language") {
+		t.Fatalf("VoxMel plain synthesis: plan=%+v err=%v", plain, err)
+	}
+	input.Request.VoiceRef = &runtimev1.VoiceReference{
+		Kind:      runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF,
+		Reference: &runtimev1.VoiceReference_ProviderVoiceRef{ProviderVoiceRef: "owned-reference"},
+	}
+	input.ReferenceVoice = &AudioCppReferenceVoiceInput{
+		ProviderVoiceRef: "owned-reference", WAVPath: filepath.Join(root, "reference.wav"),
+		WAVBytes: audioCppPCM16WAVForTest(), MIMEType: "audio/wav",
+	}
+	if _, err := driver.PlanAudioCppTTSSynthesis(input); err == nil {
+		t.Fatal("VoxMel accepted a reference without a transcript")
+	}
+	input.ReferenceVoice.ReferenceText = "This is the reference."
+	clone, err := driver.PlanAudioCppTTSSynthesis(input)
+	if err != nil || !audioCppArgsContainPair(clone.CLIArgs(), "--task", "clon") ||
+		!audioCppArgsContainPair(clone.CLIArgs(), "--reference-text", input.ReferenceVoice.ReferenceText) {
+		t.Fatalf("VoxMel reference synthesis: plan=%+v err=%v", clone, err)
 	}
 }
 

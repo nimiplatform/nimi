@@ -1264,6 +1264,16 @@ units:
         target: definition.nimi.runtime.ai-provider.voice-conversion
       - type: applies_to
         target: definition.nimi.runtime.local-compute.runtime-environment-plane
+  - id: rule.nimi.runtime.local-compute.audio-cpp-voxmel
+    kind: rule
+    title: VoxMel local speech synthesis
+    modality: must
+    statement: VoxMel 0.6B uses the audio.cpp voxmel_tts family and the verified Windows CUDA 13.3 package for finite English and Mandarin synthesis. The Driver binds its GGUF by embedded family metadata, uses native task tts for unconditioned speech and native task clon for an owned reference voice with a required transcript, and returns actual decoded WAV facts through the existing synthesis and voice reference contracts. The model selects language from text and uses no preset or native language switch.
+    condition: Local audio.synthesize or voice.create selects the VoxMel implementation.
+    failure: Reject incompatible model bindings, unsupported languages and missing required reference material before native synthesis.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.speech-engine-plane
   - id: rule.nimi.runtime.local-compute.audio-cpp-speech-slot-dialects
     kind: rule
     title: Audio cpp speech model slot policies have exact dialect identities

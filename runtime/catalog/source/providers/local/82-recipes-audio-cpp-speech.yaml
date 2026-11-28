@@ -1,4 +1,26 @@
 loadout_recipes:
+  - recipe_id: voxmel-tts.audio-cpp.synthesize.v1
+    revision: "1"
+    title: VoxMel 0.6B synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.voxmel-tts.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.voxmel-tts.tts
+    driver_dialect: audio.cpp/voxmel_tts/audio-synthesize/v2
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - {slot_id: tts.model, display_label: VoxMel 0.6B GGUF, recommended_variant_ids: [local.tts.voxmel.audio-cpp.f16.cuda], model_contract: {format: gguf, model_family: voxmel_tts, artifact_role: tts_model}}
+  - recipe_id: voxmel-tts.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: VoxMel 0.6B reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.voxmel-tts.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.voxmel-tts.voice-reference
+    driver_dialect: audio.cpp/voxmel_tts/voice-reference-create/v2
+    default_options: {}
+    supported_features: [input.audio]
+    slot_metadata:
+      - {slot_id: tts.model, display_label: VoxMel 0.6B GGUF, recommended_variant_ids: [local.tts.voxmel.audio-cpp.f16.cuda], model_contract: {format: gguf, model_family: voxmel_tts, artifact_role: tts_model}}
   - recipe_id: chatterbox.audio-cpp.synthesize.v1
     revision: "1"
     title: Chatterbox audio.cpp synthesis

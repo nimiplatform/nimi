@@ -59,6 +59,7 @@ type audioCppTTSSpec struct {
 	implementationID            string
 	displayName                 string
 	cliTask                     string
+	referenceTask               string
 	referencePolicy             audioCppReferencePolicy
 	referenceTextRequired       bool
 	referenceArgument           string
@@ -137,6 +138,8 @@ var audioCppTTSSpecs = []audioCppTTSSpec{
 	{family: "vibevoice", displayName: "VibeVoice 1.5B", cliTask: "tts", referencePolicy: audioCppReferenceRequired, referenceArgument: "voice_samples", textPrefix: "Speaker 1: ", languages: []string{"en", "zh"}},
 	{family: "vietneu_tts", displayName: "VieNeu-TTS v3 Turbo", cliTask: "tts", referencePolicy: audioCppReferenceOptional, referenceArgument: "--voice-ref", languages: []string{"vi", "en"}},
 	{family: "voxcpm2", displayName: "VoxCPM2 GGUF", cliTask: "tts", referencePolicy: audioCppReferenceOptional, referenceArgument: "--voice-ref", languages: []string{"ar", "my", "zh", "da", "nl", "en", "fi", "fr", "de", "el", "he", "hi", "id", "it", "ja", "km", "ko", "lo", "ms", "no", "pl", "pt", "ru", "es", "sw", "sv", "tl", "th", "tr", "vi"}},
+	// @nimi-authority: rule.nimi.runtime.local-compute.audio-cpp-voxmel
+	{family: "voxmel_tts", displayName: "VoxMel 0.6B", cliTask: "tts", referenceTask: "clon", referencePolicy: audioCppReferenceOptional, referenceTextRequired: true, referenceArgument: "--voice-ref", languages: []string{"auto", "en", "zh"}, noLanguageArgument: true},
 }
 
 var audioCppASRSpecList = []audioCppASRSpec{
@@ -1018,7 +1021,11 @@ func (d AudioCppTTSDriver) PlanAudioCppTTSSynthesis(input AudioCppTTSSynthesizeI
 		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("audio.cpp TTS staging WAV path is invalid"))
 	}
 	main := bindings[AudioCppTTSModelRequirementID]
-	args = append([]string{"--task", d.spec.cliTask, "--family", d.spec.family, "--model", main.AbsolutePath, "--backend", "cuda"}, args...)
+	task := d.spec.cliTask
+	if d.spec.referenceTask != "" && request.GetVoiceRef().GetKind() == runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF {
+		task = d.spec.referenceTask
+	}
+	args = append([]string{"--task", task, "--family", d.spec.family, "--model", main.AbsolutePath, "--backend", "cuda"}, args...)
 	if d.spec.requiresCodec {
 		args = append(args, "--session-option", "miotts.codec_model_path="+bindings[AudioCppTTSCodecRequirementID].AbsolutePath)
 	}

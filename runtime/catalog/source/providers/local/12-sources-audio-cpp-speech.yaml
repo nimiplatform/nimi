@@ -1,4 +1,10 @@
 sources:
+  - source_id: audio_cpp_voxmel_096
+    url: https://github.com/0xShug0/audio.cpp/blob/v0.9.6/docs/models/voxmel_tts.md
+    retrieved_at: 2026-11-28
+  - source_id: audio_cpp_voxmel_gguf
+    url: https://huggingface.co/audio-cpp/audio.cpp-gguf/tree/260c7cdefe0c7508190235869deae079782dd5e4/VoxMel-TTS-GGUF
+    retrieved_at: 2026-11-28
   - source_id: audio_cpp_release_0_6_1_speech
     url: https://github.com/0xShug0/audio.cpp/blob/release-0.6.1/README.md
     retrieved_at: 2026-08-24

@@ -731,6 +731,54 @@ models:
     fitness:
       param_count: 2000000000
       context_length: 8192
+  - model_id: voxmel-tts-audio-cpp-local
+    provider: local
+    model_type: tts
+    updated_at: 2026-11-28
+    capabilities:
+      - audio.synthesize
+      - voice.create
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/0xShug0/audio.cpp/blob/v0.9.6/docs/models/voxmel_tts.md
+      retrieved_at: 2026-11-28
+      note: ""
+    features:
+      - input.audio
+    family: voxmel_tts
+    voice_set_id: local:local_voxmel_audio_cpp_dynamic_voice_set
+    voice_discovery_mode: dynamic_user_scoped
+    voice_ref_kinds:
+      - voice_asset_id
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 260c7cdefe0c7508190235869deae079782dd5e4
+      install_kind: verified-hf-multi-file
+      entry: VoxMel-TTS-GGUF/voxmel-tts-0.6b-f16.gguf
+      artifact_roles:
+        - tts_model
+      license: Apache-2.0 AND MIT
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.voxmel.audio-cpp.f16.cuda
+        quant: F16
+        entry: VoxMel-TTS-GGUF/voxmel-tts-0.6b-f16.gguf
+        files:
+          - VoxMel-TTS-GGUF/voxmel-tts-0.6b-f16.gguf
+        hashes:
+          VoxMel-TTS-GGUF/voxmel-tts-0.6b-f16.gguf: sha256:05ca74a169db463a2b6557b2e81a237920ce58df38c47bc1e3c228d7613d1869
+        total_size_bytes: 1446350400
+        host_requirement:
+          accelerator: cuda
+    fitness:
+      param_count: 600000000
+      context_length: 0
   - model_id: chatterbox-audio-cpp-local
     provider: local
     model_type: tts
@@ -10325,6 +10373,27 @@ voices:
       retrieved_at: 2026-03-05
       note: F5-TTS repository.
   - voice_id: user-custom
+    voice_set_id: local:local_voxmel_audio_cpp_dynamic_voice_set
+    provider: local
+    name: User Custom Voice
+    langs:
+      - zh-cn
+      - en-us
+      - fr-fr
+      - de-de
+      - ru-ru
+      - it-it
+      - es-es
+      - pt-pt
+      - ja-jp
+      - ko-kr
+    model_ids:
+      - voxmel-tts-audio-cpp-local
+    source_ref:
+      url: https://github.com/0xShug0/audio.cpp/blob/v0.9.6/docs/models/voxmel_tts.md
+      retrieved_at: 2026-11-28
+      note: ""
+  - voice_id: user-custom
     voice_set_id: local:local_chatterbox_audio_cpp_dynamic_voice_set
     provider: local
     name: User Custom Voice
@@ -13594,6 +13663,47 @@ loadout_recipes:
         model_contract:
           format: spacy
           artifact_role: text_analysis_model
+  - recipe_id: voxmel-tts.audio-cpp.synthesize.v1
+    revision: "1"
+    title: VoxMel 0.6B synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.voxmel-tts.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.voxmel-tts.tts
+    driver_dialect: audio.cpp/voxmel_tts/audio-synthesize/v2
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: tts.model
+        display_label: VoxMel 0.6B GGUF
+        recommended_variant_ids:
+          - local.tts.voxmel.audio-cpp.f16.cuda
+        recommended_content_ids:
+          - sha256:05ca74a169db463a2b6557b2e81a237920ce58df38c47bc1e3c228d7613d1869
+        model_contract:
+          format: gguf
+          model_family: voxmel_tts
+          artifact_role: tts_model
+  - recipe_id: voxmel-tts.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: VoxMel 0.6B reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.voxmel-tts.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.voxmel-tts.voice-reference
+    driver_dialect: audio.cpp/voxmel_tts/voice-reference-create/v2
+    default_options: {}
+    supported_features:
+      - input.audio
+    slot_metadata:
+      - slot_id: tts.model
+        display_label: VoxMel 0.6B GGUF
+        recommended_variant_ids:
+          - local.tts.voxmel.audio-cpp.f16.cuda
+        recommended_content_ids:
+          - sha256:05ca74a169db463a2b6557b2e81a237920ce58df38c47bc1e3c228d7613d1869
+        model_contract:
+          format: gguf
+          model_family: voxmel_tts
+          artifact_role: tts_model
   - recipe_id: chatterbox.audio-cpp.synthesize.v1
     revision: "1"
     title: Chatterbox audio.cpp synthesis

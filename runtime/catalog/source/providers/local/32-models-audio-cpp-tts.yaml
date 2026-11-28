@@ -1,4 +1,35 @@
 models:
+  - model_id: voxmel-tts-audio-cpp-local
+    model_type: tts
+    family: voxmel_tts
+    updated_at: 2026-11-28
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [audio_cpp_voxmel_096, audio_cpp_voxmel_gguf]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_voxmel_audio_cpp_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id]
+      langs: [auto, en, zh]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 260c7cdefe0c7508190235869deae079782dd5e4 # pragma: allowlist secret -- public immutable model revision
+      install_kind: verified-hf-multi-file
+      license: Apache-2.0 AND MIT
+      entry: VoxMel-TTS-GGUF/voxmel-tts-0.6b-f16.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.voxmel.audio-cpp.f16.cuda
+        quant: F16
+        files: [VoxMel-TTS-GGUF/voxmel-tts-0.6b-f16.gguf]
+        hashes:
+          VoxMel-TTS-GGUF/voxmel-tts-0.6b-f16.gguf: sha256:05ca74a169db463a2b6557b2e81a237920ce58df38c47bc1e3c228d7613d1869
+        total_size_bytes: 1446350400
+        host_requirement: {accelerator: cuda}
+    fitness:
+      param_count: 600000000
+      context_length: 0
   - model_id: chatterbox-audio-cpp-local
     model_type: tts
     family: chatterbox
