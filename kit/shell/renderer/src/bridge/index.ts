@@ -69,6 +69,7 @@ export {
   confirmDialog,
   startWindowDrag,
   focusMainWindow,
+  getShellHostLocale,
 } from './ui.js';
 export {
   openShellFileDialog,

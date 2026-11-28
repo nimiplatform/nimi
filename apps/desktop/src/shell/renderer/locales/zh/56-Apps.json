@@ -13,7 +13,7 @@
   "inventoryCount": "{{count}} 个 App",
   "sidebar": {
     "subtitle": "本地开发 App",
-    "searchPlaceholder": "搜索 App 或 App ID",
+    "searchPlaceholder": "搜索应用",
     "searchLabel": "搜索已注册 App",
     "clearSearch": "清除搜索",
     "listLabel": "已注册 App",
@@ -23,7 +23,9 @@
     "noResultsDescription": "请尝试其他名称或 App ID。"
   },
   "rail": {
-    "runningSection": "运行中"
+    "runningSection": "运行中",
+    "installedSection": "已安装",
+    "catalogSection": "应用目录"
   },
   "home": {
     "attentionTitle": "需处理",
@@ -41,9 +43,12 @@
     "pageTitle": "应用中心",
     "filterLabel": "筛选",
     "filterAll": "全部 App",
+    "filterInstalled": "只显示已安装",
+    "filterInstalledTooltip": "只显示已安装应用",
     "filterRunning": "运行中",
     "filterUpdates": "有更新",
     "filterAttention": "需处理",
+    "clearFilters": "显示全部应用",
     "backToLibrary": "返回应用库",
     "connectLocalTitle": "添加应用",
     "cardMenuLabel": "App 操作",
@@ -52,6 +57,7 @@
   "sourceBadge": {
     "userImported": "本地导入",
     "localDevelopment": "本地开发",
+    "devTag": "DEV",
     "verified": "已审核",
     "verifiedDescription": "此应用已通过上架审核。"
   },
@@ -475,13 +481,17 @@
       "label": "AI 运行时",
       "description": "声明通过 Nimi Runtime 使用受支持的 AI 能力；可在 AI 模型标签页配置模型路由。"
     },
-    "integrationConsume": {
-      "label": "集成服务",
-      "description": "声明通过 Nimi 调用集成服务；具体连接和操作的使用许可在「集成」中单独配置。"
-    },
     "agentLocal": {
       "label": "本地 Agent",
       "description": "声明与 Nimi 提供的本地 Agent 能力交互。"
+    },
+    "agentSessionManage": {
+      "label": "管理伙伴会话与定时任务",
+      "description": "用于限定管理本地伙伴会话，以及在触发委托范围内管理定时提醒与计划任务。"
+    },
+    "agentCompanion": {
+      "label": "伙伴陪伴会话",
+      "description": "用于限定访问本地伙伴的陪伴式对话与持续交流会话。"
     },
     "agentAcquire": {
       "label": "发现角色和建立伙伴",
@@ -490,6 +500,46 @@
     "agentConfigure": {
       "label": "Agent 配置",
       "description": "声明使用 Nimi 提供的受支持 Agent 配置能力。"
+    },
+    "agentUtopiaRead": {
+      "label": "读取洞天与伙伴近况",
+      "description": "声明通过 Nimi 读取伙伴所处洞天场景、在线状态与共享手记。"
+    },
+    "agentUtopiaManage": {
+      "label": "管理伙伴洞天",
+      "description": "声明通过 Nimi 调整伙伴洞天场景、居住安排与环境状态。"
+    },
+    "appActivity": {
+      "label": "应用动态与提醒",
+      "description": "声明向 Nimi Home 发布应用状态、待处理事项和活动提醒。"
+    },
+    "agentWork": {
+      "label": "伙伴工作与交付",
+      "description": "声明通过 Nimi 协调伙伴任务执行、工作流与成果交付。"
+    },
+    "agentBodyPc": {
+      "label": "电脑操作能力",
+      "description": "声明在本机应用通过 Nimi 获得独占租约时，执行受控的电脑级操作。"
+    },
+    "agentBodyApp": {
+      "label": "应用内操作能力",
+      "description": "声明仅限本应用隔离命名空间内的受控应用操作。"
+    },
+    "agentTriggerDelegate": {
+      "label": "触发器与提醒委托",
+      "description": "声明通过 Nimi 为本地伙伴委托定时提醒、计划任务与事件触发。"
+    },
+    "integrationConsume": {
+      "label": "集成服务",
+      "description": "声明通过 Nimi 调用集成服务；具体连接和操作的使用许可在「集成」中单独配置。"
+    },
+    "integrationProvide": {
+      "label": "提供集成工具与服务",
+      "description": "声明向 Nimi 集成提供本应用开放的工具或服务；长期使用许可在「集成」中单独管理。"
+    },
+    "integrationManage": {
+      "label": "管理集成连接",
+      "description": "声明通过 Nimi 管理外部集成连接与相关配置。"
     },
     "unknown": {
       "label": "未识别的声明",

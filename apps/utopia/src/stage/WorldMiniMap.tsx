@@ -262,7 +262,7 @@ export function WorldMiniMap(props: {
               title={`${name}${isOpen ? '' : '（暂闭）'}`}
             >
               {!isOpen && <LockClosedIcon size={9} />}
-              <span>{name}</span>
+              <span className="utopia-minimap-chip-label">{name}</span>
               {occCount > 0 && <em className="utopia-minimap-chip-count">{occCount}</em>}
             </button>
           );

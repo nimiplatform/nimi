@@ -9,30 +9,41 @@ import type { AppsActionError } from './apps-panel-controller.js';
 import type { NimiAIConfigOverwriteResult } from '@nimiplatform/kit/core/sdk-contract';
 import {
   Activity,
+  AppWindow,
   ArrowLeft,
   BadgeCheck,
+  Bell,
   Bot,
+  Briefcase,
   Check,
   ChevronRight,
+  Clock,
   Code2,
+  Compass,
   Copy,
   Database,
   Download,
   FolderOpen,
+  Heart,
   Info,
   LoaderCircle,
+  MapPin,
+  MessageSquare,
+  Monitor,
   MoreHorizontal,
   PackageOpen,
   Play,
   Plug,
   RotateCw,
   Settings,
+  Share2,
   ShieldCheck,
   ShieldQuestion,
   SlidersHorizontal,
   Sparkles,
   Square,
   Trash2,
+  Wrench,
   X,
 } from 'lucide-react';
 import {
@@ -89,13 +100,24 @@ import { openExternalUrl } from '@nimiplatform/kit/shell/renderer/bridge';
 
 type AppsDetailTab = 'overview' | 'access' | 'ai-models';
 
-const APP_ACCESS_COPY_KEYS = Object.freeze({
+export const APP_ACCESS_COPY_KEYS = Object.freeze({
   'realm.data': 'realmData',
   'runtime.consume': 'runtimeConsume',
-  'integration.consume': 'integrationConsume',
   'agent.local': 'agentLocal',
+  'agent.session.manage': 'agentSessionManage',
+  'agent.companion': 'agentCompanion',
   'agent.acquire': 'agentAcquire',
   'agent.configure': 'agentConfigure',
+  'agent.utopia.read': 'agentUtopiaRead',
+  'agent.utopia.manage': 'agentUtopiaManage',
+  'app.activity': 'appActivity',
+  'agent.work': 'agentWork',
+  'agent.body.pc': 'agentBodyPc',
+  'agent.body.app': 'agentBodyApp',
+  'agent.trigger.delegate': 'agentTriggerDelegate',
+  'integration.consume': 'integrationConsume',
+  'integration.provide': 'integrationProvide',
+  'integration.manage': 'integrationManage',
 } as const);
 
 type ProjectReadmeState =
@@ -103,13 +125,24 @@ type ProjectReadmeState =
   | { readonly status: 'loaded'; readonly content: string | null; readonly truncated: boolean }
   | { readonly status: 'error'; readonly field?: string };
 
-const APP_ACCESS_FEATURE_ICON = Object.freeze({
+export const APP_ACCESS_FEATURE_ICON = Object.freeze({
   'realm.data': Database,
   'runtime.consume': Sparkles,
-  'integration.consume': Plug,
   'agent.local': Bot,
+  'agent.session.manage': MessageSquare,
+  'agent.companion': Heart,
   'agent.acquire': Bot,
   'agent.configure': SlidersHorizontal,
+  'agent.utopia.read': Compass,
+  'agent.utopia.manage': MapPin,
+  'app.activity': Bell,
+  'agent.work': Briefcase,
+  'agent.body.pc': Monitor,
+  'agent.body.app': AppWindow,
+  'agent.trigger.delegate': Clock,
+  'integration.consume': Plug,
+  'integration.provide': Share2,
+  'integration.manage': Wrench,
 } as const);
 
 export interface AppsDetailViewProps {
@@ -240,9 +273,10 @@ function LocalDevelopmentAppsDetailView({
       icon: <Settings className="h-4 w-4" aria-hidden="true" />,
       onSelect: () => setPropertiesOpen(true),
     },
-    // While a build or start is underway the header shows 启动中, so stopping
-    // it stays reachable here.
-    ...(actionPlan.primary?.id === 'stop' && runTransition === 'starting' ? [{
+    // Keep stopping reachable in the overflow menu while running or while a
+    // build/start is underway and the header shows 启动中.
+    ...(actionPlan.secondary.some((action) => action.id === 'stop')
+      || (actionPlan.primary?.id === 'stop' && runTransition === 'starting') ? [{
       id: 'stop',
       label: t('Apps.action.stop'),
       icon: <Square className="h-4 w-4" aria-hidden="true" />,
@@ -355,7 +389,7 @@ function LocalDevelopmentAppsDetailView({
                   >
                     {t(`Apps.runState.${runTransition}`)}
                   </Button>
-                  {runTransition === 'starting' && actionPlan.primary?.id === 'stop' ? (
+                  {runTransition === 'starting' && (actionPlan.primary?.id === 'stop' || actionPlan.secondary.some((action) => action.id === 'stop')) ? (
                     <AppsStartingStopButton testId="apps-detail-stop" disabled={stopDisabled} onStop={() => onAction('stop')} />
                   ) : null}
                 </>
@@ -370,15 +404,31 @@ function LocalDevelopmentAppsDetailView({
                   {t('Apps.action.stop')}
                 </Button>
               ) : (
-                <Button
-                  data-testid="apps-detail-launch"
-                  tone="primary"
-                  disabled={actionsDisabled}
-                  onClick={() => onAction('launch')}
-                >
-                  <Play className="mr-2 h-4 w-4" aria-hidden="true" />
-                  {t(runVisual === 'failed' ? 'Apps.action.retry' : 'Apps.action.launch')}
-                </Button>
+                <>
+                  <Button
+                    data-testid="apps-detail-launch"
+                    tone="primary"
+                    loading={activeAction === 'launch'}
+                    disabled={actionsDisabled}
+                    onClick={() => onAction('launch')}
+                  >
+                    <Play className="mr-2 h-4 w-4" aria-hidden="true" />
+                    {t(runVisual === 'running'
+                      ? 'Apps.action.focus'
+                      : runVisual === 'failed' ? 'Apps.action.retry' : 'Apps.action.launch')}
+                  </Button>
+                  {actionPlan.secondary.some((action) => action.id === 'stop') ? (
+                    <Button
+                      data-testid="apps-detail-stop"
+                      tone="secondary"
+                      disabled={stopDisabled}
+                      onClick={() => onAction('stop')}
+                    >
+                      <Square className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
+                      {t('Apps.action.stop')}
+                    </Button>
+                  ) : null}
+                </>
               )}
               <Popover>
                 <Tooltip content={t('Apps.detail.moreActions')} placement="bottom">

@@ -6,6 +6,7 @@ import type { DesktopAppsEntry } from '../apps/apps-panel-projection.js';
 export const HOME_RECENT_APPS_LIMIT = 8;
 export const HOME_SPOTLIGHT_APPS_LIMIT = 3;
 export const BUNDLED_ZHIYU_RECENT_KEY = 'bundled:zhiyu';
+export const BUNDLED_ZHIYU_APP_ID = 'nimi.zhiyu';
 const MAX_STORED_RECENT_KEYS = 50;
 
 export type HomeRecentAppItem =
@@ -116,6 +117,9 @@ export function buildHomeRecentAppsDock(input: {
     ...groups.map((group): HomeRecentAppItem => {
       const norm = group.displayName.trim().toLocaleLowerCase();
       const isDuplicateName = (nameCounts.get(norm) ?? 0) > 1;
+      const isBundledZhiyuId = group.appId === BUNDLED_ZHIYU_APP_ID;
+      const isLocalDevOnly = group.entries.some((entry) => entry.localDevelopment !== null)
+        && !group.entries.some((entry) => entry.committedRelease !== null);
       return {
         kind: 'app-group',
         key: group.appId,
@@ -124,7 +128,11 @@ export function buildHomeRecentAppsDock(input: {
         lastOpenedAtMs: input.timestamps[group.appId] ?? 0,
         updatedAtUnixMs: group.updatedAtUnixMs,
         hasUpdate: group.entries.some(hasAvailableCatalogUpdate),
-        disambiguator: isDuplicateName ? shortAppIdSuffix(group.appId) : null,
+        disambiguator: isBundledZhiyuId
+          ? (isLocalDevOnly ? 'DEV' : shortAppIdSuffix(group.appId))
+          : isDuplicateName
+            ? (isLocalDevOnly ? 'DEV' : shortAppIdSuffix(group.appId))
+            : null,
       };
     }),
   ];

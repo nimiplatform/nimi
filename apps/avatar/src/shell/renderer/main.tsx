@@ -10,7 +10,7 @@ import { NimiThemeProvider, type NimiThemeScheme } from '@nimiplatform/kit/ui';
 import { NimiMotionProvider } from '@nimiplatform/kit/ui/motion';
 import { installNimiShellRuntimeBridge } from '@nimiplatform/kit/shell/renderer/bridge';
 import { App } from './App.js';
-import { t } from './i18n/index.js';
+import { applyStartupHostLocaleOnce, t } from './i18n/index.js';
 import { hasAvatarHostRuntime, listenAvatarHostEvent } from './app-shell/avatar-host-bridge.js';
 import { bindAvatarRendererRootLifecycle } from './app-shell/renderer-root-lifecycle.js';
 import './app.css';
@@ -60,11 +60,19 @@ if (typeof document !== 'undefined') {
 // fails to re-upload the textures and the renderer enters Context Lost.
 // Three.js / R3F + cached GPU resources are not StrictMode-friendly.
 const root = createRoot(container);
+let unmounted = false;
 const rootLifecycle = bindAvatarRendererRootLifecycle({
   target: window,
-  unmount: () => root.unmount(),
+  unmount: () => {
+    unmounted = true;
+    root.unmount();
+  },
   ...(hasAvatarHostRuntime() ? {
     listenClosing: (handler: () => void) => listenAvatarHostEvent('avatar://host-closing', handler),
   } : {}),
 });
-if (await rootLifecycle.ready) root.render(<AvatarThemeRoot />);
+const [ready] = await Promise.all([
+  rootLifecycle.ready,
+  applyStartupHostLocaleOnce().catch(() => undefined),
+]);
+if (ready && !unmounted) root.render(<AvatarThemeRoot />);

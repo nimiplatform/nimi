@@ -1284,7 +1284,7 @@ describe('renderer local-app standard-shell surface', () => {
   it('physically omits the retired access-workflow namespace', () => {
     const surface = createNimiLocalAppStandardShellSurface() as unknown as Record<string, unknown>;
     expect(Object.keys(surface).sort()).toEqual([
-      'session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'agentConfigure', 'conversation', 'embodiment', 'agentRealtime',
+      'session', 'host', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'agentConfigure', 'conversation', 'embodiment', 'agentRealtime',
       'activity', 'agentWork', 'integration', 'utopia',
     ].sort());
     expect(Object.keys(surface.agentConfigure as Record<string, unknown>).sort()).toEqual([

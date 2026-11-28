@@ -27,6 +27,7 @@ export type VisibleRightPanelMode = Exclude<RightPanelMode, 'closed'>;
 export type AgentPanelTab = AgentCenterSectionId;
 
 type RightAgentPanelProps = {
+  readonly onDiscover?: () => void;
   readonly onOpenHomePartner?: () => void;
   readonly mode: VisibleRightPanelMode;
   readonly evidence: ZhiyuEvidence;
@@ -223,6 +224,8 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
   const agentCenterWorld = agentCenterWorldLabel(props.evidence);
   const moodLabel = agentCenterHeaderStateLabel(props.evidence.companion.currentEmotion);
   const activityLabel = agentCenterHeaderStateLabel(props.evidence.companion.executionState);
+  const hasSelectedPartner = Boolean(props.evidence.localAgent?.agentHandle) && props.evidence.localAgent?.ready !== false;
+  const hasLocalPartners = (props.evidence.inventory?.localAgents?.length ?? 0) > 0;
   return (
     <motion.aside
       ref={panelRef}
@@ -298,7 +301,61 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
         }}
         session={props.session}
         showResourcePack
-      /> : (
+      /> : !hasSelectedPartner ? (
+        <section
+          className="zhiyu-agent-center__unavailable flex min-h-0 flex-1 flex-col"
+          data-zhiyu-agent-center-unavailable="no-partner"
+          aria-label={hasLocalPartners ? '请先选择本地伙伴' : '还没有本地伙伴'}
+        >
+          <header className="zhiyu-agent-center__unavailable-header">
+            <h2>伙伴设置</h2>
+            <button
+              type="button"
+              className="zhiyu-agent-center__icon-button"
+              aria-label="关闭织羽伙伴中心"
+              data-zhiyu-agent-center-unavailable-close="true"
+              onClick={props.onClose}
+            >
+              <X size={18} aria-hidden="true" />
+            </button>
+          </header>
+          <div className="zhiyu-agent-center__unavailable-content">
+            <span className="zhiyu-agent-center__unavailable-icon" aria-hidden="true">
+              <Settings2 size={26} strokeWidth={1.6} />
+            </span>
+            <div className="zhiyu-agent-center__unavailable-copy">
+              <h3>{hasLocalPartners ? '请先选择本地伙伴' : '还没有本地伙伴'}</h3>
+              <p>
+                {hasLocalPartners
+                  ? '从左侧伙伴栏选择一位伙伴后，就可以在这里查看与调整伙伴设置。'
+                  : '先发现并添加一位本地伙伴，之后就可以在这里管理伙伴档案、模型、形象与主动设置。'}
+              </p>
+            </div>
+            {!hasLocalPartners && props.onDiscover ? (
+              <button
+                type="button"
+                className="zhiyu-agent-center__retry-button"
+                data-zhiyu-agent-center-unavailable-action="discover"
+                data-zhiyu-agent-center-unavailable-reason="no-partner"
+                onClick={props.onDiscover}
+              >
+                <Globe2 size={15} aria-hidden="true" />
+                <span>发现角色</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="zhiyu-agent-center__retry-button"
+                data-zhiyu-agent-center-unavailable-action="close"
+                data-zhiyu-agent-center-unavailable-reason="no-partner"
+                onClick={props.onClose}
+              >
+                <span>{hasLocalPartners ? '返回选择伙伴' : '关闭'}</span>
+              </button>
+            )}
+          </div>
+        </section>
+      ) : (
         <section
           className="zhiyu-agent-center__unavailable flex min-h-0 flex-1 flex-col"
           data-zhiyu-agent-center-unavailable="owner-unavailable"

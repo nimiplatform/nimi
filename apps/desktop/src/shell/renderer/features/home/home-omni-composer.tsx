@@ -108,6 +108,12 @@ function randomRequestId(): string {
 const EMPTY_HUMAN_CONTACTS: readonly OmniHumanContactOption[] = [];
 const EMPTY_RECENT_SESSIONS: readonly WorkSessionRecord[] = [];
 
+function formatHumanHandle(handle?: string | null): string | null {
+  const trimmed = handle?.trim();
+  if (!trimmed) return null;
+  return trimmed.startsWith('@') ? trimmed : `@${trimmed}`;
+}
+
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r015
 // @nimi-authority: rule.nimi.desktop.product-surfaces.home-omni-composer
 export function HomeOmniComposer({
@@ -235,7 +241,7 @@ export function HomeOmniComposer({
         .map((item) => ({
           id: `human:${item.contactId}`,
           label: item.displayName,
-          sublabel: item.handle ? `@${item.handle}` : t('runtimeConfig.overview.omni.humanTag'),
+          sublabel: formatHumanHandle(item.handle) ?? t('runtimeConfig.overview.omni.humanTag'),
           onSelect: () => {
             setTarget({
               kind: 'human',
@@ -719,21 +725,23 @@ export function HomeOmniComposer({
       return;
     }
 
-    if (activeTrigger && triggerOptions.length > 0) {
-      if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        setActiveOptionIndex((idx) => (idx + 1) % triggerOptions.length);
-        return;
-      }
-      if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        setActiveOptionIndex((idx) => (idx - 1 + triggerOptions.length) % triggerOptions.length);
-        return;
-      }
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        triggerOptions[activeOptionIndex]?.onSelect();
-        return;
+    if (activeTrigger) {
+      if (triggerOptions.length > 0) {
+        if (event.key === 'ArrowDown') {
+          event.preventDefault();
+          setActiveOptionIndex((idx) => (idx + 1) % triggerOptions.length);
+          return;
+        }
+        if (event.key === 'ArrowUp') {
+          event.preventDefault();
+          setActiveOptionIndex((idx) => (idx - 1 + triggerOptions.length) % triggerOptions.length);
+          return;
+        }
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          triggerOptions[activeOptionIndex]?.onSelect();
+          return;
+        }
       }
       if (event.key === 'Escape') {
         event.preventDefault();
@@ -1360,39 +1368,81 @@ export function HomeOmniComposer({
         ) : null}
 
         {/* Symbol Trigger Autocomplete Popover (@ / ~ / #) */}
-        {activeTrigger && triggerOptions.length > 0 ? (
+        {activeTrigger ? (
           <div
-            role="listbox"
+            role={triggerOptions.length > 0 ? 'listbox' : undefined}
             data-testid={`home-omni-trigger-popover:${activeTrigger.kind}`}
             className="absolute top-full right-0 left-0 z-50 mt-2 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-1.5 shadow-xl"
           >
-            {triggerOptions.map((opt, idx) => (
-              <button
-                key={opt.id}
-                type="button"
-                role="option"
-                aria-selected={idx === activeOptionIndex}
-                onPointerDown={(event) => {
-                  event.preventDefault();
-                  opt.onSelect();
-                }}
-                onMouseDown={(event) => {
-                  if (event.defaultPrevented) {
-                    return;
-                  }
-                  event.preventDefault();
-                  opt.onSelect();
-                }}
-                className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-xs ${
-                  idx === activeOptionIndex
-                    ? 'bg-[var(--nimi-home-soft-well)] font-medium text-[var(--nimi-text-primary)]'
-                    : 'text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-home-soft-well)]'
-                }`}
+            {triggerOptions.length > 0 ? (
+              triggerOptions.map((opt, idx) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  role="option"
+                  aria-selected={idx === activeOptionIndex}
+                  onPointerDown={(event) => {
+                    event.preventDefault();
+                    opt.onSelect();
+                  }}
+                  onMouseDown={(event) => {
+                    if (event.defaultPrevented) {
+                      return;
+                    }
+                    event.preventDefault();
+                    opt.onSelect();
+                  }}
+                  className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-xs ${
+                    idx === activeOptionIndex
+                      ? 'bg-[var(--nimi-home-soft-well)] font-medium text-[var(--nimi-text-primary)]'
+                      : 'text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-home-soft-well)]'
+                  }`}
+                >
+                  <span className="truncate">{opt.label}</span>
+                  <span className="shrink-0 text-[11px] opacity-70">{opt.sublabel}</span>
+                </button>
+              ))
+            ) : (
+              <div
+                role="status"
+                data-testid={`home-omni-trigger-empty:${activeTrigger.kind}`}
+                className="flex items-center justify-between gap-2 px-3 py-2 text-xs text-[var(--nimi-text-muted)]"
               >
-                <span className="truncate">{opt.label}</span>
-                <span className="shrink-0 text-[11px] opacity-70">{opt.sublabel}</span>
-              </button>
-            ))}
+                <span className="truncate">
+                  {activeTrigger.kind === 'partner' && !partnersLoaded
+                    ? t('Common.loading')
+                    : activeTrigger.kind === 'human'
+                      ? t(activeTrigger.query.trim()
+                        ? 'runtimeConfig.overview.omni.triggerNoMatchHuman'
+                        : 'runtimeConfig.overview.omni.triggerEmptyHuman')
+                      : activeTrigger.kind === 'partner'
+                        ? t(activeTrigger.query.trim()
+                          ? 'runtimeConfig.overview.omni.triggerNoMatchPartner'
+                          : 'runtimeConfig.overview.omni.triggerEmptyPartner')
+                        : t(activeTrigger.query.trim()
+                          ? 'runtimeConfig.overview.omni.triggerNoMatchSession'
+                          : 'runtimeConfig.overview.omni.triggerEmptySession')}
+                </span>
+                {activeTrigger.kind === 'partner' && partnersLoaded && partners.length === 0 && onExplorePartners ? (
+                  <button
+                    type="button"
+                    data-testid="home-omni-trigger-empty-discover-partners"
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                    }}
+                    onClick={() => {
+                      setDraft((prev) => stripOmniTriggerToken(prev, activeTrigger));
+                      setCaretIndex(0);
+                      onExplorePartners();
+                    }}
+                    className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 font-medium text-[var(--nimi-action-primary-bg)] transition-colors hover:bg-[var(--nimi-home-soft-well)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring-color)]"
+                  >
+                    <span>{t('runtimeConfig.partners.discoverPartners')}</span>
+                    <span aria-hidden="true">→</span>
+                  </button>
+                ) : null}
+              </div>
+            )}
           </div>
         ) : null}
         </form>

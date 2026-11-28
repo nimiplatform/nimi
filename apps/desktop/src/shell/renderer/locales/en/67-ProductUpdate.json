@@ -1,4 +1,5 @@
 {
+  "sectionTitle": "Nimi updates",
   "version": "Nimi {{version}}",
   "candidate": "Update {{version}}",
   "check": "Check for updates",

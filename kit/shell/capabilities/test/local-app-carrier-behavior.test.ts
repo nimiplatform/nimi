@@ -157,6 +157,7 @@ const FINAL_LOCAL_APP_OPERATIONS = [
   'shell-ui.chromeStateSet',
   'shell-ui.chromeCommand',
   'shell-ui.chromeUnbind',
+  'shell-ui.hostLocaleGet',
 ] as const;
 
 describe('local-app public capability behavior', () => {

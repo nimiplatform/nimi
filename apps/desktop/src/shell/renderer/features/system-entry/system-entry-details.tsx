@@ -67,13 +67,15 @@ function RecordedTime({ value, timeZone }: { value: Parameters<typeof systemEntr
   }).format(new Date(iso))}</time>;
 }
 
-function Estimates({ estimates, emphasis = false, local = false }: {
+function Estimates({ estimates, emphasis = false, local = false, emptyLabel }: {
   estimates: readonly DesktopAICostEstimate[];
   emphasis?: boolean;
   local?: boolean;
+  emptyLabel?: string;
 }) {
   const { t } = useTranslation();
   if (local && !estimates.length) return <div className={`${emphasis ? 'text-2xl font-semibold leading-tight tracking-[-0.02em]' : 'text-right text-sm font-medium'} tabular-nums`}>0</div>;
+  if (!estimates.length && emptyLabel) return <span className="text-sm text-[var(--nimi-text-secondary)]">{emptyLabel}</span>;
   const valid = estimates.filter(value => /^[A-Z]{3,8}$/u.test(value.currency)
     && /^\d+(\.\d+)?$/u.test(value.estimatedAmount) && value.estimatedAmount.length <= 40);
   if (!valid.length) return <span className="text-sm text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.costUnknown`)}</span>;
@@ -315,6 +317,9 @@ function UsageSummary({ ai }: { ai: SystemEntryAIState | null }) {
   const pricingIncomplete = projection.costs.length !== summary.estimates.length;
   const unexplainedCoverage = summary.partialReasons.some(reason => !localOnly || reason !== 'usage_pending') && !recordsIncomplete && !quantitiesIncomplete && !unpriced;
   const costIncomplete = recordsIncomplete || quantitiesIncomplete || unpriced || pricingIncomplete || unexplainedCoverage;
+  const zeroCostEmptyLabel = projection.attempts === '0' && !summary.estimates.length && !pending && !unpriced && !pricingIncomplete
+    ? t(`${PREFIX}.${costIncomplete ? 'costZeroIncomplete' : 'costNoCalls'}`)
+    : undefined;
   return <>
         <div className={PANEL_CLASS} data-testid="home-usage-attempts-card">
           <dt className="flex items-center gap-2.5 text-sm font-medium text-[var(--nimi-text-secondary)]"><span className="flex size-8 items-center justify-center rounded-xl bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info)]"><Play size={17} aria-hidden="true" /></span>{t(`${PREFIX}.todayExecutions`)}
@@ -337,7 +342,7 @@ function UsageSummary({ ai }: { ai: SystemEntryAIState | null }) {
             {pricingIncomplete || unexplainedCoverage ? <p>{t(`${PREFIX}.costsUnconfirmed`)}</p> : null}
             <p className="text-xs">{t(`${PREFIX}.missingCostsNotZero`)}</p>
           </UsageInfo> : null}</dt>
-          <dd className="mt-4"><Estimates estimates={summary.estimates} local={localOnly} emphasis /></dd>
+          <dd className="mt-4"><Estimates estimates={summary.estimates} local={localOnly} emptyLabel={zeroCostEmptyLabel} emphasis /></dd>
           {summary.estimates.length ? <dd className="mt-2 text-xs leading-5 text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.estimateShortDisclaimer`)}</dd> : null}
           {projection.costs.length > 1 ? <dd className="mt-2 text-xs leading-5 text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.separateCurrencies`)}</dd> : null}
         </div>

@@ -6,6 +6,8 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { pathToFileURL } from 'node:url';
+import { runInNewContext } from 'node:vm';
+import ts from 'typescript';
 
 import {
   resolveDesktopDevLaunchOptions,
@@ -269,4 +271,102 @@ test('Windows Desktop dev session lock is released by the kernel when its owner 
   await childExit;
   const session = await acquireDesktopDevSessionLock(profileRoot);
   await session.release();
+});
+
+test('macOS Desktop dev skips Vite :1420 renderer in avatar-only mode and starts it in normal mode', async () => {
+  const runnerPath = path.resolve(import.meta.dirname, '../scripts/run-electron-dev.mjs');
+  const runnerSource = fs.readFileSync(runnerPath, 'utf8');
+  const runnerTree = ts.createSourceFile('run-electron-dev.mjs', runnerSource, ts.ScriptTarget.Latest, true);
+  const macRunnerDecl = runnerTree.statements.find(
+    (statement) => ts.isFunctionDeclaration(statement) && statement.name?.text === 'runMacOSDesktopDev',
+  );
+  assert.ok(macRunnerDecl, 'runMacOSDesktopDev must exist in run-electron-dev.mjs');
+  const macRunnerCode = macRunnerDecl.getText(runnerTree);
+
+  async function runScenario(avatarOnly) {
+    const events = [];
+    const spawnedDesktopCalls = [];
+    const exitCodes = [];
+    const state = {
+      avatarOnly,
+      path,
+      workspaceRoot: '/mock/workspace',
+      avatarRoot: '/mock/workspace/apps/avatar',
+      localAssetRoot: '/mock/workspace/.nimi/local/dev-profiles/desktop/local/local-assets',
+      rendererUrl: 'http://127.0.0.1:1420',
+      bundledAvatarRendererUrl: 'http://127.0.0.1:1427',
+      desktopDevObservationArguments: ['--remote-debugging-port=9336'],
+      macOSSourceLocalDevelopmentRuntime: '/mock/runtime',
+      macOSSourceLocalDevelopmentNativeEntry: '/mock/native/index.cjs',
+      sourceLocalDevelopmentRealmUrl: 'http://127.0.0.1:3002',
+      developmentRealm: { name: 'local', apiOrigin: 'http://127.0.0.1:3002' },
+      externalServiceEnvironment: {},
+      dependencyTask: undefined,
+      dependencyAbort: new AbortController(),
+      existsSync: () => true,
+      mkdirSync: () => undefined,
+      require: () => '/mock/electron',
+      resolveWorkspaceElectronDevCarrier: () => '/mock/electron',
+      ensureManagedWebDevCarrier: () => undefined,
+      prepareDesktopDevDependencies: async () => ({ close: async () => undefined }),
+      spawnWorkspaceSurfaceWatcher: () => ({}),
+      waitForWorkspaceSurfaces: async () => undefined,
+      buildElectronHostForDesktopDev: async () => undefined,
+      spawnRenderer: () => {
+        events.push('spawnRenderer');
+      },
+      waitForUrl: async (url) => {
+        events.push(`waitForUrl:${url}`);
+      },
+      runDesktopElectronUntilExit: async (spawnElectron) => {
+        events.push('runDesktopElectronUntilExit');
+        spawnElectron([]);
+        return 0;
+      },
+      spawnDesktopTracked: (command, args, options) => {
+        spawnedDesktopCalls.push({ command, args, env: options.env });
+        return {};
+      },
+      requestAllChildrenShutdown: async (signal) => {
+        events.push(`shutdown:${signal}`);
+      },
+      process: {
+        platform: 'darwin',
+        arch: 'arm64',
+        env: {},
+        stdout: { write: () => undefined },
+        stderr: { write: (line) => events.push(`stderr:${line}`) },
+        exit: (code) => {
+          exitCodes.push(code);
+        },
+      },
+    };
+    const { runMacOSDesktopDev } = runInNewContext(
+      `${macRunnerCode}\n({ runMacOSDesktopDev });`,
+      state,
+    );
+    await runMacOSDesktopDev();
+    return { events, spawnedDesktopCalls, exitCodes };
+  }
+
+  const avatarOnlyResult = await runScenario(true);
+  assert.deepEqual(avatarOnlyResult.exitCodes, [0]);
+  assert.equal(avatarOnlyResult.events.includes('spawnRenderer'), false);
+  assert.equal(
+    avatarOnlyResult.events.some((entry) => entry.startsWith('waitForUrl:')),
+    false,
+  );
+  assert.equal(avatarOnlyResult.spawnedDesktopCalls.length, 1);
+  assert.equal(avatarOnlyResult.spawnedDesktopCalls[0].env.NIMI_DESKTOP_ELECTRON_AVATAR_ONLY, '1');
+
+  const normalDesktopResult = await runScenario(false);
+  assert.deepEqual(normalDesktopResult.exitCodes, [0]);
+  assert.ok(normalDesktopResult.events.includes('spawnRenderer'));
+  assert.ok(normalDesktopResult.events.includes('waitForUrl:http://127.0.0.1:1420'));
+  assert.ok(
+    normalDesktopResult.events.indexOf('spawnRenderer')
+      < normalDesktopResult.events.indexOf('runDesktopElectronUntilExit'),
+  );
+  assert.equal(normalDesktopResult.spawnedDesktopCalls.length, 1);
+  assert.equal(normalDesktopResult.spawnedDesktopCalls[0].env.NIMI_DESKTOP_ELECTRON_AVATAR_ONLY, '0');
 });

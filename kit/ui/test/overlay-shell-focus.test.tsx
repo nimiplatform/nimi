@@ -196,3 +196,137 @@ test('closing modal Popover immediately releases document.body pointer-events wh
   await act(async () => bgBtn.click());
   expect(bgClicks).toBe(1);
 });
+
+test('OverlayShell header close button is opt-in, accessible, and calls onClose once', async () => {
+  function CloseButtonJourney() {
+    const [open, setOpen] = useState(false);
+    const [closeCount, setCloseCount] = useState(0);
+    return <>
+      <button type="button" data-testid="open-closable" onClick={() => setOpen(true)}>Open</button>
+      <output data-testid="close-button-count">{closeCount}</output>
+      <OverlayShell
+        open={open}
+        title="Model route"
+        closeLabel="关闭"
+        onClose={() => {
+          setCloseCount((count) => count + 1);
+          setOpen(false);
+        }}
+        data-testid="closable-overlay"
+      >
+        <p>Body</p>
+      </OverlayShell>
+    </>;
+  }
+
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+  await act(async () => root!.render(<CloseButtonJourney />));
+
+  const trigger = container.querySelector<HTMLButtonElement>('[data-testid="open-closable"]')!;
+  trigger.focus();
+  await act(async () => trigger.click());
+
+  const closeBtn = document.querySelector<HTMLButtonElement>('[data-testid="nimi-overlay-close"]')!;
+  expect(closeBtn).toBeTruthy();
+  expect(closeBtn.getAttribute('aria-label')).toBe('关闭');
+
+  await act(async () => closeBtn.click());
+  await vi.waitFor(async () => {
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)); });
+    expect(document.querySelector('[data-testid="closable-overlay"]')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+  });
+  expect(container.querySelector('[data-testid="close-button-count"]')?.textContent).toBe('1');
+});
+
+test('OverlayShell omits close button by default and when onClose is absent', async () => {
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+  await act(async () => root!.render(
+    <>
+      <OverlayShell open title="Default header" onClose={() => {}} data-testid="default-header-overlay">
+        <p>Default</p>
+      </OverlayShell>
+      <OverlayShell open title="Locked header" closeLabel="Close" data-testid="locked-header-overlay">
+        <p>Locked</p>
+      </OverlayShell>
+    </>,
+  ));
+
+  expect(document.querySelector('[data-testid="default-header-overlay"] [data-testid="nimi-overlay-close"]')).toBeNull();
+  expect(document.querySelector('[data-testid="locked-header-overlay"] [data-testid="nimi-overlay-close"]')).toBeNull();
+
+  await act(async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })));
+  expect(document.querySelector('[data-testid="locked-header-overlay"]')).toBeTruthy();
+});
+
+test('nested OverlayShell Escape dismisses only the topmost dialog first, then the parent', async () => {
+  function NestedOverlayJourney() {
+    const [parentOpen, setParentOpen] = useState(true);
+    const [childOpen, setChildOpen] = useState(false);
+    const [parentCloses, setParentCloses] = useState(0);
+    const [childCloses, setChildCloses] = useState(0);
+    return (
+      <>
+        <output data-testid="parent-closes">{parentCloses}</output>
+        <output data-testid="child-closes">{childCloses}</output>
+        <OverlayShell
+          open={parentOpen}
+          title="Parent dialog"
+          closeLabel="Close"
+          onClose={() => {
+            setParentCloses((count) => count + 1);
+            setParentOpen(false);
+          }}
+          data-testid="parent-overlay"
+        >
+          <button type="button" data-testid="open-child" onClick={() => setChildOpen(true)}>
+            Open child
+          </button>
+          <OverlayShell
+            open={childOpen}
+            title="Child dialog"
+            closeLabel="Close"
+            className="z-[calc(var(--nimi-z-dialog)+1)]"
+            panelClassName="z-[calc(var(--nimi-z-dialog)+1)]"
+            onClose={() => {
+              setChildCloses((count) => count + 1);
+              setChildOpen(false);
+            }}
+            data-testid="child-overlay"
+          >
+            <button type="button" data-testid="child-inside">Child action</button>
+          </OverlayShell>
+        </OverlayShell>
+      </>
+    );
+  }
+
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+  await act(async () => root!.render(<NestedOverlayJourney />));
+
+  const openChild = document.querySelector<HTMLButtonElement>('[data-testid="open-child"]')!;
+  await act(async () => openChild.click());
+  expect(document.querySelector('[data-testid="child-overlay"]')).toBeTruthy();
+
+  await act(async () => document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })));
+  await vi.waitFor(async () => {
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)); });
+    expect(document.querySelector('[data-testid="child-overlay"]')).toBeNull();
+  });
+  expect(document.querySelector('[data-testid="parent-overlay"]')).toBeTruthy();
+  expect(container.querySelector('[data-testid="child-closes"]')?.textContent).toBe('1');
+  expect(container.querySelector('[data-testid="parent-closes"]')?.textContent).toBe('0');
+
+  await act(async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })));
+  await vi.waitFor(async () => {
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)); });
+    expect(document.querySelector('[data-testid="parent-overlay"]')).toBeNull();
+  });
+  expect(container.querySelector('[data-testid="parent-closes"]')?.textContent).toBe('1');
+});

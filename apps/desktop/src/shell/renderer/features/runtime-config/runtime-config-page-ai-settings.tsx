@@ -544,10 +544,12 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
           </span>
         </button>
         <ScrollArea
-          className="min-h-0 flex-1"
+          className="min-h-0 flex-1 pb-3"
+          fadeEdges="bottom"
           viewportClassName="[&>div]:!block"
-          contentClassName="desktop-sidebar__body desktop-sidebar__groups min-w-0"
+          contentClassName="desktop-sidebar__body min-w-0"
         >
+          <div className="desktop-sidebar__groups min-w-0 pb-3">
           <div className="desktop-sidebar__items">
             <button
               type="button"
@@ -632,6 +634,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
             </div>
           ))}
           {inventory.isPending ? <p className="px-3 text-sm">{t('Common.loading')}</p> : null}
+          </div>
         </ScrollArea>
         <div className="desktop-sidebar__footer border-t border-[var(--nimi-border-subtle)]">
           <button

@@ -16,6 +16,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { useI18n } from '../i18n.js';
+import { errorText } from './harness-types.js';
 import type { Material, SessionDrafts } from './session-drafts.js';
 
 export type WorkspaceItem = { name: string; ref: string; directory: boolean; size?: number };
@@ -23,6 +24,46 @@ type FileInfo = { name: string; ref: string; size: number };
 type DocumentPreview = FileInfo & ({ format: 'file'; message?: string } | { format: 'text' | 'markdown'; content: string; page: number; pages: number });
 export type FilePreview = DocumentPreview | (FileInfo & { format: 'image'; mimeType: string; bytes: ArrayBuffer });
 type VisiblePreview = DocumentPreview | (FileInfo & { format: 'image'; url: string });
+
+const INTERNAL_MATERIAL_DIR_RE = /^material-(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[a-z0-9]{6})$/i;
+
+export function isInternalMaterialDir(name: string): boolean {
+  return INTERNAL_MATERIAL_DIR_RE.test(name);
+}
+
+export function formatWorkspaceDisplayPath(pathRef: string): string {
+  if (!pathRef) return '/';
+  const [root, ...segments] = pathRef.split('/');
+  return isInternalMaterialDir(root) ? segments.join('/') || '/' : pathRef;
+}
+
+export function parentWorkspaceFolder(pathRef: string): string {
+  const parent = pathRef.split('/').slice(0, -1).join('/');
+  return isInternalMaterialDir(parent) ? '' : parent;
+}
+
+export async function flattenMaterialDirectories(
+  items: readonly WorkspaceItem[],
+  listDir: (folderRef: string) => Promise<{ items: WorkspaceItem[]; next: number | null }>,
+): Promise<WorkspaceItem[]> {
+  const resolved = await Promise.all(items.map(async item => {
+    if (!item.directory || !isInternalMaterialDir(item.name)) {
+      return [item];
+    }
+    try {
+      const nested = await listDir(item.ref);
+      if (nested.next === null && nested.items.length === 1 && !nested.items[0].directory) {
+        return nested.items;
+      }
+    } catch {
+      // Keep the directory reachable when its listing cannot be read.
+    }
+    return [item];
+  }));
+  return resolved
+    .flat()
+    .sort((a, b) => Number(b.directory) - Number(a.directory) || a.name.localeCompare(b.name));
+}
 
 function formatSize(bytes?: number): string {
   if (bytes === undefined) return '';
@@ -58,7 +99,7 @@ function AttachToDraft({ store, sessionId, file }: { store: SessionDrafts; sessi
             await store.attach(sessionId, { ref: file.ref, name: file.name });
             setSaveError('');
           } catch (cause) {
-            setSaveError(cause instanceof Error ? cause.message : String(cause));
+            setSaveError(errorText(cause));
           }
         }}
       >
@@ -124,14 +165,17 @@ export function WorkspaceFiles({
         }
       } else {
         const listed = await window.nimiHarness.listFiles(sessionId, folder, offset);
+        const resolvedItems = folder === ''
+          ? await flattenMaterialDirectories(listed.items, dirRef => window.nimiHarness.listFiles(sessionId, dirRef, 0))
+          : listed.items;
         if (active) {
-          setItems(prev => offset ? [...prev, ...listed.items] : listed.items);
+          setItems(prev => offset ? [...prev, ...resolvedItems] : resolvedItems);
           setNext(listed.next);
         }
       }
     }
     void load()
-      .catch(err => { if (active) { setPreview(undefined); setError(String(err.message ?? err)); } })
+      .catch(err => { if (active) { setPreview(undefined); setError(errorText(err)); } })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; if (imageUrl) URL.revokeObjectURL(imageUrl); };
   }, [sessionId, selected, folder, offset, refresh, fileRevision, page]);
@@ -144,20 +188,23 @@ export function WorkspaceFiles({
     onSelect(undefined);
   }
 
+  const currentRef = selected || folder;
+  const displayPath = formatWorkspaceDisplayPath(currentRef);
+
   return (
     <div ref={panel} className="harness-inspector-section">
       <div className="harness-inspector-toolbar">
-        <div className="harness-inspector-path" title={selected || folder || '/'}>
-          {(selected || folder) && (
+        <div className="harness-inspector-path" title={displayPath}>
+          {currentRef && (
             <Button
               size="sm"
               tone="ghost"
               leadingIcon={<ChevronLeft size={14} />}
-              onClick={() => openFolder((selected ?? folder).split('/').slice(0, -1).join('/'))}
+              onClick={() => openFolder(parentWorkspaceFolder(currentRef))}
               aria-label={t('inspector.backFolder')}
             />
           )}
-          <code>{selected || folder || '/'}</code>
+          <code>{displayPath}</code>
         </div>
         <div className="harness-inspector-toolbar__actions">
           <Button
@@ -171,7 +218,7 @@ export function WorkspaceFiles({
             size="sm"
             tone="ghost"
             leadingIcon={<ExternalLink size={13} />}
-            onClick={() => void window.nimiHarness.revealWorkspace(sessionId).catch(err => setError(String(err.message ?? err)))}
+            onClick={() => void window.nimiHarness.revealWorkspace(sessionId).catch(err => setError(errorText(err)))}
             title={t('workspace.revealFolder')}
             aria-label={t('workspace.revealFolder')}
           />
@@ -198,7 +245,7 @@ export function WorkspaceFiles({
               size="sm"
               tone="ghost"
               leadingIcon={<ExternalLink size={13} />}
-              onClick={() => void window.nimiHarness.revealFile(sessionId, preview.ref).catch(err => setError(String(err.message ?? err)))}
+              onClick={() => void window.nimiHarness.revealFile(sessionId, preview.ref).catch(err => setError(errorText(err)))}
             >
               {t('inspector.showInFolder')}
             </Button>
@@ -254,6 +301,7 @@ export function WorkspaceFiles({
           <ul>
             {items.map(item => {
               const Icon = itemIcon(item);
+              const displayName = item.directory ? item.name : formatWorkspaceDisplayPath(item.name);
               return (
                 <li key={item.ref}>
                   <button
@@ -262,7 +310,7 @@ export function WorkspaceFiles({
                     onClick={() => item.directory ? openFolder(item.ref) : onSelect(item.ref)}
                   >
                     <Icon size={15} className={item.directory ? 'harness-file-row__folder' : ''} aria-hidden="true" />
-                    <span className="harness-file-row__name">{item.name}{item.directory ? '/' : ''}</span>
+                    <span className="harness-file-row__name">{displayName}{item.directory ? '/' : ''}</span>
                     {!item.directory && item.size !== undefined && (
                       <span className="harness-file-row__size">{formatSize(item.size)}</span>
                     )}

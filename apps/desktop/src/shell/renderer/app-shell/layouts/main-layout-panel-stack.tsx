@@ -1,6 +1,6 @@
 
 import { Suspense, lazy, type ReactNode } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, useIsPresent } from 'motion/react';
 import type { AppTab } from '../providers/app-store';
 import type { ExploreSectionId } from '../../features/explore/explore-section-nav';
 import { loadWorldDetailPanelModule, WorldDetailRouteLoading } from '../../features/world/world-detail-route-state';
@@ -64,11 +64,13 @@ function MotionPanelFrame({
   children: ReactNode;
 }) {
   const motionCustom = useDesktopPanelCustom();
+  const isPresent = useIsPresent();
   return (
     <motion.div
       key={panelId}
       data-testid={E2E_IDS.panel(panelId)}
-      className={className}
+      className={isPresent ? className : `${className} z-0 pointer-events-none`}
+      inert={!isPresent}
       custom={motionCustom}
       variants={DESKTOP_PANEL_VARIANTS}
       initial="initial"
@@ -91,12 +93,16 @@ export function MainLayoutPanelStack({
 }: MainLayoutPanelStackProps) {
 
   return (
-    <>
+    <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
       {runtimeEverMounted ? (
         <Suspense fallback={<div className="flex min-h-0 flex-1" />}>
           <div
             data-testid={E2E_IDS.panel('runtime')}
-            className={`min-h-0 flex-1 flex-col ${runtimeActive ? 'flex' : 'hidden'}`}
+            className={`min-h-0 flex-1 flex-col ${
+              runtimeActive
+                ? 'relative z-10 flex bg-[var(--nimi-surface-canvas)]'
+                : 'hidden'
+            }`}
           >
             <RuntimeConfigPanelBody />
           </div>
@@ -167,6 +173,6 @@ export function MainLayoutPanelStack({
 
         </AnimatePresence>
       </Suspense>
-    </>
+    </div>
   );
 }

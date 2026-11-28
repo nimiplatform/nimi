@@ -214,6 +214,11 @@ export type NimiElectronDesktopOpenHost = {
   readonly fetch?: NimiElectronDesktopOpenFetch;
 };
 
+export type NimiElectronHostLocaleHost = {
+  readonly filePath?: string;
+  readonly readTextFile?: (absolutePath: string) => Promise<string> | string;
+};
+
 export type NimiElectronShellUiLevel = 'info' | 'warning' | 'error';
 
 export type NimiElectronConfirmDialogPayload = {
@@ -380,6 +385,8 @@ export type NimiElectronStandardShellHost = {
     openRequestId: string,
   ) => Promise<import('./app-activity-source-launch.js').NimiElectronAppActivitySourceLaunchResult>;
   readonly desktopOpen?: NimiElectronDesktopOpenHost;
+  readonly readHostLocale?: () => Promise<NimiHostLocale | null> | NimiHostLocale | null;
+  readonly hostLocale?: NimiElectronHostLocaleHost;
 };
 
 export type NimiElectronDesktopHost = {
@@ -495,6 +502,7 @@ export class NimiElectronShellHostError extends Error {
     };
   }
 }
+import type { NimiHostLocale } from '@nimiplatform/kit/core/sdk-contract';
 import type {
   NimiStandardShellErrorCode,
   NimiStandardShellErrorEnvelope,

@@ -81,12 +81,17 @@ export const DESKTOP_PANEL_VARIANTS: Variants = {
   exit: (reduced: boolean) => ({
     opacity: 0,
     y: reduced ? 0 : 8,
-    // Overlay the container instead of staying in the flex flow, so an
-    // exiting panel never splits height with an already-visible panel
-    // (e.g. the keep-alive runtime tab).
+    // Overlay the container beneath the active panel and disable pointer
+    // events so an exiting panel never splits height or ghosts above an
+    // already-visible panel (e.g. the keep-alive runtime tab).
     position: 'absolute',
     inset: 0,
-    transition: reduced ? nimiReducedFade() : nimiSpring('default'),
+    zIndex: 0,
+    pointerEvents: 'none',
+    transition: {
+      ...(reduced ? nimiReducedFade() : nimiSpring('default')),
+      zIndex: { duration: 0 },
+    },
   }),
 };
 

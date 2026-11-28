@@ -216,6 +216,7 @@ capability_sets:
       - floating-window.beginManualDrag
       - floating-window.moveManualDrag
       - floating-window.constrainToVisibleArea
+      - shell-ui.hostLocaleGet
     planned_operations: []
     planned_operations_disposition: deny_until_separate_operation_admission
     forbidden_operations:
@@ -414,6 +415,7 @@ capability_sets:
       - shell-ui.chromeStateSet
       - shell-ui.chromeCommand
       - shell-ui.chromeUnbind
+      - shell-ui.hostLocaleGet
     planned_operations:
       - data.pathResolve
       - config.get
@@ -1684,6 +1686,12 @@ capabilities:
       - id: chromeUnbind
         command: nimi.shell.ui.chromeUnbind
         negative_states: [ capability-unavailable, invalid-payload, forbidden-renderer-access, session-invalid, host-internal-error ]
+      - id: hostLocaleGet
+        command: nimi.shell.ui.hostLocaleGet
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+          - host-internal-error
   - id: diagnostics
     host_contract: NimiStandardShellCapabilityHost
     operations:

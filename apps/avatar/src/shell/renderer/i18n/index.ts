@@ -4,10 +4,11 @@
 // render is a real translation (no async fallback, no flash of English).
 //
 // Locale resolution order:
-//   1. Kit browser storage key `nimi.avatar.locale` (persisted user choice — Wave 4 will
-//      surface a switcher in the settings popover)
-//   2. navigator.language → first matching SUPPORTED_LOCALES prefix
-//   3. 'en'
+//   1. Kit browser storage key `nimi.avatar.locale` (persisted user override)
+//   2. Host startup locale read once via `applyStartupHostLocaleOnce()` before
+//      mount (never persisted to `localStorage` so default launches follow Home)
+//   3. navigator.language → first matching SUPPORTED_LOCALES prefix
+//   4. 'en'
 //
 // All keys are declared in the app-owned `i18n/key-catalog.yaml`.
 // `pnpm --filter @nimiplatform/avatar check:spec-consistency` enforces 1:1
@@ -20,6 +21,12 @@ import {
   resolveBrowserStorage,
   writeStorageTextTo,
 } from '@nimiplatform/kit/core/storage-json';
+import { getShellHostLocale } from '@nimiplatform/kit/shell/renderer/bridge';
+import {
+  readNimiHostLocale,
+  resolveNimiStartupLocale,
+  type NimiHostLocaleSource,
+} from '@nimiplatform/sdk/app';
 
 import enAvatar from '../locales/en/avatar.json' with { type: 'json' };
 import zhAvatar from '../locales/zh/avatar.json' with { type: 'json' };
@@ -30,23 +37,43 @@ export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 export const LOCALE_STORAGE_KEY = 'nimi.avatar.locale';
 export const I18N_NAMESPACE = 'avatar';
 
+const DEFAULT_HOST_LOCALE_SOURCE: NimiHostLocaleSource = {
+  getLocale: getShellHostLocale,
+};
+
 const RESOURCES: Record<SupportedLocale, Record<string, unknown>> = {
   en: enAvatar as Record<string, unknown>,
   zh: zhAvatar as Record<string, unknown>,
 };
 
-function detectInitialLocale(): SupportedLocale {
+function readStoredLocale(): SupportedLocale | null {
   const stored = readStorageTextFrom(resolveBrowserStorage('local'), LOCALE_STORAGE_KEY);
   if (stored.state === 'ready' && (SUPPORTED_LOCALES as readonly string[]).includes(stored.value)) {
     return stored.value as SupportedLocale;
   }
+  return null;
+}
 
-  if (typeof navigator !== 'undefined' && typeof navigator.language === 'string') {
-    const lang = navigator.language.toLowerCase();
-    if (lang.startsWith('zh')) return 'zh';
-    if (lang.startsWith('en')) return 'en';
+function readNavigatorLanguage(): string | null {
+  return typeof navigator !== 'undefined' && typeof navigator.language === 'string'
+    ? navigator.language
+    : null;
+}
+
+function detectInitialLocale(): SupportedLocale {
+  return resolveNimiStartupLocale({
+    supportedLocales: SUPPORTED_LOCALES,
+    storedLocale: readStoredLocale(),
+    navigatorLanguage: readNavigatorLanguage(),
+    fallback: 'en',
+  });
+}
+
+function syncDocumentLocale(locale: SupportedLocale): void {
+  if (typeof document !== 'undefined') {
+    document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en';
+    document.title = t('Avatar.shell.document_title');
   }
-  return 'en';
 }
 
 const initialLocale = detectInitialLocale();
@@ -72,6 +99,8 @@ if (typeof document !== 'undefined') {
   document.documentElement.lang = initialLocale === 'zh' ? 'zh-CN' : 'en';
 }
 
+let manualLocaleMutationCount = 0;
+
 export function getCurrentLocale(): SupportedLocale {
   const lng = i18n.language;
   if (lng && (SUPPORTED_LOCALES as readonly string[]).includes(lng)) {
@@ -81,11 +110,50 @@ export function getCurrentLocale(): SupportedLocale {
 }
 
 export async function changeLocale(locale: SupportedLocale): Promise<void> {
+  manualLocaleMutationCount += 1;
   await i18n.changeLanguage(locale);
-  if (typeof document !== 'undefined') {
-    document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en';
-  }
+  syncDocumentLocale(locale);
   writeStorageTextTo(resolveBrowserStorage('local'), LOCALE_STORAGE_KEY, locale);
+}
+
+export async function applyStartupHostLocaleOnce(
+  hostLocaleSource: NimiHostLocaleSource | null = DEFAULT_HOST_LOCALE_SOURCE,
+): Promise<SupportedLocale> {
+  const storedLocale = readStoredLocale();
+  if (storedLocale !== null) {
+    if (getCurrentLocale() !== storedLocale) {
+      await i18n.changeLanguage(storedLocale);
+    }
+    syncDocumentLocale(storedLocale);
+    return storedLocale;
+  }
+
+  const mutationBeforeRead = manualLocaleMutationCount;
+  const hostLocale = await readNimiHostLocale(hostLocaleSource);
+
+  const storedAfterRead = readStoredLocale();
+  if (manualLocaleMutationCount !== mutationBeforeRead || storedAfterRead !== null) {
+    const current = storedAfterRead ?? getCurrentLocale();
+    if (getCurrentLocale() !== current) {
+      await i18n.changeLanguage(current);
+    }
+    syncDocumentLocale(current);
+    return current;
+  }
+
+  const resolved = resolveNimiStartupLocale({
+    supportedLocales: SUPPORTED_LOCALES,
+    storedLocale: null,
+    hostLocale,
+    navigatorLanguage: readNavigatorLanguage(),
+    fallback: 'en',
+  });
+
+  if (getCurrentLocale() !== resolved) {
+    await i18n.changeLanguage(resolved);
+  }
+  syncDocumentLocale(resolved);
+  return resolved;
 }
 
 // Re-export the React hook so consumers don't import react-i18next directly,

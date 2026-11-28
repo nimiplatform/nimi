@@ -24,6 +24,7 @@ import {
   ListFilter,
   LoaderCircle,
   MoreHorizontal,
+  PackageCheck,
   Plus,
   SearchX,
 } from 'lucide-react';
@@ -72,10 +73,11 @@ import {
   filterAppGroupsByState,
   groupAppsEntries,
   hideBlockedDiscoveryEntries,
+  isGroupInstalled,
   reconcileAppGroups,
   siblingSourceEntries,
   sortAppGroups,
-  splitRunningGroups,
+  splitRailGroups,
   type AppsRailFilterId,
   type DesktopAppGroup,
 } from './apps-entry-groups.js';
@@ -123,9 +125,10 @@ export interface AppsPanelViewProps {
   readonly readPackageInfo?: DesktopAppsProjectionSource['readPackageInfo'];
 }
 
-const FILTER_IDS: readonly AppsRailFilterId[] = ['all', 'running', 'updates', 'attention'];
+const FILTER_IDS: readonly AppsRailFilterId[] = ['all', 'installed', 'running', 'updates', 'attention'];
 const FILTER_LABEL_KEYS: Readonly<Record<AppsRailFilterId, string>> = {
   all: 'Apps.library.filterAll',
+  installed: 'Apps.library.filterInstalled',
   running: 'Apps.library.filterRunning',
   updates: 'Apps.library.filterUpdates',
   attention: 'Apps.library.filterAttention',
@@ -195,11 +198,20 @@ export function AppsPanelView({
     () => sortAppGroups(filterAppGroupsByState(filterAppGroups(groups, searchQuery), filterId), 'updated'),
     [groups, searchQuery, filterId],
   );
-  // Steam-style rail: a 运行中 section on top, one flat list below; searching
-  // or filtering collapses the sections into a single result set.
-  const { running: runningGroups, rest: restGroups } = useMemo(
-    () => (searching || filtering ? { running: [] as readonly DesktopAppGroup[], rest: sortedGroups } : splitRunningGroups(sortedGroups)),
-    [searching, filtering, sortedGroups],
+  // Steam-style rail: Running on top, then Installed/local-dev apps bright,
+  // then muted uninstalled Catalog apps below; searching or filtering
+  // collapses sections into a single flat result set (still installed-first).
+  const flatRailMode = searching || filtering;
+  const { running: runningGroups, installed: installedGroups, catalog: catalogGroups, flat: flatRestGroups } = useMemo(
+    () => (flatRailMode
+      ? {
+          running: [] as readonly DesktopAppGroup[],
+          installed: [] as readonly DesktopAppGroup[],
+          catalog: [] as readonly DesktopAppGroup[],
+          flat: sortedGroups,
+        }
+      : { ...splitRailGroups(sortedGroups), flat: [] as readonly DesktopAppGroup[] }),
+    [flatRailMode, sortedGroups],
   );
   const attentionEntries = useMemo(
     () => sortAppsEntries(discoveryEntries.filter(entryNeedsAttention), 'updated'),
@@ -210,7 +222,7 @@ export function AppsPanelView({
     [discoveryEntries],
   );
   const recentGroups = useMemo(
-    () => sortAppGroups(groups, 'activity').slice(0, RECENT_GROUPS_LIMIT),
+    () => sortAppGroups(groups.filter((group) => isGroupInstalled(group) || group.active), 'activity').slice(0, RECENT_GROUPS_LIMIT),
     [groups],
   );
   const selectedEntry = loadedEntries.find(
@@ -267,12 +279,20 @@ export function AppsPanelView({
         <AppsRail
         projection={projection}
         groupsCount={groups.length}
+        flatMode={flatRailMode}
         runningGroups={runningGroups}
-        restGroups={restGroups}
+        installedGroups={installedGroups}
+        catalogGroups={catalogGroups}
+        flatRestGroups={flatRestGroups}
         selectedEntryKey={selectedEntryKey}
         searchQuery={searchQuery}
         onSearchChange={onSearchChange}
         onClearSearch={() => onSearchChange('')}
+        onResetFilters={() => {
+          onSearchChange('');
+          setFilterId('all');
+        }}
+        onToggleInstalledOnly={() => setFilterId((current) => (current === 'installed' ? 'all' : 'installed'))}
         searchInputRef={railSearchRef}
         sidebarRef={railRef}
         filterId={filterId}
@@ -351,12 +371,17 @@ export function AppsPanelView({
 function AppsRail({
   projection,
   groupsCount,
+  flatMode,
   runningGroups,
-  restGroups,
+  installedGroups,
+  catalogGroups,
+  flatRestGroups,
   selectedEntryKey,
   searchQuery,
   onSearchChange,
   onClearSearch,
+  onResetFilters,
+  onToggleInstalledOnly,
   searchInputRef,
   sidebarRef,
   filterId,
@@ -369,12 +394,17 @@ function AppsRail({
 }: {
   readonly projection: DesktopAppsPanelProjection | null;
   readonly groupsCount: number;
+  readonly flatMode: boolean;
   readonly runningGroups: readonly DesktopAppGroup[];
-  readonly restGroups: readonly DesktopAppGroup[];
+  readonly installedGroups: readonly DesktopAppGroup[];
+  readonly catalogGroups: readonly DesktopAppGroup[];
+  readonly flatRestGroups: readonly DesktopAppGroup[];
   readonly selectedEntryKey: string | null;
   readonly searchQuery: string;
   readonly onSearchChange: (value: string) => void;
   readonly onClearSearch: () => void;
+  readonly onResetFilters: () => void;
+  readonly onToggleInstalledOnly: () => void;
   readonly searchInputRef: React.RefObject<HTMLInputElement | null>;
   readonly sidebarRef: React.Ref<DesktopModuleSidebarHandle>;
   readonly filterId: AppsRailFilterId;
@@ -386,7 +416,12 @@ function AppsRail({
   readonly onRetry: () => void;
 }): ReactElement {
   const { t } = useTranslation();
-  const flatGroups = useMemo(() => [...runningGroups, ...restGroups], [runningGroups, restGroups]);
+  const installedOnly = filterId === 'installed';
+  const searching = searchQuery.trim() !== '';
+  const flatGroups = useMemo(
+    () => (flatMode ? flatRestGroups : [...runningGroups, ...installedGroups, ...catalogGroups]),
+    [flatMode, flatRestGroups, runningGroups, installedGroups, catalogGroups],
+  );
   const selectedGroupVisible = flatGroups.some((group) => (
     group.entries.some((entry) => entry.identity.entryKey === selectedEntryKey)
   ));
@@ -431,6 +466,19 @@ function AppsRail({
           aria-label={t('Apps.sidebar.searchLabel')}
           className="min-w-0 flex-1"
         />
+        <Tooltip content={t('Apps.library.filterInstalledTooltip')} placement="bottom">
+          <IconButton
+            data-testid="apps-filter-installed-toggle"
+            icon={<PackageCheck className="h-3.5 w-3.5" aria-hidden="true" />}
+            tone={installedOnly ? 'primary' : 'ghost'}
+            active={installedOnly}
+            size="sm"
+            aria-label={t('Apps.library.filterInstalled')}
+            aria-pressed={installedOnly}
+            onClick={onToggleInstalledOnly}
+            className="desktop-sidebar__icon-action shrink-0"
+          />
+        </Tooltip>
         <Popover>
           <Tooltip content={`${t('Apps.library.filterLabel')} · ${t(FILTER_LABEL_KEYS[filterId])}`} placement="bottom">
             <PopoverTrigger asChild>
@@ -474,23 +522,52 @@ function AppsRail({
           <div className="px-2 py-6 text-center">
             <SearchX className="mx-auto h-5 w-5 text-[var(--nimi-text-muted)]" aria-hidden="true" />
             <p className="mt-2 text-xs leading-5 text-[color:var(--nimi-text-muted)]">{t('Apps.sidebar.noResultsDescription')}</p>
-            <Button tone="ghost" size="sm" className="mt-2" onClick={onClearSearch}>{t('Apps.sidebar.clearSearch')}</Button>
+            <Button data-testid="apps-rail-reset-filters" tone="ghost" size="sm" className="mt-2" onClick={onResetFilters}>
+              {t(searching ? 'Apps.sidebar.clearSearch' : 'Apps.library.clearFilters')}
+            </Button>
           </div>
         ) : (
           <div className="desktop-sidebar__groups" data-app-rail-list>
-            {runningGroups.length > 0 ? (
-              <section data-testid="apps-rail-running-section" aria-label={t('Apps.rail.runningSection')} className="desktop-sidebar__items">
-                <h2 className="desktop-sidebar__section-label">
-                  {t('Apps.rail.runningSection')}
-                </h2>
-                <div className="desktop-sidebar__items">
-                  {runningGroups.map(renderRow)}
-                </div>
-              </section>
-            ) : null}
-            <div className="desktop-sidebar__items">
-              {restGroups.map(renderRow)}
-            </div>
+            {flatMode ? (
+              <div className="desktop-sidebar__items">
+                {flatRestGroups.map(renderRow)}
+              </div>
+            ) : (
+              <>
+                {runningGroups.length > 0 ? (
+                  <section data-testid="apps-rail-running-section" aria-label={t('Apps.rail.runningSection')} className="desktop-sidebar__items">
+                    <h2 className="desktop-sidebar__section-label">
+                      {t('Apps.rail.runningSection')}
+                    </h2>
+                    <div className="desktop-sidebar__items">
+                      {runningGroups.map(renderRow)}
+                    </div>
+                  </section>
+                ) : null}
+                {installedGroups.length > 0 ? (
+                  <section data-testid="apps-rail-installed-section" aria-label={t('Apps.rail.installedSection')} className="desktop-sidebar__items">
+                    {catalogGroups.length > 0 || runningGroups.length > 0 ? (
+                      <h2 className="desktop-sidebar__section-label">
+                        {t('Apps.rail.installedSection')}
+                      </h2>
+                    ) : null}
+                    <div className="desktop-sidebar__items">
+                      {installedGroups.map(renderRow)}
+                    </div>
+                  </section>
+                ) : null}
+                {catalogGroups.length > 0 ? (
+                  <section data-testid="apps-rail-catalog-section" aria-label={t('Apps.rail.catalogSection')} className="desktop-sidebar__items">
+                    <h2 className="desktop-sidebar__section-label">
+                      {t('Apps.rail.catalogSection')}
+                    </h2>
+                    <div className="desktop-sidebar__items">
+                      {catalogGroups.map(renderRow)}
+                    </div>
+                  </section>
+                ) : null}
+              </>
+            )}
           </div>
         )}
       </ScrollArea>
@@ -578,6 +655,7 @@ function railGroupRowPropsEqual(
     && prev.group.iconUrl === next.group.iconUrl
     && prev.group.running === next.group.running
     && prev.group.starting === next.group.starting
+    && isGroupInstalled(prev.group) === isGroupInstalled(next.group)
     && prev.group.sourceClasses.length === next.group.sourceClasses.length
     && prev.group.sourceClasses.every((source, index) => source === next.group.sourceClasses[index])
   );
@@ -615,7 +693,7 @@ const RailGroupRow = memo(function RailGroupRow({
   const visual = appRunVisualState(primary.run?.state ?? null);
   const transition = appRunTransition(visual, activeAction);
   // A not-yet-installed Catalog row keeps a muted, Steam-like look.
-  const notInstalled = primary.committedRelease === null && primary.localDevelopment === null;
+  const notInstalled = !isGroupInstalled(group);
   const { menuItems, confirmElement } = useAppEntryMenu({
     entry: primary,
     actionsDisabled,
@@ -942,24 +1020,26 @@ function AppsHomeBody({
         </Surface>
       ) : null}
 
-      <Surface as="section" tone="card" padding="none" className="desktop-module-card" data-testid="apps-home-recent" aria-label={t('Apps.home.recentTitle')}>
-        <h2 className="desktop-module-section-title">
-          {t('Apps.home.recentTitle')}
-        </h2>
-        <div className="mt-3 grid grid-cols-1 gap-1 xl:grid-cols-2 xl:gap-x-4">
-          {recentGroups.map((group) => (
-            <AppListRow
-              key={group.primary.identity.entryKey}
-              entry={group.primary}
-              iconUrl={group.iconUrl}
-              showSourceBadge={group.entries.length > 1}
-              activeAction={pendingActionForEntry(pendingActions, group.primary.identity.entryKey)}
-              actionsDisabled={appsActionsLocked(pendingActions, group.appId)}
-              onAction={actionDispatcherFor(group.primary.identity.entryKey)}
-            />
-          ))}
-        </div>
-      </Surface>
+      {recentGroups.length > 0 ? (
+        <Surface as="section" tone="card" padding="none" className="desktop-module-card" data-testid="apps-home-recent" aria-label={t('Apps.home.recentTitle')}>
+          <h2 className="desktop-module-section-title">
+            {t('Apps.home.recentTitle')}
+          </h2>
+          <div className="mt-3 grid grid-cols-1 gap-1 xl:grid-cols-2 xl:gap-x-4">
+            {recentGroups.map((group) => (
+              <AppListRow
+                key={group.primary.identity.entryKey}
+                entry={group.primary}
+                iconUrl={group.iconUrl}
+                showSourceBadge={group.entries.length > 1}
+                activeAction={pendingActionForEntry(pendingActions, group.primary.identity.entryKey)}
+                actionsDisabled={appsActionsLocked(pendingActions, group.appId)}
+                onAction={actionDispatcherFor(group.primary.identity.entryKey)}
+              />
+            ))}
+          </div>
+        </Surface>
+      ) : null}
 
       <AppsDiscoveryGrid groups={groups} actionDispatcherFor={actionDispatcherFor} />
 

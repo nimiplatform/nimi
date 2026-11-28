@@ -485,3 +485,19 @@ export {
   type NimiLocalAppAgentSessionShell,
   type NimiLocalAppAgentSessionStreamNext,
 } from '@nimiplatform/sdk/app';
+
+export {
+  NIMI_HOST_LOCALES,
+  NimiHostLocaleParseError,
+  isNimiHostLocale,
+  parseNimiHostLocale,
+  parseNimiHostLocaleResult,
+  readNimiHostLocale,
+  resolveNimiStartupLocale,
+} from '@nimiplatform/sdk/app';
+export type {
+  NimiHostLocale,
+  NimiHostLocaleResult,
+  NimiHostLocaleSource,
+  ResolveNimiStartupLocaleInput,
+} from '@nimiplatform/sdk/app';

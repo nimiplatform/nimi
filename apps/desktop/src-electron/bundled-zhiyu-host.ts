@@ -50,7 +50,13 @@ export function createDesktopBundledZhiyuHost(input: {
   let opening: Promise<void> | undefined;
   let closing: Promise<void> | undefined;
 
-  const conversationDelivery = createZhiyuConversationDelivery(() => current?.window.webContents.send(ZHIYU_CONVERSATION_OPEN_EVENT));
+  const sendToWindow = (window: BrowserWindow | undefined, channel: string, ...args: unknown[]) => {
+    if (!window || window.isDestroyed()) return;
+    const contents = window.webContents;
+    if (typeof contents.isDestroyed === 'function' && contents.isDestroyed()) return;
+    contents.send(channel, ...args);
+  };
+  const conversationDelivery = createZhiyuConversationDelivery(() => sendToWindow(current?.window, ZHIYU_CONVERSATION_OPEN_EVENT));
   const ownsSender = (event: Electron.IpcMainEvent | Electron.IpcMainInvokeEvent) => Boolean(current && input.canOpen()
     && !current.window.isDestroyed()
     && event.sender === current.window.webContents
@@ -64,7 +70,7 @@ export function createDesktopBundledZhiyuHost(input: {
   const acknowledgeConversation = (event: Electron.IpcMainEvent, value: unknown) => { if (ownsSender(event)) conversationDelivery.acknowledge(value); };
   const acknowledge = (event: Electron.IpcMainEvent, value: unknown) => {
     const record = current;
-    if (!record || !event.senderFrame || event.sender !== record.window.webContents || event.senderFrame !== event.sender.mainFrame) return;
+    if (!record || record.window.isDestroyed() || !event.senderFrame || event.sender !== record.window.webContents || event.senderFrame !== event.sender.mainFrame) return;
     record.placement?.acknowledge(value);
   };
   const registerIpc = () => {
@@ -117,7 +123,10 @@ export function createDesktopBundledZhiyuHost(input: {
 
   const open = async (): Promise<void> => {
     if (!input.canOpen()) throw new Error('bundled-zhiyu-home-unavailable');
-    if (closing) await closing;
+    if (closing || current?.window.isDestroyed()) {
+      await close();
+      if (!input.canOpen()) throw new Error('bundled-zhiyu-home-unavailable');
+    }
     if (opening) return opening;
     if (current) return focus();
     opening = (async () => {
@@ -142,7 +151,7 @@ export function createDesktopBundledZhiyuHost(input: {
           localAppHost: owner.host, localAppAssetMediaHost: media, chromeHost: chrome,
           openFileDialog: async request => {
             const window = current?.window;
-            if (!window) throw new Error('bundled-zhiyu-window-unavailable');
+            if (!window || window.isDestroyed()) throw new Error('bundled-zhiyu-window-unavailable');
             const result = await dialog.showOpenDialog(window, {
               title: request.title,
               properties: [request.kind === 'directory' ? 'openDirectory' : 'openFile', ...(request.multiple ? ['multiSelections' as const] : [])],
@@ -169,6 +178,7 @@ export function createDesktopBundledZhiyuHost(input: {
         if (!isAllowedElectronRendererUrl(url, [rendererUrl])) event.preventDefault();
       });
       window.on('close', event => { event.preventDefault(); void close().catch(input.reportError); });
+      window.on('closed', () => { if (current === record) void close().catch(input.reportError); });
       try {
         await window.loadURL(rendererUrl);
         if (current !== record) throw new Error('bundled-zhiyu-launch-canceled');
@@ -176,7 +186,7 @@ export function createDesktopBundledZhiyuHost(input: {
           homeDirectory: app.getPath('home'), focusMainWindow: focus,
           redeemPlacement: correlationRef => redeemDesktopZhiyuResourcePackPlacement({ correlationRef }),
           resolveDestinationAgent: anchor => resolveZhiyuResourcePackPlacementAgentHandle(owner.host, anchor),
-          emitPlacement: event => window.webContents.send(ZHIYU_RESOURCE_PACK_PLACEMENT_EVENT_CHANNEL, event),
+          emitPlacement: event => sendToWindow(window, ZHIYU_RESOURCE_PACK_PLACEMENT_EVENT_CHANNEL, event),
         });
         if (current !== record) {
           await placement.shutdown();
@@ -196,7 +206,7 @@ export function createDesktopBundledZhiyuHost(input: {
       await conversationDelivery.deliver(target);
       await focus();
     },
-    isOpen: () => Boolean(current),
+    isOpen: () => Boolean(current && !current.window.isDestroyed()),
     isFocused: () => Boolean(current && !current.window.isDestroyed() && current.window.isFocused()),
     close,
     resumeAfterFailedShutdown() {

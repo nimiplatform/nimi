@@ -5,6 +5,13 @@ import { describe, it } from 'node:test';
 import type { LocalDevelopmentRegistration, LocalDevelopmentRun } from '../src/shell/renderer/features/local-development/local-development-types.js';
 import { deriveAppSummary, desktopAppsEntryKey, projectAppsPanel, resolveRequestedAppDetailEntry, type DesktopAppsEntry } from '../src/shell/renderer/features/apps/apps-panel-projection.js';
 import {
+  filterAppGroupsByState,
+  groupAppsEntries,
+  isGroupInstalled,
+  sortAppGroups,
+  splitRailGroups,
+} from '../src/shell/renderer/features/apps/apps-entry-groups.js';
+import {
   AppPackageJobKind,
   AppPackageJobPhase,
   AppPackageProgressBasis,
@@ -372,5 +379,39 @@ describe('Desktop Apps projection structural sharing', () => {
     const secondVerified = second.entries.find((entry) => entry.identity.sourceClass === 'verified');
     assert.notEqual(secondVerified, firstVerified, 'a changed release produces a new entry object');
     assert.equal(secondVerified?.committedRelease?.version, '2.0.0');
+  });
+});
+
+describe('Desktop Apps Steam-style installed grouping and filtering', () => {
+  it('orders installed/local-dev apps above uninstalled catalog apps and supports installed-only filtering', async () => {
+    const devReg = registration({ appId: 'example.dev', displayName: 'Dev App', updatedAtUnixMs: 1_000 });
+    const runningReg = registration({ selector: 'dev-running', appId: 'example.running', displayName: 'Running App', updatedAtUnixMs: 500 });
+    const runningRun: LocalDevelopmentRun = { ...run(), selector: 'dev-running', appId: 'example.running', displayName: 'Running App' };
+    const installedRel: CommittedAppRelease = { ...release(AppPackageSourceClass.VERIFIED, '1.0.0'), appId: 'example.installed', displayName: 'Installed App' };
+    const catalogOnly = catalogTarget({ appId: 'example.catalog-only', displayName: 'Catalog Only' });
+
+    const projection = await projectAppsPanel({
+      listRegistrations: async () => [devReg, runningReg],
+      listRuns: async () => [runningRun],
+      listCommittedReleases: async () => [installedRel],
+      listPackageJobs: async () => [],
+      listApprovedCatalogTargets: async () => [catalogOnly],
+    }, { catalog: { status: 'loaded', targets: [catalogOnly] } });
+    assert.equal(projection.status, 'loaded');
+    if (projection.status !== 'loaded') return;
+
+    const groups = sortAppGroups(groupAppsEntries(projection.entries), 'updated');
+    const installedFlags = groups.map((group) => ({ appId: group.appId, installed: isGroupInstalled(group) }));
+    assert.equal(installedFlags.at(-1)?.appId, 'example.catalog-only');
+    assert.equal(installedFlags.at(-1)?.installed, false);
+    assert.ok(installedFlags.slice(0, -1).every((item) => item.installed));
+
+    const installedOnly = filterAppGroupsByState(groups, 'installed');
+    assert.deepEqual(installedOnly.map((group) => group.appId).sort(), ['example.dev', 'example.installed', 'example.running']);
+
+    const sections = splitRailGroups(groups);
+    assert.deepEqual(sections.running.map((group) => group.appId), ['example.running']);
+    assert.deepEqual(sections.installed.map((group) => group.appId).sort(), ['example.dev', 'example.installed']);
+    assert.deepEqual(sections.catalog.map((group) => group.appId), ['example.catalog-only']);
   });
 });

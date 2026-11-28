@@ -940,7 +940,7 @@ units:
     kind: rule
     title: P-SUPD-002 Home owns the self-update user surface
     modality: must
-    statement: Nimi Home owns user-facing update discovery, consent, progress, restart, recovery and diagnostic projection while consuming rather than inventing channel, endpoint, public-key, and fail-closed policy; checks and downloads run in the background and through the same explicit check action, installation requires explicit user consent describing task interruption, and deferral or ordinary exit never authorizes installation.
+    statement: Nimi Home owns user-facing update discovery, consent, progress, restart, recovery and diagnostic projection while consuming rather than inventing channel, endpoint, public-key, and fail-closed policy; checks and downloads run in the background and through the same explicit check action, installation requires explicit user consent describing task interruption, deferral or ordinary exit never authorizes installation, passive background check unavailability (UPDATE_UPSTREAM_UNAVAILABLE without required recovery) projects inside Home Settings and Help update status rather than alarming the persistent primary rail, and actionable prepared updates, active transfer or installation progress, and recovery-required or other failure states remain surfaced on the primary rail.
     condition: Whenever self-update is presented to a user.
     failure: Reject the non-Home surface or locally invented policy and project the precise unavailable or failure state.
     relations:

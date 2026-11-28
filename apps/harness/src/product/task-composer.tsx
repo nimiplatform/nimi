@@ -4,7 +4,12 @@ import { Button, Popover, PopoverContent, PopoverTrigger } from '@nimiplatform/k
 import { Brain, Check, ChevronDown, Eye, Loader2, Paperclip, Play, Settings, Shield, ShieldCheck, Sparkles, Square, X } from 'lucide-react';
 import { useI18n } from '../i18n.js';
 import { emptyDraft, type Material, type SessionDrafts, type TaskDraft } from './session-drafts.js';
-import type { PermissionMode, ReasoningChoice } from './harness-types.js';
+import { errorText, type PermissionMode, type ReasoningChoice } from './harness-types.js';
+import { formatWorkspaceDisplayPath } from './workspace-files.js';
+
+export function formatComposerError(error: unknown): string {
+  return errorText(error).replace(/^Error invoking remote method '[^']+':\s*(?:[A-Za-z]*Error:\s*)?/, '').trim();
+}
 export function TaskComposer({
   sessionId,
   store,
@@ -86,7 +91,9 @@ export function TaskComposer({
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const dirty = useRef(false);
   const importingNow = useRef(false);
-  const showError = (error: unknown) => { if (mounted.current) report(error instanceof Error ? error.message : String(error)); };
+  const showError = (error: unknown) => {
+    if (mounted.current) report(formatComposerError(error));
+  };
 
   function flush() {
     clearTimeout(timer.current);
@@ -154,7 +161,7 @@ export function TaskComposer({
         <PopoverTrigger asChild>
           <button type="button" className="harness-composer-pill">
             <Sparkles size={12} aria-hidden="true" />
-            <span className="harness-composer-pill__label">{modelLabel ?? t('model.choose')}</span>
+            <span className="harness-composer-pill__label">{modelLabel ?? (canSend ? t('model.choose') : t('partner.noneReady'))}</span>
             {reasoningChoices.length > 0 && reasoningEffort !== 'default' && (
               <span className="harness-composer-pill__tag">
                 <Brain size={10} aria-hidden="true" />
@@ -331,7 +338,7 @@ export function TaskComposer({
                   <button
                     type="button"
                     className="harness-draft-file__open"
-                    title={file.ref}
+                    title={formatWorkspaceDisplayPath(file.ref)}
                     onClick={event => openFile(file.ref, event.currentTarget)}
                   >
                     <Paperclip size={12} aria-hidden="true" />
@@ -356,7 +363,11 @@ export function TaskComposer({
               await flush();
               const refs = submitted.files.map(f => JSON.stringify(f.ref));
               const text = [submitted.text.trim(), ...(refs.length ? ['Attached workspace files:\n' + refs.join('\n')] : [])].filter(Boolean).join('\n\n');
-              await window.nimiHarness.submit(sessionId, text, submitted.requestId, queue);
+              try {
+                await window.nimiHarness.submit(sessionId, text, submitted.requestId, queue);
+              } catch (cause) {
+                throw new Error(formatComposerError(cause));
+              }
               if (store.current(sessionId)?.requestId === submitted.requestId) {
                 update(emptyDraft());
                 await flush();

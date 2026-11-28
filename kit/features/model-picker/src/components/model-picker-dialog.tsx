@@ -61,6 +61,11 @@ function OpenModelPickerDialog<TCandidate>({
       open={open}
       size={routePresentation ? 'sm' : 'lg'}
       onClose={onClose}
+      closeLabel={copy?.cancelLabel || 'Close'}
+      // Elevate above parent OverlayShell dialogs (--nimi-z-dialog) while keeping
+      // portaled SelectField (contentLayer="dialog", +1) visible above this dialog.
+      className="z-[calc(var(--nimi-z-dialog)+1)]"
+      panelClassName="z-[calc(var(--nimi-z-dialog)+1)]"
       title={title}
       description={description ? <p className="m-0 mt-1 text-sm font-normal text-[var(--nimi-text-secondary)]">{description}</p> : undefined}
       contentClassName={routePresentation

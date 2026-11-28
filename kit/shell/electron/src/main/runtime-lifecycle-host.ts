@@ -1,3 +1,6 @@
+import { execFile } from 'node:child_process';
+import { lstatSync, realpathSync, type Stats } from 'node:fs';
+import path from 'node:path';
 import { resolveNimiElectronProtectedLocalBindingPackage } from './local-app-host.js';
 import { loadNimiElectronProtectedLocalPackage } from './protected-local-binding-loader.js';
 import {
@@ -9,6 +12,40 @@ import type {
   ElectronRuntimeBridgeCommandNames,
   NimiElectronRuntimeLifecycleProfile,
 } from './types.js';
+
+const SOURCE_RUNTIME_VERSION_TIMEOUT_MS = 2_000;
+const SOURCE_RUNTIME_VERSION_MAX_BUFFER_BYTES = 16 * 1024;
+const MACOS_SOURCE_RUNTIME_RELATIVE_TAIL = [
+  '.nimi',
+  'local',
+  'imp3',
+  'runtime-local-development',
+  'nimi-runtime',
+] as const;
+const WINDOWS_SOURCE_RUNTIME_RELATIVE_TAIL = [
+  '.nimi',
+  'local',
+  'imp6',
+  'runtime-local-development',
+  'nimi.exe',
+] as const;
+
+export type NimiElectronSourceRuntimeVersionResolver = () => Promise<string | undefined>;
+
+export type NimiElectronSourceRuntimeVersionProbeDependencies = {
+  readonly platform?: NodeJS.Platform;
+  readonly env?: Readonly<Record<string, string | undefined>>;
+  readonly geteuid?: () => number;
+  readonly lstat?: (
+    candidate: string,
+  ) => Pick<Stats, 'isFile' | 'isSymbolicLink' | 'uid' | 'mode' | 'ino' | 'mtimeMs' | 'size'>;
+  readonly realpath?: (candidate: string) => string;
+  readonly execFile?: (
+    file: string,
+    args: readonly string[],
+    options: { readonly timeout: number; readonly maxBuffer: number; readonly windowsHide: boolean },
+  ) => Promise<string>;
+};
 
 type NativeJsonOutcome =
   | { readonly status: 'ok'; readonly value: unknown }
@@ -129,6 +166,7 @@ class ElectronSourceRuntimeLifecycleHost implements NimiElectronRuntimeLifecycle
   constructor(
     private readonly statusProbe: NimiElectronDeveloperModeStatusProbe,
     private readonly runtimeEndpoint: string,
+    private readonly resolveVersion?: NimiElectronSourceRuntimeVersionResolver,
   ) {}
 
   async stop(): Promise<void> { throw sourceLifecycleUnavailable('product-runtime-stop'); }
@@ -157,11 +195,13 @@ class ElectronSourceRuntimeLifecycleHost implements NimiElectronRuntimeLifecycle
       }
       throw error;
     }
+    const version = await readSourceRuntimeVersion(this.resolveVersion);
     return {
       running: true,
       managed: false,
       launchMode: 'SOURCE',
       grpcAddr: this.runtimeEndpoint,
+      ...(version ? { version } : {}),
     };
   }
 }
@@ -174,6 +214,7 @@ export function createNimiElectronRuntimeLifecycleHost(
     ? new ElectronSourceRuntimeLifecycleHost(
         createNimiElectronDeveloperModeStatusProbe(),
         runtimeEndpoint,
+        createSourceRuntimeVersionResolver(),
       )
     : createNimiElectronFixedRuntimeLifecycleHost(runtimeEndpoint);
 }
@@ -190,8 +231,20 @@ export function createNimiElectronFixedRuntimeLifecycleHostForBinding(
 export function createNimiElectronSourceRuntimeLifecycleHostForProbe(
   statusProbe: NimiElectronDeveloperModeStatusProbe,
   runtimeEndpoint: string,
+  options?: { readonly resolveVersion?: NimiElectronSourceRuntimeVersionResolver },
 ): NimiElectronRuntimeLifecycleHost {
-  return new ElectronSourceRuntimeLifecycleHost(statusProbe, runtimeEndpoint);
+  return new ElectronSourceRuntimeLifecycleHost(
+    statusProbe,
+    runtimeEndpoint,
+    options?.resolveVersion,
+  );
+}
+
+/** @internal Focused contract-test seam; not re-exported from the public main entrypoint. */
+export function createNimiElectronSourceRuntimeVersionResolverForTest(
+  dependencies: NimiElectronSourceRuntimeVersionProbeDependencies,
+): NimiElectronSourceRuntimeVersionResolver {
+  return createSourceRuntimeVersionResolver(dependencies);
 }
 
 function loadPlatformBinding(): NimiElectronFixedRuntimeBinding {
@@ -249,6 +302,176 @@ function sourceLifecycleUnavailable(command: string): NimiElectronShellHostError
       retryable: false,
     },
   });
+}
+
+function createSourceRuntimeVersionResolver(
+  dependencies: NimiElectronSourceRuntimeVersionProbeDependencies = {},
+): NimiElectronSourceRuntimeVersionResolver {
+  let cached: { readonly key: string; readonly version: string } | undefined;
+  let inFlight: { readonly key: string; readonly promise: Promise<string | undefined> } | undefined;
+
+  return async () => {
+    const verified = resolveVerifiedSourceRuntimeExecutable(dependencies);
+    if (!verified) return undefined;
+    if (cached?.key === verified.cacheKey) {
+      return cached.version;
+    }
+    if (inFlight?.key === verified.cacheKey) {
+      return inFlight.promise;
+    }
+    const exec = dependencies.execFile ?? execFileUtf8;
+    const pending = (async (): Promise<string | undefined> => {
+      try {
+        const stdout = await exec(verified.executablePath, ['version', '--json'], {
+          timeout: SOURCE_RUNTIME_VERSION_TIMEOUT_MS,
+          maxBuffer: SOURCE_RUNTIME_VERSION_MAX_BUFFER_BYTES,
+          windowsHide: true,
+        });
+        const version = parseSourceRuntimeVersionJson(stdout);
+        if (version) {
+          cached = { key: verified.cacheKey, version };
+        }
+        return version;
+      } catch {
+        return undefined;
+      }
+    })();
+    inFlight = { key: verified.cacheKey, promise: pending };
+    try {
+      return await pending;
+    } finally {
+      if (inFlight?.promise === pending) {
+        inFlight = undefined;
+      }
+    }
+  };
+}
+
+function resolveVerifiedSourceRuntimeExecutable(
+  dependencies: NimiElectronSourceRuntimeVersionProbeDependencies,
+): { readonly executablePath: string; readonly cacheKey: string } | undefined {
+  const platform = dependencies.platform ?? process.platform;
+  const env = dependencies.env ?? process.env;
+  const lstat = dependencies.lstat ?? lstatSync;
+  const realpath = dependencies.realpath ?? realpathSync;
+
+  try {
+    if (platform === 'darwin') {
+      if (env.NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT !== '1') return undefined;
+      const rawExecutable = exactNonEmptyPath(env.NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE);
+      if (!rawExecutable
+        || !path.posix.isAbsolute(rawExecutable)
+        || path.posix.normalize(rawExecutable) !== rawExecutable) {
+        return undefined;
+      }
+      const expectedTail = `/${MACOS_SOURCE_RUNTIME_RELATIVE_TAIL.join('/')}`;
+      if (!rawExecutable.endsWith(expectedTail)) return undefined;
+      const metadata = lstat(rawExecutable);
+      const canonical = realpath(rawExecutable);
+      const uid = (dependencies.geteuid ?? process.geteuid)?.();
+      if (!metadata.isFile()
+        || metadata.isSymbolicLink()
+        || canonical !== rawExecutable
+        || uid === undefined
+        || uid === 0
+        || metadata.uid !== uid
+        || (metadata.mode & 0o022) !== 0
+        || (metadata.mode & 0o111) === 0) {
+        return undefined;
+      }
+      return {
+        executablePath: rawExecutable,
+        cacheKey: `${rawExecutable}\0${metadata.ino}\0${metadata.mtimeMs}\0${metadata.size}`,
+      };
+    }
+
+    if (platform === 'win32') {
+      if (env.NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT !== '1') return undefined;
+      const rawExecutable = exactNonEmptyPath(env.NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE);
+      if (!rawExecutable || !path.win32.isAbsolute(rawExecutable)) return undefined;
+      const resolved = path.win32.resolve(rawExecutable);
+      const expectedTail = `\\${WINDOWS_SOURCE_RUNTIME_RELATIVE_TAIL.join('\\')}`;
+      if (!resolved.toLowerCase().endsWith(expectedTail.toLowerCase())) return undefined;
+      const metadata = lstat(resolved);
+      const canonical = realpath(resolved);
+      if (!metadata.isFile()
+        || metadata.isSymbolicLink()
+        || canonical.toLowerCase() !== resolved.toLowerCase()) {
+        return undefined;
+      }
+      return {
+        executablePath: resolved,
+        cacheKey: `${resolved.toLowerCase()}\0${metadata.ino}\0${metadata.mtimeMs}\0${metadata.size}`,
+      };
+    }
+  } catch {
+    return undefined;
+  }
+
+  return undefined;
+}
+
+async function readSourceRuntimeVersion(
+  resolveVersion?: NimiElectronSourceRuntimeVersionResolver,
+): Promise<string | undefined> {
+  if (!resolveVersion) return undefined;
+  try {
+    return normalizeBoundedRuntimeVersion(await resolveVersion());
+  } catch {
+    return undefined;
+  }
+}
+
+function parseSourceRuntimeVersionJson(stdout: string): string | undefined {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(stdout);
+  } catch {
+    return undefined;
+  }
+  if (!isPlainRecord(parsed)) return undefined;
+  return normalizeBoundedRuntimeVersion(parsed.nimi);
+}
+
+function execFileUtf8(
+  file: string,
+  args: readonly string[],
+  options: { readonly timeout: number; readonly maxBuffer: number; readonly windowsHide: boolean },
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    execFile(
+      file,
+      [...args],
+      {
+        encoding: 'utf8',
+        timeout: options.timeout,
+        maxBuffer: options.maxBuffer,
+        windowsHide: options.windowsHide,
+      },
+      (error, stdout) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve(String(stdout ?? ''));
+      },
+    );
+  });
+}
+
+function exactNonEmptyPath(value: unknown): string | undefined {
+  if (typeof value !== 'string' || value.length === 0 || value.trim() !== value) {
+    return undefined;
+  }
+  return value;
+}
+
+function normalizeBoundedRuntimeVersion(value: unknown): string | undefined {
+  const normalized = normalizedText(value);
+  if (!normalized || normalized.length > 128 || !/^[A-Za-z0-9.+_-]+$/u.test(normalized)) {
+    return undefined;
+  }
+  return normalized;
 }
 
 function normalizedText(value: unknown): string {

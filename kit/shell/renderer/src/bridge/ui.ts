@@ -2,8 +2,13 @@ import {
   parseOpenExternalUrlResult,
   type OpenExternalUrlResult,
 } from '@nimiplatform/kit/core/oauth';
+import {
+  parseNimiHostLocaleResult,
+  type NimiHostLocale,
+} from '@nimiplatform/kit/core/sdk-contract';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import { invoke, invokeChecked } from './invoke.js';
+import { hasElectronInvoke } from './shell-api.js';
 import {
   parseConfirmDialogResult,
   type ConfirmDialogPayload,
@@ -41,4 +46,16 @@ export async function startWindowDrag(): Promise<void> {
 
 export async function focusMainWindow(): Promise<void> {
   await invoke(NIMI_STANDARD_SHELL_COMMANDS['shell-ui.focusMainWindow'], {});
+}
+
+export async function getShellHostLocale(): Promise<NimiHostLocale | null> {
+  if (!hasElectronInvoke()) {
+    return null;
+  }
+  const result = await invokeChecked(
+    NIMI_STANDARD_SHELL_COMMANDS['shell-ui.hostLocaleGet'],
+    {},
+    parseNimiHostLocaleResult,
+  );
+  return result.locale;
 }

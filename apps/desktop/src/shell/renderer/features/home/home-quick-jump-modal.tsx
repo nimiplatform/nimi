@@ -25,6 +25,7 @@ import { useTranslation } from 'react-i18next';
 import type { LocalAgentListItem } from '../agents/local-agent-list-model.js';
 import { AppArtworkIcon } from '../apps/apps-card-visuals.js';
 import type { DesktopAppsEntry } from '../apps/apps-panel-projection.js';
+import { BUNDLED_ZHIYU_APP_ID } from './home-recent-apps-model.js';
 import { displayRuntimeConfigCapabilityLabel } from '../runtime-config/runtime-config-capability-labels.js';
 
 const zhiyuIcon = new URL('../../../../../../zhiyu/src/shell/assets/app-icon.png', import.meta.url).href;
@@ -81,40 +82,39 @@ export function buildHomeQuickJumpItems(input: {
   const { t, apps, iconUrls, partners, actions } = input;
   const capabilityList = input.capabilities?.length ? input.capabilities : QUICK_JUMP_CAPABILITIES;
 
-  const bundledAppIds = new Set<string>(['nimi.zhiyu']);
   const installedApps = [
     ...new Map(
       apps
-        .filter((entry) => (entry.committedRelease || entry.localDevelopment) && !bundledAppIds.has(entry.identity.appId))
+        .filter((entry) => entry.committedRelease || entry.localDevelopment)
         .map((entry) => [entry.identity.appId, entry]),
     ).values(),
   ];
 
   const bundledZhiyuLabel = t('Apps.bundled.zhiyu');
-  const hasSameNameInstalledZhiyu = installedApps.some(
-    (entry) => entry.identity.displayName.trim().toLocaleLowerCase() === bundledZhiyuLabel.trim().toLocaleLowerCase(),
-  );
+  const hasOtherZhiyuSource = installedApps.some((entry) => (
+    entry.identity.appId === BUNDLED_ZHIYU_APP_ID
+    || entry.identity.displayName.trim().toLocaleLowerCase() === bundledZhiyuLabel.trim().toLocaleLowerCase()
+  ));
 
   const appItems: HomeQuickJumpItem[] = [
     {
       id: 'app:zhiyu',
       group: 'apps',
       label: bundledZhiyuLabel,
-      badge: hasSameNameInstalledZhiyu ? t('runtimeConfig.overview.appsWorkbench.builtInBadge') : undefined,
-      keywords: `${bundledZhiyuLabel} zhiyu ${t('Apps.bundled.zhiyuDescription')}`,
+      badge: hasOtherZhiyuSource ? t('runtimeConfig.overview.appsWorkbench.builtInBadge') : undefined,
+      keywords: `${bundledZhiyuLabel} zhiyu nimi.zhiyu ${t('Apps.bundled.zhiyuDescription')}`,
       icon: <img src={zhiyuIcon} alt="" className="size-6 rounded-md object-contain" />,
       onSelect: actions.onOpenZhiyu,
     },
     ...installedApps.map((entry) => {
       const resolvedIcon = entry.iconUrl ?? iconUrls?.get(entry.identity.appId) ?? null;
+      const isLocalDevOnly = Boolean(entry.localDevelopment && !entry.committedRelease);
       return {
         id: `app:${entry.identity.appId}`,
         group: 'apps' as const,
         label: entry.identity.displayName,
-        badge: entry.localDevelopment && !entry.committedRelease
-          ? t('runtimeConfig.overview.appsWorkbench.devBadge')
-          : undefined,
-        keywords: `${entry.identity.displayName} ${entry.identity.appId} ${entry.summary ?? ''}`,
+        badge: isLocalDevOnly ? t('Apps.sourceBadge.devTag') : undefined,
+        keywords: `${entry.identity.displayName} ${entry.identity.appId} ${isLocalDevOnly ? `${t('Apps.sourceBadge.devTag')} ${t('runtimeConfig.overview.appsWorkbench.devBadge')}` : ''} ${entry.summary ?? ''}`,
         icon: (
           <AppArtworkIcon
             appId={entry.identity.appId}

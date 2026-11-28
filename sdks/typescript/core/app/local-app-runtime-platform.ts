@@ -1,4 +1,11 @@
 import { createTextCandidateClient } from './local-app-text-candidate.js';
+import {
+  NimiHostLocaleParseError,
+  parseNimiHostLocale,
+  parseNimiHostLocaleResult,
+  type NimiHostLocale,
+  type NimiHostLocaleSource,
+} from './host-locale.js';
 import { createNimiAppCharacterDiscoveryClient, type NimiAppCharacterDiscoveryClient, type NimiAppCharacterDiscoveryShell } from './local-app-character-discovery.js';
 import { createNimiLocalAppAgentIntroductionClient, type NimiLocalAppAgentIntroductionClient, type NimiLocalAppAgentIntroductionShell } from './local-app-agent-introduction.js';
 import { createNimiLocalAppIntegrationClient, type NimiLocalAppIntegrationClient, type NimiLocalAppIntegrationShell } from './local-app-runtime-platform-integration.js';
@@ -498,6 +505,7 @@ export type NimiLocalAppStandardShell = {
   readonly agentConfigure: NimiLocalAppAgentConfigureShell;
   readonly utopia: NimiLocalAppUtopiaShell;
   readonly activity: NimiLocalAppActivityShell;
+  readonly host?: NimiHostLocaleSource;
 };
 
 export type NimiLocalAppClientInput = {
@@ -510,6 +518,9 @@ export type NimiLocalAppClient = {
   };
   readonly currentUser: {
     readonly get: () => Promise<NimiCurrentUserDisplay>;
+  };
+  readonly host: {
+    readonly getLocale: () => Promise<NimiHostLocale | null>;
   };
   readonly ai: {
     readonly text: {
@@ -568,15 +579,23 @@ export function createNimiLocalAppClient(
 ): NimiLocalAppClient {
   assertExactKeys(input, ['standardShell'], 'SDK local-app client input');
   const standardShell = input.standardShell;
+  const shellRecord = asRecord(standardShell);
   const expectedNamespaces = ['session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'conversation', 'embodiment', 'agentRealtime', 'agentConfigure', 'activity', 'agentWork', 'integration', 'utopia'] as const;
-  if (!asRecord(standardShell)
-    || Object.keys(standardShell).sort().join('|') !== [...expectedNamespaces].sort().join('|')) {
+  const allowedNamespaces = new Set<string>([...expectedNamespaces, 'host']);
+  if (!shellRecord
+    || expectedNamespaces.some((key) => !Object.hasOwn(shellRecord, key))
+    || Object.keys(shellRecord).some((key) => !allowedNamespaces.has(key))) {
     return localAppError(
       'Host-injected local-app standardShell namespaces are invalid.',
       'SDK_LOCAL_APP_CARRIER_REQUIRED',
       'use_host_injected_standard_shell',
     );
   }
+  const hostShell = standardShell.host;
+  if (hostShell !== undefined) {
+    assertExactMethodNamespace(hostShell, ['getLocale'], 'host');
+  }
+  const getHostLocale = hostShell ? hostShell.getLocale : null;
   assertExactMethodNamespace(standardShell.session, ['status'], 'session');
   assertExactMethodNamespace(standardShell.utopia, ['snapshot', 'update'], 'utopia');
   const ai = asRecord(standardShell.ai);
@@ -651,6 +670,14 @@ export function createNimiLocalAppClient(
     }),
     currentUser: Object.freeze({
       get: async () => projectCurrentUser(await standardShell.session.status()),
+    }),
+    host: Object.freeze({
+      getLocale: async (): Promise<NimiHostLocale | null> => {
+        if (!hostShell || !getHostLocale) {
+          return null;
+        }
+        return projectHostLocale(await getHostLocale.call(hostShell));
+      },
     }),
     ai: createAIClient(standardShell.ai),
     aiConfig: createNimiLocalAppAIConfigClient(standardShell.aiConfig),
@@ -878,6 +905,23 @@ function assertWorldCoreInputJson(
     for (const entry of Object.values(record)) assertWorldCoreInputJson(entry, depth + 1, state);
   }
   state.ancestors.delete(value);
+}
+
+function projectHostLocale(value: unknown): NimiHostLocale | null {
+  if (value === null) {
+    return null;
+  }
+  try {
+    if (typeof value === 'string') {
+      return parseNimiHostLocale(value);
+    }
+    return parseNimiHostLocaleResult(value).locale;
+  } catch (error) {
+    if (error instanceof NimiHostLocaleParseError) {
+      return localAppProjectionError('host locale');
+    }
+    throw error;
+  }
 }
 
 function projectAuth(value: unknown): NimiAppAuthProjection {

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import {
+  NIMI_BUNDLED_AVATAR_STANDARD_SHELL_CAPABILITY_SET_ID,
   NIMI_PLATFORM_AI_PROFILE_FACTORY_ROWS,
   NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
   NIMI_STANDARD_SHELL_CAPABILITIES,
@@ -50,10 +51,12 @@ function readCatalogCommands(content: string): string[] {
     .map((match) => match[1]);
 }
 
-function readCapabilitySetList(field: string, content: string): string[] {
-  const localAppSetStart = content.indexOf('  - set_id: local-app-standard-shell-v1');
-  expect(localAppSetStart).toBeGreaterThanOrEqual(0);
-  const scopedContent = content.slice(localAppSetStart);
+function readCapabilitySetListFor(setId: string, field: string, content: string): string[] {
+  const setStart = content.indexOf(`  - set_id: ${setId}`);
+  expect(setStart).toBeGreaterThanOrEqual(0);
+  const afterSet = content.slice(setStart);
+  const nextSet = afterSet.slice(1).search(/\n  - set_id: /u);
+  const scopedContent = nextSet === -1 ? afterSet : afterSet.slice(0, nextSet + 1);
   const start = scopedContent.indexOf(`    ${field}:`);
   expect(start).toBeGreaterThanOrEqual(0);
   const lineEnd = scopedContent.indexOf('\n', start);
@@ -65,6 +68,10 @@ function readCapabilitySetList(field: string, content: string): string[] {
   const end = afterStart.search(/\n    [a-z_]+:/u);
   const block = end === -1 ? afterStart : afterStart.slice(0, end);
   return [...block.matchAll(/^\s+- ([a-zA-Z0-9.-]+)\s*$/gm)].map((match) => match[1]);
+}
+
+function readCapabilitySetList(field: string, content: string): string[] {
+  return readCapabilitySetListFor('local-app-standard-shell-v1', field, content);
 }
 
 function readCatalogNegativeStatesForCommand(content: string, command: string): string[] {
@@ -333,6 +340,7 @@ describe('standard shell capabilities', () => {
       'shell-ui.chromeStateSet',
       'shell-ui.chromeCommand',
       'shell-ui.chromeUnbind',
+      'shell-ui.hostLocaleGet',
     ]);
     expect(localAppSet?.authorityStatus).toBe('app_access_declarations_with_protected_operations_unavailable_until_admission');
     expect(localAppSet?.plannedOperationsDisposition).toBe('deny_until_separate_operation_admission');
@@ -353,6 +361,40 @@ describe('standard shell capabilities', () => {
       'electron.raw-ipc',
       'node.raw-fs',
     ]));
+  });
+
+  it('admits read-only shell-ui.hostLocaleGet in both local-app and bundled-avatar capability sets', () => {
+    const catalog = readFileSync(catalogPath, 'utf8');
+    const command = getNimiStandardShellCommand('shell-ui', 'hostLocaleGet');
+    const packageOperation = NIMI_STANDARD_SHELL_CAPABILITIES
+      .find((capability) => capability.id === 'shell-ui')
+      ?.operations.find((operation) => operation.id === 'hostLocaleGet');
+
+    expect(command).toBe('nimi.shell.ui.hostLocaleGet');
+    expect(NIMI_STANDARD_SHELL_COMMANDS['shell-ui.hostLocaleGet']).toBe('nimi.shell.ui.hostLocaleGet');
+    expect(packageOperation?.negativeStates).toEqual(['capability-unavailable', 'invalid-payload', 'host-internal-error']);
+    expect(readCatalogNegativeStatesForCommand(catalog, command)).toEqual([
+      'capability-unavailable',
+      'invalid-payload',
+      'host-internal-error',
+    ]);
+
+    const localAppSet = NIMI_STANDARD_SHELL_CAPABILITY_SETS.find(
+      (set) => set.setId === NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+    );
+    const bundledAvatarSet = NIMI_STANDARD_SHELL_CAPABILITY_SETS.find(
+      (set) => set.setId === NIMI_BUNDLED_AVATAR_STANDARD_SHELL_CAPABILITY_SET_ID,
+    );
+
+    expect(localAppSet?.allowedOperations).toContain('shell-ui.hostLocaleGet');
+    expect(localAppSet?.allowedCommands).toContain(command);
+    expect(readCapabilitySetListFor('local-app-standard-shell-v1', 'allowed_operations', catalog))
+      .toContain('shell-ui.hostLocaleGet');
+
+    expect(bundledAvatarSet?.allowedOperations).toContain('shell-ui.hostLocaleGet');
+    expect(bundledAvatarSet?.allowedCommands).toContain(command);
+    expect(readCapabilitySetListFor('bundled-avatar-standard-shell-v1', 'allowed_operations', catalog))
+      .toContain('shell-ui.hostLocaleGet');
   });
 
   it('publishes text generation as one closed governed operation family', () => {

@@ -650,9 +650,6 @@ export function ZhiyuAgentChatSurface({
   const openBehaviorConfig = () => {
     openPanel('behavior');
   };
-  const openAgentOverview = () => {
-    openPanel('overview');
-  };
   return (
     <main
       className="zhiyu-agent-chat"
@@ -838,7 +835,9 @@ export function ZhiyuAgentChatSurface({
                     currentPartnerName={currentPartnerName}
                     currentPartnerAvatarUrl={currentPartnerAvatar}
                     hasCurrentPartner={hasCurrentPartner}
-                    onOpenSettings={openAgentOverview}
+                    hasLocalPartners={hasLocalPartners}
+                    canDiscover={evidence.inventory.ready}
+                    onDiscover={onDiscover}
                     agentHandle={evidence.localAgent.agentHandle}
                     readIntroduction={readIntroduction}
                     onOpenPartner={openPanel}
@@ -848,6 +847,8 @@ export function ZhiyuAgentChatSurface({
                   <ComposerModeTools
                     avatarLaunchAction={avatarLaunchAction}
                     avatarLaunchPending={avatarLaunchFeedback?.state === 'pending'}
+                    hasCurrentPartner={hasCurrentPartner}
+                    hasLocalPartners={hasLocalPartners}
                     onAvatarLaunch={onAvatarLaunch}
                     onOpenAppearance={openAppearanceConfig}
                     onOpenBehavior={openBehaviorConfig}
@@ -857,9 +858,14 @@ export function ZhiyuAgentChatSurface({
                 trailingSlot={(
                   <ComposerAgentCenterButton
                     open={rightPanelMode === 'agent'}
+                    disabled={!hasCurrentPartner && rightPanelMode !== 'agent'}
+                    disabledReason={hasLocalPartners ? '请先选择本地伙伴后打开伙伴中心' : '添加本地伙伴后可打开伙伴中心'}
                     onToggleAgentPanel={() => {
                       if (rightPanelMode === 'agent') {
                         openPanel();
+                        return;
+                      }
+                      if (!hasCurrentPartner) {
                         return;
                       }
                       openPanel('overview');
@@ -900,6 +906,7 @@ export function ZhiyuAgentChatSurface({
             <RightAgentPanel
               key="zhiyu-agent-panel"
               managedReturnFocus
+              onDiscover={onDiscover}
               onOpenHomePartner={onOpenHomePartner}
               mode={rightPanelMode}
               evidence={evidence}

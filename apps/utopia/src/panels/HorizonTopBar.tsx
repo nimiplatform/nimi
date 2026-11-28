@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@nimiplatform/kit/ui';
 import type { HabitatDaypart, NimiUtopiaSnapshot } from '@nimiplatform/sdk/app';
 import {
@@ -23,6 +23,8 @@ import {
 } from '../domain/visit-journal.js';
 
 export type UtopiaDrawerTab = 'journal' | 'residents' | 'tuner';
+
+export const UTOPIA_HORIZON_HEIGHT_VAR = '--utopia-horizon-height';
 
 export function HorizonTopBar(props: {
   readonly snapshot: NimiUtopiaSnapshot | null;
@@ -74,6 +76,7 @@ export function HorizonTopBar(props: {
   const frozenClockLabel = snapshot ? formatClockInTimezone(observedMs, snapshot.timezone) : '--:--';
   const themeLabel = snapshot ? (THEME_TAG_LABELS[snapshot.habitat.themeTag] ?? snapshot.habitat.themeTag) : '';
   const totalResidents = residentCount ?? snapshot?.residents.length ?? 0;
+  const headerRef = useRef<HTMLElement | null>(null);
   const [pendingConfirm, setPendingConfirm] = useState<{
     readonly key: string;
     readonly paramLabel: string;
@@ -83,8 +86,42 @@ export function HorizonTopBar(props: {
     readonly affectedNames: string;
   } | null>(null);
 
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const hostTarget = (el.closest('.utopia-world-shell') as HTMLElement | null) ?? document.documentElement;
+
+    const publishHeight = (entry?: ResizeObserverEntry) => {
+      const borderBoxHeight = entry?.borderBoxSize?.[0]?.blockSize ?? 0;
+      const rectHeight = el.getBoundingClientRect().height;
+      const measured = borderBoxHeight > 0
+        ? borderBoxHeight
+        : (rectHeight > 0 ? rectHeight : (el.offsetHeight > 0 ? el.offsetHeight : (entry?.contentRect?.height ?? 0)));
+      if (measured > 0) {
+        hostTarget.style.setProperty(UTOPIA_HORIZON_HEIGHT_VAR, `${Math.ceil(measured)}px`);
+      }
+    };
+
+    publishHeight();
+    const ro = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver((entries) => {
+          publishHeight(entries[0]);
+        })
+      : null;
+    ro?.observe(el);
+    const onResize = () => publishHeight();
+    window.addEventListener('resize', onResize);
+
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener('resize', onResize);
+      hostTarget.style.removeProperty(UTOPIA_HORIZON_HEIGHT_VAR);
+    };
+  }, []);
+
   return (
     <header
+      ref={headerRef}
       className={`utopia-horizon-bar ${hudHidden ? 'is-hud-hidden' : ''}`}
       aria-label="洞天顶部状态栏"
     >

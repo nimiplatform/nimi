@@ -5,6 +5,10 @@ import { NIMI_PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY } from '@nimiplatform/sdk/
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import { useDesktopFormalSessionRecovery } from '../../app-shell/routes/desktop-formal-session.js';
 import {
+  useOptionalProductUpdate,
+  type ProductUpdateContextValue,
+} from '../home/product-update-context.js';
+import {
   SupportCard,
   SupportFailClosed,
   SupportLoading,
@@ -22,12 +26,106 @@ export type RecoveryEntryContext = {
   readonly busy?: boolean;
 };
 
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-supd-002
+function SupportProductUpdateCard({ update }: { update: ProductUpdateContextValue }) {
+  const { t } = useTranslation();
+  const status = update.status;
+  const isPrepared = !update.attention && status?.phase === 'prepared';
+  const needsRecovery = status?.recoveryAction === 'reopen-current' || status?.phase === 'recovery-required';
+  const isCurrent = !update.attention && !update.busy && (status?.phase === 'current' || status?.phase === 'completed');
+  const statusToneClass = update.railAttention
+    ? 'font-medium text-[var(--nimi-status-danger)]'
+    : isCurrent
+      ? 'font-medium text-[var(--nimi-status-success)]'
+      : 'text-[var(--nimi-text-secondary)]';
+  const versionText = status?.currentVersion
+    ? t('ProductUpdate.version', { version: status.currentVersion })
+    : undefined;
+  const candidateVersion = isPrepared ? status?.candidateVersion ?? null : null;
+  const showInstallUnavailable = isPrepared && !status?.installationAvailable;
+  const recoveryError = status?.recoveryError ?? null;
+  const reasonCode = update.attention && status?.reason ? status.reason : null;
+
+  return (
+    <SupportCard
+      title={t('ProductUpdate.sectionTitle')}
+      description={versionText}
+      testId="support-product-update"
+      status={(
+        <p role="status" data-testid="support-product-update-status" className={`text-xs ${statusToneClass}`}>
+          {update.message}
+        </p>
+      )}
+      action={
+        isPrepared ? (
+          <Button
+            tone={status?.installationAvailable ? 'primary' : 'secondary'}
+            size="sm"
+            data-testid="support-product-update-action"
+            onClick={update.open}
+          >
+            {t('ProductUpdate.update')}
+          </Button>
+        ) : needsRecovery ? (
+          <Button
+            tone="secondary"
+            size="sm"
+            data-testid="support-product-update-action"
+            onClick={update.openDetails}
+          >
+            {t('ProductUpdate.details')}
+          </Button>
+        ) : (
+          <Button
+            tone="secondary"
+            size="sm"
+            data-testid="support-product-update-check"
+            disabled={!update.checkAvailable}
+            onClick={() => { void update.check(); }}
+          >
+            {t('ProductUpdate.check')}
+          </Button>
+        )
+      }
+    >
+      {candidateVersion || showInstallUnavailable || recoveryError || reasonCode ? (
+        <div className="space-y-2">
+          {candidateVersion ? (
+            <p className="text-xs text-[var(--nimi-text-secondary)]">
+              {t('ProductUpdate.candidate', { version: candidateVersion })}
+            </p>
+          ) : null}
+          {showInstallUnavailable ? (
+            <p className="text-xs text-[var(--nimi-text-secondary)]">
+              {t('ProductUpdate.installationUnavailable')}
+            </p>
+          ) : null}
+          {recoveryError ? (
+            <p role="alert" className="text-xs text-[var(--nimi-status-danger)]">
+              {t(`ProductUpdate.reasons.${recoveryError}`)}
+            </p>
+          ) : null}
+          {reasonCode ? (
+            <details className="text-xs text-[var(--nimi-text-muted)]" data-testid="support-product-update-details">
+              <summary className="cursor-pointer font-medium text-[var(--nimi-text-secondary)]">
+                {t('ProductUpdate.details')}
+              </summary>
+              <code className="mt-1 block break-all">{reasonCode}</code>
+            </details>
+          ) : null}
+        </div>
+      ) : null}
+    </SupportCard>
+  );
+}
+
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r028
 // A gate describes its current failure. The stored control record cannot clear it.
 export function SupportTroubleshooting({ recovery }: { recovery?: RecoveryEntryContext }) {
   const { t } = useTranslation();
   const commands = useDesktopRendererCommands();
   const reconnect = useDesktopFormalSessionRecovery();
+  const update = useOptionalProductUpdate();
   const load = useCallback(() => commands.supportRepair.loadProductControlRecord(), [commands.supportRepair]);
   const control = useTypedProjection(load, { failClosedMessage: t('Support.repairProjectionUnavailable') });
   const loadDirs = useCallback(() => commands.supportRepair.loadStorageDirs(), [commands.supportRepair]);
@@ -120,6 +218,7 @@ export function SupportTroubleshooting({ recovery }: { recovery?: RecoveryEntryC
           }
         />
       ) : null}
+      {!recovery && update ? <SupportProductUpdateCard update={update} /> : null}
       {recovery ? <SupportAppHostCacheCard /> : null}
       <SupportSectionBlock
         title={t('Feedback.technicalDetails')}

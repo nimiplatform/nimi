@@ -3,7 +3,6 @@ import { Button } from '@nimiplatform/kit/ui';
 import { openDesktopIntent } from '@nimiplatform/kit/shell/renderer/bridge';
 import { ExternalLink, Plug, RefreshCw } from 'lucide-react';
 import { useI18n } from '../i18n.js';
-import { appId } from '../shell/auth/app-identity.js';
 import { errorText, type GrantedIntegration } from './harness-types.js';
 
 export function IntegrationsPanel() {
@@ -31,7 +30,7 @@ export function IntegrationsPanel() {
 
   async function openInHome() {
     try {
-      const result = await openDesktopIntent({ intent: { kind: 'open-apps', appId } });
+      const result = await openDesktopIntent({ intent: { kind: 'open-integrations' } });
       if (result.status !== 'accepted') throw new Error(result.reasonCode);
     } catch (cause) {
       setError(errorText(cause));

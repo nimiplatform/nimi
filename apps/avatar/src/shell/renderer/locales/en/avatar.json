@@ -29,7 +29,7 @@
       "interrupt_failed": "Interrupt failed",
       "voice_input_invalid": "Couldn't process voice input. Please try again.",
       "close_aria": "Close companion controls",
-      "audio_unavailable": "Audio playback is unavailable; lip sync will continue using timing data only.",
+      "audio_unavailable": "Audio playback is unavailable; voice and lip sync remain silent.",
       "privacy_indicator_aria": "Privacy indicator: {{state}}"
     },
     "degraded": {
@@ -137,6 +137,12 @@
       "popover_aria": "Avatar settings",
       "header": "Avatar settings",
       "close_aria": "Close settings",
+      "language": {
+        "label": "Language",
+        "aria": "Interface language",
+        "en": "EN",
+        "zh": "中文"
+      },
       "always_on_top": {
         "label": "Always on top",
         "help": "Pin avatar above other windows."

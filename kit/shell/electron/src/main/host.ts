@@ -72,6 +72,7 @@ import { dispatchElectronFloatingWindowCommand, isElectronFloatingWindowCommand 
 import { resolveElectronStandardLocalAssetUrl } from './local-assets.js';
 import { createElectronOauthCallbackHost, openElectronExternalUrl } from './oauth.js';
 import { resolveElectronPlatformProjection } from './platform-projection.js';
+import { readElectronHostLocale } from './host-locale.js';
 import { confirmElectronShellDialog, focusElectronMainWindow, startElectronWindowDrag } from './shell-ui.js';
 import { handoffElectronAvatarHost } from './avatar-host-handoff.js';
 import { asRecord, normalizeRequiredToken, normalizeText, standardNestedPayload } from './paths.js';
@@ -628,6 +629,9 @@ export function registerNimiElectronRuntimeBridge(
     }
     if (command === NIMI_STANDARD_SHELL_COMMANDS['shell-ui.focusMainWindow']) {
       return focusElectronMainWindow({ host: effectiveStandardShellHost, command, event, appId: effectiveAppId, runtimeEndpoint });
+    }
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['shell-ui.hostLocaleGet']) {
+      return readElectronHostLocale({ host: effectiveStandardShellHost, payload: standardPayload, command });
     }
     const chromeOperation = (['chromeBind', 'chromeStateSet', 'chromeCommand', 'chromeUnbind'] as const)
       .find(operation => command === NIMI_STANDARD_SHELL_COMMANDS[`shell-ui.${operation}`]);

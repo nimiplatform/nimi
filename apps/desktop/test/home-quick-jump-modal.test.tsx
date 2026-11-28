@@ -76,3 +76,30 @@ test('quick jump builds read-only navigation items across apps, partners, capabi
   assert.equal(byStory.length, 1);
   assert.equal(byStory[0]?.id, 'app:storybook');
 });
+
+test('quick jump selects the bundled and local-development Zhiyu entries independently', async () => {
+  await initI18n();
+  const t = i18n.t.bind(i18n);
+  const selected: string[] = [];
+  const localEntry = {
+    identity: { entryKey: 'local:zhiyu', appId: 'nimi.zhiyu', displayName: t('Apps.bundled.zhiyu') },
+    localDevelopment: { selector: 'local-zhiyu' },
+  } as unknown as DesktopAppsEntry;
+  const items = buildHomeQuickJumpItems({
+    t,
+    apps: [localEntry],
+    partners: [],
+    actions: {
+      ...NOOP_ACTIONS,
+      onOpenZhiyu: () => selected.push('bundled'),
+      onOpenApp: (id, key) => selected.push(`${id}/${key}`),
+    },
+  });
+
+  const [bundled, local] = filterHomeQuickJumpItems(items, 'nimi.zhiyu');
+  assert.equal(bundled?.badge, t('runtimeConfig.overview.appsWorkbench.builtInBadge'));
+  assert.equal(local?.badge, t('Apps.sourceBadge.devTag'));
+  bundled.onSelect();
+  local.onSelect();
+  assert.deepEqual(selected, ['bundled', 'nimi.zhiyu/local:zhiyu']);
+});

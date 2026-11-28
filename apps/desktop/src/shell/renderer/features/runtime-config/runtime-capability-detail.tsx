@@ -43,6 +43,7 @@ import {
   modelFamilySeed,
   modelSetupUnavailable,
   modelFeatureLocaleKeys,
+  recipeDisplayTitle,
   recipeOfferSummary,
   type RecipeOfferSummary,
 } from './runtime-capability-presentation.js';
@@ -181,7 +182,9 @@ export function RuntimeCapabilityDetail(props: Props) {
 
   const configuredRecipes = new Set(loadouts.filter(item => item.validationState === 'configured').map(item => item.recipeId));
   const orderedRecipes = props.recipes.filter(recipe => !configuredRecipes.has(recipe.recipeId)
-    && (!search || `${recipe.title} ${modelDisplayTitle(recipe.title)} ${recipe.recipeId}`.toLocaleLowerCase().includes(search)));
+    && (!search || `${recipe.title} ${modelDisplayTitle(recipe.title)} ${recipeDisplayTitle(recipe, props.catalog, props.assets)} ${recipe.recipeId}`.toLocaleLowerCase().includes(search)));
+  const compatibleRecipes = orderedRecipes.filter(recipe => recipe.applicability !== 'unsupported');
+  const unsupportedRecipes = orderedRecipes.filter(recipe => recipe.applicability === 'unsupported');
 
   const editingLoadout = editing?.loadoutId ? loadouts.find(item => item.loadoutId === editing.loadoutId) : undefined;
   const editingRecipe = props.recipes.find(recipe => recipe.recipeId === editing?.recipeId);
@@ -218,7 +221,7 @@ export function RuntimeCapabilityDetail(props: Props) {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-base font-semibold">{t('runtimeConfig.product.settings.models')}</h2>
             <div className="flex flex-wrap items-center gap-2">
-              {showSearch ? <SearchField aria-label={t('runtimeConfig.product.searchModels')} placeholder={t('runtimeConfig.product.searchModels')} value={query}
+              {showSearch ? <SearchField className="w-48 sm:w-52" aria-label={t('runtimeConfig.product.searchModels')} placeholder={t('runtimeConfig.product.searchModels')} value={query}
                 onChange={event => setQuery(event.currentTarget.value)} onClear={() => setQuery('')} clearLabel={t('Common.clear')} /> : null}
               {props.onCreate ? <Button tone="secondary" size="sm" disabled={props.busy || props.disabled} onClick={props.onCreate} data-testid="capability-new-configuration"><Plus size={14} aria-hidden="true" />{t('runtimeConfig.product.newConfiguration')}</Button> : null}
               <Button tone="secondary" size="sm" onClick={() => props.onModelMarket({ kind: 'browse', capabilityContract: props.capability })}><Store size={14} aria-hidden="true" />{t('runtimeConfig.product.modelPicker.browse')}</Button>
@@ -305,7 +308,7 @@ export function RuntimeCapabilityDetail(props: Props) {
                   {t('runtimeConfig.product.availableModelsToSetup')}
                 </h3>
               ) : null}
-              {orderedRecipes.map(recipe => {
+              {compatibleRecipes.map(recipe => {
                 const summary = recipeOfferSummary(recipe, props.catalog, props.assets);
                 const noDirectDownload = !props.modelsLoading && !props.modelsError && summary.withoutOffer > 0;
                 const features = modelFeatureLocaleKeys(recipe.implementationSupportedFeatures);
@@ -313,7 +316,7 @@ export function RuntimeCapabilityDetail(props: Props) {
                   <RecipePlanCard
                     key={recipe.recipeId}
                     recipe={recipe}
-                    title={modelDisplayTitle(recipe.title)}
+                    title={recipeDisplayTitle(recipe, props.catalog, props.assets)}
                     description={features.map(key => t(key)).join(' · ')}
                     cost={costOf(summary)}
                     enableable={!props.selected && props.downloadedRecipe?.recipeId === recipe.recipeId}
@@ -327,6 +330,41 @@ export function RuntimeCapabilityDetail(props: Props) {
                   />
                 );
               })}
+              {unsupportedRecipes.length > 0 ? (
+                <details
+                  className="group rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/50 px-4 py-2"
+                  data-testid="capability-other-platform-recipes"
+                >
+                  <summary className="flex min-h-9 cursor-pointer list-none items-center gap-2 text-xs font-medium text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)] [&::-webkit-details-marker]:hidden">
+                    <ChevronRight size={14} className="shrink-0 transition-transform group-open:rotate-90" aria-hidden="true" />
+                    {t('runtimeConfig.product.otherPlatformRecipes', { count: unsupportedRecipes.length })}
+                  </summary>
+                  <div className="space-y-3 pb-2 pt-2">
+                    {unsupportedRecipes.map(recipe => {
+                      const summary = recipeOfferSummary(recipe, props.catalog, props.assets);
+                      const noDirectDownload = !props.modelsLoading && !props.modelsError && summary.withoutOffer > 0;
+                      const features = modelFeatureLocaleKeys(recipe.implementationSupportedFeatures);
+                      return (
+                        <RecipePlanCard
+                          key={recipe.recipeId}
+                          recipe={recipe}
+                          title={recipeDisplayTitle(recipe, props.catalog, props.assets)}
+                          description={features.map(key => t(key)).join(' · ')}
+                          cost={costOf(summary)}
+                          enableable={false}
+                          noDirectDownload={!noDirectDownload ? null : unboundImports && props.onChooseImportedFiles ? 'choose-imported' : 'import'}
+                          busy={controlsDisabled}
+                          onSelect={() => { void props.onEnable(recipe.recipeId); }}
+                          onEnable={() => { void props.onEnable(recipe.recipeId); }}
+                          onChooseImported={() => props.onChooseImportedFiles?.(recipe.recipeId)}
+                          onImport={props.onImportModelFiles ?? props.onModelFiles}
+                          onCustomize={() => setEditing({ recipeId: recipe.recipeId })}
+                        />
+                      );
+                    })}
+                  </div>
+                </details>
+              ) : null}
             </section>
           ) : !orderedLoadouts.length && !props.modelsError ? (
             <p className="py-6 text-sm text-[var(--nimi-text-secondary)]">{t(query ? 'runtimeConfig.product.noModelsMatch' : 'runtimeConfig.product.settings.empty')}</p>
@@ -622,7 +660,7 @@ function RecipePlanCard(props: {
       data-testid={`capability-model:${props.recipe.recipeId}`}
     >
       <div className="flex items-start gap-3">
-        <IdentityTile seed={modelFamilySeed(props.recipe.title)} label={props.title} size="lg" />
+        <IdentityTile seed={modelFamilySeed(props.title)} label={props.title} size="lg" />
         <div className="min-w-0 flex-1">
           <h4 className="text-sm font-semibold leading-snug text-[var(--nimi-text-primary)]">{props.title}</h4>
           {props.description ? <p className={`mt-1 text-sm leading-relaxed ${unsupported ? 'text-[var(--nimi-text-muted)]' : 'text-[var(--nimi-text-secondary)]'}`}>
@@ -650,7 +688,7 @@ function RecipePlanCard(props: {
           {t('runtimeConfig.product.settings.open')}
         </Button>
         {props.enableable ? (
-          <Button tone="primary" size="sm" disabled={props.busy} onClick={props.onEnable} data-testid="capability-enable-downloaded">
+          <Button tone="primary" size="sm" disabled={props.busy || unsupported} onClick={props.onEnable} data-testid="capability-enable-downloaded">
             {t('runtimeConfig.product.enableModel')}
             <ArrowRight size={14} aria-hidden="true" />
           </Button>
@@ -660,7 +698,7 @@ function RecipePlanCard(props: {
             <ArrowRight size={14} aria-hidden="true" />
           </Button>
         ) : props.noDirectDownload === 'import' ? (
-          <Button tone="secondary" size="sm" disabled={props.busy || !props.onImport} onClick={props.onImport}>
+          <Button tone="secondary" size="sm" disabled={props.busy || unsupported || !props.onImport} onClick={props.onImport}>
             <FolderOpen size={14} aria-hidden="true" />
             {t('runtimeConfig.product.importModel')}
           </Button>

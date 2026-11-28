@@ -228,8 +228,10 @@ async function runMacOSDesktopDev() {
       mainIteration: 'workspace_build',
       protectedRuntime: 'source-local-development',
     })}\n`);
-    spawnRenderer();
-    await waitForUrl(rendererUrl, 45_000);
+    if (!avatarOnly) {
+      spawnRenderer();
+      await waitForUrl(rendererUrl, 45_000);
+    }
     const exitCode = await runDesktopElectronUntilExit((relaunch) => spawnDesktopTracked(electronBin, [
       ...desktopDevObservationArguments,
       `--user-data-dir=${macOSProfileRoot}`,

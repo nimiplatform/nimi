@@ -67,7 +67,7 @@
   --nimi-home-whisper-border: rgba(227,235,244,0.9);
   --nimi-home-soft-well: #f5f8fc;
   --nimi-home-soft-well-hover: #ebf2fa;
-  --nimi-home-drawer-bg: rgba(255,255,255,0.96);
+  --nimi-home-drawer-bg: var(--nimi-surface-card, #ffffff);
   --nimi-home-drawer-shadow: -24px 0 60px -12px rgba(15,23,42,0.10);
 }
 
@@ -119,7 +119,7 @@
   --nimi-home-whisper-border: color-mix(in srgb, var(--nimi-border-subtle) 85%, transparent);
   --nimi-home-soft-well: color-mix(in srgb, var(--nimi-text-primary) 6%, var(--nimi-surface-card));
   --nimi-home-soft-well-hover: color-mix(in srgb, var(--nimi-text-primary) 10%, var(--nimi-surface-card));
-  --nimi-home-drawer-bg: var(--nimi-surface-overlay);
+  --nimi-home-drawer-bg: var(--nimi-surface-card, #162033);
   --nimi-home-drawer-shadow: -24px 0 60px -12px rgba(2,6,23,0.50);
 }
 

@@ -62,7 +62,7 @@ export function JournalAndSharedTab(props: {
             <span>洞天风物志 · {THEME_TAG_LABELS[snapshot.habitat.themeTag] ?? snapshot.habitat.themeTag}</span>
           </span>
           <span className="utopia-muted-caption">
-            开放场所 {openPublicCount}/{snapshot.habitat.places.length}
+            公共场所 {openPublicCount}/{snapshot.habitat.places.length} 开放
           </span>
         </div>
 
@@ -144,12 +144,16 @@ export function JournalAndSharedTab(props: {
       <section className="utopia-card-section" aria-labelledby="journal-recent-heading">
         <div className="utopia-section-header">
           <h3 id="journal-recent-heading">住地近况手记</h3>
-          <span className="utopia-muted-caption">近 24 小时摘要</span>
+          <span className="utopia-muted-caption">
+            {snapshot.residents.length === 0 && highlights.length === 0 ? '等待伙伴入住' : '近 24 小时摘要'}
+          </span>
         </div>
 
         {highlights.length === 0 ? (
           <p className="utopia-empty-hint">
-            这阵子洞天很安静，伙伴们各自按昼夜节律起居。点选上方伙伴或舞台路牌即可轻轻搭话。
+            {snapshot.residents.length === 0
+              ? '这座洞天目前还没有伙伴入住。前往 Nimi Home「我的伙伴」为伙伴开启「自主生活」后，他们的起居足迹与同游手记便会自动记录在这里。'
+              : '这阵子洞天很安静，伙伴们各自按昼夜节律起居。点选画卷中的伙伴或左下角「伙伴行迹」即可递句问候。'}
           </p>
         ) : (
           <ul className="utopia-journal-list">
@@ -239,16 +243,18 @@ export function JournalAndSharedTab(props: {
           liveEncounters.length === 0 && (
             <div className="utopia-warm-scene-card">
               <p className="utopia-warm-scene-prose">
-                {!snapshot.publicParticipation
-                  ? '眼下大家都守着各自的清静时光；若想让伙伴们在茶座与庭院串门小聚，可在「伙伴」页开启邻里往来。'
-                  : snapshot.residents.length <= 1
-                    ? '等更多伙伴搬进这座洞天，街巷与茶座间便会渐渐热闹起来，兴致相投时还会相约同游。'
-                    : (() => {
-                        const firstTwo = snapshot.residents.slice(0, 2);
-                        const p0 = resolveResidentPresence(firstTwo[0]!, snapshot);
-                        const p1 = resolveResidentPresence(firstTwo[1]!, snapshot);
-                        return `此刻 ${firstTwo[0]!.displayName}（${p0.shortLocationOrState}）与 ${firstTwo[1]!.displayName}（${p1.shortLocationOrState}）正按各自的步调起居；等散步在街巷茶座遇上投缘的兴致，便会自然坐下小聚。`;
-                      })()}
+                {snapshot.residents.length === 0
+                  ? '目前还没有伙伴入住这座洞天；前往 Nimi Home「我的伙伴」开启至少两位伙伴的「自主生活」后，街巷与茶座间的偶遇小聚会呈现在这里。'
+                  : !snapshot.publicParticipation
+                    ? '眼下大家都守着各自的清静时光；若想让伙伴们在茶座与庭院串门小聚，可在「伙伴」页开启邻里往来。'
+                    : snapshot.residents.length <= 1
+                      ? '等更多伙伴搬进这座洞天，街巷与茶座间便会渐渐热闹起来，兴致相投时还会相约同游。'
+                      : (() => {
+                          const firstTwo = snapshot.residents.slice(0, 2);
+                          const p0 = resolveResidentPresence(firstTwo[0]!, snapshot);
+                          const p1 = resolveResidentPresence(firstTwo[1]!, snapshot);
+                          return `此刻 ${firstTwo[0]!.displayName}（${p0.shortLocationOrState}）与 ${firstTwo[1]!.displayName}（${p1.shortLocationOrState}）正按各自的步调起居；等散步在街巷茶座遇上投缘的兴致，便会自然坐下小聚。`;
+                        })()}
               </p>
             </div>
           )

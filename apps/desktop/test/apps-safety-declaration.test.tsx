@@ -16,6 +16,15 @@ import type { AppSafetyDeclaration } from '@nimiplatform/sdk/runtime/wire-types'
 (globalThis as { React?: typeof React }).React = React;
 
 import { changeLocale, initI18n } from '../src/shell/renderer/i18n';
+import { TooltipProvider } from '@nimiplatform/kit/ui';
+import { AppStoreProvider } from '../src/shell/renderer/app-shell/providers/app-store.js';
+import { createAppStore } from '../src/shell/renderer/app-shell/providers/app-store-factory.js';
+import {
+  APP_ACCESS_COPY_KEYS,
+  APP_ACCESS_FEATURE_ICON,
+  AppsDetailView,
+} from '../src/shell/renderer/features/apps/apps-detail-view';
+import type { DesktopAppsEntry } from '../src/shell/renderer/features/apps/apps-panel-projection';
 import {
   AppsSafetyDeclarationDiff,
   AppsSafetyDeclarationSection,
@@ -127,5 +136,98 @@ test('the shown declaration always belongs to the shown version and a read failu
   assert.equal(unavailable.includes('has not declared'), false);
   const loading = renderToStaticMarkup(<AppsSafetyDeclarationSection declaration={null} source="registry" version={null} state="loading" />);
   assert.ok(loading.includes('data-declaration-state="loading"'));
+  await changeLocale('zh');
+});
+
+const CANONICAL_APP_ACCESS_DOMAINS = [
+  'realm.data',
+  'runtime.consume',
+  'agent.local',
+  'agent.session.manage',
+  'agent.companion',
+  'agent.acquire',
+  'agent.configure',
+  'agent.utopia.read',
+  'agent.utopia.manage',
+  'app.activity',
+  'agent.work',
+  'agent.body.pc',
+  'agent.body.app',
+  'agent.trigger.delegate',
+  'integration.consume',
+  'integration.provide',
+  'integration.manage',
+] as const;
+
+test('all 17 canonical AppAccess domains resolve to localized labels and icons with zero unrecognized fallback', async () => {
+  assert.deepEqual(Object.keys(APP_ACCESS_COPY_KEYS).sort(), [...CANONICAL_APP_ACCESS_DOMAINS].sort());
+  assert.deepEqual(Object.keys(APP_ACCESS_FEATURE_ICON).sort(), [...CANONICAL_APP_ACCESS_DOMAINS].sort());
+
+  await initI18n();
+  const entry: DesktopAppsEntry = {
+    identity: {
+      entryKey: 'local_development:nimi.all-domains:dev-project-all',
+      appId: 'nimi.all-domains',
+      sourceClass: 'local_development',
+      displayName: 'All Domains',
+      updatedAtUnixMs: 1_722_000_000_000,
+    },
+    catalogTarget: null,
+    localDevelopment: {
+      selector: 'dev-project-all',
+      appId: 'nimi.all-domains',
+      displayName: 'All Domains',
+      canonicalProjectRoot: '/projects/all-domains',
+      shell: 'electron',
+      appAccess: [...CANONICAL_APP_ACCESS_DOMAINS],
+      aiConfigAllowedRoutes: ['local', 'cloud'],
+      capabilityContractRefs: [],
+      sourceGeneration: 1,
+      declarationGeneration: 1,
+      registeredAtUnixMs: 1_721_000_000_000,
+      updatedAtUnixMs: 1_722_000_000_000,
+    },
+    committedRelease: null,
+    packageJob: null,
+    run: null,
+    aiConfigSummary: null,
+    iconUrl: null,
+    summary: null,
+  };
+
+  for (const locale of ['en', 'zh'] as const) {
+    await changeLocale(locale);
+    const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
+    let markup: string;
+    try {
+      markup = renderToStaticMarkup(
+        <AppStoreProvider store={store}>
+          <TooltipProvider>
+            <AppsDetailView
+              entry={entry}
+              sourceEntries={[]}
+              requestedSection="access"
+              navigationEntryKey="entry-access"
+              onBack={() => {}}
+              onOpenEntry={() => {}}
+              onAction={() => {}}
+              activeAction={null}
+              actionsDisabled={false}
+              actionError={null}
+              onAIConfigChanged={() => {}}
+            />
+          </TooltipProvider>
+        </AppStoreProvider>,
+      );
+    } finally {
+      store.navigation.dispose();
+    }
+    for (const domain of CANONICAL_APP_ACCESS_DOMAINS) {
+      assert.ok(markup.includes(`data-app-access="${domain}"`), `${locale}: expected rendered row for ${domain}`);
+    }
+    assert.equal(markup.includes('Unrecognized declaration'), false, `${locale}: no canonical domain may fall back to English unrecognized copy`);
+    assert.equal(markup.includes('未识别的声明'), false, `${locale}: no canonical domain may fall back to Chinese unrecognized copy`);
+    assert.equal(markup.includes('Apps.accessDomain.'), false, `${locale}: no raw i18n key may leak`);
+  }
   await changeLocale('zh');
 });

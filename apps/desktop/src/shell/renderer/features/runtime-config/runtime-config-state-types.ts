@@ -99,7 +99,7 @@ export function normalizeConnectorScopeV11(value: unknown): ApiConnectorScopeV11
 }
 
 export function statusTextV11(status: RuntimeConfigStatusV11): string {
-  if (status === 'healthy') return 'Healthy';
+  if (status === 'healthy') return 'Ready';
   if (status === 'degraded') return 'Degraded';
   if (status === 'unreachable') return 'Unreachable';
   if (status === 'unsupported') return 'Unsupported';

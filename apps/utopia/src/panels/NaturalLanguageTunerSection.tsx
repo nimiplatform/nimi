@@ -16,6 +16,7 @@ import {
 import { SCENERY_KIND_LABELS } from '../domain/visit-journal.js';
 
 export const UTOPIA_APP_ID = 'nimi.utopia';
+export const UTOPIA_MODEL_CONFIG_DRAWER_EVENT = 'utopia:model-config-drawer-change';
 const UTOPIA_CAPABILITY_CONTRACTS = ['text.generate'] as const;
 
 function cloneCapabilitiesForSurface(
@@ -88,13 +89,15 @@ export function NaturalLanguageTunerSection(props: {
   readonly snapshot: NimiUtopiaSnapshot;
   readonly busy: boolean;
   readonly onCommitTuning: (intent: Extract<NimiUtopiaUpdateIntent, { readonly kind: 'apply-tuning' }>, expectedRevision: string) => Promise<boolean>;
+  readonly onOpenOwnerConfiguration?: () => void | Promise<void>;
 }) {
-  const { client, snapshot, busy, onCommitTuning } = props;
+  const { client, snapshot, busy, onCommitTuning, onOpenOwnerConfiguration } = props;
 
   const [aiSnapshot, setAiSnapshot] = useState<NimiAIConfigSnapshot | null>(null);
   const [aiLoading, setAiLoading] = useState(true);
   const [aiLoadError, setAiLoadError] = useState<string | null>(null);
   const [configDrawerOpen, setConfigDrawerOpen] = useState(false);
+  const [ownerOpenError, setOwnerOpenError] = useState<string | null>(null);
 
   const [prompt, setPrompt] = useState('');
   const [compiling, setCompiling] = useState(false);
@@ -124,6 +127,39 @@ export function NaturalLanguageTunerSection(props: {
   useEffect(() => {
     void refreshAiConfig();
   }, [refreshAiConfig]);
+
+  // Keep the app-level window Escape handler aware of the model config modal.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent(UTOPIA_MODEL_CONFIG_DRAWER_EVENT, { detail: configDrawerOpen }));
+  }, [configDrawerOpen]);
+
+  useEffect(() => () => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent(UTOPIA_MODEL_CONFIG_DRAWER_EVENT, { detail: false }));
+  }, []);
+
+  const handleOpenOwnerConfiguration = useCallback(async () => {
+    setOwnerOpenError(null);
+    if (onOpenOwnerConfiguration) {
+      await onOpenOwnerConfiguration();
+      return;
+    }
+    try {
+      const result = await openDesktopIntent({
+        intent: { kind: 'open-apps', appId: UTOPIA_APP_ID, section: 'ai-models' },
+      });
+      if (result.status !== 'accepted') {
+        setOwnerOpenError(
+          result.reasonCode === 'desktop-open-desktop-not-running'
+            ? '请先启动 Nimi Home，再前往「应用 → NimiUtopia → AI 模型」配置文本生成模型。'
+            : '暂时无法自动打开 Nimi Home，请手动前往「应用 → NimiUtopia → AI 模型」配置文本生成模型。',
+        );
+      }
+    } catch {
+      setOwnerOpenError('暂时无法自动打开 Nimi Home，请手动前往「应用 → NimiUtopia → AI 模型」配置文本生成模型。');
+    }
+  }, [onOpenOwnerConfiguration]);
 
   // Settings changes invalidate both displayed previews and in-flight generation.
   useEffect(() => {
@@ -346,13 +382,26 @@ export function NaturalLanguageTunerSection(props: {
 
       <OverlayShell
         open={configDrawerOpen}
-        onClose={() => setConfigDrawerOpen(false)}
+        onClose={() => {
+          setOwnerOpenError(null);
+          setConfigDrawerOpen(false);
+        }}
         kind="dialog"
         size="lg"
+        closeLabel="关闭"
+        className="bg-[var(--nimi-scrim-modal)]"
+        panelClassName="bg-[var(--nimi-surface-card)]"
+        panelStyle={{ backgroundColor: 'var(--nimi-surface-card, #ffffff)' }}
+        data-testid="utopia-model-config-modal"
         title="配置 NimiUtopia 生成模型"
         description="供「一句话营造风物」将自然语言编译为受控洞天参数与风物草案。"
       >
         <div className="py-2">
+          {ownerOpenError && (
+            <div className="mb-3">
+              <InlineAlert tone="warning">{ownerOpenError}</InlineAlert>
+            </div>
+          )}
           <ModelConfigAIConfigSurface
             context={{ owner: 'app-ai-config', appId: UTOPIA_APP_ID }}
             capabilityContracts={UTOPIA_CAPABILITY_CONTRACTS}
@@ -376,9 +425,7 @@ export function NaturalLanguageTunerSection(props: {
               return res;
             }}
             onOpenOwnerConfiguration={() => {
-              void openDesktopIntent({
-                intent: { kind: 'open-apps', appId: UTOPIA_APP_ID, section: 'ai-models' },
-              });
+              void handleOpenOwnerConfiguration();
             }}
             language="zh"
             showTitle={false}

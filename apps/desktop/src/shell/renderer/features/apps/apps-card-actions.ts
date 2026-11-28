@@ -89,6 +89,12 @@ export function isLocalDevelopmentRunActive(runState: string | null): boolean {
 }
 
 export function actionPlanForLocalDevelopmentEntry(runState: string | null): AppCardActionPlan {
+  if (runState === 'running') {
+    return {
+      primary: LAUNCH,
+      secondary: [DETAILS, STOP, REMOVE],
+    };
+  }
   const active = isLocalDevelopmentRunActive(runState);
   return {
     primary: active ? STOP : LAUNCH,

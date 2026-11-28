@@ -6,6 +6,8 @@ import type {
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
 import {
+  isGenericEngineRecipeTitle,
+  loadoutCandidatePresentation,
   loadoutModelPresentation,
   resolvePrimaryRecipeSlot,
   resolveVerifiedAssetIdentity,
@@ -81,6 +83,53 @@ export function modelDisplayTitle(title: string): string {
 /** Identity-tile seed shared by every variant of one model family, so a family keeps its colour everywhere. */
 export function modelFamilySeed(title: string): string {
   return modelDisplayTitle(title).split(/[\s\-_/]+/u)[0]?.toLowerCase() ?? title;
+}
+
+/**
+ * Human-friendly primary heading for an available Recipe card.
+ * Prefers the Runtime-recommended model's product headline (e.g. "Gemma 4 2B · Q8")
+ * over generic engine/format recipe titles (e.g. "llama.cpp GGUF text generation"),
+ * while preserving platform-qualified titles on unsupported other-platform profiles.
+ */
+export function recipeDisplayTitle(
+  recipe: NimiLoadoutRecipe,
+  catalog: readonly NimiRuntimeLocalVerifiedAssetDescriptor[] = [],
+  assets: readonly NimiRuntimeModelAssetRecord[] = [],
+): string {
+  const genericTitle = isGenericEngineRecipeTitle(recipe.title);
+  const primary = resolvePrimaryRecipeSlot(recipe);
+  if (primary.kind === 'single' && (recipe.applicability !== 'unsupported' || genericTitle)) {
+    const exact = exactRecommendedSlotOffer(primary.slot, catalog, assets);
+    if (exact?.descriptor) {
+      const headline = loadoutModelPresentation({
+        title: exact.descriptor.title,
+        variantLabel: exact.descriptor.entry,
+      }).headline.trim();
+      if (headline) return headline;
+    }
+    if (genericTitle) {
+      if (primary.slot.recommendedContentIds.length === 1) {
+        const resolved = resolveVerifiedAssetIdentity(undefined, primary.slot.recommendedContentIds[0], catalog);
+        if (resolved.title) {
+          const headline = loadoutModelPresentation({
+            title: resolved.title,
+            variantLabel: resolved.variantLabel,
+          }).headline.trim();
+          if (headline) return headline;
+        }
+      }
+      const usableOffers = primary.slot.offers.filter((offer) => offer.applicability !== 'unsupported');
+      const preferredOffer = (primary.slot.recommendedVariantIds.length === 1
+        ? usableOffers.find((offer) => offer.candidate.offerRef === primary.slot.recommendedVariantIds[0])
+        : undefined)
+        ?? (usableOffers.length === 1 ? usableOffers[0] : undefined);
+      if (preferredOffer) {
+        const headline = loadoutCandidatePresentation(preferredOffer.candidate).headline.trim();
+        if (headline) return headline;
+      }
+    }
+  }
+  return modelDisplayTitle(recipe.title);
 }
 
 /** Display title of the model a setup task works on, or '' when its candidate is not known. */

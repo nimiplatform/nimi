@@ -16,6 +16,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup as renderMarkup } from 'react-dom/server';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 // Some transitively rendered kit primitives (ScrollArea via @radix-ui) are
 // CJS bundles compiled with the classic JSX runtime and expect a global
 // `React`. The test runner compiles project `.tsx` with the automatic
@@ -23,6 +24,7 @@ import { renderToStaticMarkup as renderMarkup } from 'react-dom/server';
 (globalThis as { React?: typeof React }).React = React;
 
 import { initI18n } from '../src/shell/renderer/i18n';
+import { ProductUpdateProvider } from '../src/shell/renderer/features/home/product-update-context';
 import { SupportFailClosed } from '../src/shell/renderer/features/support/support-section-shell';
 import { SupportTroubleshooting } from '../src/shell/renderer/features/support/support-troubleshooting';
 import { SupportDiagnosticsSection } from '../src/shell/renderer/features/support/support-diagnostics-section';
@@ -34,6 +36,7 @@ import {
 import type {
   DesktopCanonicalRendererBindings,
 } from '../src/shell/renderer/renderer/contract';
+import type { ProductUpdateStatus } from '../src/shell/shared/product-update';
 
 test.before(async () => {
   await initI18n();
@@ -101,4 +104,89 @@ test('rule.nimi.desktop.product-surfaces.r029: the degraded entry renders only t
   // The overlay is closed by default — no Support sub-area is mounted until
   // the user opens it.
   assert.doesNotMatch(markup, /data-testid="support-degraded-overlay"/);
+});
+
+test('rule.nimi.desktop.product-surfaces.r028..r029: degraded SupportTroubleshooting renders safely without ProductUpdateProvider', () => {
+  const markup = renderToStaticMarkup(
+    React.createElement(SupportTroubleshooting, {
+      recovery: { title: 'Runtime maintenance active', detail: 'DATA_ROOT_UNAVAILABLE' },
+    }),
+  );
+  assert.match(markup, /data-testid="support-current-gate"/);
+  assert.match(markup, /Runtime maintenance active/);
+  assert.doesNotMatch(markup, /data-testid="support-product-update"/);
+});
+
+test('rule.nimi.platform.product-lifecycle.p-supd-002: normal SupportTroubleshooting projects UPDATE_UPSTREAM_UNAVAILABLE status card while degraded recovery omits it', () => {
+  const status: ProductUpdateStatus = {
+    phase: 'failed',
+    currentVersion: '0.2.0',
+    channel: 'beta',
+    target: 'macos-arm64',
+    candidateVersion: null,
+    releaseId: null,
+    downloadedBytes: 0,
+    totalBytes: 0,
+    checkedAt: '2026-11-28T04:00:00Z',
+    reason: 'UPDATE_UPSTREAM_UNAVAILABLE',
+    installationAvailable: false,
+    checkAvailable: true,
+    recoveryAction: 'none',
+    recoveryError: null,
+  };
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  client.setQueryData(['nimi-product-update'], status);
+  const bindingsWithUpdate = {
+    app: {
+      commands: {
+        productUpdate: {
+          status: async () => status,
+          check: async () => status,
+          cancel: async () => status,
+          homeReady: async () => status,
+          reopenCurrentVersion: async () => status,
+          install: async () => status,
+          previewRetention: async () => ({ currentVersion: '0.2.0', runtimeVersion: '0.2.0', entries: [] }),
+          cleanupRetention: async () => ({ results: [] }),
+        },
+      },
+      projection: { resourceBaseUrl: () => '' },
+    },
+  } as unknown as DesktopCanonicalRendererBindings;
+
+  const normalMarkup = renderMarkup(
+    React.createElement(
+      QueryClientProvider,
+      { client },
+      React.createElement(
+        DesktopRendererBindingProvider,
+        { bindings: bindingsWithUpdate },
+        React.createElement(ProductUpdateProvider, null, React.createElement(SupportTroubleshooting)),
+      ),
+    ),
+  );
+  assert.match(normalMarkup, /data-testid="support-product-update"/);
+  assert.match(normalMarkup, /Nimi 0\.2\.0/);
+  assert.match(normalMarkup, /The update service is unavailable\. Try again later\./);
+  assert.match(normalMarkup, /UPDATE_UPSTREAM_UNAVAILABLE/);
+  assert.match(normalMarkup, /data-testid="support-product-update-check"/);
+
+  const recoveryMarkup = renderMarkup(
+    React.createElement(
+      QueryClientProvider,
+      { client },
+      React.createElement(
+        DesktopRendererBindingProvider,
+        { bindings: bindingsWithUpdate },
+        React.createElement(
+          ProductUpdateProvider,
+          null,
+          React.createElement(SupportTroubleshooting, { recovery: { title: 'Recovery mode' } }),
+        ),
+      ),
+    ),
+  );
+  assert.match(recoveryMarkup, /data-testid="support-current-gate"/);
+  assert.doesNotMatch(recoveryMarkup, /data-testid="support-product-update"/);
+  client.clear();
 });

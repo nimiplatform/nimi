@@ -218,6 +218,11 @@ export function RelocationAndPackDrawer(props: {
       }}
       kind="dialog"
       size="lg"
+      closeLabel="关闭"
+      className="bg-[var(--nimi-scrim-modal)]"
+      panelClassName="bg-[var(--nimi-surface-card)]"
+      panelStyle={{ backgroundColor: 'var(--nimi-surface-card, #ffffff)' }}
+      data-testid="utopia-pack-library-modal"
       title={confirmTargetPack ? `展卷迁居至「${confirmTargetPack.manifest.title}」` : '洞天画卷库与 .utopia 包导入'}
       description={
         confirmTargetPack

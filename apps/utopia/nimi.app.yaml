@@ -5,6 +5,8 @@ metadata:
   icon: assets/app-icon.png
 profile: standalone
 manifest_role: submitted-input
+capability_contract_refs:
+  - text.generate
 app_access:
   - agent.utopia.read
   - agent.utopia.manage

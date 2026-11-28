@@ -441,8 +441,9 @@ test('Apps home renders the header, recent rows, and the merged rail with resolv
   assert.ok(markup.includes('data-testid="apps-rail-app-nimi.lab"'), 'expected merged rail row for nimi.lab');
   assert.ok(markup.includes('data-testid="apps-rail-app-nimi.zhiyu"'), 'expected merged rail row for nimi.zhiyu');
   assert.ok(markup.includes('2 个 App'), 'expected merged rail count copy');
-  assert.ok(markup.includes('搜索 App 或 App ID'), 'expected rail search placeholder');
-  assert.equal(markup.includes('搜索应用'), false, 'the rail is the only search');
+  assert.ok(markup.includes('placeholder="搜索应用"'), 'expected compact zh rail search placeholder');
+  assert.equal(panel.querySelectorAll('input[type="search"], [data-testid="apps-sidebar-search"] input').length, 1, 'the rail is the only search');
+  assert.ok(markup.includes('data-testid="apps-filter-installed-toggle"'), 'expected 1-click installed-only rail toggle');
   assert.ok(markup.includes('全部 App'), 'expected default filter copy');
   assert.equal(markup.includes('-installed-version"'), false, 'local-development rows have no package state');
   assert.equal(markup.includes('Apps.library.'), false, 'no raw i18n keys');
@@ -1064,7 +1065,7 @@ test('Apps home renders with resolved en copy after locale switch', async () => 
   const markup = renderView(baseProps());
   assert.ok(markup.includes('App Center'), 'expected en page title');
   assert.ok(markup.includes('Add App'), 'expected en add-app action copy');
-  assert.ok(markup.includes('Search apps or App ID'), 'expected en rail search placeholder');
+  assert.ok(markup.includes('placeholder="Search apps"'), 'expected compact en rail search placeholder');
   assert.ok(markup.includes('Recent Activity'), 'expected en recent section copy');
   assert.ok(markup.includes('All apps'), 'expected en filter copy');
   assert.equal(markup.includes('Not running'), false, 'stopped rows stay silent next to the launch action');
@@ -1080,7 +1081,8 @@ test('approved Catalog facts render an install intent without claiming certifica
     projection: { status: 'loaded', entries: [catalog], catalogStatus: 'loaded', runtimeError: null },
   }));
   assert.equal(cardMarkup.includes(`data-testid="apps-entry-${catalog.identity.entryKey}-install"`), false);
-  assert.ok(cardMarkup.includes('aria-label="Reviewed"'));
+  assert.equal(cardMarkup.includes('data-testid="apps-home-recent"'), false, 'uninstalled catalog apps stay out of Recent Activity');
+  assert.ok(cardMarkup.includes('data-testid="apps-home-discover"'), 'catalog apps remain discoverable in Explore Apps');
   assert.ok(!cardMarkup.includes('Registry approved'));
   assert.equal(cardMarkup.includes('Nimi certified'), false);
 
@@ -1258,5 +1260,167 @@ test('App detail shows the publisher safety declaration or its undeclared state 
   assert.ok(declaredMarkup.includes('Violence'));
   assert.ok(declaredMarkup.includes('Images (can be published from the App)'));
   assert.ok(declaredMarkup.includes('Nimi does not certify these statements'));
+  await changeLocale('zh');
+});
+
+test('Apps rail splits bright installed/dev apps above muted catalog apps and toggles Installed only filter', async () => {
+  const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: 'http://localhost', pretendToBeVisual: true });
+  class ResizeObserverStub { observe() {} unobserve() {} disconnect() {} }
+  const values: Record<string, unknown> = {
+    window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
+    Element: dom.window.Element, Node: dom.window.Node, NodeFilter: dom.window.NodeFilter,
+    DocumentFragment: dom.window.DocumentFragment, MutationObserver: dom.window.MutationObserver,
+    ResizeObserver: (globalThis as { ResizeObserver?: unknown }).ResizeObserver ?? ResizeObserverStub,
+    getComputedStyle: dom.window.getComputedStyle,
+    requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window),
+    cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window),
+    IS_REACT_ACT_ENVIRONMENT: true,
+  };
+  for (const name of Object.getOwnPropertyNames(dom.window)) {
+    if (/^(?:HTML|SVG)\w*Element$|Event$/u.test(name) && !(name in values)) {
+      values[name] = (dom.window as unknown as Record<string, unknown>)[name];
+    }
+  }
+  const previous = new Map(Object.keys(values).map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const [key, value] of Object.entries(values)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+
+  const { createRoot } = await import('react-dom/client');
+  await initI18n();
+  await changeLocale('en');
+  const devApp = entry({ appId: 'nimi.lab', displayName: 'Nimi Lab', updatedAtUnixMs: 1_000 });
+  const catalogApp: DesktopAppsEntry = {
+    ...catalogRuntimeEntry(),
+    identity: {
+      entryKey: 'verified:example.catalog-app',
+      appId: 'example.catalog-app',
+      sourceClass: 'verified',
+      displayName: 'Example Catalog App',
+      updatedAtUnixMs: 9_999_999_999,
+    },
+  };
+  const props = baseProps({
+    projection: { status: 'loaded', entries: [catalogApp, devApp], catalogStatus: 'loaded', runtimeError: null },
+  });
+  const root = createRoot(dom.window.document.getElementById('root')!);
+  const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
+  try {
+    await act(async () => root.render(<AppStoreProvider store={store}><TooltipProvider><AppsPanelView {...props} /></TooltipProvider></AppStoreProvider>));
+    const document = dom.window.document;
+    const installedSection = document.querySelector('[data-testid="apps-rail-installed-section"]');
+    const catalogSection = document.querySelector('[data-testid="apps-rail-catalog-section"]');
+    assert.ok(installedSection, 'installed section renders in default view');
+    assert.ok(catalogSection, 'catalog section renders below installed section');
+    const railRows = [...document.querySelectorAll<HTMLButtonElement>('[data-app-rail-list] [data-app-row]')];
+    assert.deepEqual(
+      railRows.map((row) => row.getAttribute('data-testid')),
+      ['apps-rail-app-nimi.lab', 'apps-rail-app-example.catalog-app'],
+      'installed/local-dev apps sort above uninstalled catalog rows regardless of timestamp',
+    );
+    assert.equal(railRows[0]!.innerHTML.includes('opacity-60'), false, 'installed row stays bright');
+    assert.equal(railRows[1]!.innerHTML.includes('opacity-60'), true, 'uninstalled catalog row stays muted');
+
+    const recentSection = document.querySelector('[data-testid="apps-home-recent"]');
+    assert.ok(recentSection, 'Recent Activity renders for installed/local-dev apps');
+    assert.equal(recentSection.textContent?.includes('Nimi Lab'), true);
+    assert.equal(recentSection.textContent?.includes('Example Catalog App'), false, 'Recent Activity excludes uninstalled catalog apps');
+
+    const installedToggle = document.querySelector<HTMLButtonElement>('[data-testid="apps-filter-installed-toggle"]');
+    assert.ok(installedToggle, '1-click Installed only toggle exists in rail search bar');
+    assert.equal(installedToggle.getAttribute('aria-pressed'), 'false');
+    assert.equal(installedToggle.getAttribute('aria-label'), 'Installed only');
+
+    await act(async () => installedToggle.click());
+    assert.equal(installedToggle.getAttribute('aria-pressed'), 'true');
+    const filteredRows = [...document.querySelectorAll<HTMLButtonElement>('[data-app-rail-list] [data-app-row]')];
+    assert.deepEqual(
+      filteredRows.map((row) => row.getAttribute('data-testid')),
+      ['apps-rail-app-nimi.lab'],
+      'Installed only toggle hides uninstalled catalog rows immediately',
+    );
+
+    await act(async () => installedToggle.click());
+    assert.equal(installedToggle.getAttribute('aria-pressed'), 'false');
+    const restoredRows = [...document.querySelectorAll<HTMLButtonElement>('[data-app-rail-list] [data-app-row]')];
+    assert.deepEqual(
+      restoredRows.map((row) => row.getAttribute('data-testid')),
+      ['apps-rail-app-nimi.lab', 'apps-rail-app-example.catalog-app'],
+      'toggling off restores catalog rows',
+    );
+  } finally {
+    await act(async () => root.unmount());
+    store.navigation.dispose();
+    await changeLocale('zh');
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    dom.window.close();
+    for (const [key, descriptor] of previous) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+  }
+});
+
+test('Home Dock and Quick Jump disambiguate local-dev Zhiyu by appId with DEV badge across locales', async () => {
+  const { buildHomeRecentAppsDock } = await import('../src/shell/renderer/features/home/home-recent-apps-model.js');
+  const { HomeAppsWorkbench } = await import('../src/shell/renderer/features/home/home-apps-workbench.js');
+  const { buildHomeQuickJumpItems } = await import('../src/shell/renderer/features/home/home-quick-jump-modal.js');
+  const { i18n } = await import('../src/shell/renderer/i18n/index.js');
+
+  await initI18n();
+  await changeLocale('en');
+  const devZhiyu = entry({ selector: 'dev-project-zhiyu', appId: 'nimi.zhiyu', displayName: '织羽' }, 'running');
+  const devHarness = entry({ selector: 'dev-project-harness', appId: 'nimi.harness', displayName: 'Nimi Harness' });
+
+  const dock = buildHomeRecentAppsDock({
+    entries: [devZhiyu, devHarness],
+    timestamps: {},
+    bundledZhiyuName: 'Zhiyu',
+  });
+  const devZhiyuItem = dock.items.find((item) => item.kind === 'app-group' && item.group.appId === 'nimi.zhiyu');
+  assert.ok(devZhiyuItem && devZhiyuItem.kind === 'app-group');
+  assert.equal(devZhiyuItem.disambiguator, 'DEV', 'local-dev Zhiyu is matched by appId even when English bundled name differs from Chinese manifest display_name');
+
+  const dockMarkup = renderToStaticMarkup(
+    <TooltipProvider>
+      <HomeAppsWorkbench
+        focusGeneration="gen-1"
+        entries={[devZhiyu, devHarness]}
+        iconUrls={new Map()}
+        loading={false}
+        unavailable={false}
+        onOpenAllApps={() => {}}
+        onOpenApp={() => {}}
+      />
+    </TooltipProvider>,
+  );
+  assert.ok(dockMarkup.includes('data-testid="home-app-dev-badge:nimi.zhiyu"'), 'local-dev Zhiyu dock icon renders DEV badge');
+  assert.ok(dockMarkup.includes('>DEV<'), 'DEV badge text is rendered clearly');
+  assert.ok(dockMarkup.includes('aria-label="织羽 · DEV · Running · Focus"'), 'local-dev Zhiyu dock tooltip/aria-label includes DEV disambiguator');
+
+  const quickJump = buildHomeQuickJumpItems({
+    t: i18n.t.bind(i18n),
+    apps: [devZhiyu, devHarness],
+    partners: [],
+    actions: {
+      onOpenZhiyu: () => {},
+      onOpenApp: () => {},
+      onOpenPartner: () => {},
+      onOpenCapability: () => {},
+      onOpenExplore: () => {},
+      onOpenApps: () => {},
+      onOpenModelLibrary: () => {},
+      onOpenAIProfiles: () => {},
+      onOpenCloud: () => {},
+      onOpenConnections: () => {},
+      onOpenIntegrations: () => {},
+      onOpenDownloads: () => {},
+      onOpenAIActivity: () => {},
+      onOpenTroubleshooting: () => {},
+      onOpenDataStorage: () => {},
+    },
+  });
+  const bundledQuickJump = quickJump.find((item) => item.id === 'app:zhiyu');
+  const harnessQuickJump = quickJump.find((item) => item.id === 'app:nimi.harness');
+  assert.equal(bundledQuickJump?.badge, 'Built-in', 'bundled Zhiyu receives Built-in badge when dev nimi.zhiyu exists regardless of displayName language');
+  assert.equal(harnessQuickJump?.badge, 'DEV', 'local-dev app renders DEV badge in Quick Jump');
   await changeLocale('zh');
 });

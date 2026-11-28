@@ -27,7 +27,10 @@ import {
   ModelSelectorTrigger,
   type ModelPickerCandidateAdapter,
 } from '@nimiplatform/kit/features/model-picker';
-import { resolveModelConfigCopy } from '../copy.js';
+import {
+  resolveModelConfigCopy,
+  resolveModelConfigOwnerConfigurationLabel,
+} from '../copy.js';
 import {
   modelConfigCapabilityFallbackLabel,
   modelConfigCapabilityPosture,
@@ -188,9 +191,7 @@ function descriptorDescription(
   descriptor: CanonicalCapabilityDescriptor | undefined,
   copy: ResolvedCopy,
 ): string {
-  const fallback = descriptor
-    ? `${descriptor.runtimeEvidenceClass} capability · ${descriptor.governance.dataMovement}`
-    : capabilityContract;
+  const fallback = descriptor ? copy.description : copy.emptySummary;
   return copy.capabilityDescription(capabilityContract, fallback);
 }
 
@@ -485,7 +486,10 @@ function CapabilitySectionGroup(props: {
 }
 
 export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProps) {
-  const copy = useMemo(() => resolveModelConfigCopy(props.copy), [props.copy]);
+  const copy = useMemo(
+    () => resolveModelConfigCopy(props.copy, props.language),
+    [props.copy, props.language],
+  );
   const contracts = useMemo(
     () => uniqueContracts(props.capabilityContracts, props.capabilities),
     [props.capabilities, props.capabilityContracts],
@@ -556,6 +560,7 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
               revision={props.revision}
               listOptions={props.listOptions}
               onOverwrite={props.onOverwrite}
+              onOpenOwnerConfiguration={props.onOpenOwnerConfiguration}
               disabled={props.disabled}
               language={props.language}
             />
@@ -611,6 +616,7 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
             onOpenMachineLoadout={props.onOpenMachineLoadout}
             formatError={props.formatError}
             copy={copy}
+            language={props.language}
             disabled={props.disabled}
           />
         </div>
@@ -689,6 +695,7 @@ type CapabilityIntentEditorProps = {
   readonly onOpenMachineLoadout?: (capabilityContract: string) => void;
   readonly formatError?: (error: unknown) => ModelConfigFormattedError;
   readonly copy: ResolvedCopy;
+  readonly language?: string | null;
   readonly disabled?: boolean;
 };
 
@@ -1034,6 +1041,13 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
     : committedCloudReasons.includes('AI_REMOTE_MODEL_CATALOG_STALE')
       ? props.copy.cloudCatalogStaleLabel
       : props.copy.cloudBlockedLabel;
+  const ownerConfigurationLabel = useMemo(
+    () => resolveModelConfigOwnerConfigurationLabel(props.language),
+    [props.language],
+  );
+  const showOwnerConfigurationCta = Boolean(props.onOpenOwnerConfiguration)
+    && draftPosture !== 'local-configured'
+    && draftPosture !== 'cloud-configured';
   // The committed intent already matches the draft: Save reads as done until
   // the owner changes the model or a parameter. A blocked Cloud target stays
   // savable so the owner can choose it again from the current list.
@@ -1085,50 +1099,83 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
           sourceOptions={props.allowedRoutes}
           copy={{
             searchPlaceholder: props.copy.modelPickerSearchPlaceholder,
+            sourceFilterLabel: props.copy.routeLabel,
             loadingLabel: props.copy.modelPickerLoadingLabel,
             emptyLabel: cloudError || (connectors.length === 0
                 ? props.copy.cloudNoConnectorsLabel
                 : !pickerConnectorOffered
                   ? props.copy.cloudConnectorSelectionRequired
                   : props.copy.modelPickerEmptyLabel),
+            retryLabel: props.copy.retryLabel,
             sourceLabels: { local: props.copy.localLabel, cloud: props.copy.cloudLabel },
             cancelLabel: props.copy.cancelLabel,
             confirmLabel: props.copy.confirmSelectionLabel,
           }}
-          renderSourceControls={({ source, clearSelection }) => {
-            if (source !== 'cloud' || connectors.length === 0) return null;
+          renderSourceControls={({ source, isLoading, clearSelection }) => {
+            if (source !== 'cloud') return null;
+            if (connectors.length === 0) {
+              return !isLoading && !cloudError && props.onOpenOwnerConfiguration ? (
+                <Button
+                  size="sm"
+                  tone="secondary"
+                  onClick={props.onOpenOwnerConfiguration}
+                  data-nimi-model-config-owner-handoff="true"
+                >
+                  {ownerConfigurationLabel}
+                </Button>
+              ) : null;
+            }
             return (
-              <div className="space-y-2" data-nimi-model-config-cloud-connector-picker="true">
-                  <label className="grid gap-1.5 text-xs font-semibold text-[var(--nimi-text-primary)]">
-                    <span>{props.copy.cloudConnectorPickerLabel}</span>
-                    <SelectField
-                      aria-label={props.copy.cloudConnectorPickerLabel}
-                      value={pickerConnectorOffered ? pickerConnectorRef : ''}
-                      placeholder={props.copy.cloudConnectorPickerPlaceholder}
-                      contentLayer="dialog"
-                      options={connectors.filter((entry) => entry.state === 'ready').map((entry) => ({
-                        value: entry.connectorRef,
-                        label: `${entry.label} · ${entry.provider}`,
-                      }))}
-                      onValueChange={(value) => {
-                        clearSelection();
-                        setPickerConnectorRef(value);
-                        setCloudError('');
-                      }}
-                    />
-                  </label>
-              </div>
+              <label
+                className="grid gap-1.5 text-xs font-semibold text-[var(--nimi-text-primary)]"
+                data-nimi-model-config-cloud-connector-picker="true"
+              >
+                <span>{props.copy.cloudConnectorPickerLabel}</span>
+                <SelectField
+                  aria-label={props.copy.cloudConnectorPickerLabel}
+                  value={pickerConnectorOffered ? pickerConnectorRef : ''}
+                  placeholder={props.copy.cloudConnectorPickerPlaceholder}
+                  contentLayer="dialog"
+                  options={connectors.filter((entry) => entry.state === 'ready').map((entry) => ({
+                    value: entry.connectorRef,
+                    label: `${entry.label} · ${entry.provider}`,
+                  }))}
+                  onValueChange={(value) => {
+                    clearSelection();
+                    setPickerConnectorRef(value);
+                    setCloudError('');
+                  }}
+                />
+              </label>
             );
           }}
-          renderItemActions={(choice) => choice.route === 'local' && props.onOpenMachineLoadout ? (
-            <Button
-              size="sm"
-              tone="secondary"
-              onClick={() => props.onOpenMachineLoadout?.(props.capabilityContract)}
-            >
-              {props.copy.openMachineLabel}
-            </Button>
-          ) : null}
+          renderItemActions={(choice) => {
+            if (choice.route !== 'local') return null;
+            if (props.onOpenMachineLoadout) {
+              return (
+                <Button
+                  size="sm"
+                  tone="secondary"
+                  onClick={() => props.onOpenMachineLoadout?.(props.capabilityContract)}
+                >
+                  {props.copy.openMachineLabel}
+                </Button>
+              );
+            }
+            if (props.onOpenOwnerConfiguration && choice.state !== 'ready') {
+              return (
+                <Button
+                  size="sm"
+                  tone="secondary"
+                  onClick={props.onOpenOwnerConfiguration}
+                  data-nimi-model-config-owner-handoff="true"
+                >
+                  {ownerConfigurationLabel}
+                </Button>
+              );
+            }
+            return null;
+          }}
           onClose={() => setPickerOpen(false)}
           onConfirm={(choice) => {
             setDraftChoice(choice);
@@ -1146,6 +1193,8 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
           copy={props.copy}
           hasCommittedLocalIntent={props.currentIntent?.route.oneofKind === 'local'}
           onOpenMachineLoadout={props.onOpenMachineLoadout ? () => props.onOpenMachineLoadout?.(props.capabilityContract) : undefined}
+          onOpenOwnerConfiguration={props.onOpenOwnerConfiguration}
+          ownerConfigurationLabel={ownerConfigurationLabel}
         />
       ) : null}
 
@@ -1228,7 +1277,18 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
         </div>
       ) : null}
 
-      <div className="flex flex-wrap justify-end gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {showOwnerConfigurationCta ? (
+          <Button
+            tone="secondary"
+            className="mr-auto"
+            onClick={props.onOpenOwnerConfiguration}
+            data-testid={`model-config-open-owner:${props.capabilityContract}`}
+            data-nimi-model-config-owner-handoff="true"
+          >
+            {ownerConfigurationLabel}
+          </Button>
+        ) : null}
         {props.currentIntent ? (
           <Button
             tone="secondary"
@@ -1264,6 +1324,8 @@ function LocalSelectionSummary(props: {
   readonly copy: ResolvedCopy;
   readonly hasCommittedLocalIntent: boolean;
   readonly onOpenMachineLoadout?: () => void;
+  readonly onOpenOwnerConfiguration?: () => void;
+  readonly ownerConfigurationLabel?: string;
 }) {
   const selection = props.selection;
   const local = selection?.resource?.oneofKind === 'local' ? selection.resource.local : null;
@@ -1305,6 +1367,15 @@ function LocalSelectionSummary(props: {
       {props.onOpenMachineLoadout ? (
         <button type="button" onClick={props.onOpenMachineLoadout} className={cn('shrink-0 text-[length:var(--nimi-type-overline-size)] font-medium text-[var(--nimi-action-primary-bg)] hover:underline', FOCUS_RING_CLASS_NAME)}>
           {props.copy.openMachineLabel}
+        </button>
+      ) : props.onOpenOwnerConfiguration && selection?.state !== 'ready' ? (
+        <button
+          type="button"
+          onClick={props.onOpenOwnerConfiguration}
+          data-nimi-model-config-owner-handoff="true"
+          className={cn('shrink-0 text-[length:var(--nimi-type-overline-size)] font-medium text-[var(--nimi-action-primary-bg)] hover:underline', FOCUS_RING_CLASS_NAME)}
+        >
+          {props.ownerConfigurationLabel || props.copy.openMachineLabel}
         </button>
       ) : null}
     </div>

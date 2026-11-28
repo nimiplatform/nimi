@@ -1,5 +1,77 @@
 import type { ModelConfigCopy } from './types.js';
 
+const ENGLISH_CAPABILITY_DESCRIPTIONS: Readonly<Record<string, string>> = Object.freeze({
+  'audio.separate': 'Separate vocals from background audio while preserving timing.',
+  'audio.speaker.embed': 'Extract comparable speaker representations from short audio.',
+  'audio.synthesize': 'Turn text into speech using an on-device or cloud model.',
+  'audio.transcribe': 'Turn speech into text using an on-device or cloud model.',
+  'audio.voice.convert': 'Retarget a singing performance to another voice.',
+  'image.face_swap': 'Swap faces in images using the selected model.',
+  'image.generate': 'Generate images using an on-device or cloud model.',
+  'image.upscale': 'Upscale images to higher resolution.',
+  'music.generate': 'Generate music using an on-device or cloud model.',
+  'music.transcribe': 'Estimate musical scores from recordings.',
+  'realtime.interact': 'Run live realtime voice and text interactions.',
+  'text.annotate': 'Identify tokens, parts of speech, dependencies, and sentence boundaries.',
+  'text.decide': 'Evaluate options or statements with scored decisions.',
+  'text.embed': 'Create text embeddings for retrieval and similarity search.',
+  'text.generate': 'Generate and edit text using an on-device or cloud model.',
+  'video.face_swap': 'Swap faces in videos using the selected model.',
+  'video.generate': 'Generate videos using an on-device or cloud model.',
+  'video.upscale': 'Upscale videos while retaining frame timing and audio.',
+  'vision.locate': 'Locate visual elements in images.',
+  'voice.create': 'Create reusable custom voices.',
+  'world.generate': 'Generate interactive worlds and scenes.',
+});
+
+const CHINESE_CAPABILITY_LABELS: Readonly<Record<string, string>> = Object.freeze({
+  'audio.separate': '人声与背景分离',
+  'audio.speaker.embed': '说话人特征',
+  'audio.synthesize': '语音合成',
+  'audio.transcribe': '语音转写',
+  'audio.voice.convert': '声音转换',
+  'image.face_swap': '图片换脸',
+  'image.generate': '图像生成',
+  'image.upscale': '图像超分辨率',
+  'music.generate': '音乐生成',
+  'music.transcribe': '音乐转谱',
+  'realtime.interact': '实时交互',
+  'text.annotate': '语言分析',
+  'text.decide': '决策判断',
+  'text.embed': '文本嵌入',
+  'text.generate': '文本生成',
+  'video.face_swap': '视频换脸',
+  'video.generate': '视频生成',
+  'video.upscale': '视频超分辨率',
+  'vision.locate': '图像定位',
+  'voice.create': '声音创建',
+  'world.generate': '世界生成',
+});
+
+const CHINESE_CAPABILITY_DESCRIPTIONS: Readonly<Record<string, string>> = Object.freeze({
+  'audio.separate': '分离人声与背景音，并保留原有时间轴。',
+  'audio.speaker.embed': '从短音频提取可比较的说话人特征向量。',
+  'audio.synthesize': '选择用于将文本转换为语音的本机或云端模型。',
+  'audio.transcribe': '选择用于将语音转换为文本的本机或云端模型。',
+  'audio.voice.convert': '将演唱转换为另一种声音。',
+  'image.face_swap': '选择用于替换图片中人脸的模型。',
+  'image.generate': '选择用于生成图像的本机或云端模型。',
+  'image.upscale': '放大图像并提升清晰度。',
+  'music.generate': '选择用于生成音乐的本机或云端模型。',
+  'music.transcribe': '从录音推算并生成乐谱。',
+  'realtime.interact': '选择用于实时交互的本机或云端模型。',
+  'text.annotate': '识别词语、词性、依存关系和句子边界。',
+  'text.decide': '从给定选项中做出判断并给出概率评分。',
+  'text.embed': '选择用于生成文本嵌入的本机或云端模型。',
+  'text.generate': '选择用于文本生成的本机或云端模型。',
+  'video.face_swap': '选择用于替换视频中人脸的模型。',
+  'video.generate': '选择用于生成视频的本机或云端模型。',
+  'video.upscale': '放大视频并保留帧时间与音轨。',
+  'vision.locate': '在图像中定位视觉元素。',
+  'voice.create': '选择用于创建可复用声音的模型。',
+  'world.generate': '选择用于生成世界与场景的模型。',
+});
+
 export const DEFAULT_MODEL_CONFIG_COPY: Required<ModelConfigCopy> = Object.freeze({
   title: 'Models',
   description: 'Choose the model used for each capability.',
@@ -81,9 +153,112 @@ export const DEFAULT_MODEL_CONFIG_COPY: Required<ModelConfigCopy> = Object.freez
   cancelLabel: 'Cancel',
   confirmSelectionLabel: 'Use selection',
   capabilityLabel: (_capability, fallback) => fallback,
-  capabilityDescription: (_capability, fallback) => fallback,
+  capabilityDescription: (capability, fallback) => ENGLISH_CAPABILITY_DESCRIPTIONS[capability] ?? fallback,
 });
 
-export function resolveModelConfigCopy(copy: ModelConfigCopy | undefined): Required<ModelConfigCopy> {
-  return { ...DEFAULT_MODEL_CONFIG_COPY, ...copy };
+export const CHINESE_MODEL_CONFIG_COPY: Required<ModelConfigCopy> = Object.freeze({
+  title: '模型',
+  description: '为每项能力选择要使用的模型。',
+  backLabel: '返回',
+  detailTitle: (capabilityLabel) => `${capabilityLabel}设置`,
+  activeModelLabel: '当前模型',
+  activeModelHint: '选择其他模型',
+  activeModelConfiguredLabel: '已设置',
+  activeModelSetupPendingLabel: '需要设置',
+  modelPickerTitle: '选择模型',
+  modelPickerSearchPlaceholder: '搜索模型',
+  modelPickerLoadingLabel: '正在加载模型…',
+  modelPickerEmptyLabel: '当前能力没有可用模型。',
+  configuredSummary: '模型配置已完成',
+  emptySummary: '尚未选择模型',
+  routeLabel: '运行方式',
+  localLabel: '本机',
+  cloudLabel: '云端',
+  saveLocalLabel: '保存设置',
+  saveCloudLabel: '保存设置',
+  savingLabel: '保存中…',
+  savedLabel: '已保存',
+  clearLabel: '清除配置',
+  clearingLabel: '正在清除…',
+  conflictLabel: '配置已在其他位置更改',
+  conflictDescription: '你的修改草稿已保留。请先核对最新已保存的配置，再保存以重试。',
+  conflictCurrentLabel: (revision, summary) => `当前版本 ${revision}：${summary}`,
+  advancedLabel: '高级设置',
+  advancedHint: '所需模型能力和默认参数会随这些模型设置一起保存。',
+  requiredFeaturesLabel: '所需模型能力',
+  requiredFeaturesPlaceholder: '输入模型能力，以逗号分隔',
+  defaultsLabel: '默认参数',
+  defaultsPlaceholder: '留空表示不设置该参数。',
+  defaultsUnsetLabel: '未设置',
+  defaultsTrueLabel: '是',
+  defaultsFalseLabel: '否',
+  defaultsListPlaceholder: '每行一个值',
+  defaultsLocalEffectivePlaceholder: (value) => `未设置 · 引擎默认 ${value}`,
+  defaultsCloudEffectivePlaceholder: '未设置 · 由服务商决定',
+  defaultsRandomValue: '随机',
+  localChoiceDescription: '使用“本机模型”中当前选择的模型。',
+  localSelectedLabel: '本机当前使用',
+  localMissingLabel: '本机尚未为此能力选择模型。',
+  localBrokenLabel: '所选本机模型暂不可用。',
+  localUnavailableLabel: '暂时无法加载本机模型选择状态。',
+  localMismatchLabel: (features) => `所选本机模型不支持：${features}`,
+  openMachineLabel: '打开本机模型设置',
+  cloudConnectorPickerLabel: '云端连接器',
+  cloudConnectorPickerPlaceholder: '选择已配置的连接器',
+  cloudConnectorSelectionRequired: '请先选择已配置的连接器，再选择模型。',
+  cloudNoConnectorsLabel: '暂无已配置的云端连接器。',
+  openCloudConnectorsLabel: '配置云端连接器',
+  cloudImplementationLabel: '云端服务',
+  cloudImplementationPlaceholder: '选择云端服务',
+  cloudTargetLabel: '云端模型',
+  cloudTargetPlaceholder: '选择云端模型',
+  cloudTargetDialogTitle: '选择云端模型',
+  cloudTargetDialogDescription: '为此连接器选择服务商模型。',
+  cloudNoticeLabel: '云端执行',
+  cloudNoticeDescription: '请求可能会离开本机，并可能产生服务商费用。',
+  cloudChatGPTPlanLabel: '正在使用 ChatGPT 计划',
+  cloudChatGPTPlanDescription: '使用此模型时，符合条件的用量将计入已登录的 ChatGPT 计划额度，Nimi 不额外收费。',
+  cloudConnectorLabel: '已配置的连接器',
+  cloudConnectorPlaceholder: '选择连接器',
+  cloudLoadFailed: '无法加载云端服务、模型或连接器选项。',
+  cloudBlockedLabel: '当前云端选择无法运行，请重新选择或更换其他模型。',
+  cloudCatalogStaleLabel: '云端模型列表已更新，请从当前列表中重新选择模型。',
+  retryLabel: '重试',
+  loadFailed: '无法加载模型设置。',
+  saveFailed: '无法保存模型设置。',
+  technicalDetailsLabel: '技术详情',
+  unsupportedCapabilityLabel: '当前版本不支持此能力。',
+  notConfiguredLabel: '未配置',
+  configuredLabel: '已配置',
+  selectionRequiredLabel: '需要选择',
+  blockedLabel: '受阻',
+  unavailableLabel: '暂不可用',
+  mismatchLabel: '功能不匹配',
+  cancelLabel: '取消',
+  confirmSelectionLabel: '使用此选择',
+  capabilityLabel: (capability, fallback) => CHINESE_CAPABILITY_LABELS[capability] ?? fallback,
+  capabilityDescription: (capability, fallback) => CHINESE_CAPABILITY_DESCRIPTIONS[capability] ?? fallback,
+});
+
+export function resolveModelConfigOwnerConfigurationLabel(language?: string | null): string {
+  return language?.trim().toLowerCase().startsWith('zh')
+    ? '前往 Nimi Home 配置模型'
+    : 'Open Home AI settings';
+}
+
+export function resolveModelConfigCopy(
+  copy: ModelConfigCopy | undefined,
+  language?: string | null,
+): Required<ModelConfigCopy> {
+  const base = language?.trim().toLowerCase().startsWith('zh')
+    ? CHINESE_MODEL_CONFIG_COPY
+    : DEFAULT_MODEL_CONFIG_COPY;
+  if (!copy) return base;
+  const definedOverrides: Partial<ModelConfigCopy> = {};
+  for (const [key, value] of Object.entries(copy)) {
+    if (value !== undefined) {
+      (definedOverrides as Record<string, unknown>)[key] = value;
+    }
+  }
+  return { ...base, ...definedOverrides };
 }

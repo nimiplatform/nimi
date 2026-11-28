@@ -50,7 +50,7 @@ function describeUsageSegment(
   ai: SystemEntryAIState | null,
   locale: string,
   t: ReturnType<typeof useTranslation>['t'],
-): { text: string; incomplete: boolean } {
+): { text: string; incomplete: boolean; tooltipKey?: string } {
   const read = ai?.usage;
   if (!ai || !read || read.status === 'loading') {
     return { text: t('runtimeConfig.overview.ambientStrip.usageLoading'), incomplete: false };
@@ -88,6 +88,7 @@ function describeUsageSegment(
         ? t('runtimeConfig.overview.ambientStrip.usageCostWithCalls', { cost: costStr, count: formattedAttempts as unknown as number })
         : t('runtimeConfig.overview.ambientStrip.usageCostOnly', { cost: costStr }),
       incomplete: costIncomplete,
+      tooltipKey: 'runtimeConfig.systemEntry.costsIncomplete',
     };
   }
 
@@ -102,11 +103,25 @@ function describeUsageSegment(
     return { text: t('runtimeConfig.overview.ambientStrip.usageIdle'), incomplete: false };
   }
 
+  // @nimi-authority: rule.nimi.runtime.rpc-foundations.home-ai-coverage
+  // Keep incomplete uncertainty visible when source or time coverage is partial,
+  // while distinguishing incomplete attempt coverage from pending billing.
+  if (projection.attempts === '0' && !pending && !unpriced && !pricingIncomplete) {
+    return {
+      text: t('runtimeConfig.overview.ambientStrip.usageZeroIncomplete'),
+      incomplete: true,
+      tooltipKey: recordsIncomplete
+        ? 'runtimeConfig.systemEntry.attemptsIncomplete'
+        : 'runtimeConfig.systemEntry.attemptsUnconfirmed',
+    };
+  }
+
   return {
     text: formattedAttempts
       ? t('runtimeConfig.overview.ambientStrip.usageUnknownCost', { count: formattedAttempts as unknown as number })
       : t('runtimeConfig.overview.ambientStrip.usageCostUnknownNoCount'),
     incomplete: true,
+    tooltipKey: 'runtimeConfig.systemEntry.costsIncomplete',
   };
 }
 
@@ -196,7 +211,7 @@ export function HomeAmbientStatusStrip({
       >
         <span className="truncate">{usage.text}</span>
         {usage.incomplete ? (
-          <Tooltip content={t('runtimeConfig.systemEntry.costsIncomplete')} placement="top">
+          <Tooltip content={t(usage.tooltipKey ?? 'runtimeConfig.systemEntry.costsIncomplete')} placement="top">
             <span className="inline-flex items-center text-[var(--nimi-status-warning)]" data-testid="home-ambient-usage-incomplete">
               <Info size={12} aria-hidden="true" />
             </span>

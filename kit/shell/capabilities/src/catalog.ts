@@ -129,6 +129,7 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
       { id: 'chromeStateSet', command: 'nimi.shell.ui.chromeStateSet', negativeStates: ['capability-unavailable', 'invalid-payload', 'forbidden-renderer-access', 'session-invalid', 'host-internal-error'] },
       { id: 'chromeCommand', command: 'nimi.shell.ui.chromeCommand', negativeStates: ['capability-unavailable', 'invalid-payload', 'forbidden-renderer-access', 'session-invalid', 'host-internal-error'] },
       { id: 'chromeUnbind', command: 'nimi.shell.ui.chromeUnbind', negativeStates: ['capability-unavailable', 'invalid-payload', 'forbidden-renderer-access', 'session-invalid', 'host-internal-error'] },
+      { id: 'hostLocaleGet', command: 'nimi.shell.ui.hostLocaleGet', negativeStates: ['capability-unavailable', 'invalid-payload', 'host-internal-error'] },
     ],
   },
   {
@@ -537,6 +538,7 @@ const LOCAL_APP_ALLOWED_OPERATIONS = [
   'shell-ui.chromeStateSet',
   'shell-ui.chromeCommand',
   'shell-ui.chromeUnbind',
+  'shell-ui.hostLocaleGet',
 ];
 
 const LOCAL_APP_FORBIDDEN_OPERATIONS = [

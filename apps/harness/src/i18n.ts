@@ -1,8 +1,19 @@
-import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  readNimiHostLocale,
+  resolveNimiStartupLocale,
+  type NimiHostLocaleSource,
+} from '@nimiplatform/sdk/app';
+import { getShellHostLocale } from '@nimiplatform/kit/shell/renderer/bridge';
 
-export type Locale = 'en' | 'zh';
+export const SUPPORTED_LOCALES = ['en', 'zh'] as const;
+export type Locale = (typeof SUPPORTED_LOCALES)[number];
 
-const LOCALE_STORAGE_KEY = 'nimi-harness:locale';
+export const LOCALE_STORAGE_KEY = 'nimi-harness:locale';
+
+const DEFAULT_HOST_LOCALE_SOURCE: NimiHostLocaleSource = {
+  getLocale: getShellHostLocale,
+};
 
 const en = {
   // App & Shell
@@ -15,7 +26,7 @@ const en = {
   'app.openHomeSettings': 'Open App settings in Home',
   'app.openHome': 'Open Nimi Home',
   'app.connectedToNimi': 'Connected to Nimi',
-  'app.runtimeStatus.connected': 'Runtime connected',
+  'app.runtimeStatus.connected': 'Connected to Nimi',
   'app.runtimeStatus.connecting': 'Connecting…',
   'app.runtimeStatus.disconnected': 'Disconnected',
   'app.runtimeStatus.unavailable': 'Runtime unavailable',
@@ -27,6 +38,7 @@ const en = {
 
   // Sidebar
   'sidebar.title': 'Sessions',
+  'sidebar.firstSession': 'First session',
   'sidebar.newSession': 'New session',
   'sidebar.newSessionWithModel': 'More new session options',
   'sidebar.newSessionInFolder': 'New session in local folder…',
@@ -81,7 +93,7 @@ const en = {
   'permission.strict': 'Strict',
   'permission.strictDesc': 'Auto-approves read & search only. Asks before edits, shell commands, web fetch, or integrations.',
   'permission.workspaceEdit': 'Auto-Edit',
-  'permission.workspaceEditDesc': 'Auto-approves file writes & edits inside this workspace. Still asks for commands, external paths, and integrations.',
+  'permission.workspaceEditDesc': 'Auto-approves normal file writes & edits inside this workspace. Still requires one-time approval for control-plane files (.git/**, package.json, build/test configs, scripts), shell commands, external paths, and integrations.',
   'permission.planReadonly': 'Plan Only',
   'permission.planReadonlyDesc': 'Read-only planning mode. Blocks file modifications, shell commands, and write integrations.',
 
@@ -192,6 +204,10 @@ const en = {
   'model.missingMessage': 'Choose an available text model to continue this conversation.',
   'model.openSettings': 'Models & access',
   'model.stopBeforeSwitch': 'Stop the active task before switching models.',
+  'partner.missingTitle': 'No local partner ready',
+  'partner.missingMessage': 'Add or authorize a local partner in Nimi Home before sending tasks.',
+  'partner.manageInHome': 'Manage Partners in Home',
+  'partner.noneReady': 'No partner ready',
 
   // Composer & Status
   'composer.placeholder': 'Ask a question, describe a task, or drop files…',
@@ -329,7 +345,7 @@ const zh: Record<TranslationKey, string> = {
   'app.openHomeSettings': '在 Nimi Home 打开应用设置',
   'app.openHome': '打开 Nimi Home',
   'app.connectedToNimi': '已连接到 Nimi',
-  'app.runtimeStatus.connected': 'Runtime 已连接',
+  'app.runtimeStatus.connected': '已连接到 Nimi',
   'app.runtimeStatus.connecting': '连接中…',
   'app.runtimeStatus.disconnected': '未连接',
   'app.runtimeStatus.unavailable': 'Runtime 不可用',
@@ -341,6 +357,7 @@ const zh: Record<TranslationKey, string> = {
 
   // Sidebar
   'sidebar.title': '会话列表',
+  'sidebar.firstSession': '首次会话',
   'sidebar.newSession': '新建会话',
   'sidebar.newSessionWithModel': '更多新建方式',
   'sidebar.newSessionInFolder': '在本地目录新建会话…',
@@ -395,7 +412,7 @@ const zh: Record<TranslationKey, string> = {
   'permission.strict': '严格审批',
   'permission.strictDesc': '仅自动允许读取与搜索；写入、编辑、命令、联网与集成均需审批。',
   'permission.workspaceEdit': '自动编辑',
-  'permission.workspaceEditDesc': '自动允许工作区内的文件写入与编辑；命令、越界路径与集成仍需审批。',
+  'permission.workspaceEditDesc': '自动允许工作区内普通文件的写入与编辑；控制面文件（.git/**、package.json、构建/测试配置、脚本）、终端命令、越界路径与集成仍需单次审批。',
   'permission.planReadonly': '只读规划',
   'permission.planReadonlyDesc': '只读分析模式；禁止写入文件、执行命令及写入类集成操作。',
 
@@ -506,6 +523,10 @@ const zh: Record<TranslationKey, string> = {
   'model.missingMessage': '请选择可用的文本模型以继续此会话。',
   'model.openSettings': '模型与权限设置',
   'model.stopBeforeSwitch': '请先停止当前任务再切换模型。',
+  'partner.missingTitle': '尚未配置可用伙伴',
+  'partner.missingMessage': '发送任务前，请先在 Nimi Home 中添加或授权一位本地伙伴。',
+  'partner.manageInHome': '在 Home 管理伙伴',
+  'partner.noneReady': '未配置伙伴',
 
   // Composer & Status
   'composer.placeholder': '输入任务、描述需求，或直接拖入文件…',
@@ -632,17 +653,67 @@ const zh: Record<TranslationKey, string> = {
 
 const dictionaries: Record<Locale, Record<TranslationKey, string>> = { en, zh };
 
-function detectInitialLocale(): Locale {
-  if (typeof window !== 'undefined') {
-    try {
-      const stored = window.localStorage.getItem(LOCALE_STORAGE_KEY);
-      if (stored === 'en' || stored === 'zh') return stored;
-    } catch { /* ignore storage errors */ }
+function readStoredLocale(): Locale | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const stored = window.localStorage.getItem(LOCALE_STORAGE_KEY);
+    return stored === 'en' || stored === 'zh' ? stored : null;
+  } catch {
+    return null;
   }
-  if (typeof navigator !== 'undefined' && navigator.language.toLowerCase().startsWith('zh')) {
-    return 'zh';
+}
+
+function readNavigatorLanguage(): string | null {
+  return typeof navigator !== 'undefined' && typeof navigator.language === 'string'
+    ? navigator.language
+    : null;
+}
+
+export function detectInitialLocale(): Locale {
+  return resolveNimiStartupLocale({
+    supportedLocales: SUPPORTED_LOCALES,
+    storedLocale: readStoredLocale(),
+    navigatorLanguage: readNavigatorLanguage(),
+    fallback: 'en',
+  });
+}
+
+export function applyStartupHostLocaleOnce(options: {
+  hostLocaleSource?: NimiHostLocaleSource | null;
+  isStale: () => boolean;
+  applyLocale: (locale: Locale) => void;
+}): Promise<Locale | null> {
+  if (options.isStale() || readStoredLocale() !== null) {
+    return Promise.resolve(null);
   }
-  return 'en';
+  const source = options.hostLocaleSource === undefined
+    ? DEFAULT_HOST_LOCALE_SOURCE
+    : options.hostLocaleSource;
+  return readNimiHostLocale(source)
+    .then((hostLocale) => {
+      if (options.isStale() || readStoredLocale() !== null) {
+        return null;
+      }
+      const resolved = resolveNimiStartupLocale({
+        supportedLocales: SUPPORTED_LOCALES,
+        storedLocale: null,
+        hostLocale,
+        navigatorLanguage: readNavigatorLanguage(),
+        fallback: 'en',
+      });
+      options.applyLocale(resolved);
+      return resolved;
+    })
+    .catch(() => null);
+}
+
+export function localizeDefaultSessionTitle(
+  title: string,
+  t: (key: TranslationKey, vars?: Record<string, string | number>) => string,
+): string {
+  if (title === 'First session') return t('sidebar.firstSession');
+  if (title === 'New session') return t('sidebar.newSession');
+  return title;
 }
 
 export function translate(locale: Locale, key: TranslationKey, vars?: Record<string, string | number>): string {
@@ -664,10 +735,18 @@ type I18nContextValue = {
 
 const I18nContext = createContext<I18nContextValue | null>(null);
 
-export function I18nProvider({ children }: { children: ReactNode }) {
+export function I18nProvider({
+  children,
+  hostLocaleSource,
+}: {
+  children: ReactNode;
+  hostLocaleSource?: NimiHostLocaleSource | null;
+}) {
   const [locale, setLocaleState] = useState<Locale>(detectInitialLocale);
+  const manualOverrideRef = useRef(false);
 
   const setLocale = useCallback((next: Locale) => {
+    manualOverrideRef.current = true;
     setLocaleState(next);
     try { window.localStorage.setItem(LOCALE_STORAGE_KEY, next); } catch { /* ignore */ }
   }, []);
@@ -675,6 +754,20 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const toggleLocale = useCallback(() => {
     setLocale(locale === 'en' ? 'zh' : 'en');
   }, [locale, setLocale]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void applyStartupHostLocaleOnce({
+      hostLocaleSource,
+      isStale: () => cancelled || manualOverrideRef.current,
+      applyLocale: (resolved) => {
+        setLocaleState((current) => (current === resolved ? current : resolved));
+      },
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof document !== 'undefined') {

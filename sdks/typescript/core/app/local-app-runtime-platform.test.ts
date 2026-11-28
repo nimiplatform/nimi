@@ -927,8 +927,9 @@ test('generated local-app session wire projection is posture-only', () => {
 test('local-app client hard-cuts the access workflow namespace', () => {
   const client = createNimiLocalAppClient({ standardShell: standardShell([]) });
   assert.deepEqual(Object.keys(client).sort(), [
-    'activity', 'agentConfigure', 'agentRealtime', 'agentWork', 'agents', 'ai', 'aiConfig', 'auth', 'conversation', 'currentUser', 'embodiment', 'integration', 'realm', 'storage', 'utopia',
+    'activity', 'agentConfigure', 'agentRealtime', 'agentWork', 'agents', 'ai', 'aiConfig', 'auth', 'conversation', 'currentUser', 'embodiment', 'host', 'integration', 'realm', 'storage', 'utopia',
   ]);
+  assert.deepEqual(Object.keys(client.host), ['getLocale']);
   assert.deepEqual(Object.keys(client.activity).sort(), ['list', 'markRead', 'onOpenRequest', 'open', 'put', 'subscribe']);
   assert.equal('permissions' in client, false);
   assert.equal('artifacts' in client, false);
@@ -2527,6 +2528,112 @@ test('local-app Scenario Job adapter runs the unchanged SDK image runner without
   ]);
   assert.equal(JSON.stringify(calls).includes('app.test'), false);
   assert.equal(JSON.stringify(calls).includes('idempotency-1'), false);
+});
+
+test('local-app client exposes read-once host.getLocale with optional carrier and strict fail-closed validation', async () => {
+  const base = standardShell([]);
+
+  // Without injected host carrier, client.host.getLocale() returns null cleanly.
+  const withoutHost = createNimiLocalAppClient({ standardShell: base });
+  assert.deepEqual(Object.keys(withoutHost.host), ['getLocale']);
+  assert.equal(Object.isFrozen(withoutHost.host), true);
+  assert.equal(await withoutHost.host.getLocale(), null);
+
+  // Explicit undefined host behaves identically to omitted host.
+  const undefinedHost = createNimiLocalAppClient({ standardShell: { ...base, host: undefined } });
+  assert.equal(await undefinedHost.host.getLocale(), null);
+
+  // Valid direct values and result envelopes resolve to canonical locale or null.
+  for (const [raw, expected] of [
+    ['en', 'en'],
+    ['zh', 'zh'],
+    [null, null],
+    [{ locale: 'en' }, 'en'],
+    [{ locale: 'zh' }, 'zh'],
+    [{ locale: null }, null],
+  ] as const) {
+    let calls = 0;
+    const client = createNimiLocalAppClient({
+      standardShell: {
+        ...base,
+        host: {
+          async getLocale() {
+            calls += 1;
+            return raw;
+          },
+        },
+      },
+    });
+    assert.equal(await client.host.getLocale(), expected);
+    assert.equal(calls, 1);
+  }
+
+  // Malformed projections fail closed with SDK_LOCAL_APP_PROJECTION_INVALID.
+  for (const malformed of [
+    undefined,
+    '',
+    'EN',
+    'en-US',
+    'zh-CN',
+    'fr',
+    123,
+    [],
+    {},
+    { locale: undefined },
+    { locale: 'fr' },
+    { locale: 'en', extra: true },
+    { locale: 'en', path: '/Users/halliday/.nimi/run/desktop/host-locale.v1.json' },
+  ]) {
+    const client = createNimiLocalAppClient({
+      standardShell: {
+        ...base,
+        host: { async getLocale() { return malformed; } },
+      },
+    });
+    await assert.rejects(
+      () => client.host.getLocale(),
+      (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+    );
+  }
+
+  // Underlying carrier errors propagate unchanged.
+  const hostFailure = Object.assign(new Error('host locale carrier failed'), { reasonCode: 'host-internal-error' });
+  const failingClient = createNimiLocalAppClient({
+    standardShell: {
+      ...base,
+      host: { async getLocale() { throw hostFailure; } },
+    },
+  });
+  await assert.rejects(() => failingClient.host.getLocale(), (error) => error === hostFailure);
+
+  // Malformed standardShell.host shapes or live-subscription methods fail closed at construction.
+  class ClassHost {
+    async getLocale() { return 'en'; }
+  }
+  for (const invalidHost of [
+    null,
+    'en',
+    [],
+    {},
+    { getLocale: 'en' },
+    { getLocale: async () => 'en', subscribe: () => {} },
+    { getLocale: async () => 'en', onLocaleChange: () => {} },
+    { getLocale: async () => 'en', setLocale: async () => {} },
+    new ClassHost(),
+  ]) {
+    assert.throws(
+      () => createNimiLocalAppClient({ standardShell: { ...base, host: invalidHost as never } }),
+      (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_CARRIER_REQUIRED',
+    );
+  }
+
+  // Missing a required namespace while providing optional host still fails closed.
+  const missingSession = { ...base, host: { async getLocale() { return 'en'; } } } as Record<string, unknown>;
+  delete missingSession.session;
+  assert.throws(
+    () => createNimiLocalAppClient({ standardShell: missingSession as unknown as NimiLocalAppStandardShell }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_CARRIER_REQUIRED',
+  );
 });
 
 test('local-app client rejects the retired host namespace instead of decoding it', () => {

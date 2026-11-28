@@ -70,6 +70,8 @@ import { AmbientAudioController, readSavedAudioVolume } from './stage/AmbientAud
 import { UtopiaStageViewport } from './stage/UtopiaStageViewport.js';
 import './styles.css';
 
+const UTOPIA_MODEL_CONFIG_DRAWER_EVENT = 'utopia:model-config-drawer-change';
+
 const LazyDeterministicTunerPanel = React.lazy(() =>
   import('./panels/DeterministicTunerPanel.js').then((m) => ({ default: m.DeterministicTunerPanel })),
 );
@@ -119,6 +121,7 @@ function UtopiaApp() {
   const [hudHidden, setHudHidden] = useState(false);
 
   const [packDrawerOpen, setPackDrawerOpen] = useState(false);
+  const [configDrawerOpen, setConfigDrawerOpen] = useState(false);
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [draftState, setDraftState] = useState<LocalChatDraftState | null>(null);
   const [audioMuted, setAudioMuted] = useState(true);
@@ -145,10 +148,31 @@ function UtopiaApp() {
     });
   }, []);
 
+  useEffect(() => {
+    const onConfigDrawerOpenChange = (event: Event) => {
+      const detail = (event as CustomEvent<unknown>).detail;
+      setConfigDrawerOpen(Boolean(detail));
+    };
+    window.addEventListener(UTOPIA_MODEL_CONFIG_DRAWER_EVENT, onConfigDrawerOpenChange);
+    return () => window.removeEventListener(UTOPIA_MODEL_CONFIG_DRAWER_EVENT, onConfigDrawerOpenChange);
+  }, []);
+
   // Escape exits pure-canvas mode, closes place note card, or closes floating drawer
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || packDrawerOpen) return;
+      if (
+        e.key !== 'Escape'
+        || e.defaultPrevented
+        || packDrawerOpen
+        || configDrawerOpen
+        || Boolean(
+          document.querySelector(
+            '[role="dialog"][aria-modal="true"]:not([aria-hidden="true"]), [role="alertdialog"][aria-modal="true"]:not([aria-hidden="true"])',
+          ),
+        )
+      ) {
+        return;
+      }
       if (hudHidden) {
         setHudHidden(false);
       } else if (selectedPlaceId) {
@@ -159,7 +183,7 @@ function UtopiaApp() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [hudHidden, selectedPlaceId, activeDrawerTab, packDrawerOpen]);
+  }, [hudHidden, selectedPlaceId, activeDrawerTab, packDrawerOpen, configDrawerOpen]);
 
   const storagePort = useMemo<UtopiaStoragePort>(() => ({
     json: client.storage,
@@ -575,16 +599,6 @@ function UtopiaApp() {
       <NimiAppChrome
         metadata={{ name: 'NimiUtopia', version: appPackage.version }}
         locale="zh"
-        sidebar={{
-          visible: drawerVisible,
-          onVisibleChange: (vis) => {
-            if (vis) {
-              openDrawerTab(lastDrawerTabRef.current);
-            } else {
-              setActiveDrawerTab(null);
-            }
-          },
-        }}
       />
 
       <div className="utopia-world-shell">

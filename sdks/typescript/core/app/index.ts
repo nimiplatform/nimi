@@ -22,6 +22,21 @@ import type {
 } from './inventory-types.js';
 
 export {
+  NIMI_HOST_LOCALES,
+  NimiHostLocaleParseError,
+  isNimiHostLocale,
+  parseNimiHostLocale,
+  parseNimiHostLocaleResult,
+  readNimiHostLocale,
+  resolveNimiStartupLocale,
+} from './host-locale.js';
+export type {
+  NimiHostLocale,
+  NimiHostLocaleResult,
+  NimiHostLocaleSource,
+  ResolveNimiStartupLocaleInput,
+} from './host-locale.js';
+export {
   NIMI_DESKTOP_OPEN_RESULT_REASON_CODES,
   NIMI_DESKTOP_OPEN_SCHEMA_VERSION,
   NIMI_DESKTOP_OPEN_SOURCE_HOSTS,

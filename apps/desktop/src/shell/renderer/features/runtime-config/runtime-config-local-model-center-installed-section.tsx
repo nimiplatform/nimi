@@ -143,7 +143,7 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
           </h3>
           {!query ? (
             <p className="mx-auto mt-1.5 max-w-sm text-sm text-[var(--nimi-text-muted)]">
-              {t('runtimeConfig.localModelCenter.noModelAssetsDescription', { defaultValue: 'Download from Model Market, or import your own model files.' })}
+              {t('runtimeConfig.localModelCenter.noModelAssetsDescription', { defaultValue: 'Download models from Discover or import your own files.' })}
             </p>
           ) : null}
           {!query && (props.onOpenDiscover || props.onImportFile) ? (

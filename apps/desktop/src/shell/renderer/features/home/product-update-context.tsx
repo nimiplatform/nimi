@@ -20,10 +20,11 @@ const DIALOG_TONE_PRESENTATION: Record<DialogTone, { icon: LucideIcon; iconClass
   neutral: { icon: Info, iconClassName: 'text-[var(--nimi-text-muted)]' },
 };
 
-type ProductUpdateContextValue = {
+export type ProductUpdateContextValue = {
   status: ProductUpdateStatus | undefined;
   busy: boolean;
   attention: boolean;
+  railAttention: boolean;
   railVisible: boolean;
   checkAvailable: boolean;
   message: string;
@@ -52,8 +53,14 @@ export function ProductUpdateProvider({ children }: PropsWithChildren) {
     refetchInterval: state => BUSY_PHASES.has(state.state.data?.phase ?? '') ? 1_000 : 30_000 });
   const status = query.data;
   const busy = submitting || BUSY_PHASES.has(status?.phase ?? '');
+  const passiveUpstreamUnavailable = !actionError && !query.isError
+    && status?.phase === 'failed'
+    && status.reason === 'UPDATE_UPSTREAM_UNAVAILABLE'
+    && status.recoveryAction === 'none'
+    && !status.recoveryError;
   const attention = actionError || query.isError || status?.phase === 'failed'
     || status?.phase === 'recovery-required' || status?.recoveryAction === 'reopen-current';
+  const railAttention = attention && !passiveUpstreamUnavailable;
   const completed = !actionError && !query.isError && status?.phase === 'completed'
     && Boolean(status.releaseId) && acknowledgedRelease !== status.releaseId;
   const message = actionError || query.isError ? t('ProductUpdate.bridgeUnavailable')
@@ -125,8 +132,8 @@ export function ProductUpdateProvider({ children }: PropsWithChildren) {
     finally { setSubmitting(false); }
   };
 
-  return <ProductUpdateContext.Provider value={{ status, busy, attention, checkAvailable, message, homeReady, check, open, openDetails: () => setFeedbackOpen(true),
-    railVisible: ready && (busy || attention || status?.phase === 'prepared') }}>
+  return <ProductUpdateContext.Provider value={{ status, busy, attention, railAttention, checkAvailable, message, homeReady, check, open, openDetails: () => setFeedbackOpen(true),
+    railVisible: ready && (busy || railAttention || status?.phase === 'prepared') }}>
     {children}
     <ConfirmDialog open={confirmedRelease !== null} title={t('ProductUpdate.confirmTitle')} message={t('ProductUpdate.confirmBody')}
       confirmLabel={t('ProductUpdate.restart')} cancelLabel={t('ProductUpdate.later')} confirmTone="primary"
@@ -163,8 +170,12 @@ export function ProductUpdateProvider({ children }: PropsWithChildren) {
   </ProductUpdateContext.Provider>;
 }
 
+export function useOptionalProductUpdate(): ProductUpdateContextValue | null {
+  return useContext(ProductUpdateContext);
+}
+
 export function useProductUpdate() {
-  const value = useContext(ProductUpdateContext);
+  const value = useOptionalProductUpdate();
   if (!value) throw new Error('ProductUpdateProvider is required');
   return value;
 }

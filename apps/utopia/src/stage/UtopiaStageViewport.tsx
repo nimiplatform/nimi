@@ -110,9 +110,26 @@ type ClickRipple = Readonly<{
   yClient: number;
 }>;
 
-const STREET_DEFAULT_ZOOM = 1.34;
+export const STREET_DEFAULT_ZOOM = 1.16;
+export const STREET_DEFAULT_TOP_CLEARANCE_RATIO = 0.05;
+export const UTOPIA_PRESENCE_DOCK_HEIGHT_VAR = '--utopia-presence-dock-height';
 const MAX_STAGE_ZOOM = 2.5;
 const DRAG_HYSTERESIS_PX = 10;
+
+export function computeDefaultStageCamera(
+  vw: number,
+  vh: number,
+  aspectNum = 16,
+  aspectDen = 9,
+): StageCameraState {
+  if (vw <= 0 || vh <= 0) {
+    return { zoom: STREET_DEFAULT_ZOOM, panX: 0, panY: 0 };
+  }
+  const { baseH } = computeCoverDimensions(vw, vh, aspectNum, aspectDen);
+  const maxPanY = Math.max(0, (baseH * STREET_DEFAULT_ZOOM - vh) / 2);
+  const panY = Math.min(maxPanY, Math.round(vh * STREET_DEFAULT_TOP_CLEARANCE_RATIO));
+  return { zoom: STREET_DEFAULT_ZOOM, panX: 0, panY };
+}
 
 export function UtopiaStageViewport(props: {
   readonly snapshot: NimiUtopiaSnapshot;
@@ -187,6 +204,8 @@ export function UtopiaStageViewport(props: {
   const [, setMiniMapPulse] = useState(0);
 
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  const presenceDockRef = useRef<HTMLDivElement | null>(null);
+  const initialFramingActivationRef = useRef<string | null>(null);
   const cameraEngineRef = useRef<{
     cur: StageCameraState;
     target: StageCameraState;
@@ -389,12 +408,61 @@ export function UtopiaStageViewport(props: {
     [applyCamera, clampCamera, aspectNum, aspectDen],
   );
 
+  const getDefaultCamera = useCallback((): StageCameraState => {
+    const viewEl = viewportRef.current;
+    const vw = viewEl?.clientWidth ?? viewportSize.vw;
+    const vh = viewEl?.clientHeight ?? viewportSize.vh;
+    return computeDefaultStageCamera(vw, vh, aspectNum, aspectDen);
+  }, [viewportSize.vw, viewportSize.vh, aspectNum, aspectDen]);
+
   // Reset camera to lively street-district view & clear landmark selection when relocating to a new habitat
   useEffect(() => {
-    const initial: StageCameraState = { zoom: STREET_DEFAULT_ZOOM, panX: 0, panY: 0 };
-    commitCameraImmediate(initial);
+    const viewEl = viewportRef.current;
+    const vw = viewEl?.clientWidth ?? 0;
+    const vh = viewEl?.clientHeight ?? 0;
+    if (vw > 0 && vh > 0) {
+      initialFramingActivationRef.current = snapshot.habitatActivationId;
+      commitCameraImmediate(computeDefaultStageCamera(vw, vh, aspectNum, aspectDen));
+    } else {
+      initialFramingActivationRef.current = null;
+      commitCameraImmediate({ zoom: STREET_DEFAULT_ZOOM, panX: 0, panY: 0 });
+    }
     setSelectedLandmarkId(null);
-  }, [snapshot.habitatActivationId, commitCameraImmediate]);
+  }, [snapshot.habitatActivationId, aspectNum, aspectDen, commitCameraImmediate]);
+
+  // Publish live presence-dock height so narrow floating drawers stay clear of the dock
+  useEffect(() => {
+    const el = presenceDockRef.current;
+    if (!el) return;
+    const hostTarget = (el.closest('.utopia-world-shell') as HTMLElement | null) ?? document.documentElement;
+
+    const publishDockHeight = (entry?: ResizeObserverEntry) => {
+      const borderBoxHeight = entry?.borderBoxSize?.[0]?.blockSize ?? 0;
+      const rectHeight = el.getBoundingClientRect().height;
+      const measured = borderBoxHeight > 0
+        ? borderBoxHeight
+        : (rectHeight > 0 ? rectHeight : (el.offsetHeight > 0 ? el.offsetHeight : (entry?.contentRect?.height ?? 0)));
+      if (measured > 0) {
+        hostTarget.style.setProperty(UTOPIA_PRESENCE_DOCK_HEIGHT_VAR, `${Math.ceil(measured)}px`);
+      }
+    };
+
+    publishDockHeight();
+    const ro = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver((entries) => {
+          publishDockHeight(entries[0]);
+        })
+      : null;
+    ro?.observe(el);
+    const onResize = () => publishDockHeight();
+    window.addEventListener('resize', onResize);
+
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener('resize', onResize);
+      hostTarget.style.removeProperty(UTOPIA_PRESENCE_DOCK_HEIGHT_VAR);
+    };
+  }, [matchingMedia]);
 
   // Keep mini-map companion dots gently updated without coupling to 30fps sprite loop
   useEffect(() => {
@@ -405,7 +473,7 @@ export function UtopiaStageViewport(props: {
     return () => window.clearInterval(id);
   }, [frozen, reducedMotion]);
 
-  // Measure viewport dimensions & re-clamp camera on resize without interrupting drag or leaking loops
+  // Measure viewport dimensions & apply initial top-clearance framing / re-clamp camera on resize
   useEffect(() => {
     const el = viewportRef.current;
     if (!el) return;
@@ -415,6 +483,11 @@ export function UtopiaStageViewport(props: {
       const vh = el.clientHeight;
       setViewportSize((prev) => (prev.vw === vw && prev.vh === vh ? prev : { vw, vh }));
       if (vw > 0 && vh > 0) {
+        if (initialFramingActivationRef.current !== snapshot.habitatActivationId) {
+          initialFramingActivationRef.current = snapshot.habitatActivationId;
+          commitCameraImmediate(computeDefaultStageCamera(vw, vh, aspectNum, aspectDen));
+          return;
+        }
         const { baseW, baseH } = computeCoverDimensions(vw, vh, aspectNum, aspectDen);
         const clampWithDims = (c: StageCameraState): StageCameraState => {
           const maxX = Math.max(0, (baseW * c.zoom - vw) / 2);
@@ -442,7 +515,7 @@ export function UtopiaStageViewport(props: {
       ro?.disconnect();
       window.removeEventListener('resize', syncViewport);
     };
-  }, [matchingMedia, aspectNum, aspectDen]);
+  }, [matchingMedia, aspectNum, aspectDen, snapshot.habitatActivationId, commitCameraImmediate]);
 
   // Cursor-anchored smooth wheel & trackpad-pinch zoom across the entire stage shell
   useEffect(() => {
@@ -511,12 +584,12 @@ export function UtopiaStageViewport(props: {
         applyCamera((p) => clampCamera(p.zoom - 0.18, p.panX * 0.82, p.panY * 0.82));
       } else if (e.key === '0') {
         e.preventDefault();
-        applyCamera(() => ({ zoom: STREET_DEFAULT_ZOOM, panX: 0, panY: 0 }));
+        applyCamera(() => getDefaultCamera());
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [applyCamera, clampCamera]);
+  }, [applyCamera, clampCamera, getDefaultCamera]);
 
   const prevSelectedPlaceKeyRef = useRef<string>('');
 
@@ -861,7 +934,7 @@ export function UtopiaStageViewport(props: {
 
     applyCamera((prev) => {
       if (prev.zoom >= MAX_STAGE_ZOOM - 0.12) {
-        return { zoom: STREET_DEFAULT_ZOOM, panX: 0, panY: 0 };
+        return getDefaultCamera();
       }
       const nextZ = Math.min(MAX_STAGE_ZOOM, prev.zoom + 0.38);
       const ratio = nextZ / prev.zoom;
@@ -916,9 +989,10 @@ export function UtopiaStageViewport(props: {
 
   const zoomPercent = Math.round(targetCamera.zoom * 100);
   const isOverviewZoom = targetCamera.zoom <= 1.03;
-  const isDefaultCamera = Math.abs(targetCamera.zoom - STREET_DEFAULT_ZOOM) <= 0.03
-    && Math.abs(targetCamera.panX) < 4
-    && Math.abs(targetCamera.panY) < 4;
+  const defaultCamera = computeDefaultStageCamera(viewportSize.vw, viewportSize.vh, aspectNum, aspectDen);
+  const isDefaultCamera = Math.abs(targetCamera.zoom - defaultCamera.zoom) <= 0.03
+    && Math.abs(targetCamera.panX - defaultCamera.panX) < 4
+    && Math.abs(targetCamera.panY - defaultCamera.panY) < 4;
   const chibiScale = Math.pow(Math.max(1, renderCamera.zoom), 0.56).toFixed(3);
 
   return (
@@ -1248,7 +1322,10 @@ export function UtopiaStageViewport(props: {
         )}
 
         {/* Bottom-Left Floating Companion Bubble Dock (AI-Town Style) */}
-        <div className={`utopia-floating-bottom-left ${isDragging || hudHidden ? 'is-egressed' : ''}`}>
+        <div
+          ref={presenceDockRef}
+          className={`utopia-floating-bottom-left ${isDragging || hudHidden ? 'is-egressed' : ''}`}
+        >
           <SanctuaryPresenceDock
             snapshot={snapshot}
             selectedResidentHandle={selectedResidentHandle}
@@ -1318,7 +1395,7 @@ export function UtopiaStageViewport(props: {
               title={isOverviewZoom ? `切回街区漫游视野 (${Math.round(STREET_DEFAULT_ZOOM * 100)}%)` : '拉远至 100% 俯瞰整幅洞天全景'}
               onClick={() => {
                 if (isOverviewZoom) {
-                  applyCamera(() => ({ zoom: STREET_DEFAULT_ZOOM, panX: 0, panY: 0 }));
+                  applyCamera(() => getDefaultCamera());
                 } else {
                   applyCamera(() => clampCamera(1, 0, 0));
                 }
@@ -1330,7 +1407,7 @@ export function UtopiaStageViewport(props: {
               <button
                 type="button"
                 className="utopia-cam-reset-btn"
-                onClick={() => applyCamera(() => ({ zoom: STREET_DEFAULT_ZOOM, panX: 0, panY: 0 }))}
+                onClick={() => applyCamera(() => getDefaultCamera())}
               >
                 回中
               </button>

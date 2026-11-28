@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { NimiPortableAppAIConfig, NimiPortableAppAIConfigIntent } from '@nimiplatform/kit/core/sdk-contract';
 import { Button, InlineAlert } from '@nimiplatform/kit/ui';
+import { resolveModelConfigOwnerConfigurationLabel } from '../copy.js';
 import {
   resolveModelConfigCurrentMachineLocalActionCopy,
 } from '../current-machine-local-action-copy.js';
@@ -28,6 +29,7 @@ export type ModelConfigCurrentMachineLocalActionProps = Readonly<{
   readonly revision?: string;
   readonly listOptions?: ModelConfigListOptions;
   readonly onOverwrite?: ModelConfigOverwrite;
+  readonly onOpenOwnerConfiguration?: () => void;
   readonly disabled?: boolean;
   readonly language?: string | null;
 }>;
@@ -64,6 +66,10 @@ export function ModelConfigCurrentMachineLocalAction(
   const copy = useMemo(
     () => resolveModelConfigCurrentMachineLocalActionCopy(props.language, props.ownerKey),
     [props.language, props.ownerKey],
+  );
+  const ownerConfigurationLabel = useMemo(
+    () => resolveModelConfigOwnerConfigurationLabel(props.language),
+    [props.language],
   );
   const [status, setStatus] = useState<ActionStatus>({ state: 'idle' });
   const explicitContracts = useMemo(() => [
@@ -228,7 +234,25 @@ export function ModelConfigCurrentMachineLocalAction(
       {showFeedback ? (
         <div className="mt-3 space-y-2">
           {!eligible ? <InlineAlert tone="warning">{copy.unavailableLabel}</InlineAlert> : null}
-          {status.state === 'no-selection' ? <InlineAlert tone="warning">{copy.noSelectionLabel}</InlineAlert> : null}
+          {status.state === 'no-selection' ? (
+            <InlineAlert tone="warning">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span>{copy.noSelectionLabel}</span>
+                {props.onOpenOwnerConfiguration ? (
+                  <Button
+                    tone="secondary"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={props.onOpenOwnerConfiguration}
+                    data-testid="model-config-current-machine-open-owner"
+                    data-nimi-model-config-owner-handoff="true"
+                  >
+                    {ownerConfigurationLabel}
+                  </Button>
+                ) : null}
+              </div>
+            </InlineAlert>
+          ) : null}
           {status.state === 'committed' ? <InlineAlert tone="success">{copy.committedLabel}</InlineAlert> : null}
           {status.state === 'conflict' ? (
             <InlineAlert tone="warning">

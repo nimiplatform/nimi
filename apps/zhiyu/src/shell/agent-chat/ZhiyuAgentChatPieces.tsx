@@ -44,7 +44,12 @@ export function ComposerAvatarButton({
   currentPartnerName,
   currentPartnerAvatarUrl,
   hasCurrentPartner,
-  onOpenSettings, agentHandle, readIntroduction, onOpenPartner,
+  hasLocalPartners = false,
+  canDiscover = false,
+  onDiscover,
+  agentHandle,
+  readIntroduction,
+  onOpenPartner,
 }: {
   readonly agentHandle: NimiLocalAppAgentHandle | null;
   readonly readIntroduction: NimiLocalAppAgentIntroductionClient['getIntroduction'];
@@ -52,15 +57,35 @@ export function ComposerAvatarButton({
   readonly currentPartnerName: string;
   readonly currentPartnerAvatarUrl: string | null;
   readonly hasCurrentPartner: boolean;
-  readonly onOpenSettings: () => void;
+  readonly hasLocalPartners?: boolean;
+  readonly canDiscover?: boolean;
+  readonly onDiscover?: () => void;
 }) {
+  const canRouteToDiscover = !hasCurrentPartner && !hasLocalPartners && canDiscover && Boolean(onDiscover);
+  const disabled = !hasCurrentPartner && !canRouteToDiscover;
+  const label = hasCurrentPartner
+    ? `查看${currentPartnerName}的伙伴资料`
+    : canRouteToDiscover
+      ? '发现角色'
+      : hasLocalPartners
+        ? '请先选择本地伙伴'
+        : '添加本地伙伴后查看资料';
+  const title = hasCurrentPartner
+    ? `查看${currentPartnerName}的伙伴资料`
+    : canRouteToDiscover
+      ? '还没有本地伙伴，点击发现角色'
+      : hasLocalPartners
+        ? '请先从左侧栏选择一位本地伙伴'
+        : '添加本地伙伴后可查看伙伴资料';
   const button = (
     <button
       type="button"
       className="zhiyu-home__composer-avatar"
-      aria-label={hasCurrentPartner ? `查看${currentPartnerName}的伙伴资料` : '选择本地伙伴'}
-      title={hasCurrentPartner ? `查看${currentPartnerName}的伙伴资料` : '选择本地伙伴'}
-      onClick={hasCurrentPartner ? undefined : onOpenSettings}
+      aria-label={label}
+      title={title}
+      disabled={disabled}
+      data-zhiyu-composer-avatar-action={hasCurrentPartner ? 'partner' : canRouteToDiscover ? 'discover' : 'disabled'}
+      onClick={canRouteToDiscover ? onDiscover : undefined}
     >
       {!hasCurrentPartner ? <UserRound size={18} aria-hidden="true" /> : currentPartnerAvatarUrl ? (
         <img
@@ -79,6 +104,8 @@ export function ComposerAvatarButton({
 export function ComposerModeTools({
   avatarLaunchAction,
   avatarLaunchPending = false,
+  hasCurrentPartner = true,
+  hasLocalPartners = false,
   onAvatarLaunch,
   onOpenAppearance,
   onOpenBehavior,
@@ -86,24 +113,38 @@ export function ComposerModeTools({
 }: {
   readonly avatarLaunchAction: ZhiyuAvatarLaunchAction;
   readonly avatarLaunchPending?: boolean;
+  readonly hasCurrentPartner?: boolean;
+  readonly hasLocalPartners?: boolean;
   readonly onAvatarLaunch?: () => void;
   readonly onOpenAppearance: () => void;
   readonly onOpenBehavior: () => void;
   readonly onOpenHarnessHandoff?: () => void;
 }) {
-  const avatarReady = avatarLaunchAction.state === 'ready' && Boolean(onAvatarLaunch);
+  const avatarReady = hasCurrentPartner && avatarLaunchAction.state === 'ready' && Boolean(onAvatarLaunch);
+  const noPartnerPrefix = hasLocalPartners ? '请先选择本地伙伴后' : '添加本地伙伴后';
+  const avatarLabel = !hasCurrentPartner
+    ? `${noPartnerPrefix}配置形象`
+    : avatarLaunchPending
+      ? '正在打开形象'
+      : avatarReady
+        ? '启动形象'
+        : '配置形象';
+  const proactiveLabel = !hasCurrentPartner ? `${noPartnerPrefix}设置主动模式` : '主动模式';
   return (
     <>
       <button
         type="button"
-        aria-label={avatarLaunchPending ? '正在打开形象' : avatarReady ? '启动形象' : '配置形象'}
-        title={avatarLaunchPending ? '正在打开形象' : avatarReady ? '启动形象' : '配置形象'}
-        disabled={avatarLaunchPending}
-        aria-busy={avatarLaunchPending}
+        aria-label={avatarLabel}
+        title={avatarLabel}
+        disabled={!hasCurrentPartner || avatarLaunchPending}
+        aria-busy={hasCurrentPartner && avatarLaunchPending}
         data-zhiyu-composer-tool="avatar"
         data-zhiyu-avatar-launch-entry={avatarLaunchAction.state}
         data-zhiyu-avatar-launch-reason={avatarLaunchAction.reasonCode}
         onClick={() => {
+          if (!hasCurrentPartner) {
+            return;
+          }
           if (avatarReady && onAvatarLaunch) {
             onAvatarLaunch();
             return;
@@ -118,7 +159,14 @@ export function ComposerModeTools({
         data-zhiyu-composer-toolbar-divider="true"
         className="mx-0.5 h-4 w-px bg-[var(--nimi-border-subtle)]"
       />
-      <button type="button" aria-label="主动模式" title="主动模式" data-zhiyu-composer-tool="proactive" onClick={onOpenBehavior}>
+      <button
+        type="button"
+        aria-label={proactiveLabel}
+        title={proactiveLabel}
+        disabled={!hasCurrentPartner}
+        data-zhiyu-composer-tool="proactive"
+        onClick={hasCurrentPartner ? onOpenBehavior : undefined}
+      >
         <Lightbulb size={16} aria-hidden="true" />
       </button>
       {onOpenHarnessHandoff ? (
@@ -172,21 +220,27 @@ export function AvatarLaunchNotice({ feedback, onRetry, onOpenAppearance, onOpen
 
 export function ComposerAgentCenterButton({
   open,
+  disabled = false,
+  disabledReason,
   onToggleAgentPanel,
 }: {
   readonly open: boolean;
+  readonly disabled?: boolean;
+  readonly disabledReason?: string;
   readonly onToggleAgentPanel: () => void;
 }) {
+  const unavailableLabel = disabledReason ?? '添加本地伙伴后可打开伙伴中心';
   return (
     <button
       type="button"
-      aria-label="伙伴中心"
+      aria-label={disabled ? unavailableLabel : '伙伴中心'}
       aria-pressed={open}
-      title={open ? '关闭伙伴中心' : '伙伴中心'}
+      title={disabled ? unavailableLabel : open ? '关闭伙伴中心' : '伙伴中心'}
+      disabled={disabled}
       data-nimi-semantic-id="zhiyu-primary-action"
       data-zhiyu-composer-tool="agent"
       data-zhiyu-composer-agent-center-state={open ? 'open' : 'closed'}
-      onClick={onToggleAgentPanel}
+      onClick={disabled ? undefined : onToggleAgentPanel}
     >
       <SlidersHorizontal size={16} aria-hidden="true" />
     </button>

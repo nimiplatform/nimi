@@ -258,7 +258,7 @@
   grid-template-rows: minmax(0, 1fr) auto;
   gap: 26px;
   position: relative;
-  padding: 12px 12px 12px 60px !important;
+  padding: 12px;
   overflow: hidden;
   isolation: isolate;
   container-type: inline-size;
@@ -319,6 +319,17 @@
   overflow: hidden;
 }
 
+/* Kit's CanonicalTranscriptView outer wrapper defaults to pl-6 pr-2 to balance
+   a classic single-edge scrollbar, and CanonicalMessageActionsProvider wraps it
+   in an intermediate <div class="contents">. Because Zhiyu reserves both-edges
+   gutters below, normalize its horizontal padding symmetrically via a descendant
+   selector so transcript messages and the empty-state hero align cleanly with
+   the centered overlay composer. */
+.zhiyu-chat-canvas__transcript div:has(> [data-canonical-transcript-root="true"]) {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
 .zhiyu-chat-canvas__transcript [data-canonical-transcript-root="true"] {
   width: 100%;
   min-width: 0;
@@ -364,18 +375,17 @@
 }
 
 /* Floating composer + status strip, mirroring the desktop conversation pane's
-   overlay composer: the transcript scrolls full height underneath. Geometry so
-   the composer column edges equal the message column edges at any width:
-   transcript total insets are 92/28 (canvas 60/12 + kit outer 24/8 + gutter 8/8);
-   composer matches via overlay 60/8 + overlay padding 12/0 + kit composer px 20/20. */
+   overlay composer: the transcript scrolls full height underneath. Symmetric
+   horizontal insets keep the composer column centered with the transcript
+   column and onboarding empty hero at every viewport width. */
 .zhiyu-chat-canvas__overlay {
   position: absolute;
-  left: 60px;
-  right: 10px;
+  left: 12px;
+  right: 12px;
   bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   z-index: 2;
   isolation: isolate;
-  padding-left: 14px;
+  padding-left: 0;
   pointer-events: none;
 }
 
@@ -548,7 +558,11 @@
   transform: scale(var(--nimi-motion-pressed-scale, 0.97));
 }
 
-.zhiyu-agent-chat [data-chat-composer-toolbar-slot="true"] button:disabled {
+.zhiyu-home__composer-avatar:disabled,
+.zhiyu-agent-chat [data-chat-composer-toolbar-slot="true"] button:disabled,
+.zhiyu-agent-chat [data-chat-composer-toolbar-trailing-slot="true"] button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
   box-shadow: none;
 }
 
@@ -1076,29 +1090,6 @@
   gap: 6px;
 }
 
-@container nimi-ui-module-zhiyu-surface (max-width: 1320px) {
-  .zhiyu-agent-chat__layout,
-  .zhiyu-agent-chat__layout.is-side-closed {
-    grid-template-columns: 64px minmax(0, 1fr);
-    grid-template-areas: "presence conversation";
-    gap: 0;
-  }
-
-  .zhiyu-chat-canvas {
-    padding-left: 34px !important;
-  }
-
-  .zhiyu-chat-canvas__overlay {
-    left: 34px;
-  }
-
-  .zhiyu-agent-chat__layout.is-side-closed .zhiyu-chat-canvas {
-    padding-right: 12px !important;
-    padding-left: 34px !important;
-  }
-
-}
-
 @container nimi-ui-module-zhiyu-surface (max-width: 980px) {
   .zhiyu-agent-chat__workspace {
     padding: 10px;
@@ -1139,12 +1130,12 @@
 
   .zhiyu-chat-canvas {
     min-height: calc(100cqh - 20px);
-    padding: 12px !important;
+    padding: 12px;
   }
 
   .zhiyu-chat-canvas__overlay {
     left: 12px;
-    right: 10px;
+    right: 12px;
   }
 
   .zhiyu-chat-canvas__transcript [data-canonical-transcript-width],
@@ -1248,8 +1239,13 @@
   .zhiyu-chat-canvas {
     height: calc(100cqh - 52px);
     min-height: calc(100cqh - 52px);
-    padding: 4px !important;
+    padding: 4px;
     border-radius: 0;
+  }
+
+  .zhiyu-chat-canvas__transcript div:has(> [data-canonical-transcript-root="true"]) {
+    padding-left: 8px;
+    padding-right: 8px;
   }
 
   .zhiyu-chat-canvas__overlay {

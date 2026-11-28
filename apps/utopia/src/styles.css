@@ -10,6 +10,8 @@
   --utopia-ink-strong: #3c2f25;
   --utopia-ink-body: #564537;
   --utopia-ink-muted: #826e5c;
+  --utopia-chrome-bg: #f4ede0;
+  --utopia-chrome-border: rgba(94, 72, 52, 0.16);
   --utopia-parchment-bg: #fdf9f0;
   --utopia-parchment-card: #fffdf7;
   --utopia-parchment-subtle: #f6efe2;
@@ -28,7 +30,7 @@ body,
   height: 100%;
   min-width: 360px;
   overflow: hidden;
-  background: #e9e2d2;
+  background: var(--utopia-chrome-bg);
   color: var(--utopia-ink-strong);
   font-optical-sizing: auto;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
@@ -59,7 +61,18 @@ body,
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  background: #e9e2d2;
+  background: var(--utopia-chrome-bg);
+}
+
+/* Unify persistent 40px NimiAppChrome across the macOS traffic-light gutter (W0-06 Option A) */
+.utopia-app-frame > .nimi-app-chrome {
+  --nimi-surface-panel: var(--utopia-chrome-bg);
+  --nimi-border-subtle: transparent;
+  --nimi-text-muted: var(--utopia-ink-muted);
+  --nimi-text-secondary: var(--utopia-ink-strong);
+  background-color: var(--utopia-chrome-bg);
+  border-bottom-color: transparent;
+  color: var(--utopia-ink-muted);
 }
 
 .utopia-world-shell {
@@ -70,6 +83,7 @@ body,
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+  border-top: 1px solid var(--utopia-chrome-border);
 }
 
 .utopia-world-canvas-main {
@@ -113,7 +127,7 @@ body,
 
 .utopia-floating-alert {
   position: absolute;
-  top: 64px;
+  top: calc(var(--utopia-horizon-height, 44px) + 18px);
   left: 50%;
   transform: translateX(-50%);
   z-index: 88;
@@ -133,7 +147,7 @@ body,
   justify-content: space-between;
   gap: 8px;
   padding: 6px 10px;
-  border-radius: 999px;
+  border-radius: 22px;
   border: 1.5px solid rgba(92, 71, 50, 0.25);
   background: rgba(253, 249, 240, 0.95);
   box-shadow:
@@ -1574,16 +1588,17 @@ body,
 .utopia-place-floating-sheet {
   position: absolute;
   left: 14px;
-  top: 64px;
+  top: calc(var(--utopia-horizon-height, 44px) + 18px);
   z-index: 76;
   max-width: min(372px, calc(100% - 28px));
   pointer-events: auto;
   transform: translateY(0);
-  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: top 200ms cubic-bezier(0.22, 1, 0.36, 1), transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .is-hud-hidden .utopia-place-floating-sheet {
-  transform: translateY(-50px);
+  top: 14px;
+  transform: translateY(0);
 }
 
 .utopia-place-caption-card {
@@ -2085,15 +2100,14 @@ body,
 
 .utopia-minimap-place-strip {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
+  max-height: 84px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
   padding: 1px 2px;
-}
-
-.utopia-minimap-place-strip::-webkit-scrollbar {
-  display: none;
 }
 
 .utopia-minimap-chip {
@@ -2101,6 +2115,7 @@ body,
   align-items: center;
   gap: 3px;
   flex-shrink: 0;
+  max-width: 100%;
   padding: 2px 7px;
   border-radius: 999px;
   border: 1px solid rgba(94, 72, 52, 0.22);
@@ -2110,6 +2125,12 @@ body,
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
+}
+
+.utopia-minimap-chip-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .utopia-minimap-chip:hover {
@@ -2215,10 +2236,11 @@ body,
 /* ── Floating Right Storybook Parchment Drawer ── */
 .utopia-floating-drawer {
   position: absolute;
-  top: 60px;
+  top: calc(var(--utopia-horizon-height, 44px) + 18px);
   right: 14px;
-  bottom: 58px;
-  width: min(392px, calc(100vw - 28px));
+  bottom: max(58px, calc(22px + var(--utopia-presence-dock-height, 44px)));
+  width: min(392px, calc(100% - 28px));
+  box-sizing: border-box;
   z-index: 82;
   display: flex;
   flex-direction: column;
@@ -2312,14 +2334,15 @@ body,
     display: none;
   }
   .utopia-floating-bottom-left {
-    max-width: calc(100vw - 28px);
+    max-width: calc(100% - 28px);
     bottom: 52px;
   }
   .utopia-floating-drawer {
     left: 10px;
     right: 10px;
     width: auto;
-    bottom: 52px;
+    max-width: calc(100% - 20px);
+    bottom: calc(52px + var(--utopia-presence-dock-height, 56px) + 8px);
   }
 }
 
@@ -2439,7 +2462,7 @@ body,
 
 /* ── Universal Field Sketchbook Stage (FallbackJournalStage) ── */
 .utopia-journal-stage {
-  padding: 72px 20px 20px;
+  padding: calc(var(--utopia-horizon-height, 44px) + 28px) 20px 20px;
   gap: 14px;
   overflow-y: auto;
   color: var(--utopia-stage-badge-text);
@@ -3909,6 +3932,7 @@ body,
     --utopia-ink-strong: #1f160e;
     --utopia-ink-body: #2f2217;
     --utopia-ink-muted: #4a392b;
+    --utopia-chrome-border: rgba(48, 34, 20, 0.58);
     --utopia-parchment-border: rgba(48, 34, 20, 0.58);
     --utopia-ink-outline: #241910;
   }

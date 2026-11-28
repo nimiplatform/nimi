@@ -29,7 +29,7 @@
       "interrupt_failed": "打断失败",
       "voice_input_invalid": "无法处理语音输入，请重试。",
       "close_aria": "关闭伙伴控制",
-      "audio_unavailable": "音频暂时无法播放，口型会继续根据时间数据变化。",
+      "audio_unavailable": "音频播放不可用，语音和口型同步保持静音。",
       "privacy_indicator_aria": "隐私指示：{{state}}"
     },
     "degraded": {
@@ -137,6 +137,12 @@
       "popover_aria": "伙伴形象设置",
       "header": "伙伴形象设置",
       "close_aria": "关闭设置",
+      "language": {
+        "label": "语言",
+        "aria": "界面语言",
+        "en": "EN",
+        "zh": "中文"
+      },
       "always_on_top": {
         "label": "始终置顶",
         "help": "让伙伴形象始终显示在其他窗口上方。"

@@ -265,6 +265,14 @@ namespaces: &avatar_i18n_key_entries
         usage: "src/shell/renderer/settings-overlay/avatar-settings-overlay.tsx"
       - key: Avatar.settings.close_aria
         usage: "src/shell/renderer/settings-overlay/avatar-settings-overlay.tsx"
+      - key: Avatar.settings.language.label
+        usage: "src/shell/renderer/settings-overlay/avatar-settings-overlay.tsx"
+      - key: Avatar.settings.language.aria
+        usage: "src/shell/renderer/settings-overlay/avatar-settings-overlay.tsx"
+      - key: Avatar.settings.language.en
+        usage: "src/shell/renderer/settings-overlay/avatar-settings-overlay.tsx"
+      - key: Avatar.settings.language.zh
+        usage: "src/shell/renderer/settings-overlay/avatar-settings-overlay.tsx"
       - key: Avatar.settings.always_on_top.label
         usage: "src/shell/renderer/settings-overlay/avatar-settings-overlay.tsx"
       - key: Avatar.settings.always_on_top.help

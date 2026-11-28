@@ -142,3 +142,96 @@ test('a local-development build keeps 停止 beside 启动中 and in the overflo
     }
   }
 });
+
+test('a running local-development app exposes Focus primary and Stop secondary + overflow menu', async () => {
+  const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://localhost', pretendToBeVisual: true });
+  class ResizeObserverStub { observe() {} unobserve() {} disconnect() {} }
+  const values: Record<string, unknown> = {
+    window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
+    Element: dom.window.Element, Node: dom.window.Node, NodeFilter: dom.window.NodeFilter,
+    DocumentFragment: dom.window.DocumentFragment, MutationObserver: dom.window.MutationObserver,
+    ResizeObserver: (globalThis as { ResizeObserver?: unknown }).ResizeObserver ?? ResizeObserverStub,
+    getComputedStyle: dom.window.getComputedStyle,
+    requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window),
+    cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window),
+    React, IS_REACT_ACT_ENVIRONMENT: true,
+  };
+  for (const name of Object.getOwnPropertyNames(dom.window)) {
+    if (/^(?:HTML|SVG)\w*Element$|Event$/u.test(name) && !(name in values)) {
+      values[name] = (dom.window as unknown as Record<string, unknown>)[name];
+    }
+  }
+  const previous = new Map(Object.keys(values).map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const [key, value] of Object.entries(values)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+
+  const { createRoot } = await import('react-dom/client');
+  const { TooltipProvider } = await import('@nimiplatform/kit/ui');
+  const { changeLocale, initI18n } = await import('../src/shell/renderer/i18n');
+  const { AppsPanelView } = await import('../src/shell/renderer/features/apps/apps-panel-view');
+  const { AppStoreProvider } = await import('../src/shell/renderer/app-shell/providers/app-store.js');
+  const { createAppStore } = await import('../src/shell/renderer/app-shell/providers/app-store-factory.js');
+  const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
+  await initI18n();
+  await changeLocale('en');
+
+  const base = buildingEntry();
+  const entry: DesktopAppsEntry = {
+    ...base,
+    run: { ...base.run!, state: 'running' },
+  };
+  const actions: string[] = [];
+  const props: AppsPanelViewProps = {
+    projection: { status: 'loaded', entries: [entry], catalogStatus: 'not-implemented', runtimeError: null },
+    searchQuery: '',
+    onSearchChange: () => {},
+    selectedEntryKey: entry.identity.entryKey,
+    requestedDetailSection: null,
+    navigationEntryKey: 'entry-running',
+    onCardAction: (entryKey, action) => actions.push(`${entryKey}:${action}`),
+    onBack: () => {},
+    onOpenDeveloperMode: () => {},
+    onImportLocal: () => {},
+    onRetry: () => {},
+    onAIConfigChanged: () => {},
+    actionError: null,
+    pendingActions: [],
+    installConfirmation: null,
+    onConfirmInstall: () => undefined,
+    onCancelInstall: () => undefined,
+  };
+  const root = createRoot(dom.window.document.getElementById('root')!);
+  try {
+    await act(async () => root.render(<AppStoreProvider store={store}><TooltipProvider><AppsPanelView {...props} /></TooltipProvider></AppStoreProvider>));
+    const document = dom.window.document;
+    const focusButton = document.querySelector<HTMLButtonElement>('[data-testid="apps-detail-launch"]');
+    const stopButton = document.querySelector<HTMLButtonElement>('[data-testid="apps-detail-stop"]');
+    assert.ok(focusButton, 'running local-dev detail header offers primary Focus button');
+    assert.ok(focusButton.textContent?.includes('Show window'), 'Focus primary uses Show window copy');
+    assert.ok(stopButton, 'running local-dev detail header keeps Stop button beside Focus');
+    assert.ok(stopButton.textContent?.includes('Stop'));
+    await act(async () => focusButton.click());
+    await act(async () => stopButton.click());
+    const trigger = document.querySelector<HTMLElement>('[data-testid="apps-detail-more"]');
+    assert.ok(trigger);
+    await act(async () => trigger.click());
+    const menuStop = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')]
+      .find((item) => item.textContent?.includes('Stop'));
+    assert.ok(menuStop, 'running local-dev overflow menu also keeps Stop reachable');
+    await act(async () => menuStop.click());
+    assert.deepEqual(actions, [
+      `${entry.identity.entryKey}:launch`,
+      `${entry.identity.entryKey}:stop`,
+      `${entry.identity.entryKey}:stop`,
+    ]);
+  } finally {
+    await act(async () => root.unmount());
+    store.navigation.dispose();
+    await changeLocale('zh');
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    dom.window.close();
+    for (const [key, descriptor] of previous) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+  }
+});

@@ -40,6 +40,7 @@ import type {
   NimiLocalAppTextTurnInput as SdkLocalAppTextTurnInput,
   NimiLocalAppTextTurnEvent as SdkLocalAppTextTurnEvent,
   NimiLocalAppTextOutputItem,
+  NimiHostLocale,
 } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppTextInput, validateNimiLocalAppTextOutputItems, validateNimiLocalAppReasoningContinuityCarrier } from '@nimiplatform/kit/core/sdk-contract';
 import {
@@ -52,6 +53,7 @@ import { BridgeError, invoke, invokeChecked } from './invoke.js';
 import { listenShell } from './shell-api.js';
 import { assertRecord, parseRequiredString } from './types.js';
 import type { JsonObject, JsonValue } from './types.js';
+import { getShellHostLocale } from './ui.js';
 
 const AIC_COMMANDS = {
   textTurnStream: NIMI_STANDARD_SHELL_COMMANDS['local-app.textTurnStream'],
@@ -506,6 +508,9 @@ export type NimiLocalAppStandardShellSurface = {
   readonly session: {
     readonly status: () => Promise<NimiLocalAppSessionStatus>;
   };
+  readonly host: {
+    readonly getLocale: () => Promise<NimiHostLocale | null>;
+  };
   readonly ai: {
     readonly text: {
       readonly generateCandidate: (
@@ -650,6 +655,7 @@ export type NimiLocalAppStandardShellSurface = {
 export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardShellSurface {
   return {
     session: { status: getNimiLocalAppSessionStatus },
+    host: { getLocale: getShellHostLocale },
     utopia: {
       snapshot: () => invokeLocalAppRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUtopiaSnapshot'], {}),
       update: input => invokeLocalAppRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUtopiaUpdate'], input),

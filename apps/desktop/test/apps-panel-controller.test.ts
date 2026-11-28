@@ -38,9 +38,11 @@ import {
 } from '@nimiplatform/sdk/runtime/wire-types';
 
 describe('Desktop Apps controller action boundary', () => {
-  it('maps stopped development apps to launch and running apps to stop', () => {
+  it('maps stopped development apps to launch, running apps to focus + stop, and transitional failures to stop', () => {
     assert.equal(actionPlanForLocalDevelopmentEntry(null).primary?.id, 'launch');
-    assert.equal(actionPlanForLocalDevelopmentEntry('running').primary?.id, 'stop');
+    const runningPlan = actionPlanForLocalDevelopmentEntry('running');
+    assert.equal(runningPlan.primary?.id, 'launch');
+    assert.deepEqual(runningPlan.secondary.map((action) => action.id), ['details', 'stop', 'remove']);
     assert.equal(actionPlanForLocalDevelopmentEntry('build-failed').primary?.id, 'stop');
     assert.equal(actionPlanForLocalDevelopmentEntry('cleanup-failed').primary?.id, 'stop');
     assert.equal(actionPlanForLocalDevelopmentEntry('launcher-disconnected').primary?.id, 'launch');

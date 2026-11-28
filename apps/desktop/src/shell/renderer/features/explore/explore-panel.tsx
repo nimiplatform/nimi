@@ -246,7 +246,7 @@ function CharacterDiscovery() {
         ) : null}
         <SearchField
           ref={searchInputRef}
-          className="w-full sm:w-72"
+          className="w-full sm:w-72 min-w-[13rem]"
           aria-label={t('runtimeConfig.partners.characterSearch')}
           placeholder={t('runtimeConfig.partners.characterSearch')}
           value={queryText}

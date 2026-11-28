@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNimiAppSession } from '@nimiplatform/kit/auth/app';
+import { openDesktopIntent } from '@nimiplatform/kit/shell/renderer/bridge';
 import { AnimatePresence, Button, Popover, PopoverContent, PopoverTrigger } from '@nimiplatform/kit/ui';
 import {
   AlertTriangle,
@@ -8,11 +9,12 @@ import {
   Folder,
   FolderOpen,
   Gauge,
+  PanelLeft,
   PanelRight,
   Pencil,
   RotateCcw,
 } from 'lucide-react';
-import { useI18n } from '../i18n.js';
+import { localizeDefaultSessionTitle, useI18n } from '../i18n.js';
 import { ModelSettings } from '../shell/model-settings.js';
 import { draftsForScope } from './session-drafts.js';
 import { errorText, type HarnessView } from './harness-types.js';
@@ -54,11 +56,52 @@ export function Conversations({
   const [focusToken, setFocusToken] = useState(0);
   const [error, setError] = useState('');
   const [connectionError, setConnectionError] = useState('');
+  const [isNarrowViewport, setIsNarrowViewport] = useState(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(max-width: 768px)').matches
+      : false,
+  );
+  const [narrowDrawerOpen, setNarrowDrawerOpen] = useState(false);
+  const prevSidebarVisibleRef = useRef(sidebarVisible);
+  const threadPanelRef = useRef<HTMLDivElement>(null);
   const mattersTabRef = useRef<HTMLButtonElement>(null);
   const workspaceTabRef = useRef<HTMLButtonElement>(null);
   const { snapshot: access } = useNimiAppSession();
   const modelScope = access.runtime.status === 'connected' ? access.runtime.scope : undefined;
   const bridge = window.nimiHarness;
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mql = window.matchMedia('(max-width: 768px)');
+    const sync = () => {
+      const narrow = mql.matches;
+      setIsNarrowViewport(narrow);
+      setNarrowDrawerOpen(false);
+    };
+    sync();
+    mql.addEventListener('change', sync);
+    return () => mql.removeEventListener('change', sync);
+  }, []);
+
+  useEffect(() => {
+    if (prevSidebarVisibleRef.current === sidebarVisible) return;
+    prevSidebarVisibleRef.current = sidebarVisible;
+    if (isNarrowViewport) {
+      setNarrowDrawerOpen(prev => !prev);
+    }
+  }, [sidebarVisible, isNarrowViewport]);
+
+  useEffect(() => {
+    if (!isNarrowViewport || !narrowDrawerOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !event.defaultPrevented) {
+        event.preventDefault();
+        setNarrowDrawerOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isNarrowViewport, narrowDrawerOpen]);
 
   useEffect(() => {
     if (openingSession) return;
@@ -105,6 +148,13 @@ export function Conversations({
     try { setError(''); await action(); return true; }
     catch (cause) { setError(errorText(cause)); return false; }
   }, []);
+
+  const openPartnersInHome = useCallback(async () => {
+    await act(async () => {
+      const result = await openDesktopIntent({ intent: { kind: 'open-partners' } });
+      if (result.status !== 'accepted') throw new Error(result.reasonCode);
+    });
+  }, [act]);
 
   async function openSession(id?: string, pickFolder?: boolean) {
     setOpeningSession(true);
@@ -188,14 +238,62 @@ export function Conversations({
     setFocusToken(n => n + 1);
   }
 
+  const displaySessions = useMemo(
+    () => (snapshot?.sessions ?? []).map(item => ({
+      ...item,
+      title: localizeDefaultSessionTitle(item.title, t),
+    })),
+    [snapshot?.sessions, t],
+  );
   const selectedSession = view?.sessions.find(item => item.id === view.sessionId);
-  const selectedTitle = selectedSession?.title ?? t('app.conversations');
+  const selectedTitle = selectedSession
+    ? localizeDefaultSessionTitle(selectedSession.title, t)
+    : t('app.conversations');
   const isConflict = view?.failure === 'ai-config-revision-conflict';
   const invalidConfig = view?.failureReasonCode === 'AI_CONFIG_INVALID';
   const genericFailure = isConflict || invalidConfig ? undefined : view?.failure;
   const lastRequest = view?.failure
     ? view?.entries.filter(entry => entry.role === 'user' && !entry.fromHome).at(-1)?.text
     : undefined;
+  const isEmptyThread = Boolean(view && view.entries.length === 0 && !view.partial && !view.partialThinking);
+
+  useEffect(() => {
+    if (!isEmptyThread) return;
+    const panelRoot = threadPanelRef.current;
+    if (!panelRoot) return;
+    const resetTop = () => {
+      const scroller = panelRoot.querySelector<HTMLElement>('.harness-transcript');
+      if (scroller && scroller.scrollTop !== 0) {
+        scroller.scrollTop = 0;
+      }
+    };
+    resetTop();
+    const rafId = requestAnimationFrame(resetTop);
+    const scroller = panelRoot.querySelector<HTMLElement>('.harness-transcript');
+    const inner = panelRoot.querySelector<HTMLElement>('.harness-transcript__inner');
+    if (typeof ResizeObserver === 'undefined' || !scroller) {
+      return () => cancelAnimationFrame(rafId);
+    }
+    const observer = new ResizeObserver(() => {
+      resetTop();
+      requestAnimationFrame(resetTop);
+    });
+    observer.observe(scroller);
+    if (inner) observer.observe(inner);
+    return () => {
+      cancelAnimationFrame(rafId);
+      observer.disconnect();
+    };
+  }, [isEmptyThread, view?.sessionId]);
+
+  const rawBannerError = connectionError || error || genericFailure;
+  const sanitizedBannerError = rawBannerError
+    ? errorText(rawBannerError).replace(/^Error invoking remote method '[^']+':\s*(?:[A-Za-z]*Error:\s*)?/, '').trim()
+    : '';
+  const isMissingPartnerError = Boolean(sanitizedBannerError && /no authorized nimi partner/i.test(sanitizedBannerError));
+  const bannerErrorText = isMissingPartnerError ? t('partner.missingMessage') : sanitizedBannerError;
+  const showErrorHomeCta = Boolean(bannerErrorText && (isMissingPartnerError || !view?.model));
+  const effectiveSidebarVisible = isNarrowViewport ? narrowDrawerOpen : sidebarVisible;
 
   const totalTokens = view?.usage ? view.usage.inputTokens + view.usage.outputTokens : 0;
   const contextPct = view?.usage && view.contextWindowTokens && view.contextWindowTokens > 0
@@ -203,18 +301,35 @@ export function Conversations({
     : undefined;
 
   return (
-    <div className="harness-workbench" data-testid="nimi-app-workbench" data-sidebar-visible={sidebarVisible}>
-      {sidebarVisible && (
+    <div
+      className="harness-workbench"
+      data-testid="nimi-app-workbench"
+      data-sidebar-visible={effectiveSidebarVisible}
+      data-narrow-viewport={isNarrowViewport}
+    >
+      {isNarrowViewport && narrowDrawerOpen && (
+        <button
+          type="button"
+          className="harness-sidebar-backdrop"
+          aria-label={t('sidebar.title')}
+          onClick={() => setNarrowDrawerOpen(false)}
+        />
+      )}
+      {effectiveSidebarVisible && (
         <SessionSidebar
-          sessions={snapshot?.sessions ?? []}
+          sessions={displaySessions}
           activeSessionId={snapshot?.sessionId}
           activeDestination={activeDestination}
           disabled={!snapshot || openingSession}
           onSelectSession={id => {
+            setNarrowDrawerOpen(false);
             if (activeDestination !== 'conversations') openConversations();
             if (id !== snapshot?.sessionId) void openSession(id);
           }}
-          onCreateSession={pickFolder => void openSession(undefined, pickFolder)}
+          onCreateSession={pickFolder => {
+            setNarrowDrawerOpen(false);
+            void openSession(undefined, pickFolder);
+          }}
           onPinSession={(id, pinned) => void act(() => bridge.pinSession(id, pinned))}
           onRenameSession={(id, title) => void act(() => bridge.rename(id, title))}
           onExportSession={id => void exportSessionMarkdown(id)}
@@ -223,7 +338,10 @@ export function Conversations({
             setSelectedFile(undefined);
             setView(await bridge.snapshot());
           })}
-          onOpenModels={openModels}
+          onOpenModels={() => {
+            setNarrowDrawerOpen(false);
+            openModels();
+          }}
         />
       )}
 
@@ -235,6 +353,19 @@ export function Conversations({
             {/* Crisp Workspace Top Bar */}
             <header className="harness-topbar">
               <div className="harness-topbar__title">
+                {isNarrowViewport && (
+                  <button
+                    type="button"
+                    className={`harness-chip-btn harness-sidebar-drawer-toggle ${narrowDrawerOpen ? 'harness-chip-btn--active' : ''}`}
+                    data-testid="harness-sidebar-drawer-toggle"
+                    aria-label={t('sidebar.title')}
+                    title={t('sidebar.title')}
+                    aria-expanded={narrowDrawerOpen}
+                    onClick={() => setNarrowDrawerOpen(prev => !prev)}
+                  >
+                    <PanelLeft size={14} aria-hidden="true" />
+                  </button>
+                )}
                 {editingTitle && view ? (
                   <form
                     onSubmit={e => {
@@ -418,7 +549,7 @@ export function Conversations({
                 {/* Inspector Drawer Toggle */}
                 <button
                   type="button"
-                  className={`harness-chip-btn ${inspectorOpen ? 'harness-chip-btn--active' : ''}`}
+                  className={`harness-chip-btn harness-inspector-toggle-btn ${inspectorOpen ? 'harness-chip-btn--active' : ''}`}
                   aria-expanded={inspectorOpen}
                   aria-controls="harness-inspector-drawer"
                   aria-label={t('workspace.inspectorToggle')}
@@ -444,6 +575,7 @@ export function Conversations({
             {/* Main Streaming Transcript */}
             {view && (
               <div
+                ref={threadPanelRef}
                 id="harness-view-panel-matters"
                 aria-label={t('workspace.viewMatters')}
                 className="harness-thread-panel"
@@ -509,13 +641,30 @@ export function Conversations({
             )}
 
             {view && (isConflict || invalidConfig || !view.model) && (
-              <div className="harness-conflict-banner" role="alert">
+              <div className="harness-conflict-banner" role="alert" data-testid="harness-partner-notice">
                 <AlertTriangle size={16} aria-hidden="true" />
                 <div className="harness-conflict-banner__copy">
-                  <strong>{isConflict ? t('model.conflictTitle') : t('model.choose')}</strong>
-                  <p>{invalidConfig ? t('model.invalidPartnerConfig') : isConflict ? t('model.conflictMessage') : t('model.missingMessage')}</p>
+                  <strong>
+                    {isConflict
+                      ? t('model.conflictTitle')
+                      : invalidConfig
+                        ? t('model.choose')
+                        : t('partner.missingTitle')}
+                  </strong>
+                  <p>
+                    {invalidConfig
+                      ? t('model.invalidPartnerConfig')
+                      : isConflict
+                        ? t('model.conflictMessage')
+                        : t('partner.missingMessage')}
+                  </p>
                 </div>
                 <div className="harness-conflict-banner__actions">
+                  {(!view.model || invalidConfig) && (
+                    <Button size="sm" tone="primary" leadingIcon={<ExternalLink size={13} />} onClick={() => void openPartnersInHome()}>
+                      {t('partner.manageInHome')}
+                    </Button>
+                  )}
                   <Button size="sm" tone="ghost" onClick={openModels}>
                     {t('model.openSettings')}
                   </Button>
@@ -523,9 +672,14 @@ export function Conversations({
               </div>
             )}
 
-            {(connectionError || error || genericFailure) && (
+            {bannerErrorText && (
               <div className="harness-error-banner" role="alert">
-                {connectionError || error || genericFailure}
+                <span>{bannerErrorText}</span>
+                {showErrorHomeCta && (
+                  <Button size="sm" tone="secondary" leadingIcon={<ExternalLink size={13} />} onClick={() => void openPartnersInHome()}>
+                    {t('partner.manageInHome')}
+                  </Button>
+                )}
               </div>
             )}
 

@@ -242,6 +242,7 @@ describe('Electron standard shell capability catalog', () => {
       'shell-ui.chromeStateSet',
       'shell-ui.chromeCommand',
       'shell-ui.chromeUnbind',
+      'shell-ui.hostLocaleGet',
     ]);
     expect(localAppSet?.allowedCommands).toEqual([
       'nimi.shell.localApp.sessionStatus',
@@ -395,6 +396,7 @@ describe('Electron standard shell capability catalog', () => {
       'nimi.shell.ui.chromeStateSet',
       'nimi.shell.ui.chromeCommand',
       'nimi.shell.ui.chromeUnbind',
+      'nimi.shell.ui.hostLocaleGet',
     ]);
     expect(localAppSet?.plannedOperations).toEqual(expect.arrayContaining([
       'data.pathResolve',

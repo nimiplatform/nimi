@@ -58,17 +58,20 @@ export function PartnerDirectory({ onOpenConversation }: { onOpenConversation?: 
   }, [appActivity.recent.records, recentPartners]);
 
   if (auth.status !== 'authenticated' && auth.status !== 'refresh-pending') return <EmptyState title={t(`${P}.signIn`)} />;
+  const showEmptyState = !inventory.isPending && !inventory.isError && !partners.length && !inventory.hasNextPage;
   return <div className="flex min-h-0 flex-1 flex-col" data-testid="partner-directory">
     <div className="shrink-0 space-y-2 px-3 pb-2.5 pt-2">
       <SearchField className="partner-directory-search w-full" aria-label={t(`${P}.search`)} placeholder={t(`${P}.search`)} value={query}
         onChange={event => updateQuery(event.target.value)}
         onClear={() => updateQuery('')} clearLabel={t('Common.clear')} />
-      <div className="flex items-center justify-between gap-2">
-        <Button size="sm" tone="ghost" leadingIcon={<Compass size={14} />}
-          onClick={() => { void navigation.push({ id: 'explore', exploreSection: 'worlds', exploreSearchKind: 'characters' }); }}>
-          {t(`${P}.discover`)}
-        </Button>
-      </div>
+      {!showEmptyState ? (
+        <div className="flex items-center justify-between gap-2">
+          <Button size="sm" tone="ghost" leadingIcon={<Compass size={14} />}
+            onClick={() => { void navigation.push({ id: 'explore', exploreSection: 'worlds', exploreSearchKind: 'characters' }); }}>
+            {t(`${P}.discover`)}
+          </Button>
+        </div>
+      ) : null}
       {inventory.hasNextPage && query.trim() ? <p className="px-1 text-xs text-[var(--nimi-text-secondary)]">{t(`${P}.searchPartial`)}</p> : null}
     </div>
     <ScrollArea viewportRef={viewport} className="min-h-0 flex-1" contentClassName="space-y-1 px-2.5 pb-20">
@@ -90,7 +93,7 @@ export function PartnerDirectory({ onOpenConversation }: { onOpenConversation?: 
             onOpenConversation?.();
           });
         } : undefined} />)}
-      {!inventory.isPending && !inventory.isError && !partners.length && !inventory.hasNextPage ? <EmptyState title={t(`${P}.empty`)} action={<Button size="sm" onClick={() => { void navigation.push({ id: 'explore', exploreSection: 'worlds', exploreSearchKind: 'characters' }); }}>{t(`${P}.discover`)}</Button>} /> : null}
+      {showEmptyState ? <EmptyState title={t(`${P}.empty`)} action={<Button size="sm" onClick={() => { void navigation.push({ id: 'explore', exploreSection: 'worlds', exploreSearchKind: 'characters' }); }}>{t(`${P}.discover`)}</Button>} /> : null}
       {partners.length > 0 && !visible.length ? <p className="px-3 py-6 text-center text-sm text-[var(--nimi-text-secondary)]">{t(`${P}.noMatch`)}</p> : null}
       {inventory.hasNextPage ? <div className="flex items-center justify-between gap-2 px-2 pt-3 text-xs text-[var(--nimi-text-secondary)]"><span>{t(`${P}.partial`, { count: partners.length })}</span>
         <Button size="sm" tone="secondary" disabled={inventory.isFetchingNextPage} onClick={() => { void inventory.fetchNextPage(); }}>{t(`${P}.loadMore`)}</Button></div> : null}

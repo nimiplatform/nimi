@@ -124,6 +124,7 @@ import {
   type DesktopHomeHostProfile,
   type DesktopTemporaryEnvironment,
 } from './home-host-profile.js';
+import { createDesktopHostLocaleStore, type DesktopHostLocaleStore } from './host-locale-store.js';
 import { createDesktopElectronHttpHost } from './http-request-host.js';
 import {
   bindDesktopSenderInvalidation,
@@ -242,6 +243,7 @@ let systemEntryAdmission: ReturnType<typeof createSystemEntryAdmission> | undefi
 let systemEntryActionRelay: ReturnType<typeof createSystemEntryActionRelay> | undefined;
 let systemEntryAccountUnsubscribe: (() => void) | undefined;
 let systemEntryLocale: 'en' | 'zh' = 'en';
+let desktopHostLocaleStore: DesktopHostLocaleStore | undefined;
 let connectorAuthAcquisitionHost: DesktopElectronConnectorAuthAcquisitionHost | undefined;
 let registeredRuntimeBridge: RegisteredNimiElectronRuntimeBridge | undefined;
 const desktopFinalExit = createDesktopFinalExit({
@@ -419,11 +421,21 @@ async function configureDesktopHomeHostProfile(): Promise<boolean> {
     return true;
   } catch (error) {
     const failureCode = desktopBootstrapFailureCode(error);
-    writeDesktopStderr(`[desktop-home-profile] ${failureCode}\n`);
-    dialog.showErrorBox(
-      'Nimi could not prepare its startup profile',
-      `Nimi could not prepare its temporary setup profile (${failureCode}). Close other Nimi windows or free the temporary folder, then open Nimi again.`,
-    );
+    const failureMessage = desktopBootstrapFailureMessage(error);
+    writeDesktopStderr(`[desktop-home-profile] ${failureCode}: ${failureMessage}\n`);
+    if (AVATAR_ONLY_DEVELOPMENT_MODE) {
+      writeDesktopStderr(`[desktop-home-profile] ${JSON.stringify({
+        status: 'failed',
+        mode: 'avatar-only',
+        failureCode,
+        message: failureMessage,
+      })}\n`);
+    } else {
+      dialog.showErrorBox(
+        'Nimi could not prepare its startup profile',
+        `Nimi could not prepare its temporary setup profile (${failureCode}). Close other Nimi windows or free the temporary folder, then open Nimi again.`,
+      );
+    }
     return false;
   }
 }
@@ -503,7 +515,13 @@ async function checkDesktopHomeProfileScope(
 async function bootstrapDesktopElectronHost(): Promise<void> {
   try {
     await app.whenReady();
-    systemEntryLocale = app.getLocale().startsWith('zh') ? 'zh' : 'en';
+    desktopHostLocaleStore = createDesktopHostLocaleStore({
+      homeDirectory: app.getPath('home'),
+      reportError: (operation, error) => {
+        writeDesktopStderr(`[desktop-host-locale] ${operation}:${desktopBootstrapFailureCode(error)}\n`);
+      },
+    });
+    systemEntryLocale = await desktopHostLocaleStore.initialize(app.getLocale());
     if (process.platform === 'darwin' && !app.isPackaged) {
       app.dock?.setIcon(path.join(appRoot, 'assets', 'macos-icon.png'));
     }
@@ -1066,8 +1084,11 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
           if (!systemEntryHost) throw new Error('system-entry-unavailable');
           await systemEntryHost.publish(payload.payload);
           assertSystemEntryHomeRequest(payload, event, true);
-          systemEntryLocale = (payload.payload as { locale: 'en' | 'zh' }).locale;
+          const nextLocale = (payload.payload as { locale: 'en' | 'zh' }).locale;
+          systemEntryLocale = nextLocale;
           systemEntryRendererReady = true;
+          await desktopHostLocaleStore?.sync(nextLocale);
+          assertSystemEntryHomeRequest(payload, event, true);
           return { accepted: true };
         },
         [SYSTEM_ENTRY_HOME_COMMANDS.heartbeat]: async ({ payload, event }) => {
@@ -1286,7 +1307,12 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
 
     if (AVATAR_ONLY_DEVELOPMENT_MODE) {
       const localAppHost = registeredRuntimeBridge.bundledAvatarLocalAppHost;
-      if (!localAppHost) throw new Error('Avatar formal App host is unavailable.');
+      if (!localAppHost) {
+        throw createDesktopBootstrapError(
+          'avatar-only-host-unavailable',
+          'Avatar formal App host is unavailable.',
+        );
+      }
       await localAppHost.sessionStatus();
       const references = await localAppHost.agentReferenceList();
       const requestedHandle = normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_AGENT_HANDLE);
@@ -1294,15 +1320,36 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         ? references.find((reference) => reference.agentHandle === requestedHandle)
         : references.length === 1 ? references[0] : undefined;
       if (!selected) {
-        throw new Error(requestedHandle
-          ? 'Avatar requested Agent handle is not present in the formal App reference catalog.'
-          : 'Avatar-only Electron dev requires exactly one current formal App Agent reference.');
+        throw requestedHandle
+          ? createDesktopBootstrapError(
+              'avatar-only-agent-handle-not-found',
+              `Avatar requested Agent handle "${requestedHandle}" is not present in the formal App reference catalog (found ${references.length}).`,
+            )
+          : references.length === 0
+            ? createDesktopBootstrapError(
+                'avatar-only-no-partner-available',
+                'Avatar-only Electron dev requires at least one local partner, but 0 formal App Agent references are present. Add a local partner in Nimi Home first.',
+              )
+            : createDesktopBootstrapError(
+                'avatar-only-multiple-partners-require-handle',
+                `Avatar-only Electron dev requires exactly one current formal App Agent reference (found ${references.length}). Set NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_AGENT_HANDLE to choose one.`,
+              );
       }
       const selectedAgentHandle = normalizeText(selected.agentHandle);
-      if (!selectedAgentHandle) throw new Error('Avatar formal Agent handle is invalid.');
+      if (!selectedAgentHandle) {
+        throw createDesktopBootstrapError(
+          'avatar-only-agent-handle-invalid',
+          'Avatar formal Agent handle is invalid.',
+        );
+      }
       const conversation = await localAppHost.conversationOpen({ agentHandle: selectedAgentHandle });
       const conversationAnchorId = normalizeText(conversation.conversationAnchorId);
-      if (!conversationAnchorId) throw new Error('Avatar formal Conversation anchor is unavailable.');
+      if (!conversationAnchorId) {
+        throw createDesktopBootstrapError(
+          'avatar-only-conversation-anchor-unavailable',
+          'Avatar formal Conversation anchor is unavailable.',
+        );
+      }
       const hostTarget = await localAppHost.avatarHostTargetResolve({
         agentHandle: selectedAgentHandle,
         conversationAnchorId,
@@ -1324,7 +1371,10 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         }),
       });
       if (launchResult.state !== 'present' && launchResult.state !== 'focused') {
-        throw new Error('Avatar-only Electron dev launch did not create or focus an Avatar instance.');
+        throw createDesktopBootstrapError(
+          'avatar-only-launch-failed',
+          `Avatar-only Electron dev launch did not create or focus an Avatar instance (state: ${String(launchResult.state)}).`,
+        );
       }
     } else {
       if (systemEntryHost.enabled) {
@@ -1340,21 +1390,34 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     });
   } catch (error: unknown) {
     await shutdownBeforeQuit().catch(() => undefined);
-    const failureCode = desktopBootstrapFailureCode(error);
-    writeDesktopStderr(`[desktop-bootstrap] ${failureCode}\n`);
-    if (error instanceof DesktopSourceRuntimeUnavailableError) {
-      writeDesktopStderr(`[desktop-bootstrap] ${sourceRuntimeBootstrapFailureMessage(error.runtimeReasonCode)}\n`);
+    const failure = resolveDesktopBootstrapFailurePresentation(error, {
+      sourcePerUserRuntimeD2: SOURCE_PER_USER_RUNTIME_D2,
+      macOSLocalDevelopmentBuild: MACOS_LOCAL_DEVELOPMENT_BUILD,
+      avatarOnlyDevelopmentMode: AVATAR_ONLY_DEVELOPMENT_MODE,
+    });
+    for (const line of failure.stderrLines) {
+      writeDesktopStderr(line);
     }
-    dialog.showErrorBox(
-      'Nimi could not start safely',
-      SOURCE_PER_USER_RUNTIME_D2
-        ? sourceRuntimeBootstrapFailureMessage(failureCode)
-        : MACOS_LOCAL_DEVELOPMENT_BUILD
-          ? `Nimi Dev bootstrap failed (${failureCode}). Start it with "pnpm dev:runtime -- --desktop" and inspect the terminal output.`
-          : 'The verified Desktop carrier could not be initialized. Repair the Nimi installation and try again.',
-    );
+    if (failure.dialog) {
+      dialog.showErrorBox(failure.dialog.title, failure.dialog.message);
+    }
     desktopFinalExit.exit(1);
   }
+}
+
+type DesktopBootstrapFailurePresentation = Readonly<{
+  readonly failureCode: string;
+  readonly failureMessage: string;
+  readonly isSourceRuntimeUnavailable: boolean;
+  readonly stderrLines: readonly string[];
+  readonly dialog: Readonly<{ readonly title: string; readonly message: string }> | null;
+}>;
+
+function createDesktopBootstrapError(
+  reasonCode: string,
+  message: string,
+): Error & { readonly reasonCode: string } {
+  return Object.assign(new Error(message), { reasonCode });
 }
 
 function desktopBootstrapFailureCode(error: unknown): string {
@@ -1364,6 +1427,87 @@ function desktopBootstrapFailureCode(error: unknown): string {
     if (typeof value === 'string' && /^[a-z][a-z0-9-]{0,127}$/u.test(value)) return value;
   }
   return 'desktop-bootstrap-failed';
+}
+
+function desktopBootstrapFailureMessage(error: unknown): string {
+  if (error instanceof DesktopSourceRuntimeUnavailableError) {
+    return sourceRuntimeBootstrapFailureMessage(error.runtimeReasonCode);
+  }
+  const direct = extractBootstrapErrorText(error);
+  if (direct) return direct;
+  if (error && typeof error === 'object' && 'cause' in error) {
+    const nested = extractBootstrapErrorText((error as { readonly cause?: unknown }).cause);
+    if (nested) return nested;
+  }
+  return desktopBootstrapFailureCode(error);
+}
+
+function extractBootstrapErrorText(value: unknown): string {
+  const raw = value instanceof Error
+    ? value.message
+    : typeof value === 'string'
+      ? value
+      : value && typeof value === 'object' && 'message' in value && typeof value.message === 'string'
+        ? value.message
+        : '';
+  const sanitized = raw.replace(/[\r\n\t]+/gu, ' ').replace(/\s{2,}/gu, ' ').trim();
+  return sanitized ? sanitized.slice(0, 512) : '';
+}
+
+function resolveDesktopBootstrapFailurePresentation(
+  error: unknown,
+  options: Readonly<{
+    readonly sourcePerUserRuntimeD2: boolean;
+    readonly macOSLocalDevelopmentBuild: boolean;
+    readonly avatarOnlyDevelopmentMode: boolean;
+  }>,
+): DesktopBootstrapFailurePresentation {
+  const failureCode = desktopBootstrapFailureCode(error);
+  const failureMessage = desktopBootstrapFailureMessage(error);
+  const isSourceRuntimeUnavailable = error instanceof DesktopSourceRuntimeUnavailableError;
+  const diagnostic: Record<string, unknown> = {
+    status: 'failed',
+    mode: options.avatarOnlyDevelopmentMode ? 'avatar-only' : 'desktop',
+    failureCode,
+    message: failureMessage,
+  };
+  if (isSourceRuntimeUnavailable) {
+    diagnostic.runtimeReasonCode = error.runtimeReasonCode;
+  }
+  const stderrLines: string[] = [
+    `[desktop-bootstrap] ${failureCode}: ${failureMessage}\n`,
+    `[desktop-bootstrap] ${JSON.stringify(diagnostic)}\n`,
+  ];
+  if (options.avatarOnlyDevelopmentMode) {
+    return {
+      failureCode,
+      failureMessage,
+      isSourceRuntimeUnavailable,
+      stderrLines,
+      dialog: null,
+    };
+  }
+  const dialogMessage = isSourceRuntimeUnavailable
+    ? sourceRuntimeBootstrapFailureMessage(error.runtimeReasonCode || failureCode)
+    : options.sourcePerUserRuntimeD2
+      ? (failureMessage && failureMessage !== failureCode
+        ? `Nimi Home bootstrap failed (${failureCode}): ${failureMessage}`
+        : `Nimi Home bootstrap failed (${failureCode}). Inspect the terminal output for details.`)
+      : options.macOSLocalDevelopmentBuild
+        ? (failureMessage && failureMessage !== failureCode
+          ? `Nimi Dev bootstrap failed (${failureCode}): ${failureMessage} Start it with "pnpm dev:runtime -- --desktop" and inspect the terminal output.`
+          : `Nimi Dev bootstrap failed (${failureCode}). Start it with "pnpm dev:runtime -- --desktop" and inspect the terminal output.`)
+        : 'The verified Desktop carrier could not be initialized. Repair the Nimi installation and try again.';
+  return {
+    failureCode,
+    failureMessage,
+    isSourceRuntimeUnavailable,
+    stderrLines,
+    dialog: {
+      title: 'Nimi could not start safely',
+      message: dialogMessage,
+    },
+  };
 }
 
 function configureDesktopElectronChromiumRuntime(): void {

@@ -115,6 +115,14 @@ export function filterAppGroups(
   ));
 }
 
+/**
+ * Whether the App is present on this device (an installed release or a
+ * registered local-development project), as opposed to a catalog-only listing.
+ */
+export function isGroupInstalled(group: DesktopAppGroup): boolean {
+  return group.entries.some((entry) => entry.committedRelease !== null || entry.localDevelopment !== null);
+}
+
 export function sortAppGroups(
   groups: readonly DesktopAppGroup[],
   sort: AppsSortId,
@@ -129,27 +137,30 @@ export function sortAppGroups(
   if (sort === 'activity') {
     return copy.sort((left, right) => (
       Number(right.active) - Number(left.active)
+      || Number(isGroupInstalled(right)) - Number(isGroupInstalled(left))
       || right.updatedAtUnixMs - left.updatedAtUnixMs
       || left.appId.localeCompare(right.appId)
     ));
   }
   return copy.sort((left, right) => (
-    right.updatedAtUnixMs - left.updatedAtUnixMs
+    Number(isGroupInstalled(right)) - Number(isGroupInstalled(left))
+    || right.updatedAtUnixMs - left.updatedAtUnixMs
     || left.appId.localeCompare(right.appId)
   ));
 }
 
 /**
- * Rail filter options follow the states a user actually looks for: what is
- * running, what has an update, and what needs attention. `all` leaves the
- * rail untouched.
+ * Rail filter options follow the states a user actually looks for: installed
+ * apps only, what is running, what has an update, and what needs attention.
+ * `all` leaves the rail untouched.
  */
-export type AppsRailFilterId = 'all' | 'running' | 'updates' | 'attention';
+export type AppsRailFilterId = 'all' | 'installed' | 'running' | 'updates' | 'attention';
 
 export function filterAppGroupsByState(
   groups: readonly DesktopAppGroup[],
   filter: AppsRailFilterId,
 ): readonly DesktopAppGroup[] {
+  if (filter === 'installed') return groups.filter(isGroupInstalled);
   if (filter === 'running') return groups.filter((group) => group.active);
   if (filter === 'updates') return groups.filter((group) => group.entries.some(hasAvailableCatalogUpdate));
   if (filter === 'attention') return groups.filter((group) => group.entries.some(entryNeedsAttention));
@@ -168,6 +179,29 @@ export function splitRunningGroups(
     running: groups.filter((group) => group.active),
     rest: groups.filter((group) => !group.active),
   };
+}
+
+/**
+ * Steam-style rail sectioning with explicit installed vs catalog separation:
+ * Running on top, then bright Installed / local-development apps, then muted
+ * uninstalled Catalog apps below.
+ */
+export function splitRailGroups(
+  groups: readonly DesktopAppGroup[],
+): {
+  readonly running: readonly DesktopAppGroup[];
+  readonly installed: readonly DesktopAppGroup[];
+  readonly catalog: readonly DesktopAppGroup[];
+} {
+  const running: DesktopAppGroup[] = [];
+  const installed: DesktopAppGroup[] = [];
+  const catalog: DesktopAppGroup[] = [];
+  for (const group of groups) {
+    if (group.active) running.push(group);
+    else if (isGroupInstalled(group)) installed.push(group);
+    else catalog.push(group);
+  }
+  return { running, installed, catalog };
 }
 
 /** Sibling source entries for the detail surface, excluding the open one. */

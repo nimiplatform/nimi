@@ -13,7 +13,7 @@
   "inventoryCount": "{{count}} apps",
   "sidebar": {
     "subtitle": "Local development apps",
-    "searchPlaceholder": "Search apps or App ID",
+    "searchPlaceholder": "Search apps",
     "searchLabel": "Search registered apps",
     "clearSearch": "Clear search",
     "listLabel": "Registered apps",
@@ -23,7 +23,9 @@
     "noResultsDescription": "Try another name or App ID."
   },
   "rail": {
-    "runningSection": "Running"
+    "runningSection": "Running",
+    "installedSection": "Installed",
+    "catalogSection": "Catalog"
   },
   "home": {
     "attentionTitle": "Needs Attention",
@@ -41,9 +43,12 @@
     "pageTitle": "App Center",
     "filterLabel": "Filter apps",
     "filterAll": "All apps",
+    "filterInstalled": "Installed only",
+    "filterInstalledTooltip": "Show installed apps only",
     "filterRunning": "Running",
     "filterUpdates": "Updates available",
     "filterAttention": "Needs attention",
+    "clearFilters": "Show all apps",
     "backToLibrary": "Back to Apps",
     "connectLocalTitle": "Add App",
     "cardMenuLabel": "App actions",
@@ -52,6 +57,7 @@
   "sourceBadge": {
     "userImported": "Imported",
     "localDevelopment": "Local development",
+    "devTag": "DEV",
     "verified": "Reviewed",
     "verifiedDescription": "This app has passed review for publication."
   },
@@ -475,13 +481,17 @@
       "label": "AI runtime",
       "description": "Declares use of supported AI capabilities through Nimi Runtime. Model routing can be configured on the AI models tab."
     },
-    "integrationConsume": {
-      "label": "Integration services",
-      "description": "Declares calls to integration services through Nimi. Permissions to use specific connections and operations are configured separately in Integrations."
-    },
     "agentLocal": {
       "label": "Local agents",
       "description": "Declares interaction with local agent capabilities exposed by Nimi."
+    },
+    "agentSessionManage": {
+      "label": "Manage partner sessions & schedules",
+      "description": "Qualifies managing sessions admitted under local partners and scheduled triggers admitted under trigger delegation."
+    },
+    "agentCompanion": {
+      "label": "Companion conversations",
+      "description": "Qualifies companion session access and ongoing conversations with your local partners."
     },
     "agentAcquire": {
       "label": "Discover characters and add partners",
@@ -490,6 +500,46 @@
     "agentConfigure": {
       "label": "Agent configuration",
       "description": "Declares use of supported agent configuration capabilities exposed by Nimi."
+    },
+    "agentUtopiaRead": {
+      "label": "Read partner habitat state",
+      "description": "Declares read access to partner habitat scenes, presence, and shared journals through Nimi."
+    },
+    "agentUtopiaManage": {
+      "label": "Manage partner habitats",
+      "description": "Declares updates to partner habitat scenes, resident placement, and shared environment settings through Nimi."
+    },
+    "appActivity": {
+      "label": "App activity & reminders",
+      "description": "Declares publishing app status, pending items, and activity notices to Nimi Home."
+    },
+    "agentWork": {
+      "label": "Partner work & deliverables",
+      "description": "Declares coordinating partner tasks, work runs, and deliverable results through Nimi."
+    },
+    "agentBodyPc": {
+      "label": "Computer control actions",
+      "description": "Declares operating computer-level body actions when this local app holds an exclusive active lease through Nimi."
+    },
+    "agentBodyApp": {
+      "label": "App-scoped actions",
+      "description": "Declares structured body actions limited strictly to this app's own isolated action namespace."
+    },
+    "agentTriggerDelegate": {
+      "label": "Scheduled & delegated triggers",
+      "description": "Declares delegating alarms, timers, and event triggers for local partners through Nimi."
+    },
+    "integrationConsume": {
+      "label": "Integration services",
+      "description": "Declares calls to integration services through Nimi. Permissions to use specific connections and operations are configured separately in Integrations."
+    },
+    "integrationProvide": {
+      "label": "Provide integration tools",
+      "description": "Declares offering app-provided tools or services to Nimi Integrations. Standing permissions are managed separately in Integrations."
+    },
+    "integrationManage": {
+      "label": "Manage integrations",
+      "description": "Declares managing integration connections and configuration through Nimi."
     },
     "unknown": {
       "label": "Unrecognized declaration",

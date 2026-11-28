@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/nimiplatform/nimi/runtime/internal/jsonstrict"
+	"github.com/nimiplatform/nimi/runtime/internal/realmmedia"
 )
 
 type RealmCharacterDiscoveryItem struct {
@@ -91,18 +92,18 @@ func decodeRealmCharacterDiscovery(raw string, pageSize int) (RealmCharacterDisc
 	}
 	var page struct {
 		Items []struct {
-			SourceRef   json.RawMessage                  `json:"sourceRef"`
-			ID          string                           `json:"id"`
-			WorldID     string                           `json:"worldId"`
-			SourceKind  string                           `json:"sourceKind"`
-			DisplayName string                           `json:"displayName"`
-			Summary     string                           `json:"summary"`
-			WorldName   string                           `json:"worldName"`
-			Disposition *string                          `json:"disposition"`
-			Traits      []string                         `json:"traits"`
-			Topics      []string                         `json:"topics"`
-			Media       *realmCharacterPublicSourceMedia `json:"media"`
-			Relation    struct {
+			SourceRef      json.RawMessage `json:"sourceRef"`
+			ID             string          `json:"id"`
+			DisplayName    string          `json:"displayName"`
+			Summary        string          `json:"summary"`
+			WorldName      string          `json:"worldName"`
+			Role           *string         `json:"role"`
+			AvatarMedia    json.RawMessage `json:"avatarMedia"`
+			AvatarURL      *string         `json:"avatarUrl"`
+			PortraitMedia  json.RawMessage `json:"portraitMedia"`
+			PortraitURL    *string         `json:"portraitUrl"`
+			VoiceSampleURL *string         `json:"voiceSampleUrl"`
+			Relation       struct {
 				State string `json:"state"`
 			} `json:"relation"`
 		} `json:"items"`
@@ -120,43 +121,65 @@ func decodeRealmCharacterDiscovery(raw string, pageSize int) (RealmCharacterDisc
 		result.NextCursor = *page.NextCursor
 	}
 	for _, item := range page.Items {
-		var sourceRef RealmSourceMaterializationSourceRefV3
-		if json.Unmarshal(item.SourceRef, &sourceRef) != nil {
-			return invalid()
-		}
-		expected, err := realmSourceMaterializationSourceRefJSON(sourceRef)
+		sourceRef, err := parseRealmCharacterDiscoverySourceRef(item.SourceRef)
 		if err != nil {
 			return invalid()
 		}
-		expectedJSON, err := canonicalRealmCharacterPublicAvatarJSON(expected)
-		actualJSON, actualErr := canonicalRealmCharacterPublicAvatarJSON(item.SourceRef)
-		if err != nil || actualErr != nil || !bytes.Equal(expectedJSON, actualJSON) {
-			return invalid()
-		}
-		if item.ID != sourceRef.ID || item.WorldID != sourceRef.WorldID || item.SourceKind != sourceRef.Kind ||
+		if item.ID != sourceRef.ID ||
 			!text(item.DisplayName, true, 256) || !text(item.Summary, false, 16384) || !text(item.WorldName, true, 256) ||
-			!oneOfText(item.Relation.State, "connectable", "connected", "unavailable") || len(item.Traits) > 64 || len(item.Topics) > 64 {
+			!oneOfText(item.Relation.State, "connectable", "connected", "unavailable") {
 			return invalid()
 		}
-		for _, values := range [][]string{item.Traits, item.Topics} {
-			for _, value := range values {
-				if !text(value, true, 1024) {
-					return invalid()
-				}
-			}
-		}
-		disposition := ""
-		if item.Disposition != nil {
-			if !text(*item.Disposition, false, 16384) {
-				return invalid()
-			}
-			disposition = *item.Disposition
-		}
-		avatar, err := projectRealmCharacterPublicAvatar(&realmCharacterPublicSourceProjection{Media: item.Media})
+		avatar, err := decodeRealmCharacterDiscoveryAvatar(item.AvatarMedia, item.AvatarURL)
 		if err != nil {
 			return invalid()
 		}
-		result.Items = append(result.Items, RealmCharacterDiscoveryItem{SourceRef: sourceRef, DisplayName: item.DisplayName, Summary: item.Summary, WorldName: item.WorldName, Disposition: disposition, Traits: item.Traits, Topics: item.Topics, AvatarURL: avatar, Connectable: item.Relation.State == "connectable"})
+		result.Items = append(result.Items, RealmCharacterDiscoveryItem{
+			SourceRef:   sourceRef,
+			DisplayName: item.DisplayName,
+			Summary:     item.Summary,
+			WorldName:   item.WorldName,
+			AvatarURL:   avatar,
+			Connectable: item.Relation.State == "connectable",
+		})
 	}
 	return result, nil
+}
+
+func parseRealmCharacterDiscoverySourceRef(raw json.RawMessage) (RealmSourceMaterializationSourceRefV3, error) {
+	var sourceRef RealmSourceMaterializationSourceRefV3
+	if json.Unmarshal(raw, &sourceRef) != nil {
+		return RealmSourceMaterializationSourceRefV3{}, fmt.Errorf("parse character discovery sourceRef: invalid JSON")
+	}
+	expected, err := realmSourceMaterializationSourceRefJSON(sourceRef)
+	if err != nil {
+		return RealmSourceMaterializationSourceRefV3{}, fmt.Errorf("parse character discovery sourceRef: %w", err)
+	}
+	expectedJSON, err := canonicalRealmCharacterPublicAvatarJSON(expected)
+	actualJSON, actualErr := canonicalRealmCharacterPublicAvatarJSON(raw)
+	if err != nil || actualErr != nil || !bytes.Equal(expectedJSON, actualJSON) {
+		return RealmSourceMaterializationSourceRefV3{}, fmt.Errorf("parse character discovery sourceRef: non-canonical representation")
+	}
+	return sourceRef, nil
+}
+
+func decodeRealmCharacterDiscoveryAvatar(avatarMedia json.RawMessage, avatarURL *string) (*string, error) {
+	delivery, err := realmmedia.Decode(bytes.TrimSpace(avatarMedia))
+	if err != nil {
+		return nil, fmt.Errorf("decode character discovery avatar media: %w", err)
+	}
+	var candidate *string
+	if delivery != nil {
+		candidate = realmmedia.Image(delivery, "avatar", 160)
+	} else {
+		candidate = avatarURL
+	}
+	if candidate == nil || *candidate == "" {
+		return nil, nil
+	}
+	if !canonicalPublicAvatarURL(candidate) {
+		return nil, fmt.Errorf("decode character discovery avatar: URL is not canonical HTTPS")
+	}
+	selected := *candidate
+	return &selected, nil
 }

@@ -1,5 +1,5 @@
 import { InlineAlert, LoadingSkeleton, Tooltip } from '@nimiplatform/kit/ui';
-import { ArrowUp, Code2, LoaderCircle, Plus, Settings } from 'lucide-react';
+import { ArrowUp, LoaderCircle, Plus, Settings } from 'lucide-react';
 import { useMemo, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { invokeChecked } from '../../bridge/runtime-bridge/invoke.js';
@@ -337,12 +337,13 @@ export function HomeAppsWorkbench({
                       <ArrowUp size={8} />
                     </span>
                   ) : null}
-                  {disambiguator && entry.localDevelopment && !entry.committedRelease ? (
+                  {entry.localDevelopment && !entry.committedRelease ? (
                     <span
-                      className="absolute bottom-0.5 left-0.5 flex size-3.5 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)] shadow-xs"
+                      data-testid={`home-app-dev-badge:${group.appId}`}
+                      className="pointer-events-none absolute -left-1 -top-1 inline-flex items-center rounded bg-[var(--nimi-surface-card)] px-1 py-[1px] text-[8px] font-bold leading-none tracking-tight text-[var(--nimi-action-primary-bg)] ring-1 ring-[var(--nimi-border-strong)] shadow-xs"
                       aria-hidden="true"
                     >
-                      <Code2 size={8} />
+                      {t('Apps.sourceBadge.devTag')}
                     </span>
                   ) : null}
                   <span

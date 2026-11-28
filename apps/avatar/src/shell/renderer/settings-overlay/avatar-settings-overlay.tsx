@@ -1,10 +1,20 @@
 import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
-import { SelectField } from '@nimiplatform/kit/ui';
+import { SegmentedControl, SelectField } from '@nimiplatform/kit/ui';
 import { motion, nimiOverlayPanelMotion, useNimiReducedMotion } from '@nimiplatform/kit/ui/motion';
-import { useTranslation } from '../i18n/index.js';
+import {
+  SUPPORTED_LOCALES,
+  changeLocale,
+  getCurrentLocale,
+  useTranslation,
+  type SupportedLocale,
+} from '../i18n/index.js';
 import type { AvatarShellSettings } from '../settings-state.js';
 import { useClampedOverlayPosition } from '../use-clamped-overlay-position.js';
+
+function isSupportedLocale(value: string): value is SupportedLocale {
+  return (SUPPORTED_LOCALES as readonly string[]).includes(value);
+}
 
 export type AvatarSettingsOverlayDismissReason =
   | 'close'
@@ -29,7 +39,7 @@ export type AvatarSettingsOverlayProps = {
 };
 
 const OVERLAY_WIDTH_PX = 288;
-const OVERLAY_ESTIMATED_HEIGHT_PX = 410;
+const OVERLAY_ESTIMATED_HEIGHT_PX = 456;
 const VIEWPORT_PADDING_PX = 8;
 
 export function AvatarSettingsOverlay(props: AvatarSettingsOverlayProps) {
@@ -41,7 +51,10 @@ export function AvatarSettingsOverlay(props: AvatarSettingsOverlayProps) {
     onSettingsChange,
     onDismiss,
   } = props;
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const currentLocale: SupportedLocale = isSupportedLocale(i18n.language)
+    ? i18n.language
+    : getCurrentLocale();
   const reducedMotion = useNimiReducedMotion();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
@@ -139,6 +152,29 @@ export function AvatarSettingsOverlay(props: AvatarSettingsOverlayProps) {
         >
           <X size={14} aria-hidden="true" />
         </button>
+      </div>
+      <div
+        className="flex items-center justify-between gap-[var(--nimi-space-2)] px-[var(--nimi-space-2)] py-[var(--nimi-space-1)]"
+        data-testid="avatar-settings-language"
+      >
+        <span className="avatar-settings-popover__toggle-label">
+          {t('Avatar.settings.language.label')}
+        </span>
+        <SegmentedControl
+          size="sm"
+          className="shrink-0"
+          ariaLabel={t('Avatar.settings.language.aria')}
+          value={currentLocale}
+          items={[
+            { value: 'en', label: t('Avatar.settings.language.en') },
+            { value: 'zh', label: t('Avatar.settings.language.zh') },
+          ]}
+          onValueChange={(value) => {
+            if (isSupportedLocale(value) && value !== currentLocale) {
+              void changeLocale(value);
+            }
+          }}
+        />
       </div>
       <label className="avatar-settings-popover__toggle">
         <span className="avatar-settings-popover__toggle-text">

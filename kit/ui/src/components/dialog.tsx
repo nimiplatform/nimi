@@ -1,8 +1,8 @@
 import React, { createContext, useContext, type CSSProperties, type ReactNode } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
-import { IconButton } from './button.js';
 import { cn } from '../design-tokens.js';
+import { IconButton } from './button.js';
 import {
   AnimatePresence,
   NIMI_SPRING_DEFAULT,
@@ -236,12 +236,13 @@ const OVERLAY_SHELL_MAX_WIDTH = 'calc(100vw - 32px)';
 type OverlayShellProps = {
   open: boolean;
   kind?: OverlayShellKind;
-  closeLabel?: string;
   /** Edge axis for `kind="drawer"`. Defaults to `'right'`. */
   side?: 'left' | 'right';
   size?: OverlayShellSize;
   onClose?: () => void;
   closeOnBackdrop?: boolean;
+  /** Accessible label for the header close button, shown when both this label and `onClose` are provided. */
+  closeLabel?: string;
   /** Resolve the logical trigger at dismissal when navigation can replace the original control. */
   getReturnFocusTarget?: () => HTMLElement | null;
   title?: ReactNode;
@@ -271,8 +272,8 @@ function OverlayShellPresenceLayer({
   backdropMotion,
   description,
   handleCloseAutoFocus,
-  onClose,
   closeOnBackdrop,
+  onClose,
   resolvedDataTestId,
   defaultWidthClass,
   panelKindClass,
@@ -289,8 +290,8 @@ function OverlayShellPresenceLayer({
   backdropMotion: NimiOverlayMotionProps;
   description?: ReactNode;
   handleCloseAutoFocus: (event: Event) => void;
-  onClose?: () => void;
   closeOnBackdrop: boolean;
+  onClose?: () => void;
   resolvedDataTestId?: string;
   defaultWidthClass: string;
   panelKindClass: string;
@@ -324,9 +325,11 @@ function OverlayShellPresenceLayer({
         aria-hidden={!isPresent}
         {...(description ? {} : { 'aria-describedby': undefined })}
         onCloseAutoFocus={handleCloseAutoFocus}
-        onEscapeKeyDown={onClose ? event => {
-          if (event.cancelable) { event.preventDefault(); onClose(); }
-        } : undefined}
+        onEscapeKeyDown={(event) => {
+          if (!isPresent) return;
+          event.preventDefault();
+          onClose?.();
+        }}
         onPointerDownOutside={closeOnBackdrop ? undefined : (e) => e.preventDefault()}
         onInteractOutside={closeOnBackdrop ? undefined : (e) => e.preventDefault()}
         style={exitingPointerStyle}
@@ -361,11 +364,11 @@ function OverlayShellPresenceLayer({
 export function OverlayShell({
   open,
   kind = 'dialog',
-  closeLabel,
   side = 'right',
   size,
   onClose,
   closeOnBackdrop = true,
+  closeLabel,
   getReturnFocusTarget,
   title,
   description,
@@ -391,6 +394,7 @@ export function OverlayShell({
   const [presenceMounted, setPresenceMounted] = React.useState(open);
   const openRef = React.useRef(open);
   openRef.current = open;
+  const closePendingRef = React.useRef(false);
   const reducedMotion = useNimiReducedMotion();
   const panelMotion = nimiOverlayPanelMotion({
     kind: kind === 'drawer' ? 'drawer' : kind === 'popover' ? 'popover' : 'dialog',
@@ -401,6 +405,7 @@ export function OverlayShell({
 
   React.useEffect(() => {
     if (open) {
+      closePendingRef.current = false;
       setPresenceMounted(true);
       return;
     }
@@ -416,8 +421,17 @@ export function OverlayShell({
     if (!openRef.current) setPresenceMounted(false);
   };
 
+  const requestClose = () => {
+    if (!onClose || closePendingRef.current) return;
+    closePendingRef.current = true;
+    queueMicrotask(() => {
+      closePendingRef.current = false;
+    });
+    onClose();
+  };
+
   const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen && onClose) onClose();
+    if (!nextOpen) requestClose();
   };
 
   const handleCloseAutoFocus = (event: Event) => {
@@ -465,25 +479,40 @@ export function OverlayShell({
 
   const hasSidebar = sidebar !== undefined;
 
-  const showClose = Boolean(closeLabel && onClose);
-  const titleNode = title || description || showClose ? (
-    <div className={cn('nimi-overlay-title relative px-6 pt-6 pb-2', showClose && 'pr-16')}>
-      {showClose ? (
-        <DialogPrimitive.Close asChild>
-          <IconButton type="button" size="sm" className="absolute right-4 top-4" aria-label={closeLabel} icon={<X size={16} aria-hidden="true" />} />
-        </DialogPrimitive.Close>
-      ) : null}
-      {title ? (
-        <DialogPrimitive.Title asChild>
-          <div className="text-[length:var(--nimi-type-section-title-size)] font-[var(--nimi-type-section-title-weight)] leading-[var(--nimi-type-section-title-line-height)] tracking-[var(--nimi-type-section-title-letter-spacing)] text-[var(--nimi-text-primary)]">{title}</div>
-        </DialogPrimitive.Title>
-      ) : null}
-      {description ? (
-        <DialogPrimitive.Description asChild>
-          <div className="mt-1 text-[length:var(--nimi-type-body-sm-size)] font-normal leading-[var(--nimi-type-body-sm-line-height)] text-[var(--nimi-text-secondary)]">{description}</div>
-        </DialogPrimitive.Description>
-      ) : null}
-    </div>
+  const hasCloseButton = Boolean(closeLabel && onClose);
+  const titleHeading = title ? (
+    <DialogPrimitive.Title asChild>
+      <div className="text-[length:var(--nimi-type-section-title-size)] font-[var(--nimi-type-section-title-weight)] leading-[var(--nimi-type-section-title-line-height)] tracking-[var(--nimi-type-section-title-letter-spacing)] text-[var(--nimi-text-primary)]">{title}</div>
+    </DialogPrimitive.Title>
+  ) : null;
+  const titleDescription = description ? (
+    <DialogPrimitive.Description asChild>
+      <div className="mt-1 text-[length:var(--nimi-type-body-sm-size)] font-normal leading-[var(--nimi-type-body-sm-line-height)] text-[var(--nimi-text-secondary)]">{description}</div>
+    </DialogPrimitive.Description>
+  ) : null;
+  const titleNode = title || description || hasCloseButton ? (
+    hasCloseButton ? (
+      <div className="nimi-overlay-title flex items-start justify-between gap-3 px-6 pt-6 pb-2">
+        <div className="min-w-0 flex-1">
+          {titleHeading}
+          {titleDescription}
+        </div>
+        <IconButton
+          tone="ghost"
+          size="sm"
+          aria-label={closeLabel}
+          data-testid="nimi-overlay-close"
+          className="-mt-1 -mr-1 shrink-0"
+          onClick={requestClose}
+          icon={<X size={16} aria-hidden="true" />}
+        />
+      </div>
+    ) : (
+      <div className="nimi-overlay-title px-6 pt-6 pb-2">
+        {titleHeading}
+        {titleDescription}
+      </div>
+    )
   ) : null;
   const contentNode = (
     <div className={cn('nimi-overlay-content px-6 py-2', contentClassName)}>{children}</div>
@@ -516,7 +545,7 @@ export function OverlayShell({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      {presenceMounted ? <AnimatePresence onExitComplete={finishExit}>
+      {presenceMounted || open ? <AnimatePresence onExitComplete={finishExit}>
         {open ? (
           <OverlayShellPresenceLayer
             drawerBackdropPositionClass={drawerBackdropPositionClass}
@@ -525,8 +554,8 @@ export function OverlayShell({
             backdropMotion={backdropMotion}
             description={description}
             handleCloseAutoFocus={handleCloseAutoFocus}
-            onClose={onClose}
             closeOnBackdrop={closeOnBackdrop}
+            onClose={onClose ? requestClose : undefined}
             resolvedDataTestId={dataTestIdKebab ?? dataTestId}
             defaultWidthClass={defaultWidthClass}
             panelKindClass={panelKindClass}

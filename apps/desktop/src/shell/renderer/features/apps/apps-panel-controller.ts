@@ -519,8 +519,21 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
           if (!entry.committedRelease || !deps.uninstall) throw new Error('App uninstall is unavailable');
           await deps.uninstall(entry);
         } else if (action === 'launch') {
-          if (entry.localDevelopment) await liveBridge.startRegistration(entry.localDevelopment.selector);
-          else if (entry.committedRelease && liveBridge.launchInstalled) {
+          if (entry.localDevelopment) {
+            const wasRunning = entry.run?.state === 'running';
+            try {
+              const run = await liveBridge.startRegistration(entry.localDevelopment.selector);
+              if (run && (run.state === 'failed' || run.state === 'crashed')) {
+                failAction(entryKey, t(wasRunning ? 'Apps.focusFailed' : 'Apps.actionFailed'), run.message || run.reasonCode || null);
+              }
+            } catch (error) {
+              if (wasRunning) {
+                failAction(entryKey, t('Apps.focusFailed'), error instanceof Error ? error.message : String(error));
+              } else {
+                throw error;
+              }
+            }
+          } else if (entry.committedRelease && liveBridge.launchInstalled) {
             const run = await liveBridge.launchInstalled(entry.committedRelease.launchSelector.slice());
             if (run.state === 'crashed') failAction(entryKey, installedLaunchFailureMessage(run, t));
             else if (run.state === 'running') {
