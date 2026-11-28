@@ -54,11 +54,11 @@ func TestCUDA13AudioCppDependencyHasIndependentIdentityAndSource(t *testing.T) {
 	if !ok {
 		t.Fatal("expected CUDA 13 audio.cpp dependency spec")
 	}
-	if spec.DependencyID != NVIDIACUDA13UserSpaceRuntimeDependencyID || spec.Version != "cuda_major=13;audio.cpp=v0.9.3;cuda_minor=3" {
+	if spec.DependencyID != NVIDIACUDA13UserSpaceRuntimeDependencyID || spec.Version != "cuda_major=13;audio.cpp=v0.9.6;cuda_minor=3" {
 		t.Fatalf("CUDA 13 dependency identity = %+v", spec)
 	}
-	if spec.ManagedSource.ArchiveURL != "https://github.com/0xShug0/audio.cpp/releases/download/v0.9.3/audio-v0.9.3-cudart-windows-x64-cuda13.3.zip" ||
-		spec.ManagedSource.ArchiveSHA256 != "839eb20f684a8aab64895b1e466b32ce9b29dfc19dc1ce15b2ef35218512ac0a" || // pragma: allowlist secret -- public archive checksum
+	if spec.ManagedSource.ArchiveURL != "https://github.com/0xShug0/audio.cpp/releases/download/v0.9.6/audio-v0.9.6-cudart-windows-x64-cuda13.3.zip" ||
+		spec.ManagedSource.ArchiveSHA256 != "79cb17e005b0f614b2938dc3294c98e80ee9aafd696492ccefb0247faef4aac2" || // pragma: allowlist secret -- public archive checksum
 		spec.ManagedSource.InstallDirName == NVIDIACUDAUserSpaceRuntimeDependencyID {
 		t.Fatalf("CUDA 13 managed source = %+v", spec.ManagedSource)
 	}

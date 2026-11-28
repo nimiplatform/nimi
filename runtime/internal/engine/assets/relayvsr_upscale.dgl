@@ -1,0 +1,18 @@
+# RelayVSR one-step sampler from stable-diffusion.cpp 3b0426f, docs/dgl/relay_vsr.
+
+fn upscale_window(frames, dit, vae, rng) {
+    last = tensor::shape(frames)[3] - 1
+    indices = tensor::concat([tensor::arange(0, last, step = 15), tensor::vector([last], dtype = "i64")], axis = 0)
+    keyframes = tensor::index_select(frames, axis = 3, indices = indices)
+    condition = { crossattn = relayvsr::positive_embedding(dit), lq_frames = keyframes }
+    noise = tensor::randn_like(tensor::zeros(relayvsr::latent_shape(dit, keyframes)), rng = rng)
+    latent = sample(noise, tensor::vector([1.0, 0.0]), predict = predictor(dit, condition), method = "euler", rng = rng)
+    return relayvsr::decode(vae, latent, frames, keyframe_indices = indices)
+}
+
+# The bound transformer and VAE determine the scale.
+fn enhance_frames(frames, dit, vae, rng, factor) {
+    windows = video::split_windows(frames, size = 16, overlap = 1)
+    enhanced = map(windows, process = upscale_window, dit = dit, vae = vae, rng = rng)
+    return video::join_windows(enhanced, overlap = 1)
+}

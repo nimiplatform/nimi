@@ -693,7 +693,7 @@ func TestResolveManagedImageBackendPackageSpecForHostWindowsNvidiaCUDA(t *testin
 		managedImageBackendStringSliceContains(spec.SupportedModelFamilies, "z-image-turbo") {
 		t.Fatalf("expected Windows managed image backend package to declare only the canonical z-image family, got %v", spec.SupportedModelFamilies)
 	}
-	if !strings.Contains(spec.InstallDirName, "32d516c") {
+	if !strings.Contains(spec.InstallDirName, "3b0426f") {
 		t.Fatalf("expected release-qualified Windows install dir, got %q", spec.InstallDirName)
 	}
 }
@@ -728,9 +728,9 @@ func TestResolveManagedImageBackendPackageSpecForHostDarwinAppleUsesExactCanonic
 	if !ok || !spec.Supported {
 		t.Fatalf("darwin canonical package = %#v, ok=%v", spec, ok)
 	}
-	if spec.PackageSource != managedImageBackendPackageSourceCanonicalRuntimeWrapper || spec.ReleaseTag != "master-1088-32d516c" ||
-		spec.SourceCommit != "32d516c0197ed5ca31305b8575e14eb1451fad33" || // pragma: allowlist secret -- public source commit
-		spec.ArchiveSHA256 != "b6588e81e788d9f2f24498831ba398d7523152e7ec280ff282f39c2009465b77" || spec.MinOSVersion != "26.0.0" { // pragma: allowlist secret -- public archive checksum
+	if spec.PackageSource != managedImageBackendPackageSourceCanonicalRuntimeWrapper || spec.ReleaseTag != "master-1147-3b0426f" ||
+		spec.SourceCommit != "3b0426f7faf6256d1dbfa2046330cb2dc0c25861" || // pragma: allowlist secret -- public source commit
+		spec.ArchiveSHA256 != "f354db28227615974edec21cf64df336f0312a11279fe7574f23c9d622afe226" || spec.MinOSVersion != "26.0.0" { // pragma: allowlist secret -- public archive checksum
 		t.Fatalf("darwin exact package identity = %#v", spec)
 	}
 	for version, want := range map[string]bool{"25.9.9": false, "26.0": true, "26.5.2": true, "27": true, "": false} {
@@ -753,6 +753,17 @@ func TestValidateManagedImageBackendPackageSpecRejectsIncompleteSupportedPackage
 	})
 	if err == nil {
 		t.Fatal("expected incomplete supported package to be rejected")
+	}
+}
+
+func TestValidateManagedImageBackendPackageSpecRejectsTruncatedArchiveDigest(t *testing.T) {
+	spec, ok := resolveManagedImageBackendPackageSpecForHost("stablediffusion-ggml", "windows", "amd64", "nvidia", true)
+	if !ok || !spec.Supported {
+		t.Fatal("Windows NVIDIA package unavailable")
+	}
+	spec.ArchiveSHA256 = spec.ArchiveSHA256[:len(spec.ArchiveSHA256)-2]
+	if err := validateManagedImageBackendPackageSpec(spec); err == nil || !strings.Contains(err.Error(), "invalid SHA-256 digest") {
+		t.Fatalf("truncated archive hash was accepted: %v", err)
 	}
 }
 

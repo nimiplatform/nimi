@@ -108,6 +108,7 @@ static void *nimi_sd_generate(nimi_sd_video *api, void *ctx, const void *params,
 import "C"
 
 import (
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"io"
@@ -118,6 +119,7 @@ import (
 	"sync"
 	"unsafe"
 
+	"github.com/ebitengine/purego"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 )
 
@@ -143,10 +145,35 @@ type darwinVideoEngine struct {
 }
 
 func newStableDiffusionVideoEngine(executablePath string, identity videoPackageIdentity) (videoEngine, error) {
-	return &darwinVideoEngine{
+	library := &darwinVideoEngine{
 		developmentLibraryPath: filepath.Join(filepath.Dir(executablePath), macOSVideoLibraryName),
 		archiveSHA256:          identity.ArchiveSHA256,
-	}, nil
+	}
+	if identity.ArchiveSHA256 == stableDiffusionVideoDarwinMetalArchiveSHA256 {
+		return library, nil
+	}
+	return &opaqueVideoEngine{backend: "metal", open: func(api *sdVideoAPI) (func(), error) {
+		if identity.ArchiveSHA256 != stableDiffusionVideoDarwinArchiveSHA256 {
+			return nil, fmt.Errorf("video package does not match the Apple Silicon ABI")
+		}
+		path, err := library.libraryPath()
+		if err != nil {
+			return nil, err
+		}
+		const rtldFirst = 0x100
+		handle, err := purego.Dlopen(path, purego.RTLD_NOW|purego.RTLD_LOCAL|rtldFirst)
+		if err != nil {
+			return nil, fmt.Errorf("load stable-diffusion video dylib: %w", err)
+		}
+		closeLibrary := func() { _ = purego.Dlclose(handle) }
+		if err := api.bind(func(symbol string) (uintptr, error) {
+			return purego.Dlsym(handle, symbol)
+		}); err != nil {
+			closeLibrary()
+			return nil, err
+		}
+		return closeLibrary, nil
+	}}, nil
 }
 
 func (e *darwinVideoEngine) libraryPath() (string, error) {
@@ -274,7 +301,7 @@ func (e *darwinVideoEngine) Load(request VideoModelRequest) (bool, error) {
 	return false, nil
 }
 
-func (e *darwinVideoEngine) Generate(request VideoGenerateRequest, progress func(VideoGenerateProgress)) (VideoCandidate, error) {
+func (e *darwinVideoEngine) Generate(ctx context.Context, request VideoGenerateRequest, progress func(VideoGenerateProgress)) (VideoCandidate, error) {
 	e.operationMu.Lock()
 	defer e.operationMu.Unlock()
 	if e.ctx == nil {
@@ -326,6 +353,10 @@ func (e *darwinVideoEngine) Generate(request VideoGenerateRequest, progress func
 		defer handle.Delete()
 	}
 	e.stateMu.Lock()
+	if err := ctx.Err(); err != nil {
+		e.stateMu.Unlock()
+		return VideoCandidate{}, videoError(VideoErrorCanceled, err)
+	}
 	e.canceled = false
 	e.active = true
 	C.nimi_sd_cancel(&e.api, e.ctx, 2) // SD_CANCEL_RESET

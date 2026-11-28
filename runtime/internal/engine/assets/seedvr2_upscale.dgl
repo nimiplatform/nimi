@@ -1,0 +1,31 @@
+# SeedVR2 one-step sampler from stable-diffusion.cpp 3b0426f, docs/dgl/seedvr2.
+
+fn upscale_window(frames, dit, vae, embedding, factor, rng) {
+    shape = tensor::shape(frames)
+    width = shape[1] * factor
+    height = shape[2] * factor
+    aligned_width = math::ceil_div(width, 16) * 16
+    aligned_height = math::ceil_div(height, 16) * 16
+    planar = tensor::permute(tensor::cast(frames, "f32"), axes = [1, 2, 3, 0])
+    scaled = tensor::clamp(tensor::interpolate(tensor::div(planar, 255.0), [width, height], mode = "bicubic"), min = 0, max = 1)
+    padded = tensor::pad(scaled, [0, aligned_width - width, 0, aligned_height - height])
+    pixels = tensor::reshape(padded, [aligned_width, aligned_height, 1, 3, 1])
+    encoded = vae_encode(vae, pixels, rng = rng, posterior = "mode")
+    condition_latent = vae_to_dit_latents(vae, encoded)
+    dims = tensor::shape(encoded)
+    mask = tensor::full([dims[0], dims[1], dims[2], 1, dims[4]], 1)
+    condition = { crossattn = embedding, concat = tensor::concat([condition_latent, mask], axis = 3) }
+    noise = tensor::randn_like(condition_latent, rng = rng)
+    latent = sample(noise, tensor::vector([1.0, 0.0]), predict = predictor(dit, condition), method = "euler", rng = rng)
+    decoded = vae_decode(vae, dit_to_vae_latents(vae, latent), dtype = "f32")
+    cropped = tensor::crop(decoded, axes = [0, 1, 2], start = [0, 0, 0], size = [width, height, 1])
+    rgb = tensor::permute(tensor::reshape(cropped, [width, height, 1, 3]), axes = [3, 0, 1, 2])
+    return tensor::cast(tensor::mul(rgb, 255.0), "u8")
+}
+
+fn enhance_frames(frames, dit, vae, rng, factor) {
+    windows = video::split_windows(frames, size = 1)
+    embedding = seedvr2::positive_embedding(dit)
+    enhanced = map(windows, process = upscale_window, dit = dit, vae = vae, embedding = embedding, factor = factor, rng = rng)
+    return video::join_windows(enhanced)
+}

@@ -1,7 +1,9 @@
 package engine
 
 import (
+	"crypto/sha256"
 	_ "embed"
+	"encoding/hex"
 	"fmt"
 	"net/url"
 	"os/exec"
@@ -353,6 +355,10 @@ func validateManagedImageBackendPackageSpec(spec managedImageBackendPackageSpec)
 	case managedImageBackendPackageFormatDirectArchive:
 		if strings.TrimSpace(spec.ArchiveURL) == "" || strings.TrimSpace(spec.ArchiveSHA256) == "" {
 			return fmt.Errorf("supported archive managed image backend package %q is missing archive hash proof", spec.BackendName)
+		}
+		digest, err := hex.DecodeString(strings.TrimSpace(spec.ArchiveSHA256))
+		if err != nil || len(digest) != sha256.Size {
+			return fmt.Errorf("supported archive managed image backend package %q has an invalid SHA-256 digest", spec.BackendName)
 		}
 	default:
 		return fmt.Errorf("supported managed image backend package %q has unsupported package format %q", spec.BackendName, spec.PackageFormat)

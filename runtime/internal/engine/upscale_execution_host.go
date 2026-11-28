@@ -112,17 +112,13 @@ func (host *UpscaleExecutionHost) ExecuteUpscale(ctx context.Context, plan *capa
 			_ = os.RemoveAll(work)
 		}
 	}()
-	args := []string{"-M", "vid_upscale", "--diffusion-model", plan.Bindings[0].AbsolutePath, "--vae", plan.Bindings[1].AbsolutePath,
-		"--upscale-factor", strconv.Itoa(int(plan.Scale)), "--seed", strconv.FormatInt(plan.Seed, 10), "--offload-to-cpu"}
-	if plan.Family == "seedvr2" {
-		args = append(args, "--vsr-temporal-chunk-size", "1")
-	}
+	cli := upscaleCLI{executable: native, directory: nativeDir, env: env, release: spec.ReleaseTag}
 	host.manager.logger.Info("native super-resolution starting", "recipe", plan.RecipeID, "video", plan.Video, "scale", plan.Scale, "executable", native)
 	var result *localexecution.UpscaleArtifact
 	if plan.Video {
-		result, err = host.upscaleVideo(ctx, plan, work, nativeDir, native, env, args)
+		result, err = host.upscaleVideo(ctx, plan, work, cli)
 	} else {
-		result, err = upscaleStill(ctx, plan, work, nativeDir, native, env, args)
+		result, err = upscaleStill(ctx, plan, work, cli)
 	}
 	if err != nil {
 		return nil, err
@@ -171,7 +167,7 @@ func (b *upscaleCommandBuffer) Write(data []byte) (int, error) {
 	return count, nil
 }
 
-func upscaleStill(ctx context.Context, plan *capabilitydriver.UpscaleInvocationPlan, work, nativeDir, native string, env map[string]string, args []string) (*localexecution.UpscaleArtifact, error) {
+func upscaleStill(ctx context.Context, plan *capabilitydriver.UpscaleInvocationPlan, work string, cli upscaleCLI) (*localexecution.UpscaleArtifact, error) {
 	width, height, err := upscaleImageDimensions(plan.Source, plan.Scale)
 	if err != nil {
 		return nil, err
@@ -184,8 +180,7 @@ func upscaleStill(ctx context.Context, plan *capabilitydriver.UpscaleInvocationP
 	if err := os.WriteFile(input, plan.Source, 0o600); err != nil {
 		return nil, err
 	}
-	args = append(args, "-i", input, "-o", output)
-	if _, err := runUpscaleCommand(ctx, nativeDir, env, native, args...); err != nil {
+	if err := cli.run(ctx, plan, work, input, output, 1, 0); err != nil {
 		return nil, fmt.Errorf("native image super-resolution: %w", err)
 	}
 	if err := validateUpscaledPNG(output, width, height); err != nil {
@@ -335,7 +330,7 @@ func inspectUpscaleVideo(ctx context.Context, ffprobe, path string, scale uint32
 	return facts, nil
 }
 
-func (host *UpscaleExecutionHost) upscaleVideo(ctx context.Context, plan *capabilitydriver.UpscaleInvocationPlan, work, nativeDir, native string, env map[string]string, args []string) (*localexecution.UpscaleArtifact, error) {
+func (host *UpscaleExecutionHost) upscaleVideo(ctx context.Context, plan *capabilitydriver.UpscaleInvocationPlan, work string, cli upscaleCLI) (*localexecution.UpscaleArtifact, error) {
 	ffmpeg, ffprobe, err := host.resolveCodec(ctx)
 	if err != nil {
 		return nil, err
@@ -366,8 +361,7 @@ func (host *UpscaleExecutionHost) upscaleVideo(ctx context.Context, plan *capabi
 	if _, err := inspectUpscaleFrames(inputFrames, facts.Frames, facts.Width, facts.Height); err != nil {
 		return nil, err
 	}
-	args = append(args, "--input-frames", inputFrames, "--fps", strconv.Itoa(facts.FPS), "-o", filepath.Join(outputFrames, "frame-%06d.png"))
-	if _, err := runUpscaleCommand(ctx, nativeDir, env, native, args...); err != nil {
+	if err := cli.run(ctx, plan, work, inputFrames, outputFrames, facts.Frames, facts.FPS); err != nil {
 		return nil, fmt.Errorf("native video super-resolution: %w", err)
 	}
 	width, height := facts.Width*int(plan.Scale), facts.Height*int(plan.Scale)

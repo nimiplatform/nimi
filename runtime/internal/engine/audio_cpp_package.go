@@ -12,12 +12,12 @@ import (
 )
 
 const (
-	AudioCppPackageVersion        = "0.9.3"
-	AudioCppPackageCommit         = "41c1f8ffa0d13a1b7e366e30ea5fe5ab8d169d48" // pragma: allowlist secret -- public source commit
-	AudioCppPackageAssetName      = "audio-v0.9.3-bin-windows-x64-cuda13.3.zip"
-	AudioCppPackageArchiveURL     = "https://github.com/0xShug0/audio.cpp/releases/download/v0.9.3/audio-v0.9.3-bin-windows-x64-cuda13.3.zip"
-	AudioCppPackageArchiveSHA256  = "0bd3988be10c31ec078c40df2bd0d4266e660804f6d5083aeb05d1309d091e43" // pragma: allowlist secret -- public archive checksum
-	AudioCppPackageArchiveBytes   = int64(277336614)
+	AudioCppPackageVersion        = "0.9.6"
+	AudioCppPackageCommit         = "04a37f2e80ff2dbcdd84cc67848a970bd02a73e0" // pragma: allowlist secret -- public source commit
+	AudioCppPackageAssetName      = "audio-v0.9.6-bin-windows-x64-cuda13.3.zip"
+	AudioCppPackageArchiveURL     = "https://github.com/0xShug0/audio.cpp/releases/download/v0.9.6/audio-v0.9.6-bin-windows-x64-cuda13.3.zip"
+	AudioCppPackageArchiveSHA256  = "05e3f7ac7753992e57caeeb223af45669a85e4cd56a539f16453cdb3e78ef494" // pragma: allowlist secret -- public archive checksum
+	AudioCppPackageArchiveBytes   = int64(282519671)
 	AudioCppSelectedSourceVersion = "release-" + AudioCppPackageVersion + "@" + AudioCppPackageCommit
 	AudioCppCLIExecutableName     = "audiocpp_cli.exe"
 )
@@ -255,7 +255,7 @@ func (m *Manager) audioCppStatusFromRegistryEntry(entry *RegistryEntry) (EngineB
 		Platform:         identity.Platform,
 		AssetName:        identity.AssetName,
 		AcceleratorPlane: identity.AcceleratorPlane,
-		Detail:           "audio.cpp v0.9.3 official " + identity.Platform + " CLI package verified and promoted",
+		Detail:           "audio.cpp v" + AudioCppPackageVersion + " official " + identity.Platform + " CLI package verified and promoted",
 	}, nil
 }
 

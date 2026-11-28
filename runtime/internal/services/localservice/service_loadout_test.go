@@ -2107,14 +2107,16 @@ func seedStableDiffusionSelectedSourcesForLoadoutTest(t *testing.T, svc *Service
 		return
 	}
 	packageRoot := filepath.Join(root, "environments", "stable-diffusion")
-	archiveSHA256 := "e76d90e0ad0aedb3bcd9e24e7ecb20e7c3e0be9700a7e9e94fbd26226e67f597" // pragma: allowlist secret
+	executable := "sd-cli.exe"
+	archiveSHA256 := "cd62cb294132e175ca17024d997b8925888438c2d4bdb72968f61935dcdab68e" // pragma: allowlist secret
 	if profile.OS == "darwin" {
-		archiveSHA256 = "b6588e81e788d9f2f24498831ba398d7523152e7ec280ff282f39c2009465b77" // pragma: allowlist secret
+		executable = "sd-cli"
+		archiveSHA256 = "f354db28227615974edec21cf64df336f0312a11279fe7574f23c9d622afe226" // pragma: allowlist secret
 	}
 	packageRecord := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
 		EnvironmentKey:   localEnvironmentKey(localEnvironmentFamilyNativeSDCPP, "stable-diffusion.cpp.package", profile.HostProfileID, localEnvironmentPlatformTuple(profile), root),
 		DependencyFamily: localEnvironmentFamilyNativeSDCPP, DependencyID: "stable-diffusion.cpp.package", CanonicalRoot: packageRoot,
-		Version: "master-1088-32d516c", Hashes: map[string]string{"archive_sha256": archiveSHA256}, SelectedConsumers: []string{consumer}, VerifiedArtifacts: []string{filepath.Join(packageRoot, "sd.exe")},
+		Version: "master-1147-3b0426f", Hashes: map[string]string{"archive_sha256": archiveSHA256}, SelectedConsumers: []string{consumer}, VerifiedArtifacts: []string{filepath.Join(packageRoot, executable)},
 	})
 	writeSelectedSourceLocalArtifactsForTest(t, packageRecord)
 	svc.upsertLocalEnvironmentSelectedSourceRecord(packageRecord)

@@ -29,19 +29,19 @@ entries:
     dependency_family: native-engine-package.stablediffusion-ggml
     package_source: canonical_runtime_wrapper
     package_format: direct_archive
-    release_tag: master-1088-32d516c
-    source_commit: 32d516c0197ed5ca31305b8575e14eb1451fad33 # pragma: allowlist secret
-    install_dir_name: sd-macos-metal-arm64-stablediffusion-ggml-32d516c
+    release_tag: master-1147-3b0426f
+    source_commit: 3b0426f7faf6256d1dbfa2046330cb2dc0c25861 # pragma: allowlist secret
+    install_dir_name: sd-macos-metal-arm64-stablediffusion-ggml-3b0426f
     image_ref: ""
-    archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-1088-32d516c/sd-master-32d516c-bin-Darwin-macOS-26.7.2-arm64.zip
-    archive_sha256: b6588e81e788d9f2f24498831ba398d7523152e7ec280ff282f39c2009465b77 # pragma: allowlist secret
+    archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-1147-3b0426f/sd-master-3b0426f-bin-Darwin-macOS-26.7.2-arm64.zip
+    archive_sha256: f354db28227615974edec21cf64df336f0312a11279fe7574f23c9d622afe226 # pragma: allowlist secret
     executable_candidates: [sd-cli, sd-server]
     supported_model_families: [flux, ideogram4, minimax-h3-image, hyperflow-h3-flash, qwen-image, sdxl, relayvsr, seedvr2, z-image]
     launch_mode: runtime_wrapper
     wrapper_driver: stable-diffusion.cpp
     product_state: supported
     detail: >-
-      Canonical official master-1088-32d516c Apple Silicon archive for the
+      Canonical official master-1147-3b0426f Apple Silicon archive for the
       macOS 26.0+ / arm64 / Apple Metal first-class target. This exact source
       uses Metal for supported ordinary operators and CPU for INT8 ConvRot.
       Native Metal INT8 requires a separately verified SD_METAL build. Exact
@@ -82,12 +82,12 @@ entries:
     dependency_family: native-engine-package.stablediffusion-ggml
     package_source: canonical_runtime_wrapper
     package_format: direct_archive
-    release_tag: master-1088-32d516c
-    source_commit: 32d516c0197ed5ca31305b8575e14eb1451fad33 # pragma: allowlist secret
-    install_dir_name: sd-win-cuda12-x64-stablediffusion-ggml-32d516c
+    release_tag: master-1147-3b0426f
+    source_commit: 3b0426f7faf6256d1dbfa2046330cb2dc0c25861 # pragma: allowlist secret
+    install_dir_name: sd-win-cuda12-x64-stablediffusion-ggml-3b0426f
     image_ref: ""
-    archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-1088-32d516c/sd-master-32d516c-bin-win-cuda12-x64.zip
-    archive_sha256: e76d90e0ad0aedb3bcd9e24e7ecb20e7c3e0be9700a7e9e94fbd26226e67f597 # pragma: allowlist secret
+    archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-1147-3b0426f/sd-master-3b0426f-bin-win-cuda12-x64.zip
+    archive_sha256: cd62cb294132e175ca17024d997b8925888438c2d4bdb72968f61935dcdab68e # pragma: allowlist secret
     dependency_requirements:
       - dependency_id: nvidia-cuda-user-space-runtime
         consumer_id: stable-diffusion.cpp.cuda
@@ -95,7 +95,7 @@ entries:
         source_table: local-environment-dependencies.yaml
         accelerator_projection_table: shared-accelerator-dependencies.yaml
         first_network_materialization_requires_confirmation: true
-    executable_candidates: [sd.exe, sd-cli.exe]
+    executable_candidates: [sd-cli.exe, sd-server.exe]
     supported_model_families: [wan22, flux3, flux, ideogram4, minimax-h3, minimax-h3-image, hyperflow-h3-flash, qwen-image, sdxl, relayvsr, seedvr2, z-image]
     launch_mode: runtime_wrapper
     wrapper_driver: stable-diffusion.cpp

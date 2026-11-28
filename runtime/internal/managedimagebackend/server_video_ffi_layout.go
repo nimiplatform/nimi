@@ -3,9 +3,9 @@ package managedimagebackend
 import "unsafe"
 
 // @nimi-authority: rule.nimi.runtime.local-compute.r067
-// The following types mirror stable-diffusion.h at master-1088-32d516c.
-// C enums/int are int32, C bool is one byte, and pointers/size_t use eight-byte
-// alignment on Windows x64 and Darwin arm64. Update these layouts with the exact package cohort.
+// The Apple Silicon source-development archive uses the master-1088-32d516c
+// layouts. C enums/int are int32, C bool is one byte, and pointers/size_t
+// use eight-byte alignment on Darwin arm64.
 type sdCtxParams struct {
 	ModelPath                   uintptr
 	ClipLPath                   uintptr

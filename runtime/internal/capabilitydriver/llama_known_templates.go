@@ -198,7 +198,7 @@ func KnownLlamaTemplateCohortAllowed(recipeID, templateID, architecture string, 
 }
 
 // llamaSupportedTextArchitectures lists generative LLM architectures registered
-// in pinned llama.cpp b12648 (src/llama-arch.cpp LLM_ARCH_NAMES). Non-generative
+// in pinned llama.cpp b12823 (src/llama-arch.cpp LLM_ARCH_NAMES). Non-generative
 // encoder, embedding, projector, audio/TTS, speculative-draft, OCR, and diffusion
 // architectures (clip, *bert*, *embedding*, llama-embed, pangu-embedded, t5*,
 // wavtokenizer-dec, qwen3tts, pockettts, moshi, zonos3, kokoro, tiny-voca,

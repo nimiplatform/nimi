@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -381,6 +382,7 @@ func TestAudioCppPackageInputUsesTheOwnerReleaseIdentity(t *testing.T) {
 		engine.AudioCppPackageVersion,
 		"release-" + engine.AudioCppPackageVersion + "/../@" + engine.AudioCppPackageCommit,
 		"release-" + engine.AudioCppPackageVersion + "@short-commit",
+		"release-" + engine.AudioCppPackageVersion + "@" + strings.Repeat("a", 40),
 	} {
 		selected.ExactDependencySources[0].Version = invalid
 		if _, err := audioCppRuntimePackageInput(selected); err == nil {

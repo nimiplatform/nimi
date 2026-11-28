@@ -11,7 +11,72 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 )
+
+// Run against the released CLI and selected model files to catch native mode,
+// option and DGL changes that the codec and artifact tests cannot exercise.
+func TestUpscaleWithNativeModels(t *testing.T) {
+	executable := os.Getenv("NIMI_UPSCALE_TEST_SDCLI")
+	if executable == "" {
+		t.Skip("set NIMI_UPSCALE_TEST_SDCLI and the model, VAE and family to exercise native upscaling")
+	}
+	family := os.Getenv("NIMI_UPSCALE_TEST_FAMILY")
+	spec, ok := resolveManagedImageBackendPackageSpecForCurrentHost("stablediffusion-ggml")
+	if !ok {
+		t.Fatal("managed sd.cpp package unavailable")
+	}
+	cli := upscaleCLI{executable: executable, directory: filepath.Dir(executable), release: spec.ReleaseTag}
+	var source bytes.Buffer
+	img := image.NewNRGBA(image.Rect(0, 0, 64, 48))
+	img.Set(16, 24, color.NRGBA{R: 255, A: 255})
+	if err := png.Encode(&source, img); err != nil {
+		t.Fatal(err)
+	}
+	plan := &capabilitydriver.UpscaleInvocationPlan{
+		Family: family, Seed: 42, Scale: 2, Source: source.Bytes(), MIMEType: "image/png",
+		Bindings: []capabilitydriver.InvocationExactBinding{
+			{AbsolutePath: os.Getenv("NIMI_UPSCALE_TEST_MODEL")}, {AbsolutePath: os.Getenv("NIMI_UPSCALE_TEST_VAE")},
+		},
+	}
+	if os.Getenv("NIMI_UPSCALE_TEST_SCALE") == "4" {
+		plan.Scale = 4
+	}
+	still, err := upscaleStill(t.Context(), plan, t.TempDir(), cli)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := still.Body.Close(); err != nil {
+		t.Fatal(err)
+	}
+	ffprobe, sourceMP4 := os.Getenv("NIMI_UPSCALE_TEST_FFPROBE"), os.Getenv("NIMI_UPSCALE_TEST_SOURCE")
+	if ffprobe == "" || sourceMP4 == "" {
+		return
+	}
+	plan.Source, err = os.ReadFile(sourceMP4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	codec, err := mediaCodecSpecFor(currentGOOS(), currentGOARCH())
+	if err != nil {
+		t.Fatal(err)
+	}
+	ffmpeg := filepath.Join(filepath.Dir(ffprobe), "ffmpeg"+codec.suffix)
+	plan.Video, plan.MIMEType = true, "video/mp4"
+	plan.Dependencies = []capabilitydriver.InvocationExactDependencySource{{
+		DependencyFamily: "native-tool.media-codec", DependencyID: MediaCodecDependencyID, Version: codec.version,
+		CanonicalRoot: filepath.Dir(filepath.Dir(ffprobe)), VerifiedArtifacts: []string{ffmpeg, ffprobe}, Hashes: codec.hashes,
+	}}
+	host := NewUpscaleExecutionHost(nil, func(context.Context) (string, string, error) { return ffmpeg, ffprobe, nil })
+	video, err := host.upscaleVideo(t.Context(), plan, t.TempDir(), cli)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := video.Body.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestUpscaleImageDimensionsAndCompletePNGValidation(t *testing.T) {
 	var encoded bytes.Buffer

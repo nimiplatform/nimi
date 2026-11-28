@@ -1764,7 +1764,7 @@ func stableDiffusionInteger(value *structpb.Value, minimum, maximum int64) (int6
 	return int64(number), true
 }
 
-// Pinned stable-diffusion.cpp master-1088-32d516c sampling methods and sigma
+// Pinned stable-diffusion.cpp master-1147-3b0426f sampling methods and sigma
 // schedulers (verified via sd-server --help and examples/common/common.cpp).
 // Rejecting unknown values at portable-config validation prevents sd-server
 // from silently falling back to model defaults and freezing an unhonored option.

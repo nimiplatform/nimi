@@ -102,10 +102,11 @@ type Server struct {
 	mu     sync.RWMutex
 	loaded *loadModelState
 
-	videoGenerateMu sync.Mutex
-	videoStateMu    sync.Mutex
-	videoLoaded     bool
-	activeVideoDone chan struct{}
+	videoGenerateMu   sync.Mutex
+	videoStateMu      sync.Mutex
+	videoLoaded       bool
+	activeVideoDone   chan struct{}
+	activeVideoCancel context.CancelFunc
 }
 
 func RunServer(ctx context.Context, cfg ServerConfig) error {
@@ -170,9 +171,7 @@ func (s *Server) Serve(ctx context.Context, listenAddress string) (returnErr err
 	case <-ctx.Done():
 		// Cooperative video cancellation must precede GracefulStop; otherwise
 		// an active FFI call would keep its stream handler alive indefinitely.
-		if s.videoEngine != nil {
-			_ = s.videoEngine.Cancel()
-		}
+		_, _ = s.cancelActiveVideo()
 		grpcServer.GracefulStop()
 		_ = <-serveErrCh // GracefulStop has completed; preserve the caller's cancellation.
 		return ctx.Err()

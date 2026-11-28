@@ -1,6 +1,7 @@
 package managedimagebackend
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -16,9 +17,9 @@ import (
 // The model-family marker alone cannot establish compatibility with the C
 // struct layouts and function signatures compiled into the native bridges.
 // Reuse the materializer's existing verified archive identity.
-const stableDiffusionVideoArchiveSHA256 = "e76d90e0ad0aedb3bcd9e24e7ecb20e7c3e0be9700a7e9e94fbd26226e67f597" // pragma: allowlist secret -- public archive checksum
+const stableDiffusionVideoArchiveSHA256 = "cd62cb294132e175ca17024d997b8925888438c2d4bdb72968f61935dcdab68e" // pragma: allowlist secret -- public archive checksum
 
-const stableDiffusionVideoDarwinArchiveSHA256 = "b6588e81e788d9f2f24498831ba398d7523152e7ec280ff282f39c2009465b77"      // pragma: allowlist secret -- public archive checksum
+const stableDiffusionVideoDarwinArchiveSHA256 = "f354db28227615974edec21cf64df336f0312a11279fe7574f23c9d622afe226"      // pragma: allowlist secret -- public archive checksum
 const stableDiffusionVideoDarwinMetalArchiveSHA256 = "3d7a24780f8193d3835849549b088b34a2de65f5ca0981540caf4a06900a42c9" // pragma: allowlist secret -- source-development archive checksum
 
 type videoPackageIdentity struct {
@@ -125,15 +126,15 @@ func (s *Server) handleGenerateVideo(stream grpc.ServerStream) error {
 
 	s.videoGenerateMu.Lock()
 	defer s.videoGenerateMu.Unlock()
+	ctx, cancel := context.WithCancel(stream.Context())
 	done := make(chan struct{})
 	s.videoStateMu.Lock()
-	s.activeVideoDone = done
+	s.activeVideoDone, s.activeVideoCancel = done, cancel
 	s.videoStateMu.Unlock()
 	defer func() {
+		cancel()
 		s.videoStateMu.Lock()
-		if s.activeVideoDone == done {
-			s.activeVideoDone = nil
-		}
+		s.activeVideoDone, s.activeVideoCancel = nil, nil
 		s.videoStateMu.Unlock()
 	}()
 
@@ -146,7 +147,7 @@ func (s *Server) handleGenerateVideo(stream grpc.ServerStream) error {
 	startedAt := time.Now()
 	go func() {
 		defer close(done)
-		candidate, generateErr := s.videoEngine.Generate(request, func(progress VideoGenerateProgress) {
+		candidate, generateErr := s.videoEngine.Generate(ctx, request, func(progress VideoGenerateProgress) {
 			select {
 			case progressCh <- progress:
 			default:
@@ -162,11 +163,14 @@ func (s *Server) handleGenerateVideo(stream grpc.ServerStream) error {
 		select {
 		case progress := <-progressCh:
 			if err := stream.SendMsg(videoProgressEvent(progress)); err != nil {
-				_ = s.videoEngine.Cancel()
+				_, _ = s.cancelActiveVideo()
 				<-done
 				return err
 			}
 		case result := <-resultCh:
+			if ctx.Err() != nil {
+				return stream.SendMsg(videoTerminalEvent(VideoCandidate{}, videoError(VideoErrorCanceled, ctx.Err())))
+			}
 			if result.err != nil {
 				if VideoErrorKindOf(result.err) == "" {
 					result.err = videoError(VideoErrorInference, fmt.Errorf("generate video: %w", result.err))
@@ -178,11 +182,22 @@ func (s *Server) handleGenerateVideo(stream grpc.ServerStream) error {
 			}
 			return stream.SendMsg(videoTerminalEvent(result.candidate, nil))
 		case <-stream.Context().Done():
-			_ = s.videoEngine.Cancel()
+			_, _ = s.cancelActiveVideo()
 			<-done
 			return stream.Context().Err()
 		}
 	}
+}
+
+func (s *Server) cancelActiveVideo() (<-chan struct{}, error) {
+	s.videoStateMu.Lock()
+	defer s.videoStateMu.Unlock()
+	if s.activeVideoDone == nil {
+		return nil, nil
+	}
+	// Cancel the captured request even if its worker has not entered native generation yet.
+	s.activeVideoCancel()
+	return s.activeVideoDone, s.videoEngine.Cancel()
 }
 
 func (s *Server) handleCancelVideo(stream grpc.ServerStream) error {
@@ -198,15 +213,12 @@ func (s *Server) handleCancelVideo(stream grpc.ServerStream) error {
 		err := videoError(VideoErrorCanceled, fmt.Errorf("managed video FFI engine is unavailable"))
 		return stream.SendMsg(protocolErrorResult(err))
 	}
-	s.videoStateMu.Lock()
-	done := s.activeVideoDone
-	s.videoStateMu.Unlock()
+	done, err := s.cancelActiveVideo()
+	if err != nil {
+		return stream.SendMsg(protocolErrorResult(videoError(VideoErrorCanceled, fmt.Errorf("cancel video engine: %w", err))))
+	}
 	if done == nil {
 		return stream.SendMsg(videoOperationResult(true, "idle", "", false, s.videoPackage.String()))
-	}
-	if err := s.videoEngine.Cancel(); err != nil {
-		err = videoError(VideoErrorCanceled, fmt.Errorf("cancel video engine: %w", err))
-		return stream.SendMsg(protocolErrorResult(err))
 	}
 	select {
 	case <-done:

@@ -1,8 +1,11 @@
-//go:build !windows && !(darwin && arm64 && cgo)
+//go:build !(windows && amd64) && !(darwin && arm64 && cgo)
 
 package managedimagebackend
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 type unsupportedVideoEngine struct{}
 
@@ -14,7 +17,7 @@ func (unsupportedVideoEngine) Load(VideoModelRequest) (bool, error) {
 	return false, videoError(VideoErrorEngineIncompatible, fmt.Errorf("stable-diffusion video FFI requires Windows x64 or Apple Silicon with cgo"))
 }
 
-func (unsupportedVideoEngine) Generate(VideoGenerateRequest, func(VideoGenerateProgress)) (VideoCandidate, error) {
+func (unsupportedVideoEngine) Generate(context.Context, VideoGenerateRequest, func(VideoGenerateProgress)) (VideoCandidate, error) {
 	return VideoCandidate{}, videoError(VideoErrorEngineIncompatible, fmt.Errorf("stable-diffusion video FFI requires Windows x64 or Apple Silicon with cgo"))
 }
 

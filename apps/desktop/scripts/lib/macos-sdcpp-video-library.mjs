@@ -5,7 +5,7 @@ import { hashProductFile } from '../../../../scripts/lib/product-update-manifest
 import { runReleaseCommand, verifySignedMacOSCode } from './macos-release-process.mjs';
 
 export const MACOS_SDCPP_VIDEO_LIBRARY = 'libstable-diffusion.dylib';
-export const MACOS_SDCPP_VIDEO_LICENSES = ['stable-diffusion.cpp.txt', 'ggml.txt'];
+export const MACOS_SDCPP_VIDEO_LICENSES = ['stable-diffusion.cpp.txt', 'ggml.txt', 'libwebp.txt', 'libwebm.txt'];
 const signingIdentifier = 'ai.nimi.runtime.sdcpp-video';
 
 // @nimi-authority: rule.nimi.runtime.local-compute.r067

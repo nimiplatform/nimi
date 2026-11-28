@@ -32,7 +32,7 @@ func (f *fakeVideoEngine) Load(VideoModelRequest) (bool, error) {
 	return false, nil
 }
 
-func (f *fakeVideoEngine) Generate(_ VideoGenerateRequest, progress func(VideoGenerateProgress)) (VideoCandidate, error) {
+func (f *fakeVideoEngine) Generate(_ context.Context, _ VideoGenerateRequest, progress func(VideoGenerateProgress)) (VideoCandidate, error) {
 	f.mu.Lock()
 	f.generates++
 	f.mu.Unlock()
@@ -348,7 +348,7 @@ func startVideoTestServer(t *testing.T, server *Server) (string, func()) {
 }
 
 func h3VideoPackageIdentity() videoPackageIdentity {
-	return videoPackageIdentity{Name: "master-1088-32d516c", SupportedModelFamilies: []string{"minimax-h3"}, ArchiveSHA256: stableDiffusionVideoArchiveSHA256}
+	return videoPackageIdentity{Name: "master-1147-3b0426f", SupportedModelFamilies: []string{"minimax-h3"}, ArchiveSHA256: stableDiffusionVideoArchiveSHA256}
 }
 
 func validVideoModelRequest(address string) VideoModelRequest {

@@ -182,10 +182,10 @@ type VideoCandidate struct {
 }
 
 // videoEngine is the narrow in-process C API seam. Tests inject fakes; the
-// production implementation is the Windows stable-diffusion.dll adapter.
+// production implementations bind the selected sd.cpp library.
 type videoEngine interface {
 	Load(VideoModelRequest) (bool, error)
-	Generate(VideoGenerateRequest, func(VideoGenerateProgress)) (VideoCandidate, error)
+	Generate(context.Context, VideoGenerateRequest, func(VideoGenerateProgress)) (VideoCandidate, error)
 	Cancel() error
 	Free() error
 }

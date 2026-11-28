@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
@@ -174,25 +174,20 @@ func validSelectedMusicExecution(selected *localexecution.SelectedLocalExecution
 	return selected != nil && selected.Configured && selected.CapabilityContract == capabilitydriver.MiniMaxMusic3CapabilityContract && selected.DriverIdentity != nil && len(selected.Requirements) == 1 && len(selected.ExactBindings) == 1 && len(selected.ExactDependencySources) == 2
 }
 
-var audioCppSelectedSourceVersionPattern = regexp.MustCompile(`^release-([0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?)@[0-9a-f]{40}$`)
-
 // @nimi-authority: rule.nimi.runtime.local-compute.vevo2-macos-cpu
 func audioCppRuntimePackageInput(selected *localexecution.SelectedLocalExecution) (capabilitydriver.AudioCppRuntimePackageInput, error) {
 	var result capabilitydriver.AudioCppRuntimePackageInput
 	for _, source := range selected.ExactDependencySources {
 		switch {
 		case source.DependencyFamily == "native-engine-package.audio-cpp" && source.DependencyID == "audio.cpp.package":
-			// Local service has already verified the complete owner identity.
-			// The Driver compares the semantic version, not that source-record id.
-			version := audioCppSelectedSourceVersionPattern.FindStringSubmatch(source.Version)
-			if len(version) != 2 {
+			if source.Version != engine.AudioCppSelectedSourceVersion {
 				return capabilitydriver.AudioCppRuntimePackageInput{}, fmt.Errorf("audio.cpp selected-source release identity is invalid")
 			}
-			result.AudioCppVersion = version[1]
+			result.AudioCppVersion = engine.AudioCppPackageVersion
 			result.AudioCppPackageID = capabilitydriver.AudioCppWindowsCUDA13PackageID
 			executableName := "audiocpp_cli.exe"
 			if source.ConsumerScope == "audio.cpp.vevo2.cpu" {
-				if selected.CapabilityContract != capabilitydriver.VoiceConvertCapabilityContract || selected.DriverIdentity.GetDriverId() != capabilitydriver.VeVo2DriverID || source.Version != "release-0.9.3@41c1f8ffa0d13a1b7e366e30ea5fe5ab8d169d48" {
+				if selected.CapabilityContract != capabilitydriver.VoiceConvertCapabilityContract || selected.DriverIdentity.GetDriverId() != capabilitydriver.VeVo2DriverID {
 					return result, fmt.Errorf("Mac audio.cpp source does not belong to VeVo2")
 				}
 				result.AudioCppPackageID = capabilitydriver.AudioCppMacOSPackageID
