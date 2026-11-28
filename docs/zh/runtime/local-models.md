@@ -14,10 +14,11 @@
 
 ## 本地图像与视频模型
 
-Home 为 Windows amd64 NVIDIA 和 macOS 26.0 及以上的 Apple Silicon 分别准备由 Runtime 管理的 sd.cpp `master-1088-32d516c` 引擎包。已有权重可从 Home 导入，再逐个绑定模型槽位。官方 Mac 包使用 Metal 执行常规算子。构建时未启用 sd.cpp 的 Metal 扩展，INT8 ConvRot 会在 CPU 上执行。本机使用这个包执行 H3 Image 的 1024×1024 文生图时超时。原生开发环境可以显式选择经登记校验的本地引擎包，由 Home 准备。该包以 `SD_METAL=ON` 和 `SD_USE_UPSTREAM_GGML=OFF` 构建。具体入口见 [Lab 开发说明](https://github.com/nimiplatform/nimi/blob/main/apps/lab/README.md)。
+Home 为 Windows amd64 NVIDIA 和 macOS 26.0 及以上的 Apple Silicon 分别准备由 Runtime 管理的 sd.cpp `master-1147-3b0426f` 引擎包。已有权重可从 Home 导入，再逐个绑定模型槽位。官方 Mac 包使用 Metal 执行常规算子，INT8 ConvRot 使用 CPU。H3 Image 的 1024×1024 文生图超时记录来自上一版官方 `master-1088-32d516c` 包。原生开发环境可显式选择单独登记的 `master-1088-32d516c` 本地包，由 Home 校验和准备。该包以 `SD_METAL=ON` 和 `SD_USE_UPSTREAM_GGML=OFF` 构建。具体入口见 [Lab 开发说明](https://github.com/nimiplatform/nimi/blob/main/apps/lab/README.md)。
 
 | 模型或组件 | 能力 | 组件与使用方式 |
 | --- | --- | --- |
+| Qwen Image 2.1 | `image.generate` | 在 Windows NVIDIA 主机上绑定扩散模型、Qwen3-VL 8B 文本编码器和 Qwen Image 2.1 专用 VAE。每次根据文本生成一张 PNG，宽和高都必须是 32 的倍数。 |
 | MiniMax-H3-Image | `image.generate` | 独立的 PDD 图像主模型、MiniMax-H3 Qwen3-VL 合并编码器 GGUF，以及专用图像 VAE；支持文生图或单参考图编辑，每次一张，不接受蒙版和负向提示词 |
 | HyperFlow H3 Flash | `video.generate` | FL2VA、Ref2VA 合并 safetensors 主模型，H3 合并编码器、视频 VAE 和音频 VAE；当前采用六步 Euler、CFG 1 的蒸馏采样方案 |
 | Sol-H3-VAE | `video.generate` 组件 | 可在 H3 视频路径中独立选择的视频 VAE，包括 HyperFlow；它不是独立生成能力，也不能替代 H3 Image 的专用图像 VAE |

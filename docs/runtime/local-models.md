@@ -14,10 +14,11 @@ In Nimi's local compute architecture, model weight files represent static assets
 
 ## Local Image and Video Models
 
-Home prepares a platform-specific, Runtime-managed sd.cpp `master-1088-32d516c` archive for Windows amd64 NVIDIA or macOS 26.0+ on Apple Silicon. Use Home to import existing weights and bind each model slot before preparing the engine. The official Mac archive runs ordinary Metal operators. INT8 ConvRot executes on CPU because the archive omits the sd.cpp Metal extension. H3 Image timed out at 1024×1024 with that archive. The guarded source-development Runtime can explicitly prepare a separately pinned local archive built with `SD_METAL=ON` and `SD_USE_UPSTREAM_GGML=OFF`. See the [Lab developer instructions](https://github.com/nimiplatform/nimi/blob/main/apps/lab/README.md).
+Home prepares a platform-specific, Runtime-managed sd.cpp `master-1147-3b0426f` archive for Windows amd64 NVIDIA or macOS 26.0+ on Apple Silicon. Import existing weights in Home and bind each model slot before preparing the engine. The official Mac archive uses Metal for ordinary operators and CPU for INT8 ConvRot. The H3 Image timeout at 1024×1024 was observed on the previous official `master-1088-32d516c` archive. The guarded source-development Runtime can explicitly prepare the separately pinned `master-1088-32d516c` local archive built with `SD_METAL=ON` and `SD_USE_UPSTREAM_GGML=OFF`. See the [Lab developer instructions](https://github.com/nimiplatform/nimi/blob/main/apps/lab/README.md).
 
 | Model or component | Capability | Components and supported use |
 | --- | --- | --- |
+| Qwen Image 2.1 | `image.generate` | On Windows NVIDIA, bind the diffusion model, Qwen3-VL 8B text encoder and dedicated Qwen Image 2.1 VAE. Generate one PNG from text with width and height divisible by 32. |
 | MiniMax-H3-Image | `image.generate` | Independent PDD image transformer, combined MiniMax-H3 Qwen3-VL GGUF encoder and dedicated image VAE; text generation or one reference-image edit, one output, no mask or negative prompt |
 | HyperFlow H3 Flash | `video.generate` | Combined FL2VA and Ref2VA safetensors transformers, combined H3 encoder, video VAE and audio VAE; the implemented distilled schedule uses six Euler steps and CFG 1 |
 | Sol-H3-VAE | `video.generate` component | An independently selectable video VAE for the H3 video path, including HyperFlow; it is not a separate generation capability and does not replace the dedicated H3 Image VAE |
